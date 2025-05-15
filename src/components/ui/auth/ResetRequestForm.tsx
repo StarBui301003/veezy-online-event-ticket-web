@@ -29,7 +29,7 @@ export const ResetRequestForm = () => {
       setMessage("Verification code sent to your email.");
       setTimeout(() => {
         navigate("/new-password");
-      }, 100); 
+      }, 100);
     } catch (error) {
       setMessage("Failed to send reset email. Please try again.");
       console.error(error);
@@ -44,7 +44,14 @@ export const ResetRequestForm = () => {
         <h2 className="text-2xl font-bold text-gray-800">Reset Password</h2>
         <p className="text-gray-600 text-left">Enter your email to reset your password</p>
 
-        <Input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input
+          type="email"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
         {message && <p className="text-sm text-green-600">{message}</p>}
 

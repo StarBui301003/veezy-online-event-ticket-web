@@ -43,12 +43,16 @@ export const ResetNewPasswordForm = () => {
     }
 
     try {
-      await resetPasswordWithCode(email, code, newPassword);
-      setMessage("Password reset successfully. Redirecting to login...");
-      localStorage.removeItem("resetEmail");
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      const response = await resetPasswordWithCode(email, code, newPassword);
+      if (response.code === 200) {
+        setMessage("Password reset successfully. Redirecting to login...");
+        localStorage.removeItem("resetEmail");
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
+      } else {
+        setError("Failed to reset password. Please check your code and try again.");
+      }
     } catch (err) {
       setError("Failed to reset password. Please check your code and try again.");
       console.error(err);
@@ -63,9 +67,30 @@ export const ResetNewPasswordForm = () => {
         <h2 className="text-2xl font-bold text-gray-800">Reset Your Password</h2>
         <p className="text-gray-600 text-left">Enter the verification code and your new password.</p>
 
-        <Input type="text" placeholder="Verification code" value={code} onChange={(e) => setCode(e.target.value)} required />
-        <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-        <Input type="password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+        <Input
+          type="text"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          placeholder="Verification code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          required
+        />
+        <Input
+          type="password"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          placeholder="New password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+        />
+        <Input
+          type="password"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
 
         {error && <div className="rounded-lg bg-red-100 border border-red-400 text-red-800 px-4 py-2 text-sm shadow-sm">{error}</div>}
         {message && <div className="rounded-lg bg-green-100 border border-green-400 text-green-800 px-4 py-2 text-sm shadow-sm">{message}</div>}
