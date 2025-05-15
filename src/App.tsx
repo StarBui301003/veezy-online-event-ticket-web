@@ -1,3 +1,7 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ResetRequestForm } from "@/components/ui/auth/ResetRequestForm";
+import { ResetNewPasswordForm } from "@/components/ui/auth/ResetNewPasswordForm";
+        
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
@@ -27,6 +31,14 @@ function App() {
     {
       path: '/login',
       element: <LoginPage />,
+    },
+    {
+      path: '/reset-password',
+      element: <ResetRequestForm />,
+    },
+    {
+      path: '/new-password',
+      element: <ResetNewPasswordForm />,
     },
     {
       path: '/register',
