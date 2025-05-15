@@ -1,7 +1,17 @@
-import "@/App.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ResetRequestForm } from "@/components/ui/auth/ResetRequestForm";
+import { ResetNewPasswordForm } from "@/components/ui/auth/ResetNewPasswordForm";
+import "./App.css";
 
 function App() {
-  return <h1 className="text-3xl font-bold underline">Hello world!</h1>;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/reset-password" element={<ResetRequestForm />} />
+        <Route path="/new-password" element={<ResetNewPasswordForm />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;
