@@ -36,10 +36,15 @@ export const Register = () => {
     setLoading(true);
     try {
       const dob = format(date, 'yyyy-MM-dd');
-      await RegisterAPI({ username, fullName, email, password, dob, role: 1 });
+      const response = await RegisterAPI({ username, fullName, email, password, dob, role: 1 });
       sessionStorage.setItem('registerEmail', email);
-      toast.success('Register successful! Please verify your email.');
-      navigate('/verify-email');
+      
+      if (response.code === 400) {
+              toast.error(response.status);
+      } else if (response.code === 200) {
+        toast.success('Register successful! Please verify your email.');
+        navigate('/verify-email');
+      }     
     } catch {
       toast.error('Register failed!');
     } finally {
