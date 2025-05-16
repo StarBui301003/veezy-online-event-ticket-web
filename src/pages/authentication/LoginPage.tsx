@@ -1,4 +1,4 @@
-import { GG_ICON, LOGO } from '@/assets/img';
+import { LOGO } from '@/assets/img';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,19 +6,20 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { loginAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     if (accStr) {
-      navigate('/'); // Nếu đã đăng nhập thì chuyển về home
+      navigate('/');
     }
     const remembered = localStorage.getItem('remembered_username');
     if (remembered) {
@@ -28,6 +29,7 @@ export const LoginPage = () => {
   }, [navigate]);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       const data = { username, password };
       const apiResult = await loginAPI(data);
@@ -83,6 +85,8 @@ export const LoginPage = () => {
       toast.error(errorMessage, {
         position: 'top-right',
       });
+    } finally {
+      setLoading(false);
     }
   };
   return (
@@ -115,11 +119,11 @@ export const LoginPage = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA]"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none "
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                  {showPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
             </div>
@@ -128,21 +132,29 @@ export const LoginPage = () => {
                 <Checkbox
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
-                  className="border-none focus:outline-none rounded-[4px] bg-white/5 text-[#A1A1AA]"
+                  className="border-none focus:outline-none rounded-none bg-white/5 text-[#A1A1AA]"
                 />
                 <div>Remember me</div>
               </div>
-              <Link to="/forgot-password" className="text-[#60A5FA] hover:underline">
+              <Link to="/reset-password" className="text-[#60A5FA] hover:underline">
                 Forgot password?
               </Link>
             </div>
             <Button
               onClick={handleLogin}
               className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-[380px] rounded-[8px] py-6 text-[20px] mt-[46px]"
+              disabled={loading}
             >
-              Login
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin w-6 h-6" />
+                  Logging in...
+                </span>
+              ) : (
+                'Login'
+              )}
             </Button>
-            <div className="w-full flex justify-center">
+            {/* <div className="w-full flex justify-center">
               <div className="flex items-center text-gray-400 text-sm my-6">
                 <div className="flex-grow border-t border-gray-300"></div>
                 <span className="mx-4 text-[#60A5FA] ">or</span>
@@ -154,7 +166,7 @@ export const LoginPage = () => {
                 <img src={GG_ICON} alt="Google Icon" className="w-6 h-6" />
                 <div>Login with Google</div>
               </div>
-            </Button>
+            </Button> */}
             <div className="mt-6">
               Don’t have an account?{' '}
               <Link to="/register" className="text-[#60A5FA] hover:underline">

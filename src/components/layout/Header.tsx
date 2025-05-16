@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'; // dùng shadcn/ui
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
 import { Input } from '../ui/input';
@@ -25,7 +25,6 @@ export const Header = () => {
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
-    // Lấy account từ localStorage nếu đã đăng nhập
     const accStr = localStorage.getItem('account');
     if (accStr) {
       try {
@@ -117,7 +116,10 @@ export const Header = () => {
           <div className="mr-14">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="body-medium-16 px-[6px] hidden sm:flex">
+                <Button
+                  variant="ghost"
+                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent"
+                >
                   EN
                   <IoIosArrowDown />
                 </Button>
@@ -148,7 +150,7 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-3"
+                    className="flex items-center gap-2 px-3 bg-transparent"
                     style={{ minWidth: 0 }}
                   >
                     {account.avatar ? (
@@ -169,7 +171,7 @@ export const Header = () => {
                     <IoIosArrowDown />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48 bg-white text-black">
                   <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} disabled={loadingLogout}>

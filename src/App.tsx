@@ -1,7 +1,3 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ResetRequestForm } from "@/components/ui/auth/ResetRequestForm";
-import { ResetNewPasswordForm } from "@/components/ui/auth/ResetNewPasswordForm";
-        
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
@@ -12,6 +8,9 @@ import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
 import { Loader2 } from 'lucide-react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
+import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
+import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
 
 function App() {
   const { loading } = useLoading();
@@ -43,6 +42,10 @@ function App() {
     {
       path: '/register',
       element: <Register />,
+    },
+    {
+      path: '/verify-email',
+      element: <VerifyRegister />,
     },
   ]);
   return (

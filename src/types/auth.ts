@@ -1,3 +1,4 @@
+
 export interface LoginRequest {
   username: string;
   password: string;
@@ -10,8 +11,9 @@ export interface RegisterRequest {
   username: string;
   email: string
   password: string;
-  fullname: string
-  dob: string
+  fullName: string
+  dob: string,
+   role: number;
 }
 export interface LoginResponse {
   accessToken: string;
@@ -46,3 +48,9 @@ export interface User {
   gender: string;
   dob: string;
 } 
+
+
+export interface VerifyEmailRegisterAPI {
+  email: string; 
+  verificationCode: string;
+}
