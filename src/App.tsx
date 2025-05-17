@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
-import { HomePage } from '@/pages/HomePage';
+import { HomePage } from '@/pages/User/HomePage';
 import { LoginPage } from '@/pages/authentication/LoginPage';
 import { Register } from './pages/authentication/Register';
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
@@ -11,6 +11,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
 import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
 import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
+import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+import { Dashboard } from '@/pages/Admin/Dashboard';
 
 function App() {
   const { loading } = useLoading();
@@ -23,9 +25,31 @@ function App() {
       children: [
         {
           index: true,
-          element: <HomePage />,
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <HomePage />
+            </ProtectedRoute>
+          ),
         },
       ],
+    },
+    // Customer = 1, Event Manager = 2
+    // {
+    //   path: '/example',
+    //   element: (
+    //     <ProtectedRoute allowedRoles={[1, 2]}>
+    //       <Example />
+    //     </ProtectedRoute>
+    //   ),
+    // },
+    // Admin
+    {
+      path: '/admin',
+      element: (
+        <ProtectedRoute allowedRoles={[0]}>
+          <Dashboard />
+        </ProtectedRoute>
+      ),
     },
     {
       path: '/login',

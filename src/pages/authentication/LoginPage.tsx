@@ -41,6 +41,24 @@ export const LoginPage = () => {
       } else {
         localStorage.removeItem('remembered_username');
       }
+
+      // // Kiểm tra role
+      // if (apiResult.account.role === 0) {
+      //   toast.error('Admin không được phép truy cập trang này.', { position: 'top-right' });
+      //   localStorage.removeItem('access_token');
+      //   localStorage.removeItem('account');
+      //   return;
+      // }
+
+      // Nếu là admin thì chuyển sang trang admin
+      if (apiResult.account.role === 0) {
+        toast.success(`Welcome admin ${apiResult.account.username}!`, {
+          position: 'top-right',
+        });
+        navigate('/admin');
+        return;
+      }
+
       toast.success(`Welcome ${apiResult.account.username}!`, {
         position: 'top-right',
       });

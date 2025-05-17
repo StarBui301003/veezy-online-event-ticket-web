@@ -24,6 +24,7 @@ export interface LoginResponse {
     email: string;
     fullname: string;
     dob?: string;
+    role: number;
   } 
   sessionId?: string;
 }
