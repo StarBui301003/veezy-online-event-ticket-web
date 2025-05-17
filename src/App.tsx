@@ -38,10 +38,12 @@ function App() {
     //   path: '/example',
     //   element: (
     //     <ProtectedRoute allowedRoles={[1, 2]}>
-    //       <Example />
+    //       <Example1 />
+    //       <Example2 />
     //     </ProtectedRoute>
     //   ),
     // },
+
     // Admin
     {
       path: '/admin',
