@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
 import { AiOutlineCalendar } from 'react-icons/ai';
 import { Eye, EyeOff } from 'lucide-react';
@@ -35,16 +35,23 @@ export const Register = () => {
     }
     setLoading(true);
     try {
-      const dob = format(date, 'yyyy-MM-dd');
-      const response = await RegisterAPI({ username, fullName, email, password, dob, role: 1 });
+      const dateOfBirth = format(date, 'yyyy-MM-dd', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const response = await RegisterAPI({
+        username,
+        fullName,
+        email,
+        password,
+        dateOfBirth,
+        role: 1,
+      });
       sessionStorage.setItem('registerEmail', email);
-      
+
       if (response.code === 400) {
-              toast.error(response.status);
+        toast.error(response.status);
       } else if (response.code === 200) {
         toast.success('Register successful! Please verify your email.');
         navigate('/verify-email');
-      }     
+      }
     } catch {
       toast.error('Register failed!');
     } finally {

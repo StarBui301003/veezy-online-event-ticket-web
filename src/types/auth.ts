@@ -12,7 +12,7 @@ export interface RegisterRequest {
   email: string
   password: string;
   fullName: string
-  dob: string,
+  dateOfBirth: string,
    role: number;
 }
 export interface LoginResponse {
