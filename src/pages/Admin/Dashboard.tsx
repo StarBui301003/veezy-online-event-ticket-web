@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { getUserAPI } from '@/services/auth.service';
+import { getUserAPI, LogoutAPI } from '@/services/auth.service';
+import { useNavigate } from 'react-router-dom';
 
 export const Dashboard = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<number | null>(null);
+  const [loadingLogout, setLoadingLogout] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -25,17 +28,23 @@ export const Dashboard = () => {
     switch (role) {
       case 0:
         return 'Admin';
-      case 1:
-        return 'Customer';
-      case 2:
-        return 'Event Manager';
-      case 3:
-        return 'Collaborator';
-      case 4:
-        return 'Other';
       default:
         return 'Unknown';
     }
+  };
+
+  // Hàm logout
+  const handleLogout = async () => {
+    setLoadingLogout(true);
+    try {
+      await LogoutAPI();
+    } catch {
+      // ignore error
+    }
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('account');
+    setLoadingLogout(false);
+    navigate('/login');
   };
 
   return (
@@ -45,6 +54,36 @@ export const Dashboard = () => {
         {role !== null && (
           <div className="text-blue-800 text-2xl font-semibold mt-2">Role: {roleText(role)}</div>
         )}
+        {/* Button logout ở giữa màn hình */}
+        <button
+          onClick={handleLogout}
+          className="mt-8 px-8 py-3 bg-red-600 text-white rounded-lg text-xl font-bold hover:bg-red-700 transition flex items-center justify-center"
+          disabled={loadingLogout}
+        >
+          {loadingLogout ? (
+            <span className="flex items-center">
+              <svg className="animate-spin mr-2 h-5 w-5 text-white" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              Đang đăng xuất...
+            </span>
+          ) : (
+            'Logout'
+          )}
+        </button>
       </div>
       <div className="bg-blue-300 w-full h-[400px] flex flex-col items-center justify-center">
         {user && (

@@ -23,8 +23,6 @@ export const HomePage = () => {
   // Map role number to text
   const roleText = (role: number | null) => {
     switch (role) {
-      case 0:
-        return 'Admin';
       case 1:
         return 'Customer';
       case 2:
