@@ -1,5 +1,5 @@
 import { CiSearch } from 'react-icons/ci';
-import { Button } from '../ui/button';
+import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AVATAR, LOGO } from '@/assets/img';
 import { useEffect, useState } from 'react';
@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
-import { Input } from '../ui/input';
+import { Input } from '../../ui/input';
 import { LogoutAPI } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import { Account } from '@/types/auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export const Header = () => {
   const [blur, setBlur] = useState(false);
@@ -114,7 +115,7 @@ export const Header = () => {
           </div>
 
           <div className="mr-14">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -146,24 +147,21 @@ export const Header = () => {
                 </Link>
               </>
             ) : (
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     className="flex items-center gap-2 px-3 bg-transparent"
                     style={{ minWidth: 0 }}
                   >
-                    {account.avatar ? (
-                      <img
-                        src={account.avatar}
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full object-cover border border-gray-300"
-                      />
-                    ) : (
-                      <span className="w-8 h-8 rounded-full border border-black flex items-center justify-center bg-white">
-                        <img src={AVATAR} alt="default avatar" className="w-6 h-6" />
-                      </span>
-                    )}
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                      <AvatarFallback>
+                        {account.fullname?.[0]?.toUpperCase() ||
+                          account.username?.[0]?.toUpperCase() ||
+                          'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="hidden sm:inline whitespace-nowrap">
                       Welcome,{' '}
                       <b>{account.fullname?.trim() ? account.fullname : account.username}</b>!

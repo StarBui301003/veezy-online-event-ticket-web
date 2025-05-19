@@ -1,5 +1,4 @@
 // src/assets/img/index.ts
-
 export { default as LOGO } from "@/assets/img/logo/logo_vezzy.png";
 export { default as LOGO_RECTANGLE } from "@/assets/img/logo/logo_reactangle.jpg";
 export { default as GG_ICON } from "@/assets/img/google-icon.png";

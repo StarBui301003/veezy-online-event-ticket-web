@@ -1,5 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { Layout } from '@/components/layout/Layout';
+import { Layout } from '@/components/User/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { HomePage } from '@/pages/User/HomePage';
 import { LoginPage } from '@/pages/authentication/LoginPage';
@@ -13,6 +13,7 @@ import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
 import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
+import { AdminLayout } from './components/Admin/layout/Layout';
 
 function App() {
   const { loading } = useLoading();
@@ -49,9 +50,23 @@ function App() {
       path: '/admin',
       element: (
         <ProtectedRoute allowedRoles={[0]}>
-          <Dashboard />
+          <AdminLayout />
         </ProtectedRoute>
       ),
+      children: [
+        {
+          index: true,
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <Dashboard />
+            </ProtectedRoute>
+          ), // /admin
+        },
+        //LƯU Ý: NHỚ THÊM PATH CHO BREAKCRUMB TRONG LAYOUT ADMIN LAYOUT.TSX
+        // Thêm các page con cho admin ở đây, ví dụ:
+        // { path: 'users', element: <UserManagement /> },
+        // { path: 'events', element: <EventManagement /> },
+      ],
     },
     {
       path: '/login',
