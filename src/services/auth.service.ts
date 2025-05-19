@@ -17,12 +17,12 @@ export const LogoutAPI = async () => {
 
 export const verifyEmailRegisterAPI = async (data: VerifyEmailRegisterAPI) => {
   const response = await axios.post("/api/Account/verify-email", data);
-  return response.data;
+return response.data;
 };
 
 export const resendVerifyEmailRegisterAPI = async (email: string) => {
   const response = await axios.post("/api/Account/resend-verification", { email });
-  return response.data;
+ return response.data;
 };
 
 export const requestResetPassword = async (email: string) => {
@@ -49,7 +49,7 @@ export const getUserAPI = async (userId: string) => {
       },
     }
   );
-  return response.data;
+  return response.data.data;
 };
 //------------------------------------------------------------------------------------------------------
 
