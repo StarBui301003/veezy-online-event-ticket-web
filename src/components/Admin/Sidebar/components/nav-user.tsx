@@ -25,7 +25,12 @@ import { useNavigate } from 'react-router-dom';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
-  const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
+  const [user, setUser] = useState<{
+    name: string;
+    username: string;
+    email: string;
+    avatar: string;
+  } | null>(null);
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
@@ -37,6 +42,7 @@ export function NavUser() {
       getUserAPI(acc.userId).then((userData) => {
         setUser({
           name: userData.fullName || acc.fullname || acc.username,
+          username: userData.username || acc.username || '',
           email: userData.email || acc.email,
           avatar: userData.avatar || acc.avatar || '',
         });
@@ -77,7 +83,7 @@ export function NavUser() {
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
+                <span className="truncate font-semibold">{user.name}</span> {/* full name */}
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -98,20 +104,24 @@ export function NavUser() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
+                  <span className="truncate font-semibold">{user.username}</span> {/* username */}
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="focus:bg-accent focus:text-accent-foreground">
                 <FiUser />
                 Profile
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} disabled={loadingLogout}>
+            <DropdownMenuItem
+              onClick={handleLogout}
+              disabled={loadingLogout}
+              className="focus:bg-accent focus:text-accent-foreground"
+            >
               <LogOut />
               {loadingLogout ? 'Logging out...' : 'Log out'}
             </DropdownMenuItem>

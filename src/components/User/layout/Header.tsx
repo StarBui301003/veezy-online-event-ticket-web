@@ -182,21 +182,32 @@ export const Header = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 rounded-lg bg-white dark:bg-zinc-900"
+                  className="w-60 rounded-lg bg-white dark:bg-zinc-900"
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
-                    <div className="flex flex-col justify-center px-3 py-2">
-                      <span className="font-semibold text-sm truncate max-w-[140px]">
-                        {user?.username || account.username || account.fullname}
-                      </span>
-                      <span className="text-xs text-muted-foreground truncate max-w-[140px]">
-                        {user?.email || account.email}
-                      </span>
+                    <div className="flex items-center gap-2 pl-2 py-2">
+                      <Avatar className="h-10 w-10 rounded-full border border-zinc-500 dark:border-zinc-700">
+                        <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                        <AvatarFallback className="rounded-full">
+                          {user?.fullName?.[0]?.toUpperCase() ||
+                            account.fullname?.[0]?.toUpperCase() ||
+                            account.username?.[0]?.toUpperCase() ||
+                            'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col justify-center">
+                        <span className="font-semibold text-sm truncate max-w-[140px]">
+                          {user?.username || account.username || account.fullname}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {user?.email || account.email}
+                        </span>
+                      </div>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="border-[2px] border-blue-950/35" />
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="hover:bg-blue-100"
+                    className="hover:bg-blue-50 pl-5"
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
@@ -206,7 +217,7 @@ export const Header = () => {
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={loadingLogout}
-                    className="hover:bg-blue-100"
+                    className="hover:bg-blue-50 pl-5"
                   >
                     <LogOut className="mr-2" />
                     {loadingLogout ? (
@@ -218,6 +229,7 @@ export const Header = () => {
                       'Logout'
                     )}
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
