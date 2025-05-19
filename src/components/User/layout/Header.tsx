@@ -7,20 +7,25 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
 import { Input } from '../../ui/input';
-import { LogoutAPI } from '@/services/auth.service';
+import { LogoutAPI, getUserAPI } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import { Account } from '@/types/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { FiUser } from 'react-icons/fi';
+import { LogOut } from 'lucide-react';
 
 export const Header = () => {
   const [blur, setBlur] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null); // Thêm state user
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
@@ -31,6 +36,12 @@ export const Header = () => {
       try {
         const acc = JSON.parse(accStr);
         setAccount(acc);
+        // Gọi API lấy user
+        if (acc.userId) {
+          getUserAPI(acc.userId)
+            .then((userData) => setUser(userData))
+            .catch(() => setUser(null));
+        }
       } catch {
         // Failed to parse account from localStorage
       }
@@ -154,27 +165,58 @@ export const Header = () => {
                     className="flex items-center gap-2 px-3 bg-transparent"
                     style={{ minWidth: 0 }}
                   >
-                    <Avatar className="w-8 h-8">
+                    <Avatar className="w-8 h-8 border border-zinc-500 rounded-full">
                       <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
                       <AvatarFallback>
-                        {account.fullname?.[0]?.toUpperCase() ||
+                        {user?.fullName?.[0]?.toUpperCase() ||
+                          account.fullname?.[0]?.toUpperCase() ||
                           account.username?.[0]?.toUpperCase() ||
                           'U'}
                       </AvatarFallback>
                     </Avatar>
                     <span className="hidden sm:inline whitespace-nowrap">
-                      Welcome,{' '}
-                      <b>{account.fullname?.trim() ? account.fullname : account.username}</b>!
+                      {user?.fullName || account.fullname || account.username}
                     </span>
                     <IoIosArrowDown />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white text-black">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 rounded-lg bg-white dark:bg-zinc-900"
+                >
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex flex-col justify-center px-3 py-2">
+                      <span className="font-semibold text-sm truncate max-w-[140px]">
+                        {user?.username || account.username || account.fullname}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate max-w-[140px]">
+                        {user?.email || account.email}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="border-[2px] border-blue-950/35" />
+                  <DropdownMenuItem
+                    className="hover:bg-blue-100"
+                    onClick={() => navigate('/profile')}
+                  >
+                    <FiUser className="mr-2" />
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} disabled={loadingLogout}>
-                    {loadingLogout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Logout
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    disabled={loadingLogout}
+                    className="hover:bg-blue-100"
+                  >
+                    <LogOut className="mr-2" />
+                    {loadingLogout ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging out...
+                      </>
+                    ) : (
+                      'Logout'
+                    )}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
