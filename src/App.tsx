@@ -14,6 +14,7 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
+import { ApprovedEventList } from './pages/Admin/Event/ApprovedEventList';
 
 function App() {
   const { loading } = useLoading();
@@ -61,6 +62,10 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           ), // /admin
+        },
+        {
+          path: 'approved-events-list',
+          element: <ApprovedEventList />,
         },
         //LƯU Ý: NHỚ THÊM PATH CHO BREAKCRUMB TRONG LAYOUT ADMIN LAYOUT.TSX
         // Thêm các page con cho admin ở đây, ví dụ:
