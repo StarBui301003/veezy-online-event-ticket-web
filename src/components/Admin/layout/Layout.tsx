@@ -16,6 +16,9 @@ const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
   events: 'Events',
   'approved-events-list': 'Approved Events',
+  'rejected-events-list': 'Rejected Events',
+  'pending-events-list': 'Pending Events',
+
   // Thêm các path khác nếu có
 };
 
@@ -50,7 +53,7 @@ export function AdminLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -96,7 +99,7 @@ export function AdminLayout() {
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col p-4 pt-0">
+        <div className="flex flex-1 flex-col p-4 pt-0 bg-blue-200/75">
           <Outlet />
         </div>
         {showGoTop && (

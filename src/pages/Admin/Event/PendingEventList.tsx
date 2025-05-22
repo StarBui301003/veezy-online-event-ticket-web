@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Table,
   TableHeader,
@@ -9,7 +9,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getApprovedEvents, getCategoryById } from '@/services/Admin/event.service';
+import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent, Category } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/auth.service';
 import {
@@ -26,12 +26,14 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import PendingEventDetailModal from '@/components/Admin/Modal/PendingEventDetailModal';
+import { FaRegTrashAlt } from 'react-icons/fa';
 import { FaEye } from 'react-icons/fa';
-import ApprovedEventDetailModal from '@/components/Admin/Modal/ApprovedEventDetailModal';
+import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const ApprovedEventList = () => {
+export const PendingEventList = () => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [usernames, setUsernames] = useState<Record<string, string>>({});
@@ -39,10 +41,11 @@ export const ApprovedEventList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
+  const [modalKey, setModalKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    getApprovedEvents()
+    getPendingEvents()
       .then(async (res) => {
         setEvents(res.data.items);
 
@@ -50,7 +53,6 @@ export const ApprovedEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        // Gọi API lấy thông tin từng category
         const categoryMap: Record<string, Category> = {};
         await Promise.all(
           allCategoryIds.map(async (id) => {
@@ -60,9 +62,9 @@ export const ApprovedEventList = () => {
             } catch {
               categoryMap[id] = {
                 categoryId: id,
-                categoryName: 'Unknown',
+                categoryName: 'unknown',
                 categoryDescription: '',
-              }; // fallback nếu không tìm thấy
+              };
             }
           })
         );
@@ -91,13 +93,88 @@ export const ApprovedEventList = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDelete = async (event: ApprovedEvent) => {
+    if (!window.confirm('Are you sure you want to cancel this event?')) return;
+    try {
+      const res = await cancelEvent(event.eventId);
+      if (res.flag) {
+        toast.success('Event cancelled successfully!');
+        // Xóa event khỏi danh sách hiển thị
+        setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      } else {
+        toast.error('Cannot cancel this event!');
+      }
+    } catch {
+      toast.error('Cannot cancel this event!');
+    }
+  };
+
+  // Thay đổi: truyền thêm prop onActionDone để reload list khi approve/reject
+  const handleModalActionDone = () => {
+    setModalKey((k) => k + 1); // Đổi key để force remount modal
+    setSelectedEvent(null);
+    reloadList();
+  };
+
+  const reloadList = () => {
+    setLoading(true);
+    getPendingEvents()
+      .then(async (res) => {
+        setEvents(res.data.items);
+        const allCategoryIds = Array.from(
+          new Set(res.data.items.flatMap((event) => event.categoryIds || []))
+        );
+        const categoryMap: Record<string, Category> = {};
+        await Promise.all(
+          allCategoryIds.map(async (id) => {
+            try {
+              const cat = await getCategoryById(id);
+              categoryMap[id] = cat;
+            } catch {
+              categoryMap[id] = {
+                categoryId: id,
+                categoryName: 'unknown',
+                categoryDescription: '',
+              };
+            }
+          })
+        );
+        setCategories(categoryMap);
+
+        const allAccountIds = Array.from(
+          new Set(
+            res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
+          )
+        );
+        const usernameMap: Record<string, string> = {};
+        await Promise.all(
+          allAccountIds.map(async (id) => {
+            try {
+              const username = await getUsernameByAccountId(id);
+              usernameMap[id] = username;
+            } catch {
+              usernameMap[id] = id;
+            }
+          })
+        );
+        setUsernames(usernameMap);
+      })
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pagination logic
   const pagedEvents = events.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(events.length / pageSize));
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Approved Events</h2>
+      <h2 className="text-2xl font-bold mb-4">Pending Events</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           {loading ? (
@@ -127,14 +204,14 @@ export const ApprovedEventList = () => {
                     <TableHead>Approved At</TableHead>
                     <TableHead>Created By</TableHead>
                     <TableHead>Created At</TableHead>
-                    <TableHead className="text-center">Details</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pagedEvents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                        No approved events found.
+                        No pending events found.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -149,25 +226,25 @@ export const ApprovedEventList = () => {
                             ? event.categoryIds
                                 .map((id) => categories[id]?.categoryName || id)
                                 .join(', ')
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.approvedBy
                             ? usernames[event.approvedBy] || event.approvedBy
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.approvedAt
                             ? new Date(event.approvedAt).toLocaleString()
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.createdBy
                             ? usernames[event.createdBy] || event.createdBy
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
-                          {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
+                          {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'unknown'}
                         </TableCell>
                         <TableCell className="text-center">
                           <button
@@ -175,6 +252,20 @@ export const ApprovedEventList = () => {
                             onClick={() => setSelectedEvent(event)}
                           >
                             <FaEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className={`px-3 py-1 bg-red-500 text-white rounded transition ${
+                              event.isApproved
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-red-600'
+                            }`}
+                            onClick={() => {
+                              if (!event.isApproved) handleDelete(event);
+                            }}
+                            type="button"
+                            disabled={event.isApproved}
+                          >
+                            <FaRegTrashAlt className="w-4 h-4" />
                           </button>
                         </TableCell>
                       </TableRow>
@@ -185,7 +276,6 @@ export const ApprovedEventList = () => {
                   <TableRow>
                     <TableCell colSpan={8}>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
-                        {/* Pagination center */}
                         <div className="flex-1 flex justify-center pl-[200px]">
                           <Pagination>
                             <PaginationContent>
@@ -231,7 +321,6 @@ export const ApprovedEventList = () => {
                             </PaginationContent>
                           </Pagination>
                         </div>
-                        {/* Right: Rows per page & showing */}
                         <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                           <span className="text-sm text-gray-700">
                             {events.length === 0
@@ -285,9 +374,11 @@ export const ApprovedEventList = () => {
             </>
           )}
           {selectedEvent && (
-            <ApprovedEventDetailModal
+            <PendingEventDetailModal
+              key={modalKey}
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
+              onActionDone={handleModalActionDone}
             />
           )}
         </div>

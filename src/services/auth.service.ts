@@ -5,6 +5,7 @@ export const loginAPI = async (data: LoginRequest): Promise<LoginResponse> => {
   const response = await axios.post<LoginResponse>("/api/Account/login", data);
   return response.data;
 };
+
 //authentication
 export const RegisterAPI = async (data: RegisterRequest) => {
   const response = await axios.post("/api/Account/register", data);
@@ -51,6 +52,31 @@ export const getUserAPI = async (userId: string) => {
   );
   return response.data.data;
 };
+
+// Lấy thông tin account theo accountId
+export const getAccountByIdAPI = async (accountId: string) => {
+  const token = localStorage.getItem('access_token');
+  const response = await axios.get(
+    `/api/Account/${accountId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data.data;
+};
+
+// Lấy username từ accountId
+export const getUsernameByAccountId = async (accountId: string) => {
+  try {
+    const account = await getAccountByIdAPI(accountId);
+    return account?.username || accountId;
+  } catch {
+    return accountId;
+  }
+};
+
 //------------------------------------------------------------------------------------------------------
 
 

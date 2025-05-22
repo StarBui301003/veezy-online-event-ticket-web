@@ -9,7 +9,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getApprovedEvents, getCategoryById } from '@/services/Admin/event.service';
+import { getRejectedEvents, getCategoryById } from '@/services/Admin/event.service';
 import type { ApprovedEvent, Category } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/auth.service';
 import {
@@ -27,11 +27,11 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { FaEye } from 'react-icons/fa';
-import ApprovedEventDetailModal from '@/components/Admin/Modal/ApprovedEventDetailModal';
+import RejectedEventDetailModal from '@/components/Admin/Modal/RejectedEventDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const ApprovedEventList = () => {
+export const RejectedEventList = () => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [usernames, setUsernames] = useState<Record<string, string>>({});
@@ -42,7 +42,7 @@ export const ApprovedEventList = () => {
 
   useEffect(() => {
     setLoading(true);
-    getApprovedEvents()
+    getRejectedEvents()
       .then(async (res) => {
         setEvents(res.data.items);
 
@@ -50,7 +50,6 @@ export const ApprovedEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        // Gọi API lấy thông tin từng category
         const categoryMap: Record<string, Category> = {};
         await Promise.all(
           allCategoryIds.map(async (id) => {
@@ -60,9 +59,9 @@ export const ApprovedEventList = () => {
             } catch {
               categoryMap[id] = {
                 categoryId: id,
-                categoryName: 'Unknown',
+                categoryName: 'unknown',
                 categoryDescription: '',
-              }; // fallback nếu không tìm thấy
+              };
             }
           })
         );
@@ -97,7 +96,7 @@ export const ApprovedEventList = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Approved Events</h2>
+      <h2 className="text-2xl font-bold mb-4">Rejected Events</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           {loading ? (
@@ -134,7 +133,7 @@ export const ApprovedEventList = () => {
                   {pagedEvents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                        No approved events found.
+                        No rejected events found.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -149,25 +148,25 @@ export const ApprovedEventList = () => {
                             ? event.categoryIds
                                 .map((id) => categories[id]?.categoryName || id)
                                 .join(', ')
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.approvedBy
                             ? usernames[event.approvedBy] || event.approvedBy
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.approvedAt
                             ? new Date(event.approvedAt).toLocaleString()
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
                           {event.createdBy
                             ? usernames[event.createdBy] || event.createdBy
-                            : 'Unknown'}
+                            : 'unknown'}
                         </TableCell>
                         <TableCell>
-                          {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
+                          {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'unknown'}
                         </TableCell>
                         <TableCell className="text-center">
                           <button
@@ -185,7 +184,6 @@ export const ApprovedEventList = () => {
                   <TableRow>
                     <TableCell colSpan={8}>
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
-                        {/* Pagination center */}
                         <div className="flex-1 flex justify-center pl-[200px]">
                           <Pagination>
                             <PaginationContent>
@@ -231,7 +229,6 @@ export const ApprovedEventList = () => {
                             </PaginationContent>
                           </Pagination>
                         </div>
-                        {/* Right: Rows per page & showing */}
                         <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                           <span className="text-sm text-gray-700">
                             {events.length === 0
@@ -285,7 +282,7 @@ export const ApprovedEventList = () => {
             </>
           )}
           {selectedEvent && (
-            <ApprovedEventDetailModal
+            <RejectedEventDetailModal
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
             />
