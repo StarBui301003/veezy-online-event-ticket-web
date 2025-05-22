@@ -100,6 +100,9 @@ export const LoginPage = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleLogin();
+                  }}
                 />
               </div>
               <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px] relative">
@@ -109,6 +112,9 @@ export const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleLogin();
+                  }}
                 />
                 <button
                   type="button"

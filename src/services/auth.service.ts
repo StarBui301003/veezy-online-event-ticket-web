@@ -2,7 +2,7 @@ import axios from "@/services/axios.customize";
 import { LoginRequest, LoginResponse, RegisterRequest, VerifyEmailRegisterAPI } from "@/types/auth";
 
 export const loginAPI = async (data: LoginRequest): Promise<LoginResponse> => {
-  const response = await axios.post<LoginResponse>("https://localhost:7120/api/Account/login", data);
+  const response = await axios.post<LoginResponse>("/api/Account/login", data);
   return response.data;
 };
 

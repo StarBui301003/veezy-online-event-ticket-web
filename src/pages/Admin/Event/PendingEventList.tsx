@@ -85,9 +85,10 @@ export const PendingEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = {};
+        const categoryMap: Record<string, Category> = { ...categories };
+        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
         await Promise.all(
-          allCategoryIds.map(async (id) => {
+          idsToFetch.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
@@ -108,9 +109,10 @@ export const PendingEventList = () => {
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = {};
+        const usernameMap: Record<string, string> = { ...usernames };
+        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          idsToFetchUser.map(async (id) => {
             try {
               const username = await getUsernameByAccountId(id);
               usernameMap[id] = username;
@@ -123,6 +125,7 @@ export const PendingEventList = () => {
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (event: ApprovedEvent) => {
@@ -156,9 +159,10 @@ export const PendingEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = {};
+        const categoryMap: Record<string, Category> = { ...categories };
+        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
         await Promise.all(
-          allCategoryIds.map(async (id) => {
+          idsToFetch.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
@@ -178,9 +182,10 @@ export const PendingEventList = () => {
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = {};
+        const usernameMap: Record<string, string> = { ...usernames };
+        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          idsToFetchUser.map(async (id) => {
             try {
               const username = await getUsernameByAccountId(id);
               usernameMap[id] = username;
