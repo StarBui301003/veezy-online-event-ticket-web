@@ -1,5 +1,6 @@
 import type { Category, EventListResponse } from '@/types/Admin/event';
 import { adminInstance } from '@/services/axios.customize';
+import type { EventApproveStatus } from '@/types/Admin/event';
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
   const res = await adminInstance.get<EventListResponse>(
@@ -30,16 +31,18 @@ export async function cancelEvent(eventId: string) {
   return res.data;
 }
 
-//(approve/reject event)
-export async function approvedRejectEvent(eventId: string, isApproved: boolean, rejectionReason?: string) {
+// Duyệt hoặc từ chối event (approve/reject) với enum
+export async function approvedRejectEvent(
+  eventId: string,
+  isApproved: EventApproveStatus,
+  rejectionReason?: string
+) {
   const res = await adminInstance.post(`/api/Event/${eventId}/approve`, {
     isApproved,
     rejectionReason: rejectionReason ?? null,
   });
   return res.data;
 }
-
-
 
 // Lấy category theo id
 export async function getCategoryById(categoryId: string) {

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
-import type { ApprovedEvent, Category } from '@/types/Admin/event';
+import { ApprovedEvent, Category, EventApproveStatus } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/auth.service';
 import {
   DropdownMenu,
@@ -255,15 +255,16 @@ export const PendingEventList = () => {
                           </button>
                           <button
                             className={`px-3 py-1 bg-red-500 text-white rounded transition ${
-                              event.isApproved
+                              event.isApproved === EventApproveStatus.Approved
                                 ? 'opacity-50 cursor-not-allowed'
                                 : 'hover:bg-red-600'
                             }`}
                             onClick={() => {
-                              if (!event.isApproved) handleDelete(event);
+                              if (event.isApproved !== EventApproveStatus.Approved)
+                                handleDelete(event);
                             }}
                             type="button"
-                            disabled={event.isApproved}
+                            disabled={event.isApproved === EventApproveStatus.Approved}
                           >
                             <FaRegTrashAlt className="w-4 h-4" />
                           </button>

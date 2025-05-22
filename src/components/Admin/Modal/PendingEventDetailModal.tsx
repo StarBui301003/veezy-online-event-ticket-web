@@ -6,6 +6,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, Category } from '@/types/Admin/event';
+import { EventApproveStatus } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
 import { getUsernameByAccountId } from '@/services/auth.service';
 import { approvedRejectEvent, getCategoryById } from '@/services/Admin/event.service';
@@ -60,7 +61,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
     setApproveLoading(true);
     setLoading(true);
     try {
-      const res = await approvedRejectEvent(event.eventId, true, '');
+      const res = await approvedRejectEvent(event.eventId, EventApproveStatus.Approved, '');
       if (res.flag) {
         toast.success('Approve event successfully!');
         onClose();
@@ -85,7 +86,11 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
     setRejectLoading(true);
     setLoading(true);
     try {
-      const res = await approvedRejectEvent(event.eventId, false, rejectReason);
+      const res = await approvedRejectEvent(
+        event.eventId,
+        EventApproveStatus.Rejected,
+        rejectReason
+      );
       if (res.flag) {
         toast.success('Reject event successfully!');
         onClose();
