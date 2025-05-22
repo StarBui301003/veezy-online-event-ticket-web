@@ -14,7 +14,9 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
-
+import { EventManagerLayout } from './components/EventManager/layout/Layout';
+import DashboardEvent from '@/pages/EventManager/DashboardEvent';
+import CreateEvent from '@/pages/EventManager/CreateEvent';
 function App() {
   const { loading } = useLoading();
 
@@ -68,6 +70,53 @@ function App() {
         // { path: 'events', element: <EventManagement /> },
       ],
     },
+     //  Event Manager routes
+    {
+    path: '/event-manager',
+      element: (
+        <ProtectedRoute allowedRoles={[2]}>
+          <EventManagerLayout />
+        </ProtectedRoute>
+      ),
+    
+      children: [
+        {
+          index: true,
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <DashboardEvent />
+            </ProtectedRoute>
+          ),
+        },
+      
+        {
+          path: 'create-event',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateEvent/>
+            </ProtectedRoute>
+          ),
+        },
+    //     {
+    //       path: 'tickets',
+    //       element: (
+    //         <ProtectedRoute allowedRoles={[2]}>
+    //           <TicketManagementPage />
+    //         </ProtectedRoute>
+    //       ),
+    //     },
+    //     {
+    //       path: 'discounts',
+    //       element: (
+    //         <ProtectedRoute allowedRoles={[2]}>
+    //           <DiscountManagementPage />
+    //         </ProtectedRoute>
+    //       ),
+    //     },
+      ],
+    },
+
+    // authen
     {
       path: '/login',
       element: <LoginPage />,

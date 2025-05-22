@@ -59,10 +59,19 @@ export const LoginPage = () => {
         return;
       }
 
-      toast.success(`Welcome ${apiResult.account.username}!`, {
-        position: 'top-right',
-      });
-      navigate('/');
+      // Nếu là Event Manager thì chuyển sang dashboard Event Manager
+        if (apiResult.account.role === 2) {
+            toast.success(`Welcome ${apiResult.account.username}!`, {
+                position: 'top-right',
+            });
+            navigate('/event-manager');
+            return;
+        }
+
+        toast.success(`Welcome ${apiResult.account.username}!`, {
+            position: 'top-right',
+        });
+        navigate('/');
     } catch (error: unknown) {
       let errorMessage = 'Invalid username or password.';
       if (
