@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { createEvent, getAllCategories, uploadImage } from "@/services/event.service";
+import { createEvent, getAllCategories, uploadImage } from "@/services/Event Manager/event.service";
 import { Button } from "@/components/ui/button";
 import { useDropzone } from "react-dropzone";
 import Select from "react-select";

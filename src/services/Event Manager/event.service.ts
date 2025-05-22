@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CreateEventData } from "../types/event.ts";
+import { CreateEventData } from "../../types/event.ts";
 
 export async function createEvent(data: CreateEventData) {
   let token: string | null = null;
