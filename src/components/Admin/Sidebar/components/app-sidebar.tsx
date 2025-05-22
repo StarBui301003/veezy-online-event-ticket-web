@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { BookOpen, Frame, Map, PieChart, Settings2, SquareTerminal } from 'lucide-react';
+import { Frame, Map, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+import { MdEvent } from 'react-icons/md';
 import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
 import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
@@ -21,68 +21,22 @@ import { LOGO_RECTANGLE } from '@/assets/img';
 const data = {
   navMain: [
     {
-      title: 'Playground',
+      title: 'Event',
       url: '#',
-      icon: SquareTerminal,
+      icon: MdEvent,
       isActive: true,
       items: [
         {
-          title: 'History',
-          url: '#',
+          title: 'Pending Events',
+          url: '/admin/pending-events-list',
         },
         {
-          title: 'Starred',
-          url: '#',
+          title: 'Approved Events',
+          url: '/admin/approved-events-list',
         },
         {
-          title: 'Settings',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Documentation',
-      url: '#',
-      icon: BookOpen,
-      items: [
-        {
-          title: 'Introduction',
-          url: '#',
-        },
-        {
-          title: 'Get Started',
-          url: '#',
-        },
-        {
-          title: 'Tutorials',
-          url: '#',
-        },
-        {
-          title: 'Changelog',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Settings',
-      url: '#',
-      icon: Settings2,
-      items: [
-        {
-          title: 'General',
-          url: '#',
-        },
-        {
-          title: 'Team',
-          url: '#',
-        },
-        {
-          title: 'Billing',
-          url: '#',
-        },
-        {
-          title: 'Limits',
-          url: '#',
+          title: 'Rejected Events',
+          url: '/admin/rejected-events-list',
         },
       ],
     },

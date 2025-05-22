@@ -14,9 +14,10 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
-import { EventManagerLayout } from './components/EventManager/layout/Layout';
-import DashboardEvent from '@/pages/EventManager/DashboardEvent';
-import CreateEvent from '@/pages/EventManager/CreateEvent';
+import { ApprovedEventList } from './pages/Admin/Event/ApprovedEventList';
+import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
+import { PendingEventList } from './pages/Admin/Event/PendingEventList';
+
 function App() {
   const { loading } = useLoading();
 
@@ -68,55 +69,32 @@ function App() {
         // Thêm các page con cho admin ở đây, ví dụ:
         // { path: 'users', element: <UserManagement /> },
         // { path: 'events', element: <EventManagement /> },
-      ],
-    },
-     //  Event Manager routes
-    {
-    path: '/event-manager',
-      element: (
-        <ProtectedRoute allowedRoles={[2]}>
-          <EventManagerLayout />
-        </ProtectedRoute>
-      ),
-    
-      children: [
         {
-          index: true,
+          path: 'approved-events-list',
           element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <DashboardEvent />
+            <ProtectedRoute allowedRoles={[0]}>
+              <ApprovedEventList />
             </ProtectedRoute>
           ),
         },
-      
         {
-          path: 'create-event',
+          path: 'rejected-events-list',
           element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <CreateEvent/>
+            <ProtectedRoute allowedRoles={[0]}>
+              <RejectedEventList />
             </ProtectedRoute>
           ),
         },
-    //     {
-    //       path: 'tickets',
-    //       element: (
-    //         <ProtectedRoute allowedRoles={[2]}>
-    //           <TicketManagementPage />
-    //         </ProtectedRoute>
-    //       ),
-    //     },
-    //     {
-    //       path: 'discounts',
-    //       element: (
-    //         <ProtectedRoute allowedRoles={[2]}>
-    //           <DiscountManagementPage />
-    //         </ProtectedRoute>
-    //       ),
-    //     },
+        {
+          path: 'pending-events-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <PendingEventList />
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
-
-    // authen
     {
       path: '/login',
       element: <LoginPage />,

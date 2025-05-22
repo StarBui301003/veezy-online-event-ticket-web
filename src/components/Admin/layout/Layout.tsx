@@ -10,10 +10,15 @@ import {
 import { AppSidebar } from '@/components/Admin/Sidebar/components/app-sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from 'react';
 
 const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
   events: 'Events',
+  'approved-events-list': 'Approved Events',
+  'rejected-events-list': 'Rejected Events',
+  'pending-events-list': 'Pending Events',
+
   // Thêm các path khác nếu có
 };
 
@@ -29,11 +34,26 @@ export function AdminLayout() {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(Boolean);
 
+  // Thêm state và effect cho nút go to top
+  const [showGoTop, setShowGoTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowGoTop(window.scrollY > 100);
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const handleGoTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -60,8 +80,9 @@ export function AdminLayout() {
                     const to = '/admin/' + pathnames.slice(1, idx + 2).join('/');
                     const isLast = idx === pathnames.length - 2;
                     return (
-                      <span key={to}>
+                      <div className="flex items-center gap-2" key={to}>
                         <BreadcrumbSeparator />
+
                         <BreadcrumbItem>
                           {isLast ? (
                             <BreadcrumbPage>{title}</BreadcrumbPage>
@@ -71,16 +92,25 @@ export function AdminLayout() {
                             </BreadcrumbLink>
                           )}
                         </BreadcrumbItem>
-                      </span>
+                      </div>
                     );
                   })}
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col p-4 pt-0">
+        <div className="flex flex-1 flex-col p-4 pt-0 bg-blue-200/75">
           <Outlet />
         </div>
+        {showGoTop && (
+          <button
+            onClick={handleGoTop}
+            className="fixed bottom-6 right-6 z-50 size-10 rounded-full bg-white text-black shadow-lg hover:bg-black hover:text-white transition"
+            aria-label="Go to top"
+          >
+            ↑
+          </button>
+        )}
       </SidebarInset>
     </SidebarProvider>
   );

@@ -17,6 +17,7 @@ export const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,17 +41,18 @@ export const Register = () => {
         username,
         fullName,
         email,
+        phone,
         password,
         dateOfBirth,
         role: 1,
       });
       sessionStorage.setItem('registerEmail', email);
 
-      if (response.code === 400) {
-        toast.error(response.status);
-      } else if (response.code === 200) {
+      if (response && response.flag && response.code === 200) {
         toast.success('Register successful! Please verify your email.');
         navigate('/verify-email');
+      } else {
+        toast.error(response?.message || 'Register failed!');
       }
     } catch {
       toast.error('Register failed!');
@@ -98,6 +100,15 @@ export const Register = () => {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                />
+              </div>
+              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px]">
+                <Input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
                 />
               </div>

@@ -17,7 +17,7 @@ export const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accStr = localStorage.getItem('account');
+    const accStr = localStorage.getItem('data');
     if (accStr) {
       navigate('/');
     }
@@ -33,81 +33,47 @@ export const LoginPage = () => {
     try {
       const data = { username, password };
       const apiResult = await loginAPI(data);
-      localStorage.setItem('access_token', apiResult.accessToken);
-      document.cookie = `refresh_token=${apiResult.refreshToken}; path=/; secure; samesite=strict`;
-      localStorage.setItem('account', JSON.stringify(apiResult.account));
+
+      localStorage.setItem('access_token', apiResult.data.accessToken);
+      document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
+      localStorage.setItem('account', JSON.stringify(apiResult.data.account));
+
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
         localStorage.removeItem('remembered_username');
       }
 
-      // // Kiểm tra role
-      // if (apiResult.account.role === 0) {
-      //   toast.error('Admin không được phép truy cập trang này.', { position: 'top-right' });
-      //   localStorage.removeItem('access_token');
-      //   localStorage.removeItem('account');
-      //   return;
-      // }
-
       // Nếu là admin thì chuyển sang trang admin
-      if (apiResult.account.role === 0) {
-        toast.success(`Welcome admin ${apiResult.account.username}!`, {
+      if (apiResult.data.account.role === 0) {
+        toast.success(`Welcome admin ${apiResult.data.account.username}!`, {
           position: 'top-right',
         });
         navigate('/admin');
         return;
       }
 
-      // Nếu là Event Manager thì chuyển sang dashboard Event Manager
-        if (apiResult.account.role === 2) {
-            toast.success(`Welcome ${apiResult.account.username}!`, {
-                position: 'top-right',
-            });
-            navigate('/event-manager');
-            return;
-        }
-
-        toast.success(`Welcome ${apiResult.account.username}!`, {
-            position: 'top-right',
-        });
-        navigate('/');
-    } catch (error: unknown) {
+      toast.success(`Welcome ${apiResult.data.account.username}!`, {
+        position: 'top-right',
+      });
+      navigate('/');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       let errorMessage = 'Invalid username or password.';
       if (
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof (error as { response?: unknown }).response === 'object' &&
-        (error as { response?: unknown }).response !== null &&
-        (error as { response?: { data?: unknown } }).response &&
-        'data' in (error as { response: { data?: unknown } }).response &&
-        typeof ((error as { response: { data?: unknown } }).response as { data?: unknown }).data ===
-          'object' &&
-        ((error as { response: { data?: unknown } }).response as { data?: unknown }).data !==
-          null &&
-        'status' in
-          (
-            (error as { response: { data?: { status?: string } } }).response as {
-              data?: { status?: string };
-            }
-          ).data!
+        error &&
+        error.response &&
+        error.response.data &&
+        typeof error.response.data.message === 'string'
       ) {
-        errorMessage =
-          (
-            (
-              (error as { response: { data?: { status?: string } } }).response as {
-                data?: { status?: string };
-              }
-            ).data as { status?: string }
-          ).status ?? errorMessage;
+        errorMessage = error.response.data.message;
       } else if (
         typeof error === 'object' &&
         error !== null &&
         'message' in error &&
-        typeof (error as { message?: string }).message === 'string'
+        typeof error.message === 'string'
       ) {
-        errorMessage = (error as { message: string }).message;
+        errorMessage = error.message;
       }
       toast.error(errorMessage, {
         position: 'top-right',

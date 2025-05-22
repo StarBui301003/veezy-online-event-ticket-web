@@ -11,7 +11,7 @@ export function ProtectedRoute({
   const account = accountStr ? JSON.parse(accountStr) : null;
 
   if (!account) return <Navigate to="/login" replace />;
-  if (!allowedRoles.includes(account.role)) return <Navigate to="/" replace />;
+  if (!allowedRoles.includes(account.role)) return <Navigate to="/login" replace />;
 
   return <>{children}</>;
 }
