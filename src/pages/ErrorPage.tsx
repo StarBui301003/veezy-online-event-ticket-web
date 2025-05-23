@@ -25,11 +25,15 @@ export const ErrorPage = () => {
                 const accObj = JSON.parse(accStr);
                 if (accObj.role === 0) {
                   navigate('/admin');
-                } else if (accObj.role === 1 || accObj.role === 2) {
-                  navigate('/');
-                } else {
+                } else if (accObj.role === 1) {
                   navigate('/');
                 }
+                // } else if { accObj.role === 2 } {
+                //   navigate('/event-manager');
+                // }
+                // else{
+                //   navigate('/');
+                // }
               } catch {
                 navigate('/');
               }

@@ -16,6 +16,8 @@ const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
   events: 'Events',
   'approved-events-list': 'Approved Events',
+  'rejected-events-list': 'Rejected Events',
+  'pending-events-list': 'Pending Events',
   // Thêm các path khác nếu có
 };
 

@@ -15,6 +15,11 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import { ApprovedEventList } from './pages/Admin/Event/ApprovedEventList';
+import { PendingEventList } from './pages/Admin/Event/PendingEventList';
+import DashboardEvent from './pages/EventManager/DashboardEvent';
+import { EventManagerLayout } from './components/EventManager/layout/Layout';
+import CreateEventForm from './pages/EventManager/CreateEvent';
+import { RejectedEventList } from '@/pages/Admin/Event/RejectedEventList';
 
 function App() {
   const { loading } = useLoading();
@@ -68,6 +73,48 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <ApprovedEventList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'rejected-events-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <RejectedEventList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'pending-events-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <PendingEventList />
+            </ProtectedRoute>
+          ),
+        },
+      ],
+    },
+    {
+      path: '/event-manager',
+      element: (
+        <ProtectedRoute allowedRoles={[2]}>
+          <EventManagerLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        {
+          index: true,
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <DashboardEvent />
+            </ProtectedRoute>
+          ), // /EM
+        },
+        {
+          path: 'create-event',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateEventForm />
             </ProtectedRoute>
           ),
         },
