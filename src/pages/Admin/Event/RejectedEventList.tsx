@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -39,6 +39,10 @@ export const RejectedEventList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -50,9 +54,10 @@ export const RejectedEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = {};
+        const categoryMap: Record<string, Category> = { ...categories };
+        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
         await Promise.all(
-          allCategoryIds.map(async (id) => {
+          idsToFetch.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
@@ -73,9 +78,10 @@ export const RejectedEventList = () => {
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = {};
+        const usernameMap: Record<string, string> = { ...usernames };
+        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          idsToFetchUser.map(async (id) => {
             try {
               const username = await getUsernameByAccountId(id);
               usernameMap[id] = username;
@@ -88,17 +94,145 @@ export const RejectedEventList = () => {
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fetch all categories for filter
+  useEffect(() => {
+    (async () => {
+      const res = await getRejectedEvents();
+      const ids = Array.from(
+        new Set(res.data.items.flatMap((event: ApprovedEvent) => event.categoryIds || []))
+      );
+      const cats: Category[] = [];
+      await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const cat = await getCategoryById(id);
+            cats.push(cat);
+          } catch {
+            // ignore
+          }
+        })
+      );
+      setAllCategories(cats);
+    })();
+  }, []);
+
+  // Filter logic
+  const filteredEvents = events.filter((event) => {
+    // Filter by category
+    if (
+      selectedCategoryIds.length > 0 &&
+      !event.categoryIds.some((id) => selectedCategoryIds.includes(id))
+    ) {
+      return false;
+    }
+    // Filter by search (event name, created by)
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
+      const createdByName = usernames[event.createdBy]?.toLowerCase() || '';
+      if (!(event.eventName?.toLowerCase().includes(s) || createdByName.includes(s))) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   // Pagination logic
-  const pagedEvents = events.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(events.length / pageSize));
+  const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Rejected Events</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
+          {/* Filter/Search UI */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
+            <div className="flex-1 flex items-center gap-2 relative">
+              <input
+                ref={searchInputRef}
+                className="border px-3 py-2 rounded w-full max-w-xs pr-8"
+                placeholder="Search by event name or creator..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {search && (
+                <button
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                  onClick={() => {
+                    setSearch('');
+                    setPage(1);
+                    searchInputRef.current?.focus();
+                  }}
+                  tabIndex={-1}
+                  type="button"
+                  aria-label="Clear search"
+                >
+                  &#10005;
+                </button>
+              )}
+            </div>
+            {/* Category filter (right) */}
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="border px-3 py-2 rounded bg-white hover:bg-gray-100 flex items-center gap-2">
+                    Filter Category
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto min-w-[220px]">
+                  <div className="px-2 py-1 text-sm font-semibold">Categories</div>
+                  {allCategories.length === 0 && (
+                    <div className="px-2 py-1 text-gray-500">No categories</div>
+                  )}
+                  {allCategories.map((cat) => (
+                    <DropdownMenuItem
+                      key={cat.categoryId}
+                      onSelect={() => {
+                        setSelectedCategoryIds((prev) =>
+                          prev.includes(cat.categoryId)
+                            ? prev.filter((id) => id !== cat.categoryId)
+                            : [...prev, cat.categoryId]
+                        );
+                        setPage(1);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryIds.includes(cat.categoryId)}
+                        readOnly
+                        className="mr-2"
+                      />
+                      <span>{cat.categoryName}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  <div className="flex gap-2 px-2 py-2">
+                    <button
+                      className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                      onClick={() => setSelectedCategoryIds([])}
+                      type="button"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      className="text-xs px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600"
+                      onClick={() => setSelectedCategoryIds([...selectedCategoryIds])}
+                      type="button"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           {loading ? (
             <div className="flex flex-col gap-2">
               {[...Array(6)].map((_, i) => (
@@ -118,7 +252,7 @@ export const RejectedEventList = () => {
             <>
               <Table className="min-w-full">
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-blue-200 hover:bg-blue-200">
                     <TableHead className="text-center">#</TableHead>
                     <TableHead>Event Name</TableHead>
                     <TableHead>Category</TableHead>
@@ -231,12 +365,12 @@ export const RejectedEventList = () => {
                         </div>
                         <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                           <span className="text-sm text-gray-700">
-                            {events.length === 0
+                            {filteredEvents.length === 0
                               ? '0-0 of 0'
                               : `${(page - 1) * pageSize + 1}-${Math.min(
                                   page * pageSize,
-                                  events.length
-                                )} of ${events.length}`}
+                                  filteredEvents.length
+                                )} of ${filteredEvents.length}`}
                           </span>
                           <span className="text-sm text-gray-700">Rows per page</span>
                           <DropdownMenu>

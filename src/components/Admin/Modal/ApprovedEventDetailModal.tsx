@@ -49,11 +49,13 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-4  shadow-lg">
-        <DialogHeader>
-          <DialogTitle>Event Details</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+        <div className="border-b-2 border-gray-400 pb-4 p-4">
+          <DialogHeader>
+            <DialogTitle>Event Details</DialogTitle>
+          </DialogHeader>
+        </div>
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4 ">
           <div>
             <b>Event ID:</b> {event.eventId ?? 'unknown'}
           </div>
@@ -65,15 +67,17 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
           </div>
           <div>
             <b>Cover Image:</b>{' '}
-            {event.eventCoverImageUrl ? (
-              <img
-                src={event.eventCoverImageUrl}
-                alt="cover"
-                className="w-40 h-24 object-cover rounded border"
-              />
-            ) : (
-              'unknown'
-            )}
+            <div className="w-48 h-32 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
+              {event.eventCoverImageUrl ? (
+                <img
+                  src={event.eventCoverImageUrl}
+                  alt="cover"
+                  className="object-contain w-full h-full"
+                />
+              ) : (
+                <span className="text-gray-400">unknown</span>
+              )}
+            </div>
           </div>
           <div>
             <b>Location:</b> {event.eventLocation ?? 'unknown'}
@@ -100,24 +104,26 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             <ul className="list-disc ml-6">
               {event.contents && event.contents.length > 0 ? (
                 event.contents.map((c, idx) => (
-                  <li key={idx}>
+                  <li key={idx} className="mb-2">
+                    {/* <div>
+                      <div>Position:</div> {c.position ?? 'unknown'}
+                    </div> */}
                     <div>
-                      <b>Position:</b> {c.position ?? 'unknown'}
+                      <b>Description:</b>
+                      <div>{c.description || 'unknown'}</div>
                     </div>
                     <div>
-                      <b>Description:</b> {c.description || 'unknown'}
-                    </div>
-                    <div>
-                      <b>Image:</b>{' '}
-                      {c.imageUrl ? (
-                        <img
-                          src={c.imageUrl}
-                          alt="content"
-                          className="w-32 h-20 object-cover rounded border mt-1"
-                        />
-                      ) : (
-                        'unknown'
-                      )}
+                      <div className="w-40 h-28 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
+                        {c.imageUrl ? (
+                          <img
+                            src={c.imageUrl}
+                            alt="content"
+                            className="object-contain w-full h-full"
+                          />
+                        ) : (
+                          <span className="text-gray-400">unknown</span>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))
@@ -147,14 +153,16 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             <b>Bank Account:</b> {event.bankAccount ?? 'unknown'}
           </div>
         </div>
-        <DialogFooter>
-          <button
-            className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </DialogFooter>
+        <div className="p-4 border-t-2 border-gray-400">
+          <DialogFooter>
+            <button
+              className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
