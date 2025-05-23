@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { createEvent, getAllCategories, uploadImage } from "@/services/Event Manager/event.service";
+import { createEvent, getAllCategories } from "@/services/Event Manager/event.service";
+import { uploadImage } from "@/services/Event Manager/event.service";
 import { Button } from "@/components/ui/button";
 import { useDropzone } from "react-dropzone";
 import Select from "react-select";
@@ -9,16 +10,17 @@ import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 import { Category, CreateEventData } from "@/types/event";
 
+
 export default function CreateEventForm() {
   const [loading, setLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [contentType, setContentType] = useState<"text" | "image" | "">("");
-  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [tagInput, setTagInput] = useState("");
-  const [timeError, setTimeError] = useState(""); // ⛳ Error thời gian
-
   const [formData, setFormData] = useState<CreateEventData>({
     eventName: "",
     eventDescription: "",
@@ -44,6 +46,9 @@ export default function CreateEventForm() {
     setLoadingCategories(true);
     try {
       const categories: Category[] = await getAllCategories();
+      if (!Array.isArray(categories)) {
+        throw new Error("Expected an array of categories");
+      }
       setCategoryOptions(
         categories.map((cat) => ({
           value: cat.categoryId,
@@ -78,9 +83,13 @@ export default function CreateEventForm() {
     setUploadingCover(true);
     try {
       const url = await uploadImage(file);
-      setFormData((prev) => ({ ...prev, eventCoverImageUrl: url }));
+      setFormData((prev) => ({
+        ...prev,
+        eventCoverImageUrl: url,
+      }));
     } catch (err) {
       console.error("Cover image upload failed", err);
+      alert("Upload cover image failed.");
     } finally {
       setUploadingCover(false);
     }
@@ -104,52 +113,53 @@ export default function CreateEventForm() {
       setFormData((prev) => ({ ...prev, contents: newContents }));
     } catch (err) {
       console.error("Content image upload failed", err);
+      alert("Upload content image failed.");
     } finally {
       setUploadingContentImage(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
+  
+
+  const handleCategoriesChange = (
+    selected: { value: string; label: string }[]
+  ) => {
     setFormData((prev) => ({
       ...prev,
       categoryIds: selected.map((option) => option.value),
     }));
   };
 
-  const handleContentChange = (index: number, field: "description" | "imageUrl") =>
+  const handleContentChange =
+    (index: number, field: "description" | "imageUrl") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newContents = [...formData.contents];
       newContents[index] = {
         ...newContents[index],
         [field]: e.target.value,
       };
-      setFormData((prev) => ({ ...prev, contents: newContents }));
+      setFormData((prev) => ({
+        ...prev,
+        contents: newContents,
+      }));
     };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTimeError(""); // Reset lỗi thời gian
     setLoading(true);
-
-    const start = new Date(formData.startAt);
-    const end = new Date(formData.endAt);
-
-    if (end <= start) {
-      setTimeError("End time must be after the start time.");
-      setLoading(false);
-      return;
-    }
-
     try {
       await createEvent(formData);
-      // Optional: reset form nếu muốn
-    } catch (error: unknown) {
+      alert("Event created successfully!");
+    } catch (error) {
       console.error(error);
+      alert("Failed to create event.");
     } finally {
       setLoading(false);
     }
@@ -157,7 +167,10 @@ export default function CreateEventForm() {
 
   return (
     <div className="h-full w-full bg-zinc-950 text-white p-0 overflow-y-auto">
-      <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-4 shadow-xl w-full h-full">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 bg-zinc-900 p-4 shadow-xl w-full h-full"
+      >
         <h2 className="text-2xl font-bold mb-4">Create New Event</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -183,7 +196,11 @@ export default function CreateEventForm() {
               {uploadingCover ? (
                 <p>Uploading cover image...</p>
               ) : formData.eventCoverImageUrl ? (
-                <img src={formData.eventCoverImageUrl} alt="Cover" className="h-full object-cover" />
+                <img
+                  src={formData.eventCoverImageUrl}
+                  alt="Cover"
+                  className="h-full object-cover"
+                />
               ) : isCoverDragActive ? (
                 <p>Drop the image here...</p>
               ) : (
@@ -236,25 +253,33 @@ export default function CreateEventForm() {
               className="w-full p-3 rounded bg-zinc-800 text-white"
               required
             />
-            {timeError && <p className="text-red-500 text-sm mt-1">{timeError}</p>}
           </div>
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm">Tags (comma-separated)</label>
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setTagInput(raw);
-              const tags = raw.split(",").map((tag) => tag.trim()).filter((tag) => tag !== "");
-              setFormData((prev) => ({ ...prev, tags }));
-            }}
-            placeholder="e.g. game, workshop, offline"
-            className="w-full p-3 rounded bg-zinc-800 text-white"
-          />
-        </div>
+       <div>
+  <label className="block mb-1 text-sm">Tags (comma-separated)</label>
+  <input
+    type="text"
+    value={tagInput}
+    onChange={(e) => {
+      const raw = e.target.value;
+      setTagInput(raw);
+
+      const tags = raw
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag !== "");
+
+      setFormData((prev) => ({
+        ...prev,
+        tags,
+      }));
+    }}
+    placeholder="e.g. game, workshop, offline"
+    className="w-full p-3 rounded bg-zinc-800 text-white"
+  />
+</div>
+
 
         <div>
           <label className="block mb-1 text-sm">Categories</label>
@@ -287,7 +312,7 @@ export default function CreateEventForm() {
                     ...prev,
                     contents: [
                       {
-                        position: 0,
+                        position: 1,
                         description: "",
                         imageUrl: "",
                       },
@@ -309,7 +334,7 @@ export default function CreateEventForm() {
                     ...prev,
                     contents: [
                       {
-                        position: 0,
+                        position: 1,
                         description: "",
                         imageUrl: "",
                       },
@@ -324,7 +349,10 @@ export default function CreateEventForm() {
 
         <div className="space-y-4">
           <p className="text-lg font-semibold">Event Contents</p>
-          {contentType === "" && <p className="text-red-500">Please select a content type.</p>}
+
+          {contentType === "" && (
+            <p className="text-red-500">Please select a content type.</p>
+          )}
 
           {contentType === "text" && (
             <>
@@ -350,7 +378,7 @@ export default function CreateEventForm() {
                       contents: [
                         ...prev.contents,
                         {
-                          position: prev.contents.length,
+                          position: prev.contents.length + 1,
                           description: "",
                           imageUrl: "",
                         },

@@ -1,16 +1,9 @@
 import axios from "axios";
-import { CreateEventData } from "../../types/event.ts";
+import { CreateEventData } from "@/types/event";
 
 export async function createEvent(data: CreateEventData) {
-  let token: string | null = null;
-
-  if (typeof window !== "undefined") {
-    token = localStorage.getItem("access_token");
-  }
-
-  if (!token) {
-    throw new Error("Authentication token not found.");
-  }
+  const token = localStorage.getItem("access_token");
+  if (!token) throw new Error("Authentication token not found.");
 
   const response = await axios.post(
     "https://localhost:7288/api/Event",
@@ -19,12 +12,13 @@ export async function createEvent(data: CreateEventData) {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      validateStatus: (status) => status >= 200 && status < 300,
     }
   );
 
-  return response.data;
-  
+  return response.data || null; // nếu 204 thì response.data là undefined
 }
+
 // category
 export async function getAllCategories() {
   try {
