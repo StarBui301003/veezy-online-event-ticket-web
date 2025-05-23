@@ -25,11 +25,17 @@ export function EventManagerLayout() {
             </h1>
             <hr className="my-4 border-gray-600" />
             <nav className="flex flex-col gap-5">
-              <a href="/event-manager" className="flex items-center gap-3 hover:text-yellow-300 transition duration-200 transform hover:scale-105">
+              <a
+                href="/event-manager"
+                className="flex items-center gap-3 hover:text-yellow-300 transition duration-200 transform hover:scale-105"
+              >
                 <FaCalendarAlt />
                 <span>Dashboard</span>
               </a>
-              <a href="/event-manager/create-event" className="flex items-center gap-3 hover:text-yellow-300 transition duration-200 transform hover:scale-105">
+              <a
+                href="/event-manager/create-event"
+                className="flex items-center gap-3 hover:text-yellow-300 transition duration-200 transform hover:scale-105"
+              >
                 <FaPlus />
                 <span>Tạo sự kiện</span>
               </a>
@@ -37,7 +43,7 @@ export function EventManagerLayout() {
           </div>
 
           {/* Nút đăng xuất hoạt động */}
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-sm hover:text-yellow-300 transition duration-200 transform hover:scale-105"
           >
@@ -48,7 +54,7 @@ export function EventManagerLayout() {
 
         {/* Main Content */}
         <div className="flex flex-col flex-1 overflow-y-auto">
-           <main className="p-6 w-full h-full">
+          <main className="p-6 h-full">
             <Outlet />
           </main>
         </div>

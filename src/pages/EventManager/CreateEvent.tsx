@@ -1,43 +1,40 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { createEvent, getAllCategories } from "@/services/Event Manager/event.service";
-import { uploadImage } from "@/services/Event Manager/event.service";
-import { Button } from "@/components/ui/button";
-import { useDropzone } from "react-dropzone";
-import Select from "react-select";
-import { useQuill } from "react-quilljs";
-import "quill/dist/quill.snow.css";
-import { Category, CreateEventData } from "@/types/event";
-
+import React, { useState, useEffect, useCallback } from 'react';
+import { createEvent, getAllCategories } from '@/services/Event Manager/event.service';
+import { uploadImage } from '@/services/Event Manager/event.service';
+import { Button } from '@/components/ui/button';
+import { useDropzone } from 'react-dropzone';
+import Select from 'react-select';
+import { useQuill } from 'react-quilljs';
+import 'quill/dist/quill.snow.css';
+import { Category, CreateEventData } from '@/types/event';
 
 export default function CreateEventForm() {
   const [loading, setLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  const [contentType, setContentType] = useState<"text" | "image" | "">("");
-  const [categoryOptions, setCategoryOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const [tagInput, setTagInput] = useState("");
+  const [contentType, setContentType] = useState<'text' | 'image' | ''>('');
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [formData, setFormData] = useState<CreateEventData>({
-    eventName: "",
-    eventDescription: "",
-    eventCoverImageUrl: "",
-    eventLocation: "",
-    startAt: "",
-    endAt: "",
+    eventName: '',
+    eventDescription: '',
+    eventCoverImageUrl: '',
+    eventLocation: '',
+    startAt: '',
+    endAt: '',
     tags: [],
     categoryIds: [],
     contents: [
       {
         position: 0,
-        description: "",
-        imageUrl: "",
+        description: '',
+        imageUrl: '',
       },
     ],
-    bankAccount: "",
+    bankAccount: '',
   });
 
   const { quill, quillRef } = useQuill();
@@ -47,7 +44,7 @@ export default function CreateEventForm() {
     try {
       const categories: Category[] = await getAllCategories();
       if (!Array.isArray(categories)) {
-        throw new Error("Expected an array of categories");
+        throw new Error('Expected an array of categories');
       }
       setCategoryOptions(
         categories.map((cat) => ({
@@ -56,7 +53,7 @@ export default function CreateEventForm() {
         }))
       );
     } catch (err) {
-      console.error("Failed to fetch categories", err);
+      console.error('Failed to fetch categories', err);
       setCategoryOptions([]);
     } finally {
       setLoadingCategories(false);
@@ -69,7 +66,7 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     if (quill) {
-      quill.on("text-change", () => {
+      quill.on('text-change', () => {
         setFormData((prev) => ({
           ...prev,
           eventDescription: quill.root.innerHTML,
@@ -88,8 +85,8 @@ export default function CreateEventForm() {
         eventCoverImageUrl: url,
       }));
     } catch (err) {
-      console.error("Cover image upload failed", err);
-      alert("Upload cover image failed.");
+      console.error('Cover image upload failed', err);
+      alert('Upload cover image failed.');
     } finally {
       setUploadingCover(false);
     }
@@ -101,7 +98,7 @@ export default function CreateEventForm() {
     isDragActive: isCoverDragActive,
   } = useDropzone({
     onDrop: onDropCover,
-    accept: { "image/*": [] },
+    accept: { 'image/*': [] },
   });
 
   const handleContentImageDrop = async (index: number, file: File) => {
@@ -112,25 +109,19 @@ export default function CreateEventForm() {
       newContents[index].imageUrl = url;
       setFormData((prev) => ({ ...prev, contents: newContents }));
     } catch (err) {
-      console.error("Content image upload failed", err);
-      alert("Upload content image failed.");
+      console.error('Content image upload failed', err);
+      alert('Upload content image failed.');
     } finally {
       setUploadingContentImage(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  
-
-  const handleCategoriesChange = (
-    selected: { value: string; label: string }[]
-  ) => {
+  const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
     setFormData((prev) => ({
       ...prev,
       categoryIds: selected.map((option) => option.value),
@@ -138,7 +129,7 @@ export default function CreateEventForm() {
   };
 
   const handleContentChange =
-    (index: number, field: "description" | "imageUrl") =>
+    (index: number, field: 'description' | 'imageUrl') =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newContents = [...formData.contents];
       newContents[index] = {
@@ -156,10 +147,10 @@ export default function CreateEventForm() {
     setLoading(true);
     try {
       await createEvent(formData);
-      alert("Event created successfully!");
+      alert('Event created successfully!');
     } catch (error) {
       console.error(error);
-      alert("Failed to create event.");
+      alert('Failed to create event.');
     } finally {
       setLoading(false);
     }
@@ -167,10 +158,7 @@ export default function CreateEventForm() {
 
   return (
     <div className="h-full w-full bg-zinc-950 text-white p-0 overflow-y-auto">
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 bg-zinc-900 p-4 shadow-xl w-full h-full"
-      >
+      <form onSubmit={handleSubmit} className="space-y-6 bg-zinc-900 p-4 shadow-xl w-full h-full">
         <h2 className="text-2xl font-bold mb-4">Create New Event</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,30 +244,29 @@ export default function CreateEventForm() {
           </div>
         </div>
 
-       <div>
-  <label className="block mb-1 text-sm">Tags (comma-separated)</label>
-  <input
-    type="text"
-    value={tagInput}
-    onChange={(e) => {
-      const raw = e.target.value;
-      setTagInput(raw);
+        <div>
+          <label className="block mb-1 text-sm">Tags (comma-separated)</label>
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setTagInput(raw);
 
-      const tags = raw
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== "");
+              const tags = raw
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter((tag) => tag !== '');
 
-      setFormData((prev) => ({
-        ...prev,
-        tags,
-      }));
-    }}
-    placeholder="e.g. game, workshop, offline"
-    className="w-full p-3 rounded bg-zinc-800 text-white"
-  />
-</div>
-
+              setFormData((prev) => ({
+                ...prev,
+                tags,
+              }));
+            }}
+            placeholder="e.g. game, workshop, offline"
+            className="w-full p-3 rounded bg-zinc-800 text-white"
+          />
+        </div>
 
         <div>
           <label className="block mb-1 text-sm">Categories</label>
@@ -305,16 +292,16 @@ export default function CreateEventForm() {
                 type="radio"
                 name="contentType"
                 value="text"
-                checked={contentType === "text"}
+                checked={contentType === 'text'}
                 onChange={() => {
-                  setContentType("text");
+                  setContentType('text');
                   setFormData((prev) => ({
                     ...prev,
                     contents: [
                       {
                         position: 1,
-                        description: "",
-                        imageUrl: "",
+                        description: '',
+                        imageUrl: '',
                       },
                     ],
                   }));
@@ -327,16 +314,16 @@ export default function CreateEventForm() {
                 type="radio"
                 name="contentType"
                 value="image"
-                checked={contentType === "image"}
+                checked={contentType === 'image'}
                 onChange={() => {
-                  setContentType("image");
+                  setContentType('image');
                   setFormData((prev) => ({
                     ...prev,
                     contents: [
                       {
                         position: 1,
-                        description: "",
-                        imageUrl: "",
+                        description: '',
+                        imageUrl: '',
                       },
                     ],
                   }));
@@ -350,11 +337,9 @@ export default function CreateEventForm() {
         <div className="space-y-4">
           <p className="text-lg font-semibold">Event Contents</p>
 
-          {contentType === "" && (
-            <p className="text-red-500">Please select a content type.</p>
-          )}
+          {contentType === '' && <p className="text-red-500">Please select a content type.</p>}
 
-          {contentType === "text" && (
+          {contentType === 'text' && (
             <>
               {formData.contents.map((content, index) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -363,7 +348,7 @@ export default function CreateEventForm() {
                     <input
                       type="text"
                       value={content.description}
-                      onChange={handleContentChange(index, "description")}
+                      onChange={handleContentChange(index, 'description')}
                       className="w-full p-3 rounded bg-zinc-800 text-white"
                     />
                   </div>
@@ -379,8 +364,8 @@ export default function CreateEventForm() {
                         ...prev.contents,
                         {
                           position: prev.contents.length + 1,
-                          description: "",
-                          imageUrl: "",
+                          description: '',
+                          imageUrl: '',
                         },
                       ],
                     }))
@@ -393,7 +378,7 @@ export default function CreateEventForm() {
             </>
           )}
 
-          {contentType === "image" && (
+          {contentType === 'image' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div>
                 <label className="block mb-1 text-sm">Upload Image</label>
@@ -401,8 +386,7 @@ export default function CreateEventForm() {
                   type="file"
                   accept="image/*"
                   onChange={(e) =>
-                    e.target.files?.[0] &&
-                    handleContentImageDrop(0, e.target.files[0])
+                    e.target.files?.[0] && handleContentImageDrop(0, e.target.files[0])
                   }
                   className="w-full p-2 rounded bg-zinc-800 text-white"
                 />
@@ -427,7 +411,7 @@ export default function CreateEventForm() {
           className="bg-pink-600 hover:bg-pink-500 w-full text-white font-semibold py-3"
           disabled={loading}
         >
-          {loading ? "Creating..." : "Create Event"}
+          {loading ? 'Creating...' : 'Create Event'}
         </Button>
       </form>
     </div>

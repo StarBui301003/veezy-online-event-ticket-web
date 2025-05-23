@@ -1,6 +1,5 @@
 import axios from "axios";
 import NProgress from "nprogress";
-import { toast } from 'react-toastify';
 
 NProgress.configure({
   showSpinner: false,
@@ -62,6 +61,7 @@ instance.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
+         
           const refreshToken = document.cookie
             .split('; ')
             .find(row => row.startsWith('refresh_token='))
@@ -81,8 +81,6 @@ instance.interceptors.response.use(
         } catch (refreshError) {
           isRefreshing = false;
           window.localStorage.removeItem('access_token');
-          // Thông báo toast khi token hết hạn
-          toast.error('Session has expired. Please log in again.');
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
@@ -135,6 +133,7 @@ adminInstance.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
+         
           const refreshToken = document.cookie
             .split('; ')
             .find(row => row.startsWith('refresh_token='))
@@ -154,7 +153,6 @@ adminInstance.interceptors.response.use(
         } catch (refreshError) {
           isRefreshing = false;
           window.localStorage.removeItem('access_token');
-          toast.error('Session has expired. Please log in again.');
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }

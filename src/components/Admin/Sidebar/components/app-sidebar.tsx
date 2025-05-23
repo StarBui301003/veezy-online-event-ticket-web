@@ -28,7 +28,7 @@ const data = {
       items: [
         {
           title: 'Pending Events',
-          url: '/admin/pending-events-list',
+          url: '/admin/events-pending-list',
         },
         {
           title: 'Approved Events',
@@ -36,7 +36,7 @@ const data = {
         },
         {
           title: 'Rejected Events',
-          url: '/admin/rejected-events-list',
+          url: '/admin/events-reject-list',
         },
       ],
     },

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronsUpDown, LogOut } from 'lucide-react';
 import { FiUser } from 'react-icons/fi';
-import { toast } from 'react-toastify';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -60,7 +59,6 @@ export function NavUser() {
       localStorage.removeItem('access_token');
       localStorage.removeItem('account');
       document.cookie = 'refresh_token=; Max-Age=0; path=/;';
-      toast.success('Logged out successfully!');
       navigate('/login');
     } finally {
       setLoadingLogout(false);

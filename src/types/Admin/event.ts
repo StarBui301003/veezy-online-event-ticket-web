@@ -3,11 +3,6 @@ export interface EventContent {
   description: string;
   imageUrl: string;
 }
-export enum EventApproveStatus {
-  Pending = 0,
-  Approved = 1,
-  Rejected = 2,
-}
 
 export interface ApprovedEvent {
   eventId: string;
@@ -20,7 +15,7 @@ export interface ApprovedEvent {
   tags: string[];
   categoryIds: string[];
   contents: EventContent[];
-  isApproved: EventApproveStatus;
+  isApproved: boolean;
   approvedBy: string;
   approvedAt: string;
   rejectionReason: string | null;
@@ -31,7 +26,7 @@ export interface ApprovedEvent {
   bankAccount: string;
 }
 
-export interface EventListResponse {
+export interface ApprovedEventListResponse {
   flag: boolean;
   code: number;
   data: {

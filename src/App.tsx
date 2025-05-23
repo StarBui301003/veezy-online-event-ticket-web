@@ -15,11 +15,6 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import { ApprovedEventList } from './pages/Admin/Event/ApprovedEventList';
-import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
-import { PendingEventList } from './pages/Admin/Event/PendingEventList';
-import DashboardEvent from './pages/EventManager/DashboardEvent';
-import { EventManagerLayout } from './components/EventManager/layout/Layout';
-import CreateEventForm from './pages/EventManager/CreateEvent';
 
 function App() {
   const { loading } = useLoading();
@@ -68,12 +63,6 @@ function App() {
             </ProtectedRoute>
           ), // /admin
         },
-        
-        
-        //LƯU Ý: NHỚ THÊM PATH CHO BREAKCRUMB TRONG LAYOUT ADMIN LAYOUT.TSX
-        // Thêm các page con cho admin ở đây, ví dụ:
-        // { path: 'users', element: <UserManagement /> },
-        // { path: 'events', element: <EventManagement /> },
         {
           path: 'approved-events-list',
           element: (
@@ -82,50 +71,12 @@ function App() {
             </ProtectedRoute>
           ),
         },
-        {
-          path: 'rejected-events-list',
-          element: (
-            <ProtectedRoute allowedRoles={[0]}>
-              <RejectedEventList />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'pending-events-list',
-          element: (
-            <ProtectedRoute allowedRoles={[0]}>
-              <PendingEventList />
-            </ProtectedRoute>
-          ),
-        },
+        //LƯU Ý: NHỚ THÊM PATH CHO BREAKCRUMB TRONG LAYOUT ADMIN LAYOUT.TSX
+        // Thêm các page con cho admin ở đây, ví dụ:
+        // { path: 'users', element: <UserManagement /> },
+        // { path: 'events', element: <EventManagement /> },
       ],
     },
-     {
-      path: '/event-manager',
-      element: (
-        <ProtectedRoute allowedRoles={[2]}>
-          <EventManagerLayout />
-        </ProtectedRoute>
-      ),
-      children: [
-        {
-          index: true,
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <DashboardEvent />
-            </ProtectedRoute>
-          ), // /EM
-        },
-         {
-          path: 'create-event',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <CreateEventForm />
-            </ProtectedRoute>
-          ),
-        },
-      ],
-      },
     {
       path: '/login',
       element: <LoginPage />,
