@@ -22,3 +22,28 @@ export interface Category {
   categoryName: string;
   categoryDescription: string;
 }
+
+export interface CreateTicketData {
+  eventId: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  saleStartTime: string;
+  saleEndTime: string;
+  maxTicketsPerOrder: number;
+  isTransferable: boolean;
+  imageUrl?: string;
+}
+export interface TicketPayload {
+  eventId: string;
+  ticketName: string;
+  ticketDescription: string;
+  ticketPrice: number;
+  quantityAvailable: number;
+  startSellAt: string;
+  endSellAt: string;
+  maxTicketsPerOrder: number;
+  isTransferable: boolean;
+  imageUrl?: string;
+}

@@ -141,7 +141,16 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex gap-x-6 ml-0">
+          <div className="flex gap-x-6 ml-0 items-center">
+            {/* Nút chuyển sang event manager chỉ hiện với role 2 */}
+            {account?.role === 2 && (
+              <Button
+                className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-lg shadow hover:scale-105 transition-transform duration-200 mr-2"
+                onClick={() => navigate('/event-manager')}
+              >
+                Quản lý sự kiện
+              </Button>
+            )}
             {!account ? (
               <>
                 <Link

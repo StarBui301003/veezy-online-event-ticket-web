@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from '@/components/User/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
-import { HomePage } from '@/pages/User/HomePage';
+// import { HomePage } from '@/pages/User/HomePage';
 import { LoginPage } from '@/pages/authentication/LoginPage';
 import { Register } from './pages/authentication/Register';
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
@@ -20,6 +20,13 @@ import { PendingEventList } from './pages/Admin/Event/PendingEventList';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
+import PendingEventsManager from './pages/EventManager/PendingEventsManager';
+import ApprovedEventsManager from './pages/EventManager/ApprovedEventsManager';
+import EditEvent from './pages/EventManager/EditEvent';
+import CreateTicket from './pages/EventManager/CreateTicket';
+import EventListWithTicketManager from './pages/EventManager/EventListWithTicketManager';
+import EditTicket from './pages/EventManager/EditTicket';
+import Home from './pages/Customer/Home';
 
 function App() {
   const { loading } = useLoading();
@@ -34,7 +41,8 @@ function App() {
           index: true,
           element: (
             <ProtectedRoute allowedRoles={[1, 2]}>
-              <HomePage />
+              {/* <HomePage /> */}
+              <Home/>
             </ProtectedRoute>
           ),
         },
@@ -124,6 +132,55 @@ function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: 'pending-events',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <PendingEventsManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'approved-events',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <ApprovedEventsManager />
+            </ProtectedRoute>
+          ),
+        },
+         {
+      path: 'edit/:eventId', 
+      element: (
+        <ProtectedRoute allowedRoles={[2]}>
+          <EditEvent />
+        </ProtectedRoute>
+      ),
+    },
+    {
+  path: '/event-manager/tickets/manage',
+  element: (
+    <ProtectedRoute allowedRoles={[2]}>
+      <EventListWithTicketManager />
+    </ProtectedRoute>
+  ),
+},
+
+{
+  path: '/event-manager/tickets/create/:eventId',
+  element: (
+    <ProtectedRoute allowedRoles={[2]}>
+      <CreateTicket />
+    </ProtectedRoute>
+  ),
+},
+{
+  path: '/event-manager/tickets/edit/:eventId/:ticketId',
+  element: (
+    <ProtectedRoute allowedRoles={[2]}>
+      <EditTicket />
+    </ProtectedRoute>
+  ),
+},
       ],
       },
     {

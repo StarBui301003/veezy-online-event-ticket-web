@@ -70,6 +70,7 @@ export interface Account {
   fullname: string;
   dob?: string;
   phone?: string;
+  role: number; 
 } //tam thoi
 
 export interface User {

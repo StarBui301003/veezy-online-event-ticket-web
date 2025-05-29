@@ -22,6 +22,19 @@ export const adminInstance = axios.create({
     'Content-Type': 'application/json',
   },
 });
+// Ticket instance
+export const ticketInstance = axios.create({
+  baseURL: import.meta.env.VITE_TICKET_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+export const eventInstance = axios.create({
+  baseURL: import.meta.env.VITE_EVENT_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
