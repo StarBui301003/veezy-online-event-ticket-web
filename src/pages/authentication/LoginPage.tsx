@@ -52,14 +52,14 @@ export const LoginPage = () => {
         navigate('/admin');
         return;
       }
-// Nếu là Event Manager thì chuyển sang dashboard Event Manager
-        if (apiResult.data.account.role === 2) {
-            toast.success(`Welcome ${apiResult.data.account.username}!`, {
-                position: 'top-right',
-            });
-            navigate('/event-manager');
-            return;
-        }
+      // Nếu là Event Manager thì chuyển sang dashboard Event Manager
+      if (apiResult.data.account.role === 2) {
+        toast.success(`Welcome ${apiResult.data.account.username}!`, {
+          position: 'top-right',
+        });
+        navigate('/event-manager');
+        return;
+      }
       toast.success(`Welcome ${apiResult.data.account.username}!`, {
         position: 'top-right',
       });

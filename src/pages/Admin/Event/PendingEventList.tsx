@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -85,10 +85,9 @@ export const PendingEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = { ...categories };
-        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
+        const categoryMap: Record<string, Category> = {};
         await Promise.all(
-          idsToFetch.map(async (id) => {
+          allCategoryIds.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
@@ -109,10 +108,9 @@ export const PendingEventList = () => {
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = { ...usernames };
-        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
+        const usernameMap: Record<string, string> = {};
         await Promise.all(
-          idsToFetchUser.map(async (id) => {
+          allAccountIds.map(async (id) => {
             try {
               const username = await getUsernameByAccountId(id);
               usernameMap[id] = username;
@@ -125,7 +123,6 @@ export const PendingEventList = () => {
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (event: ApprovedEvent) => {
@@ -159,10 +156,9 @@ export const PendingEventList = () => {
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = { ...categories };
-        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
+        const categoryMap: Record<string, Category> = {};
         await Promise.all(
-          idsToFetch.map(async (id) => {
+          allCategoryIds.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
@@ -182,10 +178,9 @@ export const PendingEventList = () => {
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = { ...usernames };
-        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
+        const usernameMap: Record<string, string> = {};
         await Promise.all(
-          idsToFetchUser.map(async (id) => {
+          allAccountIds.map(async (id) => {
             try {
               const username = await getUsernameByAccountId(id);
               usernameMap[id] = username;

@@ -1,6 +1,6 @@
 import type { Category, EventListResponse } from '@/types/Admin/event';
 import { adminInstance } from '@/services/axios.customize';
-import type { EventApproveStatus } from '@/types/Admin/event';
+import type { EventApproveStatus, } from '@/types/Admin/event';
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
   const res = await adminInstance.get<EventListResponse>(
@@ -51,6 +51,3 @@ export async function getCategoryById(categoryId: string) {
   );
   return res.data.data;
 }
-
-
-

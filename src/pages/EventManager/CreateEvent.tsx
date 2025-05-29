@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback } from "react";
 import { createEvent, getAllCategories, uploadImage } from "@/services/Event Manager/event.service";
@@ -113,7 +113,7 @@ export default function CreateEventForm() {
     isDragActive: isCoverDragActive,
   } = useDropzone({
     onDrop: onDropCover,
-    accept: { "image/*": [] },
+    accept: { 'image/*': [] },
   });
 
   const handleContentImageDrop = async (index: number, file: File) => {
@@ -131,10 +131,12 @@ export default function CreateEventForm() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
   const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
     setFormData((prev) => ({
       ...prev,
@@ -143,7 +145,7 @@ export default function CreateEventForm() {
   };
 
   const handleContentChange =
-    (index: number, field: "description" | "imageUrl") =>
+    (index: number, field: 'description' | 'imageUrl') =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newContents = [...formData.contents];
       newContents[index] = { ...newContents[index], [field]: e.target.value };
