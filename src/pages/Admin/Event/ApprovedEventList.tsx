@@ -163,7 +163,7 @@ export const ApprovedEventList = () => {
               />
               {search && (
                 <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                  className="absolute left-72 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
                   onClick={() => {
                     setSearch('');
                     setPage(1);
