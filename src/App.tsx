@@ -26,6 +26,7 @@ import CreateTicket from './pages/EventManager/CreateTicket';
 import EventListWithTicketManager from './pages/EventManager/EventListWithTicketManager';
 import EditTicket from './pages/EventManager/EditTicket';
 import Home from './pages/Customer/Home';
+import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
 
 function App() {
   const { loading } = useLoading();

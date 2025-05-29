@@ -130,13 +130,13 @@ export default function CreateEventForm() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
+  
   const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
     setFormData((prev) => ({
       ...prev,
