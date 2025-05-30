@@ -1,31 +1,22 @@
-import { eventInstance, ticketInstance } from "@/services/axios.customize";
+import instance from "@/services/axios.customize";
 import { CreateEventData, TicketPayload } from "@/types/event";
 import { CreateTicketData } from "@/types/event";
 
 // === Event APIs ===
 
 export async function createEvent(data: CreateEventData) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.post(
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.post(
     "/api/Event",
-    data,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      validateStatus: (status) => status >= 200 && status < 300,
-    }
+    data
   );
-
   return response.data || null;
 }
 
 // category
 export async function getAllCategories() {
   try {
-    const response = await eventInstance.get("/api/Category");
+    const response = await instance.get("/api/Category");
     const categories = response.data.data;
     if (!Array.isArray(categories)) {
       throw new Error(
@@ -41,19 +32,16 @@ export async function getAllCategories() {
 
 // upload image
 export async function uploadImage(file: File): Promise<string> {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const formData = new FormData();
   formData.append("file", file);
 
   try {
-    const response = await eventInstance.post(
+    const response = await instance.post(
       "/api/Event/upload-image",
       formData,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       }
@@ -67,116 +55,64 @@ export async function uploadImage(file: File): Promise<string> {
 
 // === Get Event by ID ===
 export async function getEventById(eventId: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.get(`/api/Event/${eventId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.get(`/api/Event/${eventId}`);
   return response.data?.data || response.data;
 }
 
 // === Get My Events ===
 export async function getMyEvents(page = 1, pageSize = 100) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.get(
-    `/api/Event/creator?page=${page}&pageSize=${pageSize}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.get(
+    `/api/Event/creator?page=${page}&pageSize=${pageSize}`
   );
-
   return response.data?.data || response.data;
 }
 
 // === Get My Approved Events ===
 export async function getMyApprovedEvents(page = 1, pageSize = 100) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.get(
-    `/api/Event/creator?page=${page}&pageSize=${pageSize}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.get(
+    `/api/Event/creator?page=${page}&pageSize=${pageSize}`
   );
-
   const items = Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
   return items.filter(event => event.isApproved === 1 && !event.isCancelled);
 }
 
 // === Cancel Event ===
 export async function cancelEvent(eventId: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.post(
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.post(
     `/api/Event/${eventId}/cancel`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    {}
   );
-
   return response.data?.data || response.data;
 }
 
 // === Update Event ===
 export async function updateEvent(eventId: string, data: CreateEventData) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.put(
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.put(
     `/api/Event/${eventId}`,
-    data,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    data
   );
-
   return response.data?.data || response.data;
 }
 
 // === Delete Event Image ===
 export async function deleteEventImage(imageUrl: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  return eventInstance.delete(
-    `/api/Event/delete-image?imageUrl=${encodeURIComponent(imageUrl)}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  return instance.delete(
+    `/api/Event/delete-image?imageUrl=${encodeURIComponent(imageUrl)}`
   );
 }
 
 // === Get My Events With Status & Search ===
 export async function getMyEventsWithStatus(filter: string, searchTerm: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.get(
-    `/api/Event?filter=${filter}&searchTerm=${searchTerm}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  const response = await instance.get(
+    `/api/Event?filter=${filter}&searchTerm=${searchTerm}`
   );
-
   return Array.isArray(response.data?.data) ? response.data.data :
          Array.isArray(response.data) ? response.data : [];
 }
@@ -184,10 +120,9 @@ export async function getMyEventsWithStatus(filter: string, searchTerm: string) 
 // === Get All Events (public) ===
 export async function getAllEvents(page = 1, pageSize = 12) {
   try {
-    const response = await eventInstance.get("/api/Event", {
+    const response = await instance.get("/api/Event", {
       params: { page, pageSize }
     });
-    // Lấy đúng mảng items từ response
     let items = response.data?.data?.items ?? [];
     if (!Array.isArray(items)) items = [];
     return items;
@@ -199,36 +134,18 @@ export async function getAllEvents(page = 1, pageSize = 12) {
 
 // === Resend Approval Request ===
 export async function resendApprovalRequest(eventId: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.post(
+  const response = await instance.post(
     `/api/Event/${eventId}/resend-approval`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    {}
   );
-
   return response.data?.data || response.data;
 }
 
 // === Get My Pending Events ===
 export async function getMyPendingEvents(page = 1, pageSize = 100) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await eventInstance.get(
-    `/api/Event/creator?page=${page}&pageSize=${pageSize}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  const response = await instance.get(
+    `/api/Event/creator?page=${page}&pageSize=${pageSize}`
   );
-
   const items = Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
   return items.filter(event => event.isApproved === 0 && !event.isCancelled);
 }
@@ -236,87 +153,51 @@ export async function getMyPendingEvents(page = 1, pageSize = 100) {
 // === Ticket APIs ===
 
 export async function createTicket(data: TicketPayload) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.post(
+  const response = await instance.post(
     "/api/Ticket",
-    data,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+    data
   );
   return response.data?.data || response.data;
 }
 
 // Lấy danh sách vé của 1 event
 export async function getTicketsByEvent(eventId: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.get(
-    `/api/Ticket/event/${eventId}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+  const response = await instance.get(
+    `/api/Ticket/event/${eventId}`
   );
   return Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
 }
 
 // Tìm kiếm vé theo từ khóa
 export async function searchTickets(keyword: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.get(
-    `/api/Ticket/search?keyword=${encodeURIComponent(keyword)}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+  const response = await instance.get(
+    `/api/Ticket/search?keyword=${encodeURIComponent(keyword)}`
   );
   return response.data?.data || response.data;
 }
 
 // Cập nhật vé
 export async function updateTicket(id: string, data: Partial<CreateTicketData>) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.put(
+  const response = await instance.put(
     `/api/Ticket/${id}`,
-    data,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+    data
   );
   return response.data?.data || response.data;
 }
 
 // Xóa vé
 export async function deleteTicket(id: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.delete(
-    `/api/Ticket/${id}`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+  const response = await instance.delete(
+    `/api/Ticket/${id}`
   );
   return response.data?.data || response.data;
 }
 
 // Đổi trạng thái vé
 export async function updateTicketStatus(id: string, status: string) {
-  const token = localStorage.getItem("access_token");
-  if (!token) throw new Error("Authentication token not found.");
-
-  const response = await ticketInstance.put(
+  const response = await instance.put(
     `/api/Ticket/${id}/status`,
-    { status },
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    }
+    { status }
   );
   return response.data?.data || response.data;
 }

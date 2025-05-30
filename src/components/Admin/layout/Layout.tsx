@@ -11,6 +11,7 @@ import { AppSidebar } from '@/components/Admin/Sidebar/components/app-sidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
@@ -18,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
   'approved-events-list': 'Approved Events',
   'rejected-events-list': 'Rejected Events',
   'pending-events-list': 'Pending Events',
+  order: 'Orders',
   // Thêm các path khác nếu có
 };
 
@@ -28,6 +30,12 @@ function isId(segment: string) {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(segment)
   );
 }
+
+// Replace this with your actual global loading state logic
+const useGlobalLoading = () => {
+  // return true if loading, false otherwise
+  return false;
+};
 
 export function AdminLayout() {
   const location = useLocation();
@@ -48,69 +56,75 @@ export function AdminLayout() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                {/* Dashboard luôn ở đầu */}
-                <BreadcrumbItem>
-                  {pathnames.length === 1 && pathnames[0] === 'admin' ? (
-                    <BreadcrumbPage className="font-bold">Dashboard</BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link to="/admin">Dashboard</Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-                {pathnames.length > 1 &&
-                  pathnames.slice(1).map((name, idx) => {
-                    let title = PAGE_TITLES[name] || name.charAt(0).toUpperCase() + name.slice(1);
-                    // Custom cho detail nếu cần
-                    if (isId(name)) {
-                      if (pathnames[idx] === 'users') title = 'User Detail';
-                      if (pathnames[idx] === 'events') title = 'Event Detail';
-                    }
-                    const to = '/admin/' + pathnames.slice(1, idx + 2).join('/');
-                    const isLast = idx === pathnames.length - 2;
-                    return (
-                      <div className="flex items-center gap-2" key={to}>
-                        <BreadcrumbSeparator />
+  const loading = useGlobalLoading();
 
-                        <BreadcrumbItem>
-                          {isLast ? (
-                            <BreadcrumbPage>{title}</BreadcrumbPage>
-                          ) : (
-                            <BreadcrumbLink asChild>
-                              <Link to={to}>{title}</Link>
-                            </BreadcrumbLink>
-                          )}
-                        </BreadcrumbItem>
-                      </div>
-                    );
-                  })}
-              </BreadcrumbList>
-            </Breadcrumb>
+  return (
+    <>
+      <SpinnerOverlay show={loading} />
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  {/* Dashboard luôn ở đầu */}
+                  <BreadcrumbItem>
+                    {pathnames.length === 1 && pathnames[0] === 'admin' ? (
+                      <BreadcrumbPage className="font-bold">Dashboard</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild>
+                        <Link to="/admin">Dashboard</Link>
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                  {pathnames.length > 1 &&
+                    pathnames.slice(1).map((name, idx) => {
+                      let title = PAGE_TITLES[name] || name.charAt(0).toUpperCase() + name.slice(1);
+                      // Custom cho detail nếu cần
+                      if (isId(name)) {
+                        if (pathnames[idx] === 'users') title = 'User Detail';
+                        if (pathnames[idx] === 'events') title = 'Event Detail';
+                        if (pathnames[idx] === 'order') title = 'Order Detail';
+                      }
+                      const to = '/admin/' + pathnames.slice(1, idx + 2).join('/');
+                      const isLast = idx === pathnames.length - 2;
+                      return (
+                        <div className="flex items-center gap-2" key={to}>
+                          <BreadcrumbSeparator />
+
+                          <BreadcrumbItem>
+                            {isLast ? (
+                              <BreadcrumbPage>{title}</BreadcrumbPage>
+                            ) : (
+                              <BreadcrumbLink asChild>
+                                <Link to={to}>{title}</Link>
+                              </BreadcrumbLink>
+                            )}
+                          </BreadcrumbItem>
+                        </div>
+                      );
+                    })}
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col p-4 pt-0 bg-blue-200/75">
+            <Outlet />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col p-4 pt-0 bg-blue-200/75">
-          <Outlet />
-        </div>
-        {showGoTop && (
-          <button
-            onClick={handleGoTop}
-            className="fixed bottom-6 right-6 z-50 size-10 rounded-full bg-white text-black shadow-lg hover:bg-black hover:text-white transition"
-            aria-label="Go to top"
-          >
-            ↑
-          </button>
-        )}
-      </SidebarInset>
-    </SidebarProvider>
+          {showGoTop && (
+            <button
+              onClick={handleGoTop}
+              className="fixed bottom-6 right-6 z-50 size-10 rounded-full bg-white text-black shadow-lg hover:bg-black hover:text-white transition"
+              aria-label="Go to top"
+            >
+              ↑
+            </button>
+          )}
+        </SidebarInset>
+      </SidebarProvider>
+    </>
   );
 }

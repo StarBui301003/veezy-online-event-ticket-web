@@ -8,7 +8,6 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
 import { getRejectedEvents, getCategoryById } from '@/services/Admin/event.service';
 import type { ApprovedEvent, Category } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/auth.service';
@@ -28,6 +27,7 @@ import {
 } from '@/components/ui/pagination';
 import { FaEye } from 'react-icons/fa';
 import RejectedEventDetailModal from '@/components/Admin/Modal/RejectedEventDetailModal';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -98,8 +98,14 @@ export const RejectedEventList = () => {
   useEffect(() => {
     (async () => {
       const res = await getRejectedEvents();
+      // Chỉ lấy các categoryId là UUID hợp lệ
+      const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
       const ids = Array.from(
-        new Set(res.data.items.flatMap((event: ApprovedEvent) => event.categoryIds || []))
+        new Set(
+          res.data.items
+            .flatMap((event: ApprovedEvent) => event.categoryIds || [])
+            .filter(isValidCategoryId)
+        )
       );
       const cats: Category[] = [];
       await Promise.all(
@@ -108,7 +114,12 @@ export const RejectedEventList = () => {
             const cat = await getCategoryById(id);
             cats.push(cat);
           } catch {
-            // ignore
+            // Nếu lỗi vẫn push object tạm để filter không bị thiếu
+            cats.push({
+              categoryId: id,
+              categoryName: 'unknown',
+              categoryDescription: '',
+            });
           }
         })
       );
@@ -142,6 +153,7 @@ export const RejectedEventList = () => {
 
   return (
     <div className="p-6">
+      <SpinnerOverlay show={loading} />
       <h2 className="text-2xl font-bold mb-4">Rejected Events</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
@@ -231,22 +243,7 @@ export const RejectedEventList = () => {
               </DropdownMenu>
             </div>
           </div>
-          {loading ? (
-            <div className="flex flex-col gap-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 py-2">
-                  <Skeleton className="h-6 w-[25px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[294px] rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[88px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[117px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[167px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[99px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[167px]  rounded-[12px] bg-slate-200" />
-                  <Skeleton className="h-6 w-[78px]  rounded-[12px] bg-slate-200" />
-                </div>
-              ))}
-            </div>
-          ) : (
+          {!loading && (
             <>
               <Table className="min-w-full">
                 <TableHeader>
@@ -411,13 +408,13 @@ export const RejectedEventList = () => {
                   </TableRow>
                 </TableFooter>
               </Table>
+              {selectedEvent && (
+                <RejectedEventDetailModal
+                  event={selectedEvent}
+                  onClose={() => setSelectedEvent(null)}
+                />
+              )}
             </>
-          )}
-          {selectedEvent && (
-            <RejectedEventDetailModal
-              event={selectedEvent}
-              onClose={() => setSelectedEvent(null)}
-            />
           )}
         </div>
       </div>

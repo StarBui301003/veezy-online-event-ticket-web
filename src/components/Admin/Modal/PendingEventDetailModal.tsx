@@ -40,15 +40,17 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
         .then((name) => setApprovedByName(name || 'unknown'))
         .catch(() => setApprovedByName('unknown'));
     }
-    // Lấy tên category từ id
+    // Chỉ lấy tên category nếu id hợp lệ (UUID)
     if (event.categoryIds && event.categoryIds.length > 0) {
+      const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
       Promise.all(
         event.categoryIds.map(async (id) => {
+          if (!isValidCategoryId(id)) return 'unknown';
           try {
             const cat: Category = await getCategoryById(id);
             return cat.categoryName || id;
           } catch {
-            return id;
+            return 'unknown';
           }
         })
       ).then(setCategoryNames);
@@ -213,8 +215,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
             <b>Bank Account:</b> {event.bankAccount ?? 'unknown'}
           </div>
         </div>
-        <div className="p-4 border-b-2 border-gray-400 ">
-          {' '}
+        <div className="p-4 border-t-2 border-gray-400">
           <DialogFooter>
             {showRejectInput ? (
               <>

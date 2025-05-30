@@ -1,9 +1,9 @@
-import type { Category, EventListResponse } from '@/types/Admin/event';
-import { adminInstance } from '@/services/axios.customize';
+import type { AdminOrderListResponse, AdminTicketListResponse, Category, EventListResponse } from '@/types/Admin/event';
+import instance  from '@/services/axios.customize';
 import type { EventApproveStatus, } from '@/types/Admin/event';
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
-  const res = await adminInstance.get<EventListResponse>(
+  const res = await instance.get<EventListResponse>(
     '/api/Event/approved',
     { params }
   );
@@ -11,7 +11,7 @@ export async function getApprovedEvents(params?: { page?: number; pageSize?: num
 }
 
 export async function getRejectedEvents(params?: { page?: number; pageSize?: number }) {
-  const res = await adminInstance.get<EventListResponse>(
+  const res = await instance.get<EventListResponse>(
     '/api/Event/rejected',
     { params }
   );
@@ -19,7 +19,7 @@ export async function getRejectedEvents(params?: { page?: number; pageSize?: num
 }
 
 export async function getPendingEvents(params?: { page?: number; pageSize?: number }) {
-  const res = await adminInstance.get<EventListResponse>(
+  const res = await instance.get<EventListResponse>(
     '/api/Event/pending',
     { params }
   );
@@ -27,7 +27,7 @@ export async function getPendingEvents(params?: { page?: number; pageSize?: numb
 }
 
 export async function cancelEvent(eventId: string) {
-  const res = await adminInstance.post(`/api/Event/${eventId}/cancel`);
+  const res = await instance.post(`/api/Event/${eventId}/cancel`);
   return res.data;
 }
 
@@ -37,7 +37,7 @@ export async function approvedRejectEvent(
   isApproved: EventApproveStatus,
   rejectionReason?: string
 ) {
-  const res = await adminInstance.post(`/api/Event/${eventId}/approve`, {
+  const res = await instance.post(`/api/Event/${eventId}/approve`, {
     isApproved,
     rejectionReason: rejectionReason ?? null,
   });
@@ -46,8 +46,21 @@ export async function approvedRejectEvent(
 
 // Lấy category theo id
 export async function getCategoryById(categoryId: string) {
-  const res = await adminInstance.get<{ data: Category }>(
-    `/api/category/${categoryId}`
+  const res = await instance.get<{ data: Category }>(
+    `/api/Category/${categoryId}`
   );
   return res.data.data;
+}
+
+// API: Get tickets by eventId (Admin)
+export async function getTicketsByEventAdmin(eventId: string) {
+  const res = await instance.get<AdminTicketListResponse>(`/api/Ticket/event/${eventId}`);
+  return res.data;
+}
+
+
+// API: Get orders (Admin)
+export async function getOrdersAdmin(params?: { page?: number; pageSize?: number; eventId?: string }) {
+  const res = await instance.get<AdminOrderListResponse>('/api/Order', { params });
+  return res.data;
 }

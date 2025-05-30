@@ -27,6 +27,7 @@ import EventListWithTicketManager from './pages/EventManager/EventListWithTicket
 import EditTicket from './pages/EventManager/EditTicket';
 import Home from './pages/Customer/Home';
 import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
+import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
 
 function App() {
   const { loading } = useLoading();
@@ -42,7 +43,7 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[1, 2]}>
               {/* <HomePage /> */}
-              <Home/>
+              <Home />
             </ProtectedRoute>
           ),
         },
@@ -100,6 +101,14 @@ function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: 'order',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <OrderListAdmin />
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
     {
@@ -142,39 +151,39 @@ function App() {
             </ProtectedRoute>
           ),
         },
-         {
-      path: 'edit/:eventId', 
-      element: (
-        <ProtectedRoute allowedRoles={[2]}>
-          <EditEvent />
-        </ProtectedRoute>
-      ),
-    },
-    {
-  path: '/event-manager/tickets/manage',
-  element: (
-    <ProtectedRoute allowedRoles={[2]}>
-      <EventListWithTicketManager />
-    </ProtectedRoute>
-  ),
-},
+        {
+          path: 'edit/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EditEvent />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/event-manager/tickets/manage',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventListWithTicketManager />
+            </ProtectedRoute>
+          ),
+        },
 
-{
-  path: '/event-manager/tickets/create/:eventId',
-  element: (
-    <ProtectedRoute allowedRoles={[2]}>
-      <CreateTicket />
-    </ProtectedRoute>
-  ),
-},
-{
-  path: '/event-manager/tickets/edit/:eventId/:ticketId',
-  element: (
-    <ProtectedRoute allowedRoles={[2]}>
-      <EditTicket />
-    </ProtectedRoute>
-  ),
-},
+        {
+          path: '/event-manager/tickets/create/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateTicket />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/event-manager/tickets/edit/:eventId/:ticketId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EditTicket />
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
     {

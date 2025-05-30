@@ -17,10 +17,30 @@ export const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accStr = localStorage.getItem('data');
-    if (accStr) {
-      navigate('/');
+    // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
+    const accStr = localStorage.getItem('account');
+    const accessToken = localStorage.getItem('access_token');
+    if (accStr && accessToken) {
+      try {
+        const accObj = JSON.parse(accStr);
+        if (accObj && typeof accObj.role === 'number') {
+          if (accObj.role === 0) {
+            navigate('/admin');
+            return;
+          }
+          if (accObj.role === 2) {
+            navigate('/event-manager');
+            return;
+          }
+          // Mặc định role 1 hoặc khác thì về home
+          navigate('/');
+          return;
+        }
+      } catch {
+        localStorage.removeItem('account');
+      }
     }
+    // ...các logic khác như remembered username...
     const remembered = localStorage.getItem('remembered_username');
     if (remembered) {
       setUsername(remembered);
@@ -33,6 +53,12 @@ export const LoginPage = () => {
     try {
       const data = { username, password };
       const apiResult = await loginAPI(data);
+
+      if (!apiResult.data || !apiResult.data.accessToken) {
+        toast.error('Đăng nhập thất bại, không nhận được access token!');
+        setLoading(false);
+        return;
+      }
 
       localStorage.setItem('access_token', apiResult.data.accessToken);
       document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;

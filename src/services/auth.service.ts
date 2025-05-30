@@ -41,29 +41,12 @@ export const resetPasswordWithCode = async (email: string, code: string, newPass
 };
 
 export const getUserAPI = async (userId: string) => {
-  const token = localStorage.getItem('access_token');
-  const response = await axios.get(
-    `/api/User/${userId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await axios.get(`/api/User/${userId}`);
   return response.data.data;
 };
 
-// Lấy thông tin account theo accountId
 export const getAccountByIdAPI = async (accountId: string) => {
-  const token = localStorage.getItem('access_token');
-  const response = await axios.get(
-    `/api/Account/${accountId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await axios.get(`/api/Account/${accountId}`);
   return response.data.data;
 };
 

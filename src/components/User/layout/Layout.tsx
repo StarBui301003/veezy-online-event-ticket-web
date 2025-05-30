@@ -2,9 +2,35 @@ import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function Layout() {
   const [show, setShow] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Nếu đã đăng nhập thì chuyển hướng theo role
+    const accStr = localStorage.getItem('account');
+    const accessToken = localStorage.getItem('access_token');
+    if (accStr && accessToken) {
+      try {
+        const accObj = JSON.parse(accStr);
+        if (accObj && typeof accObj.role === 'number') {
+          if (accObj.role === 0) {
+            navigate('/admin');
+            return;
+          }
+          if (accObj.role === 2) {
+            navigate('/event-manager');
+            return;
+          }
+          // Mặc định role 1 hoặc khác thì ở lại customer
+        }
+      } catch {
+        localStorage.removeItem('account');
+      }
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const onScroll = () => {

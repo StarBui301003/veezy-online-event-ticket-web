@@ -7,30 +7,9 @@ NProgress.configure({
   trickleSpeed: 100,
 });
 
-// User instance
+// Chỉ cần 1 instance duy nhất cho gateway
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Admin instance
-export const adminInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL_ADMIN,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-// Ticket instance
-export const ticketInstance = axios.create({
-  baseURL: import.meta.env.VITE_TICKET_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-export const eventInstance = axios.create({
-  baseURL: import.meta.env.VITE_EVENT_URL,
+  baseURL: import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000",
   headers: {
     'Content-Type': 'application/json',
   },
@@ -44,12 +23,13 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
+// Interceptor request
 instance.interceptors.request.use(
   function (config) {
     NProgress.start();
     const token = window.localStorage.getItem("access_token");
-    const isLoginRequest = config.url?.includes("/api/Account/login");
-    if (token && !isLoginRequest) {
+    // Không cần check url, mọi request đều qua gateway
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -60,6 +40,7 @@ instance.interceptors.request.use(
   }
 );
 
+// Interceptor response
 instance.interceptors.response.use(
   function (response) {
     NProgress.done();
@@ -69,6 +50,7 @@ instance.interceptors.response.use(
     NProgress.done();
     const originalRequest = error.config;
 
+    // Nếu bị 401 (Unauthorized)
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -80,8 +62,16 @@ instance.interceptors.response.use(
             .find(row => row.startsWith('refresh_token='))
             ?.split('=')[1];
 
+          if (!refreshToken) {
+            toast.error('Your session has expired. Please log in again!');
+            window.localStorage.removeItem('access_token');
+            window.location.href = '/login';
+            isRefreshing = false;
+            return Promise.reject(error);
+          }
+
           const res = await axios.post(
-            `${import.meta.env.VITE_BACKEND_URL}/api/Account/refresh-token`,
+            `${import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000"}/api/Account/refresh-token`,
             { refreshToken }
           );
           const { accessToken } = res.data;
@@ -94,8 +84,7 @@ instance.interceptors.response.use(
         } catch (refreshError) {
           isRefreshing = false;
           window.localStorage.removeItem('access_token');
-          // Thông báo toast khi token hết hạn
-          toast.error('Session has expired. Please log in again.');
+          toast.error('Your session has expired. Please log in again!');
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
@@ -110,80 +99,21 @@ instance.interceptors.response.use(
       }
     }
 
-    // Nếu lỗi khác
-    if (error.response && error.response.data) return Promise.reject(error.response.data);
-    return Promise.reject(error);
-  }
-);
-
-// Copy interceptors logic cho adminInstance nếu muốn dùng chung logic
-adminInstance.interceptors.request.use(
-  function (config) {
-    NProgress.start();
-    const token = window.localStorage.getItem("access_token");
-    const isLoginRequest = config.url?.includes("/api/Account/login");
-    if (token && !isLoginRequest) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  function (error) {
-    NProgress.done();
-    return Promise.reject(error);
-  }
-);
-
-adminInstance.interceptors.response.use(
-  function (response) {
-    NProgress.done();
-    return response;
-  },
-  async function (error) {
-    NProgress.done();
-    const originalRequest = error.config;
-
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const refreshToken = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('refresh_token='))
-            ?.split('=')[1];
-
-          const res = await axios.post(
-            `${import.meta.env.VITE_BACKEND_URL}/api/Account/refresh-token`,
-            { refreshToken }
-          );
-          const { accessToken } = res.data;
-          window.localStorage.setItem('access_token', accessToken);
-          onRefreshed(accessToken);
-          isRefreshing = false;
-
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return adminInstance(originalRequest);
-        } catch (refreshError) {
-          isRefreshing = false;
-          window.localStorage.removeItem('access_token');
-          toast.error('Session has expired. Please log in again.');
-          window.location.href = '/login';
-          return Promise.reject(refreshError);
-        }
-      } else {
-        // Nếu đang refresh, chờ token mới rồi retry
-        return new Promise((resolve) => {
-          refreshSubscribers.push((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(adminInstance(originalRequest));
-          });
-        });
-      }
+    // Nếu lỗi 400 (Bad Request)
+    if (error.response && error.response.status === 400) {
+      toast.error(error.response.data?.message || "Invalid data submitted!");
+      return Promise.reject(error.response.data);
     }
 
-    // Nếu lỗi khác
-    if (error.response && error.response.data) return Promise.reject(error.response.data);
+    // Nếu backend trả về message (bất kỳ code nào)
+    if (error.response && error.response.data && error.response.data.message) {
+      toast.error(error.response.data.message);
+      return Promise.reject(error.response.data);
+    }
+
+    if (error.message) {
+      toast.error(error.message);
+    }
     return Promise.reject(error);
   }
 );

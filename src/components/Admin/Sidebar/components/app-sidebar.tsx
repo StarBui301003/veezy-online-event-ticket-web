@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Frame, Map, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MdEvent } from 'react-icons/md';
+import { FaShoppingCart } from 'react-icons/fa';
 import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
 import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
@@ -21,7 +22,7 @@ import { LOGO_RECTANGLE } from '@/assets/img';
 const data = {
   navMain: [
     {
-      title: 'Event',
+      title: 'Events',
       url: '#',
       icon: MdEvent,
       isActive: true,
@@ -39,6 +40,11 @@ const data = {
           url: '/admin/rejected-events-list',
         },
       ],
+    },
+    {
+      title: 'Orders',
+      url: '/admin/order',
+      icon: FaShoppingCart,
     },
   ],
 
