@@ -1,4 +1,4 @@
-import type { AdminOrderListResponse, AdminTicketListResponse, Category, EventListResponse } from '@/types/Admin/event';
+import type { AdminTicketListResponse, Category, EventListResponse } from '@/types/Admin/event';
 import instance  from '@/services/axios.customize';
 import type { EventApproveStatus, } from '@/types/Admin/event';
 
@@ -58,9 +58,3 @@ export async function getTicketsByEventAdmin(eventId: string) {
   return res.data;
 }
 
-
-// API: Get orders (Admin)
-export async function getOrdersAdmin(params?: { page?: number; pageSize?: number; eventId?: string }) {
-  const res = await instance.get<AdminOrderListResponse>('/api/Order', { params });
-  return res.data;
-}

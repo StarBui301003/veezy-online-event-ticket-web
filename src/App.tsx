@@ -28,6 +28,7 @@ import EditTicket from './pages/EventManager/EditTicket';
 import Home from './pages/Customer/Home';
 import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
 import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
+import { UserList } from './pages/Admin/User/UserList';
 
 function App() {
   const { loading } = useLoading();
@@ -102,10 +103,18 @@ function App() {
           ),
         },
         {
-          path: 'order',
+          path: 'order-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <OrderListAdmin />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'user-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <UserList />
             </ProtectedRoute>
           ),
         },

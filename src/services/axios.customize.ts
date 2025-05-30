@@ -7,7 +7,6 @@ NProgress.configure({
   trickleSpeed: 100,
 });
 
-// Chỉ cần 1 instance duy nhất cho gateway
 const instance = axios.create({
   baseURL: import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000",
   headers: {
@@ -28,7 +27,6 @@ instance.interceptors.request.use(
   function (config) {
     NProgress.start();
     const token = window.localStorage.getItem("access_token");
-    // Không cần check url, mọi request đều qua gateway
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -99,20 +97,34 @@ instance.interceptors.response.use(
       }
     }
 
+    const ERROR_TOAST_ID = "global-error-toast";
+
     // Nếu lỗi 400 (Bad Request)
     if (error.response && error.response.status === 400) {
-      toast.error(error.response.data?.message || "Invalid data submitted!");
+  
+      toast.error(error.response.data?.message || "Invalid data submitted!", {
+        toastId: ERROR_TOAST_ID,
+
+      });
       return Promise.reject(error.response.data);
     }
 
     // Nếu backend trả về message (bất kỳ code nào)
     if (error.response && error.response.data && error.response.data.message) {
-      toast.error(error.response.data.message);
+
+      toast.error(error.response.data.message, {
+        toastId: ERROR_TOAST_ID,
+
+      });
       return Promise.reject(error.response.data);
     }
 
     if (error.message) {
-      toast.error(error.message);
+
+      toast.error(error.message, {
+        toastId: ERROR_TOAST_ID,
+
+      });
     }
     return Promise.reject(error);
   }

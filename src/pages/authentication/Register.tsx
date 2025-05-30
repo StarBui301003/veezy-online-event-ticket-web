@@ -62,8 +62,7 @@ export const Register = () => {
       } else {
         // Xử lý lỗi trả về từ backend (bao gồm errors object)
         if (response?.errors && typeof response.errors === 'object') {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          Object.entries(response.errors).forEach(([field, messages]) => {
+          Object.entries(response.errors).forEach(([messages]) => {
             if (Array.isArray(messages)) {
               messages.forEach((msg) => toast.error(msg));
             }
@@ -77,8 +76,7 @@ export const Register = () => {
       // Xử lý lỗi trả về từ backend (bao gồm errors object)
       const errors = err?.errors || err?.response?.data?.errors;
       if (errors && typeof errors === 'object') {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        Object.entries(errors).forEach(([field, messages]) => {
+        Object.entries(errors).forEach(([messages]) => {
           if (Array.isArray(messages)) {
             messages.forEach((msg) => toast.error(msg));
           }

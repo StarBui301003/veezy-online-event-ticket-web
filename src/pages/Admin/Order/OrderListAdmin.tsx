@@ -8,8 +8,7 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { getOrdersAdmin } from '@/services/Admin/event.service';
-import type { AdminOrder } from '@/types/Admin/event';
+import type { AdminOrder } from '@/types/Admin/order';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
   Pagination,
@@ -19,6 +18,7 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import { getOrdersAdmin } from '@/services/Admin/order.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -27,25 +27,25 @@ export const OrderListAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     setLoading(true);
     getOrdersAdmin()
       .then((res) => {
         setOrders(res.data?.items || []);
-        setTotalItems(res.data?.items?.length || 0);
       })
       .catch(() => {
         setOrders([]);
-        setTotalItems(0);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // FE pagination
-  const pagedOrders = orders.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+  // Nếu có filter/search, hãy filter ở đây (giống ApprovedEventList)
+  const filteredOrders = orders; // Nếu có filter thì filter ở đây
+
+  const totalItems = filteredOrders.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const pagedOrders = filteredOrders.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="p-6">
@@ -60,7 +60,7 @@ export const OrderListAdmin = () => {
                   Customer ID
                 </TableHead>
                 <TableHead>Event ID</TableHead>
-                <TableHead>Ticket Name</TableHead>
+                <TableHead>Ticket Name(s)</TableHead>
                 <TableHead>Price Per Ticket</TableHead>
                 <TableHead>Quantity</TableHead>
                 <TableHead>Subtotal</TableHead>
@@ -77,44 +77,41 @@ export const OrderListAdmin = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                pagedOrders.map((order, idx) =>
-                  order.items && order.items.length > 0 ? (
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    order.items.map((item, itemIdx) => (
-                      <TableRow key={order.orderId + '-' + item.ticketId}>
-                        <TableCell className="text-center sticky left-0 bg-white z-10">
-                          {order.customerId}
-                        </TableCell>
-                        <TableCell>{order.eventId}</TableCell>
-                        <TableCell>{item.ticketName}</TableCell>
-                        <TableCell>{item.pricePerTicket}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>{item.subtotal}</TableCell>
-                        <TableCell>{order.discountCode}</TableCell>
-                        <TableCell>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
-                        </TableCell>
-                        <TableCell>{order.totalAmount}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow key={order.orderId}>
-                      <TableCell className="text-center sticky left-0 bg-white z-10">
-                        {order.customerId}
-                      </TableCell>
-                      <TableCell>{order.eventId}</TableCell>
-                      <TableCell colSpan={4} className="text-center text-gray-400">
-                        No ticket items
-                      </TableCell>
-                      <TableCell>{order.discountCode}</TableCell>
-                      <TableCell>
-                        {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
-                      </TableCell>
-                      <TableCell>{order.totalAmount}</TableCell>
-                    </TableRow>
-                  )
-                )
+                pagedOrders.map((order) => (
+                  <TableRow key={order.orderId}>
+                    <TableCell className="text-center sticky left-0 bg-white z-10">
+                      {order.customerId}
+                    </TableCell>
+                    <TableCell>{order.eventId}</TableCell>
+                    <TableCell>
+                      {order.items && order.items.length > 0 ? (
+                        order.items.map((item) => item.ticketName).join(', ')
+                      ) : (
+                        <span className="text-gray-400">No ticket items</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {order.items && order.items.length > 0
+                        ? order.items.map((item) => item.pricePerTicket).join(', ')
+                        : ''}
+                    </TableCell>
+                    <TableCell>
+                      {order.items && order.items.length > 0
+                        ? order.items.map((item) => item.quantity).join(', ')
+                        : ''}
+                    </TableCell>
+                    <TableCell>
+                      {order.items && order.items.length > 0
+                        ? order.items.map((item) => item.subtotal).join(', ')
+                        : ''}
+                    </TableCell>
+                    <TableCell>{order.discountCode}</TableCell>
+                    <TableCell>
+                      {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
+                    </TableCell>
+                    <TableCell>{order.totalAmount}</TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
             <TableFooter>
@@ -168,7 +165,7 @@ export const OrderListAdmin = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {orders.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,

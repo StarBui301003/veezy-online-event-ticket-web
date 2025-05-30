@@ -16,10 +16,11 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
   events: 'Events',
-  'approved-events-list': 'Approved Events',
-  'rejected-events-list': 'Rejected Events',
-  'pending-events-list': 'Pending Events',
-  order: 'Orders',
+  'approved-events-list': 'Approved Events List',
+  'rejected-events-list': 'Rejected Events List',
+  'pending-events-list': 'Pending Events List',
+  'order-list': 'Orders List',
+  'user-list': 'Users List',
   // Thêm các path khác nếu có
 };
 

@@ -8,6 +8,7 @@ import { FaShoppingCart } from 'react-icons/fa';
 import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
 import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
+import { FaUserFriends } from 'react-icons/fa';
 import {
   Sidebar,
   SidebarContent,
@@ -43,8 +44,13 @@ const data = {
     },
     {
       title: 'Orders',
-      url: '/admin/order',
+      url: '/admin/order-list',
       icon: FaShoppingCart,
+    },
+    {
+      title: 'Users',
+      url: '/admin/user-list',
+      icon: FaUserFriends,
     },
   ],
 

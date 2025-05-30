@@ -1,38 +1,38 @@
-import axios from "@/services/axios.customize";
-import { LoginRequest, LoginResponse, RegisterRequest, VerifyEmailRegisterAPI } from "@/types/auth";
+import instance from "@/services/axios.customize";
+import { LoginRequest, LoginResponse, RegisterRequest, User, VerifyEmailRegisterAPI } from "@/types/auth";
 
 export const loginAPI = async (data: LoginRequest): Promise<LoginResponse> => {
-  const response = await axios.post<LoginResponse>("/api/Account/login", data);
+  const response = await instance.post<LoginResponse>("/api/Account/login", data);
   return response.data;
 };
 
 //authentication
 export const RegisterAPI = async (data: RegisterRequest) => {
-  const response = await axios.post("/api/Account/register", data);
+  const response = await instance.post("/api/Account/register", data);
   return response.data;
 };
 
 export const LogoutAPI = async () => {
-  return await axios.post("/api/Account/logout");
+  return await instance.post("/api/Account/logout");
 };
 
 export const verifyEmailRegisterAPI = async (data: VerifyEmailRegisterAPI) => {
-  const response = await axios.post("/api/Account/verify-email", data);
+  const response = await instance.post("/api/Account/verify-email", data);
 return response.data;
 };
 
 export const resendVerifyEmailRegisterAPI = async (email: string) => {
-  const response = await axios.post("/api/Account/resend-verification", { email });
+  const response = await instance.post("/api/Account/resend-verification", { email });
  return response.data;
 };
 
 export const requestResetPassword = async (email: string) => {
-  const response = await axios.post("/api/Account/forgot-password", { email });
+  const response = await instance.post("/api/Account/forgot-password", { email });
   return response.data;
 };
 
 export const resetPasswordWithCode = async (email: string, code: string, newPassword: string) => {
-  const response = await axios.post("/api/Account/reset-password", {
+  const response = await instance.post("/api/Account/reset-password", {
     email,
     verificationCode: code,
     newPassword,
@@ -41,12 +41,12 @@ export const resetPasswordWithCode = async (email: string, code: string, newPass
 };
 
 export const getUserAPI = async (userId: string) => {
-  const response = await axios.get(`/api/User/${userId}`);
+  const response = await instance.get(`/api/User/${userId}`);
   return response.data.data;
 };
 
 export const getAccountByIdAPI = async (accountId: string) => {
-  const response = await axios.get(`/api/Account/${accountId}`);
+  const response = await instance.get(`/api/Account/${accountId}`);
   return response.data.data;
 };
 
@@ -61,5 +61,14 @@ export const getUsernameByAccountId = async (accountId: string) => {
 };
 
 //------------------------------------------------------------------------------------------------------
-
-
+interface UserListResponse {
+  data: {
+    items: User[];
+  };
+  message?: string;
+  code?: number;
+}
+export async function getUsers() {
+  const res = await instance.get<UserListResponse>('/api/User');
+  return res.data.data.items;
+}

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
-import { getAllEvents } from "@/services/Event Manager/event.service";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { getAllEvents } from '@/services/Event Manager/event.service';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 interface Event {
   eventId: string;
@@ -41,7 +41,7 @@ export const HomePage = () => {
     arrows: true,
     autoplay: true,
     autoplaySpeed: 4000,
-    className: "w-full",
+    className: 'w-full',
   };
 
   return (
@@ -89,7 +89,19 @@ export const HomePage = () => {
                             {event.eventName}
                           </h3>
                           <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 0c-3.314 0-6 2.686-6 6 0 1.657 1.343 3 3 3h6c1.657 0 3-1.343 3-3 0-3.314-2.686-6-6-6z" /></svg>
+                            <svg
+                              className="w-4 h-4 text-blue-400"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 0c-3.314 0-6 2.686-6 6 0 1.657 1.343 3 3 3h6c1.657 0 3-1.343 3-3 0-3.314-2.686-6-6-6z"
+                              />
+                            </svg>
                             <span className="truncate">{event.eventLocation}</span>
                           </div>
                           <div className="flex flex-wrap gap-2 mb-2">
@@ -104,23 +116,23 @@ export const HomePage = () => {
                           </div>
                           <div className="flex flex-col gap-1 text-xs text-gray-400">
                             <span>
-                              <b>Bắt đầu:</b>{" "}
-                              {new Date(event.startAt).toLocaleString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
+                              <b>Bắt đầu:</b>{' '}
+                              {new Date(event.startAt).toLocaleString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
                               })}
                             </span>
                             <span>
-                              <b>Kết thúc:</b>{" "}
-                              {new Date(event.endAt).toLocaleString("vi-VN", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
+                              <b>Kết thúc:</b>{' '}
+                              {new Date(event.endAt).toLocaleString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
                               })}
                             </span>
                           </div>
@@ -135,12 +147,10 @@ export const HomePage = () => {
           {/* Grid 3 sự kiện nổi bật bên phải (chiếm 1/3 trên desktop) */}
           <div className="w-full lg:w-1/3 flex flex-col gap-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-gray-800">
-                Sự kiện nổi bật
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800">Sự kiện nổi bật</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate("/events")}
+                onClick={() => navigate('/events')}
               >
                 Xem thêm
               </button>
@@ -166,7 +176,19 @@ export const HomePage = () => {
                       {event.eventName}
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                      <svg className="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 0c-3.314 0-6 2.686-6 6 0 1.657 1.343 3 3 3h6c1.657 0 3-1.343 3-3 0-3.314-2.686-6-6-6z" /></svg>
+                      <svg
+                        className="w-3 h-3 text-blue-400"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 0c-3.314 0-6 2.686-6 6 0 1.657 1.343 3 3 3h6c1.657 0 3-1.343 3-3 0-3.314-2.686-6-6-6z"
+                        />
+                      </svg>
                       <span className="truncate">{event.eventLocation}</span>
                     </div>
                     <div className="flex flex-wrap gap-1 mb-1">
@@ -181,13 +203,13 @@ export const HomePage = () => {
                     </div>
                     <div className="flex flex-col gap-0.5 text-xs text-gray-400">
                       <span>
-                        <b>Bắt đầu:</b>{" "}
-                        {new Date(event.startAt).toLocaleString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
+                        <b>Bắt đầu:</b>{' '}
+                        {new Date(event.startAt).toLocaleString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
                         })}
                       </span>
                     </div>
