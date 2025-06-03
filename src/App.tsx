@@ -29,6 +29,8 @@ import Home from './pages/Customer/Home';
 import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
 import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
 import { UserList } from './pages/Admin/User/UserList';
+import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
+import ProfilePage from '@/pages/ProfilePage';
 
 function App() {
   const { loading } = useLoading();
@@ -115,6 +117,22 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <UserList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'payment-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <PaymentListAdmin />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'profile',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <ProfilePage />
             </ProtectedRoute>
           ),
         },

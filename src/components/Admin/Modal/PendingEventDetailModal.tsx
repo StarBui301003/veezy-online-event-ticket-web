@@ -8,7 +8,7 @@ import {
 import type { ApprovedEvent, Category } from '@/types/Admin/event';
 import { EventApproveStatus } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
-import { getUsernameByAccountId } from '@/services/auth.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import { approvedRejectEvent, getCategoryById } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';

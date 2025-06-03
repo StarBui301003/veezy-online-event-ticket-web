@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, Category, EventApproveStatus } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/auth.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,

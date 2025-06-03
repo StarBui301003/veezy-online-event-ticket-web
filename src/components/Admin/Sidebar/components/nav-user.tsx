@@ -36,21 +36,32 @@ export function NavUser() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accStr = localStorage.getItem('account');
-    if (!accStr) return;
-    try {
-      const acc = JSON.parse(accStr);
-      getUserAPI(acc.userId).then((userData) => {
-        setUser({
-          name: userData.fullName || acc.fullname || acc.username,
-          username: userData.username || acc.username || '',
-          email: userData.email || acc.email,
-          avatar: userData.avatar || acc.avatar || '',
+    const fetchUser = () => {
+      const accStr = localStorage.getItem('account');
+      if (!accStr) return;
+      try {
+        const acc = JSON.parse(accStr);
+        getUserAPI(acc.userId).then((userData) => {
+          setUser({
+            name: userData.fullName || acc.fullName || acc.username,
+            username: userData.username || acc.username || '',
+            email: userData.email || acc.email,
+            avatar: userData.avatar || acc.avatar || '',
+          });
         });
-      });
-    } catch {
-      // ignore
-    }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchUser();
+
+    window.addEventListener('user-updated', fetchUser);
+    window.addEventListener('storage', fetchUser);
+    return () => {
+      window.removeEventListener('user-updated', fetchUser);
+      window.removeEventListener('storage', fetchUser);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -113,7 +124,10 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="focus:bg-accent focus:text-accent-foreground">
+              <DropdownMenuItem
+                className="focus:bg-accent focus:text-accent-foreground"
+                onClick={() => navigate('/admin/profile')}
+              >
                 <FiUser />
                 Profile
               </DropdownMenuItem>

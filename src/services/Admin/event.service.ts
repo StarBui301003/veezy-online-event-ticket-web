@@ -52,9 +52,18 @@ export async function getCategoryById(categoryId: string) {
   return res.data.data;
 }
 
+export async function getAllCategory() {
+  const res = await instance.get<{ data: Category[] }>(
+    `/api/Category`
+  );
+  return res.data.data;
+}
+
 // API: Get tickets by eventId (Admin)
 export async function getTicketsByEventAdmin(eventId: string) {
   const res = await instance.get<AdminTicketListResponse>(`/api/Ticket/event/${eventId}`);
   return res.data;
 }
+
+
 

@@ -1,4 +1,3 @@
-
 export interface AdminOrder {
   orderId: string;
   customerId: string;
@@ -31,4 +30,42 @@ export interface AdminOrderTicketItem {
   pricePerTicket: number;
   quantity: number;
   subtotal: number;
+}
+
+export enum PaymentMethod {
+  VietQR = 0,
+  Momo = 1,
+  VnPay = 2,
+  Other = 3,
+}
+
+export enum PaymentStatus {
+  Success = 0,
+  Failed = 1,
+  Pending = 2,
+  Orther = 3,
+}
+
+export interface AdminPayment {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  transactionCode: string;
+  paidAt: string | null;
+}
+
+export interface AdminPaymentListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items: AdminPayment[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }

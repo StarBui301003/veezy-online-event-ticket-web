@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers, getAccountByIdAPI } from '@/services/auth.service';
+import { getUsers, getAccountByIdAPI } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
 import {
   Table,
@@ -25,6 +25,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import { MdOutlineEdit } from 'react-icons/md';
+import { FaEye } from 'react-icons/fa';
+import UserDetailModal from '@/components/Admin/Modal/UserDetailModal';
+import EditUserModal from '@/components/Admin/Modal/EditUserModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -34,6 +38,8 @@ export const UserList = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [viewUser, setViewUser] = useState<User | null>(null);
+  const [editUser, setEditUser] = useState<User | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -62,9 +68,6 @@ export const UserList = () => {
   const pagedUsers = users.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
 
-  const genderLabel = (gender: number) =>
-    gender === 0 ? 'Male' : gender === 1 ? 'Female' : 'Other';
-
   const roleLabel = (role: number) => {
     switch (role) {
       case 0:
@@ -82,6 +85,37 @@ export const UserList = () => {
     <div className="p-6">
       <SpinnerOverlay show={loading} />
       <h2 className="text-2xl font-bold mb-4">User List</h2>
+      {/* Modal xem chi tiết user */}
+      {viewUser && <UserDetailModal user={viewUser} onClose={() => setViewUser(null)} />}
+      {/* Modal chỉnh sửa user */}
+      {editUser && (
+        <EditUserModal
+          user={editUser}
+          onClose={() => setEditUser(null)}
+          onUpdated={() => {
+            setEditUser(null);
+            // Reload lại danh sách nếu muốn
+            setLoading(true);
+            getUsers()
+              .then(async (data) => {
+                setUsers(data);
+                const roleMap: Record<string, number> = {};
+                await Promise.all(
+                  data.map(async (user) => {
+                    try {
+                      const account = await getAccountByIdAPI(user.accountId);
+                      roleMap[user.accountId] = account.role;
+                    } catch {
+                      roleMap[user.accountId] = -1;
+                    }
+                  })
+                );
+                setRoles(roleMap);
+              })
+              .finally(() => setLoading(false));
+          }}
+        />
+      )}
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           <Table className="min-w-full">
@@ -91,10 +125,8 @@ export const UserList = () => {
                 <TableHead>Full Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Date of Birth</TableHead>
                 <TableHead>Role</TableHead>
-                {/* <TableHead className="text-center">Action</TableHead> */}
+                <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -113,14 +145,6 @@ export const UserList = () => {
                       {user.phone || <span className="text-gray-400">N/A</span>}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{genderLabel(user.gender)}</TableCell>
-                    <TableCell>
-                      {user.dob ? (
-                        new Date(user.dob).toLocaleDateString()
-                      ) : (
-                        <span className="text-gray-400">N/A</span>
-                      )}
-                    </TableCell>
                     <TableCell>
                       {roles[user.accountId] !== undefined ? (
                         roleLabel(roles[user.accountId])
@@ -128,19 +152,23 @@ export const UserList = () => {
                         <span className="text-gray-400">...</span>
                       )}
                     </TableCell>
-                    {/* <TableCell className="text-center">
+                    <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
-                        className="p-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition flex items-center justify-center mx-auto"
+                        className="px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition flex items-center justify-center"
                         title="Edit"
-                        onClick={() => {
-                          // TODO: Xử lý logic Edit ở đây
-                          alert(`Edit user: ${user.fullName}`);
-                        }}
-                        style={{ minWidth: 32, minHeight: 32 }}
+                        onClick={() => setEditUser(user)}
                       >
-                        <MdOutlineEdit size={18} />
+                        <MdOutlineEdit className="w-4 h-4" />
                       </button>
-                    </TableCell> */}
+                      {/* Nút xem chi tiết user */}
+                      <button
+                        className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition flex items-center justify-center "
+                        title="View details"
+                        onClick={() => setViewUser(user)}
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

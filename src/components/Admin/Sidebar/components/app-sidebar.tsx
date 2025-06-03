@@ -19,6 +19,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { LOGO_RECTANGLE } from '@/assets/img';
+import { MdOutlinePayment } from 'react-icons/md';
 
 const data = {
   navMain: [
@@ -51,6 +52,11 @@ const data = {
       title: 'Users',
       url: '/admin/user-list',
       icon: FaUserFriends,
+    },
+    {
+      title: 'Payments',
+      url: '/admin/payment-list',
+      icon: MdOutlinePayment,
     },
   ],
 

@@ -1,5 +1,5 @@
 import instance from "@/services/axios.customize";
-import { LoginRequest, LoginResponse, RegisterRequest, User, VerifyEmailRegisterAPI } from "@/types/auth";
+import { LoginRequest, LoginResponse, RegisterRequest,  VerifyEmailRegisterAPI } from "@/types/auth";
 
 export const loginAPI = async (data: LoginRequest): Promise<LoginResponse> => {
   const response = await instance.post<LoginResponse>("/api/Account/login", data);
@@ -44,31 +44,3 @@ export const getUserAPI = async (userId: string) => {
   const response = await instance.get(`/api/User/${userId}`);
   return response.data.data;
 };
-
-export const getAccountByIdAPI = async (accountId: string) => {
-  const response = await instance.get(`/api/Account/${accountId}`);
-  return response.data.data;
-};
-
-// Lấy username từ accountId
-export const getUsernameByAccountId = async (accountId: string) => {
-  try {
-    const account = await getAccountByIdAPI(accountId);
-    return account?.username || accountId;
-  } catch {
-    return accountId;
-  }
-};
-
-//------------------------------------------------------------------------------------------------------
-interface UserListResponse {
-  data: {
-    items: User[];
-  };
-  message?: string;
-  code?: number;
-}
-export async function getUsers() {
-  const res = await instance.get<UserListResponse>('/api/User');
-  return res.data.data.items;
-}
