@@ -1,6 +1,7 @@
-import type { AdminTicketListResponse, Category, EventListResponse } from '@/types/Admin/event';
+import type { AdminTicketListResponse, EventListResponse } from '@/types/Admin/event';
 import instance  from '@/services/axios.customize';
 import type { EventApproveStatus, } from '@/types/Admin/event';
+import { Category } from '@/types/Admin/category';
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
   const res = await instance.get<EventListResponse>(
@@ -64,6 +65,23 @@ export async function getTicketsByEventAdmin(eventId: string) {
   const res = await instance.get<AdminTicketListResponse>(`/api/Ticket/event/${eventId}`);
   return res.data;
 }
+
+// Xóa category theo id
+export async function deleteCategoryById(categoryId: string) {
+  const res = await instance.delete(`/api/Category/${categoryId}`);
+  return res.data;
+}
+
+// Tạo category mới
+export async function createCategory(data: { categoryName: string; categoryDescription: string }) {
+  const res = await instance.post('/api/Category', data);
+  return res.data;
+}
+export async function editCategory(data: { categoryId: string, categoryName: string; categoryDescription: string }) {
+  const res = await instance.put(`/api/Category/${data.categoryId}`, data);
+  return res.data;
+}
+
 
 
 

@@ -44,11 +44,6 @@ export interface EventListResponse {
   };
   message: string | null;
 }
-export interface Category {
-  categoryId: string;
-  categoryName: string;
-  categoryDescription: string;
-}
 
 export interface AdminTicket {
   ticketId: string;

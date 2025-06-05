@@ -133,6 +133,8 @@ export const LoginPage = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  autoComplete="username"
+                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleLogin();
                   }}
@@ -145,6 +147,7 @@ export const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
+                  autoComplete="current-password"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleLogin();
                   }}

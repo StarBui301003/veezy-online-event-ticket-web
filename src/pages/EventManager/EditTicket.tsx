@@ -1,7 +1,17 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { updateTicket, getTicketsByEvent } from "@/services/Event Manager/event.service";
-import { FaTicketAlt, FaImage, FaMoneyBill, FaHashtag, FaCalendarAlt, FaSortNumericUp, FaExchangeAlt, FaSave } from "react-icons/fa";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { updateTicket, getTicketsByEvent } from '@/services/Event Manager/event.service';
+import {
+  FaTicketAlt,
+  FaImage,
+  FaMoneyBill,
+  FaHashtag,
+  FaCalendarAlt,
+  FaSortNumericUp,
+  FaExchangeAlt,
+  FaSave,
+} from 'react-icons/fa';
 
 export default function EditTicket() {
   const { eventId, ticketId } = useParams<{ eventId: string; ticketId: string }>();
@@ -29,7 +39,7 @@ export default function EditTicket() {
             saleEndTime: ticket.endSellAt,
             maxTicketsPerOrder: ticket.maxTicketsPerOrder,
             isTransferable: ticket.isTransferable,
-            imageUrl: ticket.imageUrl || "",
+            imageUrl: ticket.imageUrl || '',
           });
         }
       } finally {
@@ -39,10 +49,10 @@ export default function EditTicket() {
   }, [eventId, ticketId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
     setForm((prev: any) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -61,13 +71,15 @@ export default function EditTicket() {
     setSuccess(null);
 
     // Validate
-    if (!form.name?.trim()) return setError("Tên vé không được để trống!");
-    if (!form.description?.trim()) return setError("Mô tả vé không được để trống!");
-    if (!form.price || form.price < 0) return setError("Giá vé phải >= 0!");
-    if (!form.quantity || form.quantity < 1) return setError("Số lượng vé phải >= 1!");
-    if (!form.saleStartTime || !form.saleEndTime) return setError("Chọn thời gian mở bán và kết thúc!");
-    if (form.saleStartTime >= form.saleEndTime) return setError("Thời gian kết thúc phải sau thời gian mở bán!");
-    if (!eventId || !ticketId) return setError("Không tìm thấy sự kiện hoặc vé!");
+    if (!form.name?.trim()) return setError('Tên vé không được để trống!');
+    if (!form.description?.trim()) return setError('Mô tả vé không được để trống!');
+    if (!form.price || form.price < 0) return setError('Giá vé phải >= 0!');
+    if (!form.quantity || form.quantity < 1) return setError('Số lượng vé phải >= 1!');
+    if (!form.saleStartTime || !form.saleEndTime)
+      return setError('Chọn thời gian mở bán và kết thúc!');
+    if (form.saleStartTime >= form.saleEndTime)
+      return setError('Thời gian kết thúc phải sau thời gian mở bán!');
+    if (!eventId || !ticketId) return setError('Không tìm thấy sự kiện hoặc vé!');
 
     try {
       await updateTicket(ticketId, {
@@ -82,10 +94,10 @@ export default function EditTicket() {
         isTransferable: form.isTransferable,
         imageUrl: form.imageUrl,
       });
-      setSuccess("Cập nhật vé thành công!");
+      setSuccess('Cập nhật vé thành công!');
       setTimeout(() => navigate(-1), 1200);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Cập nhật vé thất bại!");
+      setError(err?.response?.data?.message || 'Cập nhật vé thất bại!');
     }
   };
 
@@ -103,7 +115,7 @@ export default function EditTicket() {
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-5xl bg-gradient-to-br from-[#2d0036] via-[#3a0ca3]/80 to-[#ff008e]/80 rounded-3xl shadow-2xl border-2 border-pink-500/30 p-16 space-y-10 animate-fade-in my-12 mx-4"
-          style={{ boxShadow: "0 0 80px 0 #ff008e88" }}
+          style={{ boxShadow: '0 0 80px 0 #ff008e88' }}
         >
           <div className="flex items-center gap-3 mb-8">
             <FaTicketAlt className="text-4xl text-pink-400 drop-shadow-glow" />
@@ -218,7 +230,10 @@ export default function EditTicket() {
               id="isTransferable"
               className="w-5 h-5 accent-pink-500 rounded"
             />
-            <label htmlFor="isTransferable" className="font-bold text-pink-300 flex items-center gap-2">
+            <label
+              htmlFor="isTransferable"
+              className="font-bold text-pink-300 flex items-center gap-2"
+            >
               Vé có thể chuyển nhượng
             </label>
           </div>

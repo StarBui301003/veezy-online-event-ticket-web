@@ -44,3 +44,15 @@ export const getUserAPI = async (userId: string) => {
   const response = await instance.get(`/api/User/${userId}`);
   return response.data.data;
 };
+
+export async function refreshTokenAPI() {
+  // Lấy refresh token từ cookie hoặc localStorage
+  let refreshToken = '';
+  const match = document.cookie.match(/(^|;\s*)refresh_token=([^;]*)/);
+  if (match) {
+    refreshToken = decodeURIComponent(match[2]);
+  } else { throw new Error('No refresh token found');}
+
+  const res = await instance.post('/api/Account/refresh-token', { refreshToken });
+  return res.data;
+}

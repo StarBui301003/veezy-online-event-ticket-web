@@ -5,10 +5,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import type { ApprovedEvent, Category } from '@/types/Admin/event';
+import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
-import { getUsernameByAccountId } from '@/services/auth.service';
+
 import { getCategoryById } from '@/services/Admin/event.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { Category } from '@/types/Admin/category';
 
 interface Props {
   event: ApprovedEvent;

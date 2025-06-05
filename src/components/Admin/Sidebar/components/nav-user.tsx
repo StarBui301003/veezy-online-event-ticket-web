@@ -33,6 +33,8 @@ export function NavUser() {
     avatar: string;
   } | null>(null);
   const [loadingLogout, setLoadingLogout] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,8 +48,14 @@ export function NavUser() {
             name: userData.fullName || acc.fullName || acc.username,
             username: userData.username || acc.username || '',
             email: userData.email || acc.email,
-            avatar: userData.avatar || acc.avatar || '',
+            // Nếu userData.avatar là null/undefined/empty string, fallback về acc.avatar
+            avatar:
+              (userData.avatar && userData.avatar.trim() !== '' ? userData.avatar : acc.avatar) ||
+              userData.avatarUrl ||
+              acc.avatar ||
+              '',
           });
+          setAvatarLoaded(false);
         });
       } catch {
         // ignore
@@ -63,6 +71,31 @@ export function NavUser() {
       window.removeEventListener('storage', fetchUser);
     };
   }, []);
+
+  // Khi avatar thay đổi, reset trạng thái loaded
+  useEffect(() => {
+    setAvatarLoaded(true);
+    // Nếu không có avatar hoặc avatar là chuỗi rỗng/null thì coi như đã load xong (không hiện spinner)
+    if (!user?.avatar || user.avatar.trim() === '') {
+      setAvatarLoaded(true);
+      return;
+    }
+    setAvatarLoaded(false);
+    let cancelled = false;
+    const img = new window.Image();
+    img.src = user.avatar;
+    img.onload = () => {
+      if (!cancelled) {
+        setAvatarLoaded(true);
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setAvatarLoaded(true);
+    };
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.avatar]);
 
   const handleLogout = async () => {
     setLoadingLogout(true);
@@ -87,59 +120,73 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-blue-50 transition"
             >
-              <Avatar className="h-8 w-8 rounded-full">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-full">
-                  {user.name?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span> {/* full name */}
-                <span className="truncate text-xs">{user.email}</span>
+              <div className="relative">
+                {user.avatar && (
+                  <Avatar className="h-9 w-9 rounded-full border-2 border-blue-400 shadow">
+                    <AvatarImage
+                      src={user.avatar}
+                      alt={user.name}
+                      // Không cần onLoad và style display nữa
+                    />
+                    {/* Không render spinner */}
+                    {/* Không render AvatarFallback khi đã có avatar */}
+                  </Avatar>
+                )}
+                {!user.avatar && (
+                  <Avatar className="h-9 w-9 rounded-full border-2 border-blue-400 shadow">
+                    <AvatarFallback className="rounded-full bg-blue-100 text-blue-700 font-bold">
+                      {user.name?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <div className="grid flex-1 text-left text-sm leading-tight ml-2">
+                <span className="truncate font-semibold text-blue-900">{user.name}</span>
+                <span className="truncate text-xs text-blue-500">{user.email}</span>
+              </div>
+              <ChevronsUpDown className="ml-auto size-4 text-blue-400" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl bg-white/95 border border-blue-100 p-2"
             side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-full">
+              <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
+                <Avatar className="h-10 w-10 rounded-full border-2 border-blue-400 shadow">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-full">
+                  <AvatarFallback className="rounded-full bg-blue-100 text-blue-700 font-bold">
                     {user.name?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.username}</span> {/* username */}
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold text-blue-900">{user.username}</span>
+                  <span className="truncate text-xs text-blue-500">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                className="focus:bg-accent focus:text-accent-foreground"
+                className="focus:bg-blue-100 focus:text-blue-900 hover:bg-blue-50 transition rounded-md"
                 onClick={() => navigate('/admin/profile')}
               >
-                <FiUser />
-                Profile
+                <FiUser className="mr-2 text-blue-500" />
+                <span className="font-medium">Profile</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={loadingLogout}
-              className="focus:bg-accent focus:text-accent-foreground"
+              className="focus:bg-red-100 focus:text-red-700 hover:bg-red-50 transition rounded-md"
             >
-              <LogOut />
-              {loadingLogout ? 'Logging out...' : 'Log out'}
+              <LogOut className="mr-2 text-red-500" />
+              <span className="font-medium">{loadingLogout ? 'Logging out...' : 'Log out'}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

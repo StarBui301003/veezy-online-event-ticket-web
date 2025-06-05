@@ -31,6 +31,8 @@ import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
 import { UserList } from './pages/Admin/User/UserList';
 import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
 import ProfilePage from '@/pages/ProfilePage';
+import CategoryList from './pages/Admin/Category/CategoryList';
+// import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
 
 function App() {
   const { loading } = useLoading();
@@ -128,6 +130,22 @@ function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: 'category-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <CategoryList />
+            </ProtectedRoute>
+          ),
+        },
+        // {
+        //   path: 'discountCode-list',
+        //   element: (
+        //     <ProtectedRoute allowedRoles={[0]}>
+        //       <DiscountCodeList />
+        //     </ProtectedRoute>
+        //   ),
+        // },
         {
           path: 'profile',
           element: (

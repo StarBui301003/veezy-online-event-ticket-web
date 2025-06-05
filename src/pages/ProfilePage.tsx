@@ -1,8 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
 import { getAllCategory } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 const ProfilePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,8 +56,10 @@ const ProfilePage = () => {
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setForm((prev: any) => ({ ...prev, [name]: value }));
+    setForm((prev: any) => ({
+      ...prev,
+      [name]: name === 'gender' ? Number(value) : value, // Ép kiểu gender về number
+    }));
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -75,11 +86,11 @@ const ProfilePage = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      let avatarUrl = form.avatarUrl || form.avatar;
+      let avatarUrl = form.avatar || form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
-        // Cập nhật lại localStorage
+        // Ghi đè lên trường avatar trong localStorage
         const accStr = localStorage.getItem('account');
         if (accStr) {
           const acc = JSON.parse(accStr);
@@ -93,18 +104,35 @@ const ProfilePage = () => {
         phone: form.phone,
         location: form.location,
         dob: form.dob,
-        gender: form.gender,
+        gender: Number(form.gender),
         categories:
-          form.categories?.map((c) => ({
+          form.categories?.map((c: any) => ({
             categoryId: c.categoryId,
             categoryName: c.categoryName,
             categoryDescription: c.categoryDescription,
           })) || [],
       });
-      setAccount({ ...form, avatar: avatarUrl, avatarUrl });
+      // Lấy lại thông tin user mới nhất từ backend và ghi đè trường avatar
+      const updatedUser = await getUserByIdAPI(form.userId);
+      if (updatedUser) {
+        const accStr = localStorage.getItem('account');
+        let acc: any = {};
+        if (accStr) {
+          acc = JSON.parse(accStr);
+        }
+        const newAccount = {
+          ...acc,
+          ...updatedUser,
+          avatar: updatedUser.avatar, // luôn ghi đè avatar
+          fullName: updatedUser.fullName,
+          email: updatedUser.email,
+          username: updatedUser.username || acc.username,
+        };
+        localStorage.setItem('account', JSON.stringify(newAccount));
+      }
+      setAccount({ ...form, avatar: avatarUrl });
       setEditMode(false);
       setAvatarFile(null);
-      window.location.reload();
       window.dispatchEvent(new Event('user-updated'));
     } finally {
       setLoading(false);
@@ -132,11 +160,10 @@ const ProfilePage = () => {
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
-      <h2 className="text-2xl font-bold mb-4">Profile</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow max-w-lg mx-auto">
           <div className="flex flex-col items-center gap-2 mb-6">
-            <div className="w-24 h-24 rounded-full border bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-full border-4 border-blue-400 bg-gray-100 flex items-center justify-center overflow-hidden">
               {previewUrl ? (
                 <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
               ) : (
@@ -168,11 +195,11 @@ const ProfilePage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-600">Full Name</label>
               {editMode ? (
-                <input
+                <Input
                   name="fullName"
-                  className="border rounded px-2 py-1 w-full"
                   value={form.fullName}
                   onChange={handleInputChange}
+                  className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 />
               ) : (
                 <div className="border rounded px-2 py-1 w-full bg-gray-50">{account.fullName}</div>
@@ -181,11 +208,11 @@ const ProfilePage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-600">Email</label>
               {editMode ? (
-                <input
+                <Input
                   name="email"
-                  className="border rounded px-2 py-1 w-full"
                   value={form.email}
                   disabled
+                  className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 />
               ) : (
                 <div className="border rounded px-2 py-1 w-full bg-gray-50">{account.email}</div>
@@ -194,11 +221,11 @@ const ProfilePage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-600">Phone</label>
               {editMode ? (
-                <input
+                <Input
                   name="phone"
-                  className="border rounded px-2 py-1 w-full"
                   value={form.phone}
                   onChange={handleInputChange}
+                  className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 />
               ) : (
                 <div className="border rounded px-2 py-1 w-full bg-gray-50">{account.phone}</div>
@@ -207,16 +234,21 @@ const ProfilePage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-600">Gender</label>
               {editMode ? (
-                <select
-                  name="gender"
-                  className="border rounded px-2 py-1 w-full"
-                  value={form.gender}
-                  onChange={handleInputChange}
+                <Select
+                  value={String(form.gender)}
+                  onValueChange={(val) =>
+                    setForm((prev: any) => ({ ...prev, gender: Number(val) }))
+                  }
                 >
-                  <option value={0}>Male</option>
-                  <option value={1}>Female</option>
-                  <option value={2}>Other</option>
-                </select>
+                  <SelectTrigger className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Male</SelectItem>
+                    <SelectItem value="1">Female</SelectItem>
+                    <SelectItem value="2">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
                 <div className="border rounded px-2 py-1 w-full bg-gray-50">
                   {account.gender === 0 ? 'Male' : account.gender === 1 ? 'Female' : 'Other'}
@@ -239,34 +271,31 @@ const ProfilePage = () => {
                 </div>
               )}
             </div> */}
-            <div>
-              <label className="block text-sm font-medium text-gray-600">Full Name</label>
-              {editMode ? (
-                <input
-                  name="fullName"
-                  className="border rounded px-2 py-1 w-full"
-                  value={form.fullName}
-                  onChange={handleInputChange}
-                />
-              ) : (
-                <div className="border rounded px-2 py-1 w-full bg-gray-50">{account.fullName}</div>
-              )}
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-600">Hobbies</label>
               {editMode ? (
                 <div className="flex flex-wrap gap-3 py-2">
                   {allCategories.map((cat) => {
                     const checked = !!form.categories?.some(
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (c: any) => c.categoryId === cat.categoryId
                     );
                     return (
-                      <label key={cat.categoryId} className="flex items-center gap-1">
+                      <label
+                        key={cat.categoryId}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-lg cursor-pointer border transition
+                          ${
+                            checked
+                              ? 'bg-blue-100 border-blue-400 text-blue-700 font-semibold shadow'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300'
+                          }
+                        `}
+                      >
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={() => handleCategoryCheckbox(cat)}
+                          className="accent-blue-500 w-4 h-4 rounded border border-gray-300"
                         />
                         <span>{cat.categoryName}</span>
                       </label>
@@ -274,13 +303,20 @@ const ProfilePage = () => {
                   })}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2 border rounded px-2 py-1 w-full bg-gray-50 min-h-[36px]">
+                <div className="flex flex-wrap gap-2 border border-gray-200 rounded px-2 py-2 w-full bg-gray-50 min-h-[36px]">
                   {userCategories.length > 0 ? (
                     userCategories.map((cat) => (
                       <span
                         key={cat.categoryId}
-                        className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs"
+                        className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-100 to-pink-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold shadow border border-blue-200"
                       >
+                        <svg
+                          className="w-3 h-3 text-blue-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <circle cx="10" cy="10" r="10" />
+                        </svg>
                         {cat.categoryName}
                       </span>
                     ))

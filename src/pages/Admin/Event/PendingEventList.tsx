@@ -9,7 +9,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
-import { ApprovedEvent, Category, EventApproveStatus } from '@/types/Admin/event';
+import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ import { FaRegTrashAlt } from 'react-icons/fa';
 import { FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { Category } from '@/types/Admin/category';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
