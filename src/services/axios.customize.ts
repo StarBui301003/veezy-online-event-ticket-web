@@ -1,30 +1,38 @@
 import axios from "axios";
 import NProgress from "nprogress";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
+// Configure loading bar
 NProgress.configure({
   showSpinner: false,
   trickleSpeed: 100,
 });
 
+// Create Axios instance
 const instance = axios.create({
   baseURL: import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 
+// Call all subscribers after refreshing token
 function onRefreshed(token: string) {
   refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
 }
 
-// Interceptor request
+// Add subscriber while waiting for refresh
+function addRefreshSubscriber(callback: (token: string) => void) {
+  refreshSubscribers.push(callback);
+}
+
+// Axios request interceptor
 instance.interceptors.request.use(
-  function (config) {
+  (config) => {
     NProgress.start();
     const token = window.localStorage.getItem("access_token");
     if (token) {
@@ -32,104 +40,102 @@ instance.interceptors.request.use(
     }
     return config;
   },
-  function (error) {
+  (error) => {
     NProgress.done();
     return Promise.reject(error);
   }
 );
 
-// Interceptor response
+// Axios response interceptor
 instance.interceptors.response.use(
-  function (response) {
+  (response) => {
     NProgress.done();
     return response;
   },
-  async function (error) {
+  async (error) => {
     NProgress.done();
-    const originalRequest = error.config;
 
-    // Nếu bị 401 (Unauthorized)
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const originalRequest: any = error.config;
+    const ERROR_TOAST_ID = "global-error-toast";
+
+    // Handle 401 Unauthorized (token expired)
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       if (!isRefreshing) {
         isRefreshing = true;
+
         try {
-          // Ưu tiên lấy refresh token từ cookie, nếu không có thì lấy từ localStorage
-          let refreshToken = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('refresh_token='))
-            ?.split('=')[1];
-          if (!refreshToken) {
-            refreshToken = window.localStorage.getItem('refresh_token');
-          }
+          // Get refresh token from cookie only
+          const refreshToken =
+            document.cookie
+              .split("; ")
+              .find((row) => row.startsWith("refresh_token="))
+              ?.split("=")[1];
 
-          if (!refreshToken) {
-            toast.error('Your session has expired. Please log in again!');
-            window.localStorage.removeItem('access_token');
-            window.location.href = '/login';
-            isRefreshing = false;
-            return Promise.reject(error);
-          }
+          if (!refreshToken) throw new Error("Refresh token not found in cookies");
 
-          const res = await axios.post(
+          const response = await axios.post(
             `${import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000"}/api/Account/refresh-token`,
             { refreshToken }
           );
-          const { accessToken } = res.data;
-          window.localStorage.setItem('access_token', accessToken);
-          onRefreshed(accessToken);
+
+          const { accessToken } = response.data;
+          window.localStorage.setItem("access_token", accessToken);
+
           isRefreshing = false;
+          onRefreshed(accessToken);
 
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return instance(originalRequest);
         } catch (refreshError) {
           isRefreshing = false;
-          window.localStorage.removeItem('access_token');
-          toast.error('Your session has expired. Please log in again!');
-          window.location.href = '/login';
+
+          // Remove tokens and redirect to login
+          window.localStorage.removeItem("access_token");
+
+          toast.error("Your session has expired. Please log in again.");
+          window.location.href = "/login";
+
           return Promise.reject(refreshError);
         }
-      } else {
-        // Nếu đang refresh, chờ token mới rồi retry
-        return new Promise((resolve) => {
-          refreshSubscribers.push((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(instance(originalRequest));
-          });
-        });
       }
+
+      // Queue requests while refreshing
+      return new Promise((resolve, reject) => {
+        addRefreshSubscriber((newToken: string) => {
+          if (!newToken) return reject(error);
+
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          resolve(instance(originalRequest));
+        });
+      });
     }
 
-    const ERROR_TOAST_ID = "global-error-toast";
-
-    // Nếu lỗi 400 (Bad Request)
-    if (error.response && error.response.status === 400) {
-  
-      toast.error(error.response.data?.message || "Invalid data submitted!", {
+    // Handle 400 Bad Request
+    if (error.response?.status === 400) {
+      toast.error(error.response.data?.message || "Invalid data provided.", {
         toastId: ERROR_TOAST_ID,
-
       });
       return Promise.reject(error.response.data);
     }
 
-    // Nếu backend trả về message (bất kỳ code nào)
-    if (error.response && error.response.data && error.response.data.message) {
-
+    // Handle other error messages
+    if (error.response?.data?.message) {
       toast.error(error.response.data.message, {
         toastId: ERROR_TOAST_ID,
-
       });
       return Promise.reject(error.response.data);
     }
 
+    // Handle generic errors
     if (error.message) {
-
       toast.error(error.message, {
         toastId: ERROR_TOAST_ID,
-
       });
     }
+
     return Promise.reject(error);
   }
 );
