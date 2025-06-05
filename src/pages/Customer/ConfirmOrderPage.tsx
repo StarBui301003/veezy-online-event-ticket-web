@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ const ConfirmOrderPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [waitingPayment, setWaitingPayment] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [paymentWindow, setPaymentWindow] = useState<Window | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>("pending");
   const [orderInfo, setOrderInfo] = useState<any>(null);
