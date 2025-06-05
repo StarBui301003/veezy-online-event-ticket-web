@@ -29,6 +29,14 @@ import Home from './pages/Customer/Home';
 import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
 import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
 import { UserList } from './pages/Admin/User/UserList';
+import EventDetail from './pages/Customer/EventDetail';
+import ManagerDiscountCode from './pages/EventManager/ManagerDiscountCode';
+import CreateDiscountCode from './pages/EventManager/CreateDiscountCode';
+
+import AllEventsPage from "./pages/Customer/AllEventsPage";
+import ConfirmOrderPage from './pages/Customer/ConfirmOrderPage';
+import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
+
 
 function App() {
   const { loading } = useLoading();
@@ -47,6 +55,35 @@ function App() {
               <Home />
             </ProtectedRoute>
           ),
+        },
+        {
+          path: 'event/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <EventDetail />
+            </ProtectedRoute>
+          ),
+        },
+       
+        {
+          path: 'events',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <AllEventsPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'confirm-order',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <ConfirmOrderPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'payment-success',
+          element: <PaymentSuccessPage />,
         },
       ],
     },
@@ -190,6 +227,22 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <EditTicket />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'discount-codes',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <ManagerDiscountCode />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'discount-codes/create/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateDiscountCode />
             </ProtectedRoute>
           ),
         },

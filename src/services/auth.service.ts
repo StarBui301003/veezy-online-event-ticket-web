@@ -72,3 +72,48 @@ export async function getUsers() {
   const res = await instance.get<UserListResponse>('/api/User');
   return res.data.data.items;
 }
+
+export async function deleteOrder(orderId: string) {
+  const response = await instance.delete(`/api/Order/${orderId}`);
+  return response.data;
+}
+
+export async function getDiscountCodesByEvent(eventId: string) {
+  try {
+    const response = await instance.get(`/api/DiscountCode/event/${eventId}`);
+    return response.data?.data || [];
+  } catch (err: any) {
+    if (err.response && err.response.status === 404) {
+      return [];
+    }
+    throw err;
+  }
+}
+export interface CreateDiscountCodeData {
+  code: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+  eventId: string;
+}
+
+export interface DiscountCode {
+  id: string;
+  code: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+  eventId: string;
+  eventName: string;
+}
+
+export async function createDiscountCode(data: CreateDiscountCodeData) {
+  const response = await instance.post("/api/DiscountCode", data);
+  return response.data?.data || response.data;
+}
+
+
+export async function deleteDiscountCode(id: string) {
+  const response = await instance.delete(`/api/DiscountCode/${id}`);
+  return response.data?.data || response.data;
+} 

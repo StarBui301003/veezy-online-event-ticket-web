@@ -234,34 +234,71 @@ export default function EventListWithTicketManager() {
                 <div className="text-pink-400 text-base text-center">Đang tải vé...</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredTickets.map((ticket) => (
-                    <div
-                      key={ticket.ticketId}
-                      className="bg-gradient-to-r from-[#3a0ca3]/60 to-[#ff008e]/60 rounded-xl p-5 shadow-xl border-2 border-pink-500/20 flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="text-base font-bold text-pink-200 mb-1">{ticket.ticketName}</div>
-                        <div className="text-slate-300 mb-1 text-sm">Giá: <span className="font-bold">{ticket.ticketPrice?.toLocaleString()}₫</span></div>
-                        <div className="text-slate-300 mb-1 text-sm">Số lượng: {ticket.quantityAvailable}</div>
-                        <div className="text-slate-300 mb-1 text-sm">Trạng thái: {ticket.status}</div>
-                        <div className="text-slate-400 text-xs mb-1">Mô tả: {ticket.ticketDescription}</div>
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <button
-                          className="bg-gradient-to-r from-yellow-400 to-pink-400 hover:from-yellow-500 hover:to-pink-500 text-white px-3 py-2 rounded-lg shadow transition-all text-base"
-                          onClick={() => navigate(`/event-manager/tickets/edit/${selectedEvent.eventId}/${ticket.ticketId}`)}
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-3 py-2 rounded-lg shadow transition-all text-base"
-                          onClick={() => handleDelete(ticket.ticketId)}
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                                                                       {filteredTickets.map((ticket) => (
+                                      <div
+                                        key={ticket.ticketId}
+                                        className="bg-gradient-to-br from-[#3a0ca3]/80 to-[#ff008e]/80 rounded-2xl p-6 shadow-2xl border-2 border-pink-500/30 flex flex-col justify-between min-h-[230px] relative"
+                                      >
+                                        <div>
+                                          <div className="text-lg font-bold text-yellow-200 mb-2">{ticket.ticketName}</div>
+                                          <div className="flex flex-wrap items-center gap-3 mb-2">
+                                            <span className="text-slate-200 text-base">
+                                              <span className="font-semibold">Giá:</span>{" "}
+                                              <span className="font-bold text-pink-200">{ticket.ticketPrice?.toLocaleString()}₫</span>
+                                            </span>
+                                            <span className="text-slate-200 text-base">
+                                              <span className="font-semibold">Còn lại:</span>{" "}
+                                              <span className="font-bold text-yellow-300">{ticket.quantityAvailable}</span>
+                                            </span>
+                                          </div>
+                                                                                    <div className="text-slate-200 text-sm mb-2">
+                                            <span className="font-semibold block">Thời gian bán:</span>
+                                            <span className="font-bold text-white block">
+                                              {new Date(ticket.startSellAt).toLocaleString("vi-VN", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "numeric",
+                                              })}
+                                            </span>
+                                            <span className="font-bold text-white block text-center"></span>
+                                            <span className="font-bold text-white block">
+                                              {new Date(ticket.endSellAt).toLocaleString("vi-VN", {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "numeric",
+                                              })}
+                                            </span>
+                                          </div>
+                                          <div className="mb-2">
+                                            <span className="font-semibold text-slate-200">Trạng thái:</span>{" "}
+                                            {ticket.quantityAvailable > 0 ? (
+                                              <span className="text-green-400 font-bold">Còn vé</span>
+                                            ) : (
+                                              <span className="text-red-400 font-bold">Hết vé</span>
+                                            )}
+                                          </div>
+                                          <div className="text-slate-400 text-xs mb-1 italic">Mô tả: {ticket.ticketDescription}</div>
+                                        </div>
+                                        <div className="flex gap-2 mt-4">
+                                          <button
+                                            className="bg-gradient-to-r from-yellow-400 to-pink-400 hover:from-yellow-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg shadow transition-all text-base flex items-center gap-1"
+                                            onClick={() => navigate(`/event-manager/tickets/edit/${selectedEvent.eventId}/${ticket.ticketId}`)}
+                                          >
+                                            <FaEdit /> Sửa
+                                          </button>
+                                          <button
+                                            className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-4 py-2 rounded-lg shadow transition-all text-base flex items-center gap-1"
+                                            onClick={() => handleDelete(ticket.ticketId)}
+                                          >
+                                            <FaTrash /> Xóa
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
                   {filteredTickets.length === 0 && (
                     <div className="col-span-2 text-center text-slate-300 py-8 text-base">
                       Không có vé nào cho sự kiện này.

@@ -37,8 +37,9 @@ export function EventManagerLayout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
-    navigate('/login');
-  };
+  localStorage.removeItem("access_token");
+  navigate('/login');
+};
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -132,7 +133,18 @@ export function EventManagerLayout() {
               <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
                 Veezy Manager
               </h1>
+              
+            
               <p className="text-xs text-gray-400 mt-1">Event Management Dashboard</p>
+          <br />
+            <button
+    onClick={() => navigate("/")}
+    className="ml-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
+    title="Về trang chủ"
+  >
+    <FaHome className="text-sm" />
+    Home
+  </button>
             </div>
 
             {/* Navigation */}

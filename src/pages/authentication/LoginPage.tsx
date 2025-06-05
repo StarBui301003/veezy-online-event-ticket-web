@@ -29,10 +29,10 @@ export const LoginPage = () => {
             return;
           }
           if (accObj.role === 2) {
-            navigate('/event-manager');
+            navigate('/');
             return;
           }
-          // Mặc định role 1 hoặc khác thì về home
+          
           navigate('/');
           return;
         }
@@ -61,6 +61,7 @@ export const LoginPage = () => {
       }
 
       localStorage.setItem('access_token', apiResult.data.accessToken);
+      localStorage.setItem('customerId', apiResult.data.account.userId);
       document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
       localStorage.setItem('account', JSON.stringify(apiResult.data.account));
 

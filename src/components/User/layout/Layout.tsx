@@ -8,7 +8,7 @@ export function Layout() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
+   useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
     const accessToken = localStorage.getItem('access_token');
@@ -20,11 +20,14 @@ export function Layout() {
             navigate('/admin');
             return;
           }
+          // Không ép role 2 về /event-manager, cho phép họ ở lại Home
+          if (accObj.role === 2 && window.location.pathname === '/') {
+            return; // Nếu đang ở Home, không chuyển hướng
+          }
           if (accObj.role === 2) {
             navigate('/event-manager');
             return;
           }
-          // Mặc định role 1 hoặc khác thì ở lại customer
         }
       } catch {
         localStorage.removeItem('account');

@@ -201,3 +201,116 @@ export async function updateTicketStatus(id: string, status: string) {
   );
   return response.data?.data || response.data;
 }
+// === Get All News (public) ===
+export async function getAllNews(page = 1, pageSize = 0) {
+  try {
+    const response = await instance.get("/api/News/all-Home", {
+      params: { page, pageSize },
+    });
+    console.log("Raw News Response:", response.data);
+    return response.data?.data || { items: [], currentPage: 1, totalPages: 0 };
+  } catch (error) {
+    console.error("Failed to fetch news", error);
+    return { items: [], currentPage: 1, totalPages: 0 };
+  }
+}
+// === Order APIs ===
+
+interface OrderItemPayload {
+  ticketId: string;
+  quantity: number;
+}
+
+export interface CreateOrderPayload {
+  eventId: string;
+  customerId: string; // Assuming you get customerId from auth context or similar
+  items: OrderItemPayload[];
+  discountCode?: string;
+}
+
+interface OrderResponseItem {
+  ticketId: string;
+  ticketName: string;
+  pricePerTicket: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Order {
+  orderId: string;
+  customerId: string;
+  eventId: string;
+  items: OrderResponseItem[];
+  discountCode: string | null;
+  holdUntil: string;
+  totalAmount: number;
+  orderStatus: number; // You might want to create an enum for this
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface OrderApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items: Order[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  } | Order; // POST /api/Order returns a single Order object in data
+}
+
+
+export async function getOrders(pageNumber: number = 1, pageSize: number = 10): Promise<OrderApiResponse> {
+  try {
+    const response = await instance.get("/api/Order", {
+      params: { PageNumber: pageNumber, PageSize: pageSize },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch orders", error);
+    throw error; // Or return a default error structure
+  }
+}
+
+export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
+  try {
+    const response = await instance.post("/api/Order", payload);
+    // Assuming the API returns the created order directly in response.data for a successful POST
+    // or in response.data.data if it follows the GET structure. Adjust as per actual API.
+    return response.data?.data || response.data;
+  } catch (error) {
+    console.error("Failed to create order", error);
+    throw error;
+  }
+}
+
+// === Payment APIs ===
+
+export async function createVnPayPayment(orderId: string): Promise<any> { // Replace 'any' with a more specific type if you know the response structure
+  try {
+    const response = await instance.post(`/api/Payment/VnPay?orderId=${orderId}`);
+    return response.data; 
+  } catch (error) {
+    console.error("Failed to create VnPay payment", error);
+    throw error;
+  }
+}
+
+export async function deleteOrder(orderId: string) {
+  const response = await instance.delete(`/api/Order/${orderId}`);
+  return response.data;
+}
+
+export async function getDiscountCodesByEvent(eventId: string) {
+  const response = await instance.get(`/api/DiscountCode/event/${eventId}`);
+  return response.data?.data || response.data;
+}
+
+export async function useDiscountCode(orderId: string, code: string) {
+  const response = await instance.post('/api/DiscountCode/use', { orderId, code });
+  return response.data;
+}

@@ -12,34 +12,37 @@ export default function EditTicket() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Lấy thông tin vé hiện tại
-  useEffect(() => {
-    if (!eventId || !ticketId) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const tickets = await getTicketsByEvent(eventId);
-        const ticket = tickets.find((t: any) => t.ticketId === ticketId);
-        if (ticket) {
-          setForm({
-            name: ticket.ticketName,
-            description: ticket.ticketDescription,
-            price: ticket.ticketPrice,
-            quantity: ticket.quantityAvailable,
-            saleStartTime: ticket.startSellAt,
-            saleEndTime: ticket.endSellAt,
-            maxTicketsPerOrder: ticket.maxTicketsPerOrder,
-            isTransferable: ticket.isTransferable,
-            imageUrl: ticket.imageUrl || "",
-          });
+        useEffect(() => {
+      if (!eventId || !ticketId) return;
+      (async () => {
+        setLoading(true);
+        try {
+          const tickets = await getTicketsByEvent(eventId);
+          const ticket = tickets.find((t: any) => t.ticketId === ticketId);
+          if (ticket) {
+            const toInputDate = (d: string) =>
+              d ? new Date(d).toISOString().slice(0, 16) : "";
+            setForm({
+              name: ticket.ticketName,
+              description: ticket.ticketDescription,
+              price: ticket.ticketPrice,
+              quantity: ticket.quantityAvailable,
+              saleStartTime: toInputDate(ticket.startSellAt || ticket.saleStartTime),
+              saleEndTime: toInputDate(ticket.endSellAt || ticket.saleEndTime),
+              maxTicketsPerOrder: ticket.maxTicketsPerOrder ?? 1, // đảm bảo luôn có giá trị
+              isTransferable: ticket.isTransferable,
+              imageUrl: "",
+              oldImageUrl: ticket.imageUrl || "",
+            });
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [eventId, ticketId]);
+      })();
+    }, [eventId, ticketId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked } = e.target as HTMLInputElement;
     setForm((prev: any) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -70,6 +73,7 @@ export default function EditTicket() {
     if (!eventId || !ticketId) return setError("Không tìm thấy sự kiện hoặc vé!");
 
     try {
+           // ...existing code...
       await updateTicket(ticketId, {
         eventId,
         name: form.name,
@@ -80,7 +84,7 @@ export default function EditTicket() {
         saleEndTime: form.saleEndTime,
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
         isTransferable: form.isTransferable,
-        imageUrl: form.imageUrl,
+        imageUrl: form.imageUrl || form.oldImageUrl, // giữ ảnh cũ nếu chưa chọn ảnh mới
       });
       setSuccess("Cập nhật vé thành công!");
       setTimeout(() => navigate(-1), 1200);
@@ -198,7 +202,7 @@ export default function EditTicket() {
             <label className="font-bold text-pink-300 flex items-center gap-2">
               <FaExchangeAlt /> Số vé tối đa mỗi đơn
             </label>
-            <input
+                       <input
               name="maxTicketsPerOrder"
               type="number"
               min={1}
@@ -240,9 +244,10 @@ export default function EditTicket() {
               >
                 Chọn ảnh
               </label>
-              {form.imageUrl && (
+                            
+                            {(form.imageUrl || form.oldImageUrl) && (
                 <img
-                  src={form.imageUrl}
+                  src={form.imageUrl || form.oldImageUrl}
                   alt="ticket"
                   className="h-16 w-24 object-cover rounded-xl border-2 border-pink-400 shadow-lg"
                 />
