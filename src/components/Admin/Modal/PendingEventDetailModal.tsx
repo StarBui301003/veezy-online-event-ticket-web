@@ -24,7 +24,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
   const [createdByName, setCreatedByName] = useState<string>('unknown');
   const [approvedByName, setApprovedByName] = useState<string>('unknown');
   const [showRejectInput, setShowRejectInput] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
@@ -82,7 +82,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) {
+    if (!rejectionReason.trim()) {
       toast.error('Please enter a rejection reason!');
       return;
     }
@@ -92,8 +92,9 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
       const res = await approvedRejectEvent(
         event.eventId,
         EventApproveStatus.Rejected,
-        rejectReason
+        rejectionReason
       );
+      console.log('reason ', rejectionReason);
       if (res.flag) {
         toast.success('Reject event successfully!');
         onClose();
@@ -223,8 +224,8 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
                 <input
                   className="border px-2 py-1 rounded w-full mb-2"
                   placeholder="Enter rejection reason"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
                   disabled={loading}
                 />
                 <button

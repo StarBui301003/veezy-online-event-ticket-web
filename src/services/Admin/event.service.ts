@@ -40,8 +40,9 @@ export async function approvedRejectEvent(
 ) {
   const res = await instance.post(`/api/Event/${eventId}/approve`, {
     isApproved,
-    rejectionReason: rejectionReason ?? null,
+    rejectionReason: rejectionReason,
   });
+  console.log('res', rejectionReason);
   return res.data;
 }
 

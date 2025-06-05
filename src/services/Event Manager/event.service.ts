@@ -290,6 +290,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
 
 // === Payment APIs ===
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function createVnPayPayment(orderId: string): Promise<any> { // Replace 'any' with a more specific type if you know the response structure
   try {
     const response = await instance.post(`/api/Payment/VnPay?orderId=${orderId}`);

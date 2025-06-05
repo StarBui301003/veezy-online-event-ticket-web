@@ -66,6 +66,7 @@ export async function getDiscountCodesByEvent(eventId: string) {
   try {
     const response = await instance.get(`/api/DiscountCode/event/${eventId}`);
     return response.data?.data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     if (err.response && err.response.status === 404) {
       return [];
