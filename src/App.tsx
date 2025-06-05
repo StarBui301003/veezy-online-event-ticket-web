@@ -32,10 +32,13 @@ import { UserList } from './pages/Admin/User/UserList';
 import EventDetail from './pages/Customer/EventDetail';
 import ManagerDiscountCode from './pages/EventManager/ManagerDiscountCode';
 import CreateDiscountCode from './pages/EventManager/CreateDiscountCode';
-
 import AllEventsPage from "./pages/Customer/AllEventsPage";
 import ConfirmOrderPage from './pages/Customer/ConfirmOrderPage';
 import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
+import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
+import ProfilePage from '@/pages/ProfilePage';
+import CategoryList from './pages/Admin/Category/CategoryList';
+// import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
 
 
 function App() {
@@ -152,6 +155,38 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <UserList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'payment-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <PaymentListAdmin />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'category-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <CategoryList />
+            </ProtectedRoute>
+          ),
+        },
+        // {
+        //   path: 'discountCode-list',
+        //   element: (
+        //     <ProtectedRoute allowedRoles={[0]}>
+        //       <DiscountCodeList />
+        //     </ProtectedRoute>
+        //   ),
+        // },
+        {
+          path: 'profile',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <ProfilePage />
             </ProtectedRoute>
           ),
         },

@@ -1,5 +1,5 @@
 import instance from "@/services/axios.customize";
-import { LoginRequest, LoginResponse, RegisterRequest, User, VerifyEmailRegisterAPI } from "@/types/auth";
+import { LoginRequest, LoginResponse, RegisterRequest,  VerifyEmailRegisterAPI } from "@/types/auth";
 
 export const loginAPI = async (data: LoginRequest): Promise<LoginResponse> => {
   const response = await instance.post<LoginResponse>("/api/Account/login", data);
@@ -45,32 +45,16 @@ export const getUserAPI = async (userId: string) => {
   return response.data.data;
 };
 
-export const getAccountByIdAPI = async (accountId: string) => {
-  const response = await instance.get(`/api/Account/${accountId}`);
-  return response.data.data;
-};
+export async function refreshTokenAPI() {
+  // Lấy refresh token từ cookie hoặc localStorage
+  let refreshToken = '';
+  const match = document.cookie.match(/(^|;\s*)refresh_token=([^;]*)/);
+  if (match) {
+    refreshToken = decodeURIComponent(match[2]);
+  } else { throw new Error('No refresh token found');}
 
-// Lấy username từ accountId
-export const getUsernameByAccountId = async (accountId: string) => {
-  try {
-    const account = await getAccountByIdAPI(accountId);
-    return account?.username || accountId;
-  } catch {
-    return accountId;
-  }
-};
-
-//------------------------------------------------------------------------------------------------------
-interface UserListResponse {
-  data: {
-    items: User[];
-  };
-  message?: string;
-  code?: number;
-}
-export async function getUsers() {
-  const res = await instance.get<UserListResponse>('/api/User');
-  return res.data.data.items;
+  const res = await instance.post('/api/Account/refresh-token', { refreshToken });
+  return res.data;
 }
 
 export async function deleteOrder(orderId: string) {

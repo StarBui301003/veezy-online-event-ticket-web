@@ -55,10 +55,14 @@ instance.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-          const refreshToken = document.cookie
+          // Ưu tiên lấy refresh token từ cookie, nếu không có thì lấy từ localStorage
+          let refreshToken = document.cookie
             .split('; ')
             .find(row => row.startsWith('refresh_token='))
             ?.split('=')[1];
+          if (!refreshToken) {
+            refreshToken = window.localStorage.getItem('refresh_token');
+          }
 
           if (!refreshToken) {
             toast.error('Your session has expired. Please log in again!');

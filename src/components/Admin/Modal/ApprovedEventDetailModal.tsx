@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, AdminTicket } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/auth.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import { getCategoryById, getTicketsByEventAdmin } from '@/services/Admin/event.service';
 
 interface Props {

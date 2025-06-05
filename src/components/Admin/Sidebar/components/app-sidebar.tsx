@@ -9,6 +9,7 @@ import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
 import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
 import { FaUserFriends } from 'react-icons/fa';
+import { BiCategory } from 'react-icons/bi';
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +20,8 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { LOGO_RECTANGLE } from '@/assets/img';
+import { MdOutlinePayment } from 'react-icons/md';
+import { RiCoupon2Line } from 'react-icons/ri';
 
 const data = {
   navMain: [
@@ -51,6 +54,21 @@ const data = {
       title: 'Users',
       url: '/admin/user-list',
       icon: FaUserFriends,
+    },
+    {
+      title: 'Payments',
+      url: '/admin/payment-list',
+      icon: MdOutlinePayment,
+    },
+    {
+      title: 'Categories',
+      url: '/admin/category-list',
+      icon: BiCategory,
+    },
+    {
+      title: 'Discount Codes',
+      url: '/admin/discountCode-list',
+      icon: RiCoupon2Line,
     },
   ],
 
