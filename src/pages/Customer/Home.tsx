@@ -1,14 +1,11 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
-import {
-  getAllEvents,
-  getAllNews,
-} from "@/services/Event Manager/event.service";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+import { getAllEvents, getAllNews } from '@/services/Event Manager/event.service';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 interface Event {
   eventId: string;
@@ -72,7 +69,7 @@ export const HomePage = () => {
     arrows: true,
     autoplay: true,
     autoplaySpeed: 4000,
-    className: "w-full",
+    className: 'w-full',
   };
 
   return (
@@ -115,7 +112,7 @@ export const HomePage = () => {
               <h2 className="text-xl font-bold text-gray-800">Sự kiện nổi bật</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate("/events")}
+                onClick={() => navigate('/events')}
               >
                 Xem thêm
               </button>
@@ -143,13 +140,13 @@ export const HomePage = () => {
                       </h3>
                       <div className="flex flex-col gap-0.5 text-xs text-gray-400">
                         <span>
-                          <b>Bắt đầu:</b>{" "}
-                          {new Date(event.startAt).toLocaleString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
+                          <b>Bắt đầu:</b>{' '}
+                          {new Date(event.startAt).toLocaleString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
                           })}
                         </span>
                       </div>
@@ -165,7 +162,7 @@ export const HomePage = () => {
               <h2 className="text-xl font-bold text-gray-800">Tin tức</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate("/news")}
+                onClick={() => navigate('/news')}
               >
                 Xem thêm
               </button>
@@ -175,9 +172,7 @@ export const HomePage = () => {
                 <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
               </div>
             ) : news.length === 0 ? (
-              <div className="text-center text-lg text-gray-400">
-                Không có tin tức nào.
-              </div>
+              <div className="text-center text-lg text-gray-400">Không có tin tức nào.</div>
             ) : (
               news.slice(0, 3).map((item) => (
                 <div
@@ -194,12 +189,12 @@ export const HomePage = () => {
                       {item.newsTitle}
                     </h3>
                     <span className="text-xs text-gray-500">
-                      {new Date(item.createdAt).toLocaleString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
+                      {new Date(item.createdAt).toLocaleString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
                       })}
                     </span>
                   </div>

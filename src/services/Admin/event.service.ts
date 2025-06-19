@@ -1,4 +1,4 @@
-import type { AdminTicketListResponse, EventListResponse } from '@/types/Admin/event';
+import type { AdminTicketListResponse, ApprovedEvent, EventListResponse } from '@/types/Admin/event';
 import instance  from '@/services/axios.customize';
 import type { EventApproveStatus, } from '@/types/Admin/event';
 import { Category } from '@/types/Admin/category';
@@ -81,6 +81,12 @@ export async function createCategory(data: { categoryName: string; categoryDescr
 export async function editCategory(data: { categoryId: string, categoryName: string; categoryDescription: string }) {
   const res = await instance.put(`/api/Category/${data.categoryId}`, data);
   return res.data;
+}
+
+// Lấy event theo eventId
+export async function getEventById(eventId: string) {
+  const res = await instance.get<{ data: ApprovedEvent }>(`/api/Event/${eventId}`);
+  return res.data.data;
 }
 
 

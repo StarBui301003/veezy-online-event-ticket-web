@@ -1,7 +1,7 @@
 import { AdminOrderListResponse } from "@/types/Admin/order";
 import instance from "../axios.customize";
 import { User } from "@/types/auth";
-import type { EditUserRequest } from "@/types/event";
+import type { CreateAdminRequest, EditUserRequest } from "@/types/Admin/user";
 
 export async function getOrdersAdmin(params?: { page?: number; pageSize?: number; eventId?: string }) {
   const res = await instance.get<AdminOrderListResponse>('/api/Order', { params });
@@ -62,6 +62,14 @@ export const uploadUserAvatarAPI = async (userId: string, avatarFile: File) => {
 export const getUserByIdAPI = async (userId: string) => {
   const response = await instance.get(`/api/User/${userId}`);
   return response.data.data;
+};
+
+
+
+export const createAdminAPI = async (data: CreateAdminRequest) => {
+  const payload = { ...data, role: 0 };
+  const response = await instance.post('/api/Account/create-admin', payload);
+  return response.data;
 };
 
 

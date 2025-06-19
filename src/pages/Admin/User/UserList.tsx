@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers, getAccountByIdAPI } from '@/services/Admin/user.service';
+import { getUsers, getAccountByIdAPI } from '@/services/User/user.service';
 import type { User } from '@/types/auth';
 import {
   Table,
@@ -36,26 +36,27 @@ export const UserList = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
+
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [editUser, setEditUser] = useState<User | null>(null);
+
+  const [userSearch, setUserSearch] = useState('');
 
   useEffect(() => {
     setLoading(true);
     getUsers()
       .then(async (data) => {
         setUsers(data);
-        // Lấy role cho từng accountId
         const roleMap: Record<string, number> = {};
         await Promise.all(
           data.map(async (user) => {
             try {
               const account = await getAccountByIdAPI(user.accountId);
               roleMap[user.accountId] = account.role;
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (err) {
-              // Không báo toast, chỉ gán Unknown
+            } catch {
               roleMap[user.accountId] = -1;
             }
           })
@@ -65,8 +66,18 @@ export const UserList = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const pagedUsers = users.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
+  const nonAdminUsers = users.filter((u) => roles[u.accountId] !== 0);
+
+  const filteredUsers = nonAdminUsers.filter(
+    (user) =>
+      !userSearch ||
+      user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+      (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
+  );
+
+  const pagedUsers = filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
+  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
 
   const roleLabel = (role: number) => {
     switch (role) {
@@ -84,17 +95,13 @@ export const UserList = () => {
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
-      <h2 className="text-2xl font-bold mb-4">User List</h2>
-      {/* Modal xem chi tiết user */}
       {viewUser && <UserDetailModal user={viewUser} onClose={() => setViewUser(null)} />}
-      {/* Modal chỉnh sửa user */}
       {editUser && (
         <EditUserModal
           user={editUser}
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            // Reload lại danh sách nếu muốn
             setLoading(true);
             getUsers()
               .then(async (data) => {
@@ -118,6 +125,74 @@ export const UserList = () => {
       )}
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            <div className="flex-1 flex items-center gap-2">
+              <div
+                className="InputContainer relative"
+                style={{
+                  width: 310,
+                  height: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+                  borderRadius: 30,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+                  position: 'relative',
+                }}
+              >
+                <input
+                  className="input pr-8"
+                  style={{
+                    width: 300,
+                    height: 40,
+                    border: 'none',
+                    outline: 'none',
+                    caretColor: 'rgb(255,81,0)',
+                    backgroundColor: 'rgb(255,255,255)',
+                    borderRadius: 30,
+                    paddingLeft: 15,
+                    letterSpacing: 0.8,
+                    color: 'rgb(19,19,19)',
+                    fontSize: 13.4,
+                  }}
+                  placeholder="Search by full name, email, or phone..."
+                  value={userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value);
+                    setUserPage(1);
+                  }}
+                />
+                {userSearch && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setUserSearch('');
+                      setUserPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
@@ -139,7 +214,9 @@ export const UserList = () => {
               ) : (
                 pagedUsers.map((user, idx) => (
                   <TableRow key={user.userId}>
-                    <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
+                    <TableCell className="pl-4">
+                      {(userPage - 1) * userPageSize + idx + 1}
+                    </TableCell>
                     <TableCell>{user.fullName}</TableCell>
                     <TableCell>
                       {user.phone || <span className="text-gray-400">N/A</span>}
@@ -154,15 +231,14 @@ export const UserList = () => {
                     </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
-                        className="px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition flex items-center justify-center"
+                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
                         title="Edit"
                         onClick={() => setEditUser(user)}
                       >
                         <MdOutlineEdit className="w-4 h-4" />
                       </button>
-                      {/* Nút xem chi tiết user */}
                       <button
-                        className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition flex items-center justify-center "
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
                         title="View details"
                         onClick={() => setViewUser(user)}
                       >
@@ -182,19 +258,19 @@ export const UserList = () => {
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                              aria-disabled={userPage === 1}
+                              className={userPage === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
+                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
+                                isActive={i === userPage}
+                                onClick={() => setUserPage(i)}
                                 className={`transition-colors rounded 
                                   ${
-                                    i === page
+                                    i === userPage
                                       ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
@@ -206,10 +282,10 @@ export const UserList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
+                              onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
+                              aria-disabled={userPage === userTotalPages}
                               className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                userPage === userTotalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -218,18 +294,18 @@ export const UserList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {users.length === 0
+                        {filteredUsers.length === 0
                           ? '0-0 of 0'
-                          : `${(page - 1) * pageSize + 1}-${Math.min(
-                              page * pageSize,
-                              users.length
-                            )} of ${users.length}`}
+                          : `${(userPage - 1) * userPageSize + 1}-${Math.min(
+                              userPage * userPageSize,
+                              filteredUsers.length
+                            )} of ${filteredUsers.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {pageSize}
+                            {userPageSize}
                             <svg
                               className="w-4 h-4 ml-1"
                               fill="none"
@@ -250,10 +326,10 @@ export const UserList = () => {
                             <DropdownMenuItem
                               key={size}
                               onClick={() => {
-                                setPageSize(size);
-                                setPage(1);
+                                setUserPageSize(size);
+                                setUserPage(1);
                               }}
-                              className={size === pageSize ? 'font-bold bg-primary/10' : ''}
+                              className={size === userPageSize ? 'font-bold bg-primary/10' : ''}
                             >
                               {size}
                             </DropdownMenuItem>

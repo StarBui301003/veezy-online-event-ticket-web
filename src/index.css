@@ -1,8 +1,25 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@keyframes morphingGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.morphing-gradient-bg {
+
+  background: linear-gradient(-45deg, #008acf, #87e9f9, #839dfad6, #73ffc2);
+  background-size: 400% 400%;
+  animation: morphingGradient 10s ease infinite;
+}
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -63,6 +80,29 @@ h1 {
 .btn-rs-pw:focus,
 .btn-rs-pw:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+.btn-donate-tailwind {
+  background-size: 280% auto;
+  box-shadow:
+    0px 0px 20px rgba(71, 184, 255, 0.5),
+    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
+    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
+    inset -4px -4px 8px rgba(19, 95, 216, 0.35);
+  transition: 0.8s;
+}
+.btn-donate-tailwind:hover {
+  background-position: right top;
+}
+.btn-donate-tailwind:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px #2563eb,
+    0px 0px 20px rgba(71, 184, 255, 0.5),
+    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
+    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
+    inset -4px -4px 8px rgba(19, 95, 216, 0.35);
 }
 
 @media (prefers-color-scheme: light) {

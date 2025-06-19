@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Loader2, AlertCircle, CreditCard } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Loader2, AlertCircle, CreditCard } from 'lucide-react';
 import { createOrder, createVnPayPayment } from '@/services/Event Manager/event.service';
 
 interface CheckoutItem {
@@ -28,22 +28,20 @@ const ConfirmOrderPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [waitingPayment, setWaitingPayment] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [paymentWindow, setPaymentWindow] = useState<Window | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>("pending");
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<any>(null);
 
   useEffect(() => {
     try {
-      const data = localStorage.getItem("checkout");
+      const data = localStorage.getItem('checkout');
       if (!data) {
-        setError("Không tìm thấy thông tin đơn hàng để xác nhận.");
+        setError('Không tìm thấy thông tin đơn hàng để xác nhận.');
         setLoading(false);
         return;
       }
       setCheckout(JSON.parse(data));
     } catch {
-      setError("Dữ liệu đơn hàng không hợp lệ.");
+      setError('Dữ liệu đơn hàng không hợp lệ.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +60,7 @@ const ConfirmOrderPage = () => {
       const orderPayload = {
         eventId: checkout.eventId,
         customerId: checkout.customerId,
-        items: checkout.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
+        items: checkout.items.map((i) => ({ ticketId: i.ticketId, quantity: i.quantity })),
         discountCode: checkout.discountCode,
       };
       const orderRes = await createOrder(orderPayload);
@@ -74,16 +72,18 @@ const ConfirmOrderPage = () => {
       let paymentUrl = '';
       if (payRes && payRes.paymentUrl) paymentUrl = payRes.paymentUrl;
       else if (typeof payRes === 'string' && payRes.startsWith('http')) paymentUrl = payRes;
-      else if (payRes.data && typeof payRes.data === 'string' && payRes.data.startsWith('http')) paymentUrl = payRes.data;
+      else if (payRes.data && typeof payRes.data === 'string' && payRes.data.startsWith('http'))
+        paymentUrl = payRes.data;
       if (!paymentUrl) throw new Error('Không lấy được link thanh toán từ server.');
       // Mở tab mới
-      const win = window.open(paymentUrl, '_blank');
-      setPaymentWindow(win);
+      window.open(paymentUrl, '_blank'); // Just open, don't setPaymentWindow
       setWaitingPayment(true);
       // Lưu orderId vào localStorage để callback có thể lấy
       localStorage.setItem('lastOrderId', orderId);
     } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || 'Có lỗi khi tạo đơn hàng/thanh toán.');
+      setError(
+        err?.response?.data?.message || err.message || 'Có lỗi khi tạo đơn hàng/thanh toán.'
+      );
     } finally {
       setConfirming(false);
     }
@@ -121,9 +121,9 @@ const ConfirmOrderPage = () => {
       >
         <AlertCircle className="w-20 h-20 text-red-500 mb-6" />
         <h2 className="text-3xl font-semibold text-red-700 mb-4">Lỗi</h2>
-        <p className="text-red-600 text-lg mb-8">{error || "Không tìm thấy đơn hàng."}</p>
+        <p className="text-red-600 text-lg mb-8">{error || 'Không tìm thấy đơn hàng.'}</p>
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate('/')}
           className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300"
         >
           Về trang chủ
@@ -141,9 +141,14 @@ const ConfirmOrderPage = () => {
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
           <h2 className="text-2xl font-bold text-emerald-700 mb-4">Đang chờ thanh toán...</h2>
-          <div className="mb-4 text-slate-700">Vui lòng hoàn tất thanh toán ở tab mới. Sau khi thanh toán xong, bạn sẽ được chuyển về trang này.</div>
+          <div className="mb-4 text-slate-700">
+            Vui lòng hoàn tất thanh toán ở tab mới. Sau khi thanh toán xong, bạn sẽ được chuyển về
+            trang này.
+          </div>
           <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mx-auto my-6" />
-          <div className="text-sm text-gray-400">Nếu bạn đã thanh toán xong mà không được chuyển trang, hãy tải lại trang này.</div>
+          <div className="text-sm text-gray-400">
+            Nếu bạn đã thanh toán xong mà không được chuyển trang, hãy tải lại trang này.
+          </div>
         </div>
       </motion.div>
     );
@@ -157,12 +162,22 @@ const ConfirmOrderPage = () => {
         className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-100 p-8 text-center"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-          <h2 className="text-2xl font-bold text-green-700 mb-4">Thanh toán thành công! Cảm ơn bạn đã đặt hàng.</h2>
+          <h2 className="text-2xl font-bold text-green-700 mb-4">
+            Thanh toán thành công! Cảm ơn bạn đã đặt hàng.
+          </h2>
           <div className="mb-4 text-left">
-            <div className="font-semibold text-lg text-purple-800 mb-1">{orderInfo.eventName || checkout?.eventName}</div>
-            <div className="text-xs text-gray-500 mb-2">{orderInfo.createdAt ? new Date(orderInfo.createdAt).toLocaleString('vi-VN') : checkout?.eventTime}</div>
+            <div className="font-semibold text-lg text-purple-800 mb-1">
+              {orderInfo.eventName || checkout?.eventName}
+            </div>
+            <div className="text-xs text-gray-500 mb-2">
+              {orderInfo.createdAt
+                ? new Date(orderInfo.createdAt).toLocaleString('vi-VN')
+                : checkout?.eventTime}
+            </div>
             {orderInfo.discountCode && (
-              <div className="text-sm text-amber-600 mb-2">Mã giảm giá: <b>{orderInfo.discountCode}</b></div>
+              <div className="text-sm text-amber-600 mb-2">
+                Mã giảm giá: <b>{orderInfo.discountCode}</b>
+              </div>
             )}
           </div>
           <div className="mb-4">
@@ -170,8 +185,16 @@ const ConfirmOrderPage = () => {
             <div className="divide-y divide-gray-200">
               {(orderInfo.items || checkout?.items || []).map((item: any) => (
                 <div key={item.ticketId} className="flex justify-between py-2 text-sm">
-                  <span>{item.ticketName} (x{item.quantity})</span>
-                  <span>{(item.pricePerTicket ? item.pricePerTicket * item.quantity : item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
+                  <span>
+                    {item.ticketName} (x{item.quantity})
+                  </span>
+                  <span>
+                    {(item.pricePerTicket
+                      ? item.pricePerTicket * item.quantity
+                      : item.ticketPrice * item.quantity
+                    ).toLocaleString('vi-VN')}{' '}
+                    VNĐ
+                  </span>
                 </div>
               ))}
             </div>
@@ -180,9 +203,11 @@ const ConfirmOrderPage = () => {
             <span>Tổng cộng:</span>
             <span>{(orderInfo.totalAmount || total).toLocaleString('vi-VN')} VNĐ</span>
           </div>
-          <div className="mb-4 text-sm text-gray-500">Mã đơn hàng: <b>{orderInfo.orderId}</b></div>
+          <div className="mb-4 text-sm text-gray-500">
+            Mã đơn hàng: <b>{orderInfo.orderId}</b>
+          </div>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate('/')}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center"
           >
             Về trang chủ
@@ -201,7 +226,9 @@ const ConfirmOrderPage = () => {
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
           <h2 className="text-2xl font-bold text-red-700 mb-4">Thanh toán thất bại</h2>
-          <div className="mb-4 text-red-600">Có lỗi xảy ra khi thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.</div>
+          <div className="mb-4 text-red-600">
+            Có lỗi xảy ra khi thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.
+          </div>
           <button
             onClick={() => window.location.reload()}
             className="w-full bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-red-600 hover:to-pink-700 transition-all duration-300 flex items-center justify-center mb-2"
@@ -231,7 +258,9 @@ const ConfirmOrderPage = () => {
           <div className="font-semibold text-lg text-purple-800 mb-1">{checkout.eventName}</div>
           <div className="text-xs text-gray-500 mb-2">{checkout.eventTime}</div>
           {checkout.discountCode && (
-            <div className="text-sm text-amber-600 mb-2">Mã giảm giá: <b>{checkout.discountCode}</b></div>
+            <div className="text-sm text-amber-600 mb-2">
+              Mã giảm giá: <b>{checkout.discountCode}</b>
+            </div>
           )}
         </div>
         <div className="mb-4">
@@ -239,7 +268,9 @@ const ConfirmOrderPage = () => {
           <div className="divide-y divide-gray-200">
             {checkout.items.map((item) => (
               <div key={item.ticketId} className="flex justify-between py-2 text-sm">
-                <span>{item.ticketName} (x{item.quantity})</span>
+                <span>
+                  {item.ticketName} (x{item.quantity})
+                </span>
                 <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
               </div>
             ))}
@@ -259,11 +290,11 @@ const ConfirmOrderPage = () => {
           ) : (
             <CreditCard className="w-6 h-6 mr-2" />
           )}
-          {confirming ? "Đang xử lý..." : "Thanh toán"}
+          {confirming ? 'Đang xử lý...' : 'Thanh toán'}
         </button>
       </div>
     </motion.div>
   );
 };
 
-export default ConfirmOrderPage; 
+export default ConfirmOrderPage;

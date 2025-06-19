@@ -14,8 +14,6 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
-import { ApprovedEventList } from './pages/Admin/Event/ApprovedEventList';
-import { PendingEventList } from './pages/Admin/Event/PendingEventList';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
@@ -25,24 +23,51 @@ import EditEvent from './pages/EventManager/EditEvent';
 import CreateTicket from './pages/EventManager/CreateTicket';
 import EventListWithTicketManager from './pages/EventManager/EventListWithTicketManager';
 import EditTicket from './pages/EventManager/EditTicket';
-import Home from './pages/Customer/Home';
-import { RejectedEventList } from './pages/Admin/Event/RejectedEventList';
 import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
 import { UserList } from './pages/Admin/User/UserList';
 import EventDetail from './pages/Customer/EventDetail';
 import ManagerDiscountCode from './pages/EventManager/ManagerDiscountCode';
 import CreateDiscountCode from './pages/EventManager/CreateDiscountCode';
-import AllEventsPage from "./pages/Customer/AllEventsPage";
+import AllEventsPage from './pages/Customer/AllEventsPage';
 import ConfirmOrderPage from './pages/Customer/ConfirmOrderPage';
 import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
 import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
-import ProfilePage from '@/pages/ProfilePage';
+import ProfilePage from '@/pages/Admin/ProfilePage';
 import CategoryList from './pages/Admin/Category/CategoryList';
-// import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
-
+import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
+import { AdminList } from './pages/Admin/User/AdminList';
+import ProfileEventManager from './pages/EventManager/ProfileEventManager';
+import HomePage from './pages/Customer/Home';
+import ProfileCustomer from './pages/Customer/ProfileCustomer';
+import EventListTabs from './pages/Admin/Event/EventListTabs';
+import { useState, useEffect, useRef } from 'react';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { registerGlobalSpinner } from '@/services/axios.customize';
+import { ReportPage } from './pages/Admin/Report/ReportPage';
+import { NewsPage } from './pages/Admin/News/NewsPage';
 
 function App() {
   const { loading } = useLoading();
+  const [showSpinner, setShowSpinner] = useState(false);
+  const spinnerTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    registerGlobalSpinner((show) => {
+      if (show) {
+        // Khi bắt đầu loading, show spinner ngay
+        if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
+        setShowSpinner(true);
+      } else {
+        // Khi kết thúc loading, delay 300ms rồi mới tắt spinner
+        if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
+        spinnerTimeout.current = setTimeout(() => setShowSpinner(false), 300);
+      }
+    });
+    // Cleanup timeout khi unmount
+    return () => {
+      if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
+    };
+  }, []);
 
   const router = createBrowserRouter([
     {
@@ -52,41 +77,41 @@ function App() {
       children: [
         {
           index: true,
-          element: (
-            <ProtectedRoute allowedRoles={[1, 2]}>
-              {/* <HomePage /> */}
-              <Home />
-            </ProtectedRoute>
-          ),
+          element: <HomePage />,
         },
         {
           path: 'event/:eventId',
-          element: (
-            <ProtectedRoute allowedRoles={[1, 2]}>
-              <EventDetail />
-            </ProtectedRoute>
-          ),
+          element: <EventDetail />,
         },
-       
+
         {
           path: 'events',
-          element: (
-            <ProtectedRoute allowedRoles={[1, 2]}>
-              <AllEventsPage />
-            </ProtectedRoute>
-          ),
+          element: <AllEventsPage />,
         },
         {
           path: 'confirm-order',
           element: (
-            <ProtectedRoute allowedRoles={[1, 2]}>
-              <ConfirmOrderPage />
+            <ProtectedRoute allowedRoles={[1]}>
+              <ConfirmOrderPage />,
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'profile',
+          element: (
+            <ProtectedRoute allowedRoles={[1]}>
+              <ProfileCustomer />,
             </ProtectedRoute>
           ),
         },
         {
           path: 'payment-success',
-          element: <PaymentSuccessPage />,
+
+          element: (
+            <ProtectedRoute allowedRoles={[1]}>
+              <PaymentSuccessPage />,
+            </ProtectedRoute>
+          ),
         },
       ],
     },
@@ -119,26 +144,10 @@ function App() {
           ), // /admin
         },
         {
-          path: 'approved-events-list',
+          path: 'event-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <ApprovedEventList />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'rejected-events-list',
-          element: (
-            <ProtectedRoute allowedRoles={[0]}>
-              <RejectedEventList />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'pending-events-list',
-          element: (
-            <ProtectedRoute allowedRoles={[0]}>
-              <PendingEventList />
+              <EventListTabs />
             </ProtectedRoute>
           ),
         },
@@ -159,6 +168,14 @@ function App() {
           ),
         },
         {
+          path: 'admin-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <AdminList />
+            </ProtectedRoute>
+          ),
+        },
+        {
           path: 'payment-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
@@ -174,14 +191,38 @@ function App() {
             </ProtectedRoute>
           ),
         },
-        // {
-        //   path: 'discountCode-list',
-        //   element: (
-        //     <ProtectedRoute allowedRoles={[0]}>
-        //       <DiscountCodeList />
-        //     </ProtectedRoute>
-        //   ),
-        // },
+        {
+          path: 'discountCode-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <DiscountCodeList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'report-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <ReportPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <NewsPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'comment-list',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <NewsPage />
+            </ProtectedRoute>
+          ),
+        },
         {
           path: 'profile',
           element: (
@@ -207,6 +248,14 @@ function App() {
               <DashboardEvent />
             </ProtectedRoute>
           ), // /EM
+        },
+        {
+          path: 'profile',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <ProfileEventManager />
+            </ProtectedRoute>
+          ),
         },
         {
           path: 'create-event',
@@ -324,6 +373,7 @@ function App() {
         pauseOnHover
         theme="light"
       />
+      <SpinnerOverlay show={showSpinner} />
     </LoadingProvider>
   );
 }

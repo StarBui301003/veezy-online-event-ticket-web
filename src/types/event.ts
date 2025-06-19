@@ -48,16 +48,3 @@ export interface TicketPayload {
   imageUrl?: string;
 }
 
-export interface EditUserRequest {
-  fullName: string;
-  email: string;
-  phone: string;
-  location: string;
-  dob: string;
-  gender: number;
-  categories: {
-    categoryId: string;
-    categoryName: string;
-    categoryDescription: string;
-  }[];
-}

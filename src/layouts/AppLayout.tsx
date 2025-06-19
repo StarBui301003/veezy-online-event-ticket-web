@@ -9,7 +9,7 @@ import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
 
 import { getCategoryById } from '@/services/Admin/event.service';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUsernameByAccountId } from '@/services/User/user.service';
 import { Category } from '@/types/Admin/category';
 
 interface Props {

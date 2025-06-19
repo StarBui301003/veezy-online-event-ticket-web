@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CiSearch } from 'react-icons/ci';
 import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
@@ -24,30 +25,53 @@ import { LogOut } from 'lucide-react';
 export const Header = () => {
   const [blur, setBlur] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null); // Thêm state user
+  const [user, setUser] = useState<any>(null);
+  const [avatar, setAvatar] = useState<string | undefined>(undefined); // Thêm state avatar
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
-    const accStr = localStorage.getItem('account');
-    if (accStr) {
-      try {
-        const acc = JSON.parse(accStr);
-        setAccount(acc);
-        // Gọi API lấy user
-        if (acc.userId) {
-          getUserAPI(acc.userId)
-            .then((userData) => setUser(userData))
-            .catch(() => setUser(null));
+
+    const fetchAccountAndUser = () => {
+      const accStr = localStorage.getItem('account');
+      if (accStr) {
+        try {
+          const acc = JSON.parse(accStr);
+          setAccount(acc);
+          // Ưu tiên avatar từ localStorage (avatar, avatarUrl)
+          setAvatar(
+            acc.avatar && acc.avatar.trim() !== ''
+              ? acc.avatar
+              : acc.avatarUrl && acc.avatarUrl.trim() !== ''
+              ? acc.avatarUrl
+              : undefined
+          );
+          // Gọi API lấy user
+          if (acc.userId) {
+            getUserAPI(acc.userId)
+              .then((userData) => setUser(userData))
+              .catch(() => setUser(null));
+          }
+        } catch {
+          setAccount(null);
+          setAvatar(undefined);
         }
-      } catch {
-        // Failed to parse account from localStorage
+      } else {
+        setAccount(null);
+        setAvatar(undefined);
       }
-    }
+    };
+
+    fetchAccountAndUser();
+
+    window.addEventListener('user-updated', fetchAccountAndUser);
+    window.addEventListener('storage', fetchAccountAndUser);
+
     return () => {
       window.removeEventListener('scroll', changeBlur);
+      window.removeEventListener('user-updated', fetchAccountAndUser);
+      window.removeEventListener('storage', fetchAccountAndUser);
     };
   }, []);
 
@@ -175,7 +199,7 @@ export const Header = () => {
                     style={{ minWidth: 0 }}
                   >
                     <Avatar className="w-8 h-8 border border-zinc-500 rounded-full">
-                      <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                      <AvatarImage src={avatar || AVATAR} alt="avatar" />
                       <AvatarFallback>
                         {user?.fullName?.[0]?.toUpperCase() ||
                           account.fullname?.[0]?.toUpperCase() ||
@@ -196,7 +220,7 @@ export const Header = () => {
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 pl-2 py-2">
                       <Avatar className="h-10 w-10 rounded-full border border-zinc-500 dark:border-zinc-700">
-                        <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                        <AvatarImage src={avatar || AVATAR} alt="avatar" />
                         <AvatarFallback className="rounded-full">
                           {user?.fullName?.[0]?.toUpperCase() ||
                             account.fullname?.[0]?.toUpperCase() ||

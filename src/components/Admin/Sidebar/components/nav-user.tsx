@@ -34,7 +34,7 @@ export function NavUser() {
   } | null>(null);
   const [loadingLogout, setLoadingLogout] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [avatarLoaded, setAvatarLoaded] = useState(false);
+  const [_avatarLoaded, setAvatarLoaded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -102,10 +102,14 @@ export function NavUser() {
     try {
       await LogoutAPI();
       localStorage.removeItem('access_token');
+      localStorage.removeItem('customerId');
       localStorage.removeItem('account');
+      localStorage.removeItem('user_config');
+      localStorage.removeItem('admin-event-tab');
       document.cookie = 'refresh_token=; Max-Age=0; path=/;';
       toast.success('Logged out successfully!');
-      navigate('/login');
+      // Sử dụng window.location để đảm bảo redirect về login (fix navigate không hoạt động do context hoặc layout)
+      window.location.href = '/login';
     } finally {
       setLoadingLogout(false);
     }

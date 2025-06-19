@@ -32,7 +32,7 @@ export const LoginPage = () => {
             navigate('/');
             return;
           }
-          
+
           navigate('/');
           return;
         }
@@ -45,6 +45,10 @@ export const LoginPage = () => {
     if (remembered) {
       setUsername(remembered);
       setRememberMe(true);
+    } else {
+      setRememberMe(false);
+      // Nếu không có remembered_username thì xóa khỏi localStorage (phòng trường hợp user đã xóa trước đó)
+      localStorage.removeItem('remembered_username');
     }
   }, [navigate]);
 
@@ -62,8 +66,37 @@ export const LoginPage = () => {
 
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
+
       document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
-      localStorage.setItem('account', JSON.stringify(apiResult.data.account));
+
+      // Tách userConfig, account
+      const {
+        userConfig,
+        accountId,
+        avatar,
+        email,
+        gender,
+        phone,
+        role,
+        userId,
+        username: accountUsername, // Đổi tên để tránh conflict
+      } = apiResult.data.account;
+      if (userConfig !== undefined) {
+        localStorage.setItem('user_config', JSON.stringify(userConfig));
+      } else {
+        localStorage.removeItem('user_config');
+      }
+      const minimalAccount = {
+        accountId,
+        avatar,
+        email,
+        gender,
+        phone,
+        role,
+        userId,
+        username: accountUsername,
+      };
+      localStorage.setItem('account', JSON.stringify(minimalAccount));
 
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
@@ -72,22 +105,22 @@ export const LoginPage = () => {
       }
 
       // Nếu là admin thì chuyển sang trang admin
-      if (apiResult.data.account.role === 0) {
-        toast.success(`Welcome admin ${apiResult.data.account.username}!`, {
+      if (role === 0) {
+        toast.success(`Welcome admin ${accountUsername}!`, {
           position: 'top-right',
         });
         navigate('/admin');
         return;
       }
       // Nếu là Event Manager thì chuyển sang dashboard Event Manager
-      if (apiResult.data.account.role === 2) {
-        toast.success(`Welcome ${apiResult.data.account.username}!`, {
+      if (role === 2) {
+        toast.success(`Welcome ${accountUsername}!`, {
           position: 'top-right',
         });
         navigate('/event-manager');
         return;
       }
-      toast.success(`Welcome ${apiResult.data.account.username}!`, {
+      toast.success(`Welcome ${accountUsername}!`, {
         position: 'top-right',
       });
       navigate('/');
@@ -116,6 +149,7 @@ export const LoginPage = () => {
       setLoading(false);
     }
   };
+
   return (
     <>
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,_#091D4B_50%,_#0B1736_50%)] min-h-screen w-full" />
@@ -206,7 +240,7 @@ export const LoginPage = () => {
             <div className="mt-6">
               Don’t have an account?{' '}
               <Link to="/register" className="text-[#60A5FA] hover:underline">
-                Sign up
+                Sign Up
               </Link>
             </div>
           </div>
