@@ -107,7 +107,7 @@ export const LoginPage = () => {
         toast.success(`Welcome admin ${accountUsername}!`, {
           position: 'top-right',
         });
-        navigate('/admin');
+        navigate('/admin', { replace: true });
         return;
       }
       // Nếu là Event Manager thì chuyển sang dashboard Event Manager
@@ -115,13 +115,13 @@ export const LoginPage = () => {
         toast.success(`Welcome ${accountUsername}!`, {
           position: 'top-right',
         });
-        navigate('/event-manager');
+        navigate('/event-manager', { replace: true });
         return;
       }
       toast.success(`Welcome ${accountUsername}!`, {
         position: 'top-right',
       });
-      navigate('/');
+      navigate('/', { replace: true });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       let errorMessage = 'Invalid username or password.';

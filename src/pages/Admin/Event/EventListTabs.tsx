@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ApprovedEventList } from './ApprovedEventList';
 import { PendingEventList } from './PendingEventList';
@@ -9,8 +10,14 @@ import { cn } from '@/lib/utils';
 // import './EventTabs.css';
 
 export default function EventListTabs() {
-  // Lưu tab vào localStorage để giữ trạng thái khi reload
-  const getInitialTab = () => localStorage.getItem('admin-event-tab') || 'approved';
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
+  const getInitialTab = () => {
+    const tab = searchParams.get('tab');
+    if (tab === 'pending' || tab === 'approved' || tab === 'rejected') return tab;
+    return 'pending';
+  };
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -24,17 +31,27 @@ export default function EventListTabs() {
       .catch(() => setPendingCount(0));
   }, []);
 
+  // Khi đổi tab, update query param
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Khi URL query param thay đổi (ví dụ reload, hoặc back/forward), update tab
   useEffect(() => {
-    localStorage.setItem('admin-event-tab', activeTab);
+    const tab = searchParams.get('tab');
+    if (tab && tab !== activeTab && ['pending', 'approved', 'rejected'].includes(tab)) {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!loadedTabs.includes(activeTab)) {
       setLoadedTabs((prev) => [...prev, activeTab]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
 
   return (
     <div className="p-6">

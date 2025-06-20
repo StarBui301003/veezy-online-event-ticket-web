@@ -51,6 +51,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { registerGlobalSpinner } from '@/services/axios.customize';
 import { ReportPage } from './pages/Admin/Report/ReportPage';
 import { NewsPage } from './pages/Admin/News/NewsPage';
+import { CommentList } from './pages/Admin/Comment/CommentList';
 
 function App() {
   const { loading } = useLoading();
@@ -233,7 +234,7 @@ function App() {
           path: 'comment-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <NewsPage />
+              <CommentList />
             </ProtectedRoute>
           ),
         },
