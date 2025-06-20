@@ -28,9 +28,9 @@ import { FaPlus, FaRegTrashAlt, FaEye } from 'react-icons/fa';
 import { MdOutlineEdit } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { getDiscountCodes, deleteDiscountCode } from '@/services/Admin/discountCode.service';
-import DiscountCodeDetailModal from '@/components/Admin/Modal/DiscountCode/DiscountCodeDetailModal';
-import CreateDiscountCodeModal from '@/components/Admin/Modal/DiscountCode/CreateDiscountCodeModal';
-import EditDiscountCodeModal from '@/components/Admin/Modal/DiscountCode/EditDiscountCodeModal';
+import DiscountCodeDetailModal from '@/pages/Admin/DiscountCode/DiscountCodeDetailModal';
+import CreateDiscountCodeModal from '@/pages/Admin/DiscountCode/CreateDiscountCodeModal';
+import EditDiscountCodeModal from '@/pages/Admin/DiscountCode/EditDiscountCodeModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 

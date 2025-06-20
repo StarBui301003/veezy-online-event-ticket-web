@@ -22,9 +22,9 @@ import {
 import { MdOutlineEdit } from 'react-icons/md';
 import { FaEye, FaPlus, FaRegTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import CreateCategoryModal from '@/components/Admin/Modal/Category/CreateCategoryModal';
-import CategoryDetailModal from '@/components/Admin/Modal/Category/CategoryDetailModal';
-import EditCategoryModal from '@/components/Admin/Modal/Category/EditCategoryModal';
+import CreateCategoryModal from '@/pages/Admin/Category/CreateCategoryModal';
+import CategoryDetailModal from '@/pages/Admin/Category/CategoryDetailModal';
+import EditCategoryModal from '@/pages/Admin/Category/EditCategoryModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 

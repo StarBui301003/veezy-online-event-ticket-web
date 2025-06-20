@@ -27,8 +27,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MdOutlineEdit } from 'react-icons/md';
 import { FaEye } from 'react-icons/fa';
-import UserDetailModal from '@/components/Admin/Modal/UserDetailModal';
-import EditUserModal from '@/components/Admin/Modal/EditUserModal';
+import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
+import EditUserModal from '@/pages/Admin/User/EditUserModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 

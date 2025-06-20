@@ -26,7 +26,7 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { FaEye } from 'react-icons/fa';
-import ApprovedEventDetailModal from '@/components/Admin/Modal/Event/ApprovedEventDetailModal';
+import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
 

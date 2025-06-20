@@ -25,7 +25,7 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import PendingEventDetailModal from '@/components/Admin/Modal/Event/PendingEventDetailModal';
+import PendingEventDetailModal from '@/pages/Admin/Event/PendingEventDetailModal';
 import { FaRegTrashAlt } from 'react-icons/fa';
 import { FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';

@@ -10,7 +10,7 @@ import { RegisterAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import RegisterChooseRoleModal from '@/components/Admin/Modal/RegisterChooseRoleModal';
+import RegisterChooseRoleModal from '@/pages/authentication/RegisterChooseRoleModal';
 
 export const Register = () => {
   const [date, setDate] = useState<Date>();
