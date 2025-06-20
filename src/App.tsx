@@ -41,6 +41,9 @@ import ProfileCustomer from './pages/Customer/ProfileCustomer';
 import EventListTabs from './pages/Admin/Event/EventListTabs';
 import { ReportPage } from './pages/Admin/Report/ReportPage';
 import { NewsPage } from './pages/Admin/News/NewsPage';
+import NewsManager from './pages/EventManager/NewsManager';
+import CreateNews from './pages/EventManager/CreateNews';
+import EditNews from './pages/EventManager/EditNews';
 
 function App() {
   const router = createBrowserRouter([
@@ -264,6 +267,22 @@ function App() {
           ),
         },
         {
+          path: 'my-events',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventListWithTicketManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <NewsManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
           path: '/event-manager/tickets/manage',
           element: (
             <ProtectedRoute allowedRoles={[2]}>
@@ -301,6 +320,22 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <CreateDiscountCode />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news/create/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateNews />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news/edit/:newsId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EditNews />
             </ProtectedRoute>
           ),
         },

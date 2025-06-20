@@ -18,7 +18,7 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from 'react-icons/fa';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 export function EventManagerLayout() {
@@ -54,17 +54,6 @@ export function EventManagerLayout() {
     document.cookie.split(";").forEach(function(c) { 
       document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
     });
-    
-    // Xóa cookies với domain cụ thể nếu cần
-    const clearCookie = (name, domain = '') => {
-      const domainPart = domain ? `; domain=${domain}` : '';
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${domainPart}`;
-    };
-    
-    // Ví dụ xóa cookies cụ thể
-    // clearCookie('access_token');
-    // clearCookie('refresh_token');
-    // clearCookie('session_id');
     
     // Chuyển hướng về trang login
     navigate('/login');
@@ -123,18 +112,18 @@ export function EventManagerLayout() {
   }, []);
 
   const NavItem = ({
-    href,
+    to,
     icon: Icon,
     children,
     isActive = false,
   }: {
-    href: string;
+    to: string;
     icon: React.ComponentType<{ className?: string }>;
     children: React.ReactNode;
     isActive?: boolean;
   }) => (
-    <a
-      href={href}
+    <Link
+      to={to}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
         isActive
           ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-400 shadow-lg border border-pink-500/30'
@@ -143,7 +132,7 @@ export function EventManagerLayout() {
     >
       <Icon className="text-sm" />
       <span className="text-sm font-medium">{children}</span>
-    </a>
+    </Link>
   );
 
   const SectionHeader = ({
@@ -173,22 +162,6 @@ export function EventManagerLayout() {
     </button>
   );
 
-  // Lấy role từ localStorage
-  const getHomePathByRole = () => {
-    try {
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        const acc = JSON.parse(accStr);
-        if (acc.role === 2) return '/event-manager';
-        if (acc.role === 1) return '/';
-        if (acc.role === 0) return '/admin';
-      }
-    } catch {
-      console.error('Error parsing account from localStorage');
-    }
-    return '/';
-  };
-
   return (
     <>
       {loading && <SpinnerOverlay show={loading} />}
@@ -204,7 +177,7 @@ export function EventManagerLayout() {
               <p className="text-xs text-gray-400 mt-1">Event Management Dashboard</p>
               <br />
               <button
-                onClick={() => navigate(getHomePathByRole())}
+                onClick={() => navigate('/')}
                 className="ml-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
                 title="Về trang chủ"
               >
@@ -217,7 +190,7 @@ export function EventManagerLayout() {
             <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6">
               <div>
                 <NavItem
-                  href="/event-manager"
+                  to=""
                   icon={FaHome}
                   isActive={isActiveRoute('/event-manager')}
                 >
@@ -231,14 +204,14 @@ export function EventManagerLayout() {
                 {expandedSections.events && (
                   <div className="ml-4 space-y-1 mt-2">
                     <NavItem
-                      href="/event-manager/my-events"
+                      to="my-events"
                       icon={FaCalendarAlt}
                       isActive={isActiveRoute('/event-manager/my-events')}
                     >
                       Sự kiện của tôi
                     </NavItem>
                     <NavItem
-                      href="/event-manager/create-event"
+                      to="create-event"
                       icon={FaPlus}
                       isActive={isActiveRoute('/event-manager/create-event')}
                     >
@@ -246,21 +219,21 @@ export function EventManagerLayout() {
                     </NavItem>
 
                     <NavItem
-                      href="/event-manager/pending-events"
+                      to="pending-events"
                       icon={FaClock}
                       isActive={isActiveRoute('/event-manager/pending-events')}
                     >
                       Sự kiện đang chờ duyệt
                     </NavItem>
                     <NavItem
-                      href="/event-manager/approved-events"
+                      to="approved-events"
                       icon={FaCheckCircle}
                       isActive={isActiveRoute('/event-manager/approved-events')}
                     >
                       Sự kiện đã duyệt
                     </NavItem>
                     <NavItem
-                      href="/event-manager/collaborators"
+                      to="collaborators"
                       icon={FaUsers}
                       isActive={isActiveRoute('/event-manager/collaborators')}
                     >
@@ -276,28 +249,28 @@ export function EventManagerLayout() {
                 {expandedSections.tickets && (
                   <div className="ml-4 space-y-1 mt-2">
                     <NavItem
-                      href="/event-manager/tickets/manage"
+                      to="tickets/manage"
                       icon={FaTicketAlt}
                       isActive={isActiveRoute('/event-manager/tickets/manage')}
                     >
                       Quản lý vé
                     </NavItem>
                     <NavItem
-                      href="/event-manager/discount-codes"
+                      to="discount-codes"
                       icon={FaPercent}
                       isActive={isActiveRoute('/event-manager/discount-codes')}
                     >
                       Mã giảm giá
                     </NavItem>
                     <NavItem
-                      href="/event-manager/ticket-sales"
+                      to="ticket-sales"
                       icon={FaChartBar}
                       isActive={isActiveRoute('/event-manager/ticket-sales')}
                     >
                       Theo dõi bán vé
                     </NavItem>
                     <NavItem
-                      href="/event-manager/check-ins"
+                      to="check-ins"
                       icon={FaCheckCircle}
                       isActive={isActiveRoute('/event-manager/check-ins')}
                     >
@@ -313,7 +286,7 @@ export function EventManagerLayout() {
                 {expandedSections.analytics && (
                   <div className="ml-4 space-y-1 mt-2">
                     <NavItem
-                      href="/event-manager/analytics/overview"
+                      to="analytics/overview"
                       icon={FaChartBar}
                       isActive={isActiveRoute('/event-manager/analytics/overview')}
                     >
@@ -321,21 +294,21 @@ export function EventManagerLayout() {
                     </NavItem>
 
                     <NavItem
-                      href="/event-manager/analytics/participants"
+                      to="analytics/participants"
                       icon={FaUsers}
                       isActive={isActiveRoute('/event-manager/analytics/participants')}
                     >
                       Danh sách người tham gia
                     </NavItem>
                     <NavItem
-                      href="/event-manager/reviews"
+                      to="reviews"
                       icon={FaEye}
                       isActive={isActiveRoute('/event-manager/reviews')}
                     >
                       Đánh giá sự kiện
                     </NavItem>
                     <NavItem
-                      href="/event-manager/analytics/predictions"
+                      to="analytics/predictions"
                       icon={FaChartBar}
                       isActive={isActiveRoute('/event-manager/analytics/predictions')}
                     >
@@ -351,21 +324,21 @@ export function EventManagerLayout() {
                 {expandedSections.content && (
                   <div className="ml-4 space-y-1 mt-2">
                     <NavItem
-                      href="/event-manager/news"
+                      to="news"
                       icon={FaNewspaper}
                       isActive={isActiveRoute('/event-manager/news')}
                     >
                       Quản lý tin tức
                     </NavItem>
                     <NavItem
-                      href="/event-manager/notifications"
+                      to="notifications"
                       icon={FaBell}
                       isActive={isActiveRoute('/event-manager/notifications')}
                     >
                       Thông báo
                     </NavItem>
                     <NavItem
-                      href="/event-manager/chat"
+                      to="chat"
                       icon={FaComments}
                       isActive={isActiveRoute('/event-manager/chat')}
                     >
@@ -407,13 +380,13 @@ export function EventManagerLayout() {
 
                 {isDropdownOpen && (
                   <div className="absolute left-0 bottom-full mb-2 w-full bg-[#2a243b] border border-purple-500/30 rounded-lg shadow-2xl backdrop-blur-sm z-20 overflow-hidden">
-                    <a
-                      href="/event-manager/profile"
+                    <Link
+                      to="profile"
                       className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200"
                     >
                       <FaUserCircle className="text-gray-400" />
                       <span>Hồ sơ cá nhân</span>
-                    </a>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 transition-all duration-200 rounded-lg"
