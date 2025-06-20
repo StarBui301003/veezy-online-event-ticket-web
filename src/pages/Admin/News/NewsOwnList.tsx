@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getNewsByAuthor, deleteNews, deleteNewsImage } from '@/services/Admin/news.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsDetailModal from '@/pages/Admin/News/NewsDetailModal';
