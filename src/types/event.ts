@@ -48,3 +48,39 @@ export interface TicketPayload {
   imageUrl?: string;
 }
 
+export interface EditUserRequest {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  dob: string;
+  gender: number;
+  categories: {
+    categoryId: string;
+    categoryName: string;
+    categoryDescription: string;
+  }[];
+}
+
+export interface NewsPayload {
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+}
+
+export interface News {
+  newsId: string;
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

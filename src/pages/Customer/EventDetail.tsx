@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, CalendarDays, MapPin, Ticket, ShoppingCart, AlertCircle, CheckCircle, MinusCircle, PlusCircle } from "lucide-react";
-import { getEventById, getTicketsByEvent } from "@/services/Event Manager/event.service";
+import { getEventById, getTicketsByEvent, validateDiscountCode } from "@/services/Event Manager/event.service";
 import { toast } from "react-toastify";
 
 interface EventDetailData {
@@ -47,8 +47,21 @@ const EventDetail = () => {
   const [showDetail, setShowDetail] = useState(true);
   const [showTickets, setShowTickets] = useState(true);
   const [discountCode, setDiscountCode] = useState("");
+  const [discountValidation, setDiscountValidation] = useState<{ success: boolean; message: string; discountAmount?: number } | null>(null);
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
 
-  const customerId = localStorage.getItem('customerId');
+  let customerId = '';
+  try {
+    const accStr = localStorage.getItem('account');
+    if (accStr) {
+      const accObj = JSON.parse(accStr);
+      customerId = accObj.userId || '';
+    }
+  } catch {
+    // Ignore JSON parse errors, fallback to empty customerId
+    customerId = '';
+  }
 
   useEffect(() => {
     if (!eventId) {
@@ -144,12 +157,40 @@ const EventDetail = () => {
         quantity: st.quantity,
       })),
       discountCode: discountCode.trim() || undefined,
+      discountAmount: appliedDiscount,
     };
     localStorage.setItem('checkout', JSON.stringify(checkoutData));
     toast.success(<>Chuyển sang xác nhận đơn! <CheckCircle className="inline w-5 h-5 ml-1"/></>);
     localStorage.setItem('lastEventId', eventId);
     navigate('/confirm-order');
     setIsCreatingOrder(false);
+  };
+
+  const handleValidateDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountValidation({ success: false, message: "Vui lòng nhập mã giảm giá." });
+      setAppliedDiscount(0);
+      return;
+    }
+    setValidatingDiscount(true);
+    setDiscountValidation(null);
+    setAppliedDiscount(0);
+    try {
+      const orderAmount = calculateTotalAmount();
+      const res = await validateDiscountCode(String(eventId), discountCode.trim(), orderAmount);
+      if (res && res.flag && res.data) {
+        setDiscountValidation({ success: true, message: res.message || "Mã giảm giá hợp lệ!", discountAmount: res.data.discountAmount });
+        setAppliedDiscount(res.data.discountAmount || 0);
+      } else {
+        setDiscountValidation({ success: false, message: res.message || "Mã giảm giá không hợp lệ." });
+        setAppliedDiscount(0);
+      }
+    } catch (err) {
+      setDiscountValidation({ success: false, message: err?.response?.data?.message || "Mã giảm giá không hợp lệ." });
+      setAppliedDiscount(0);
+    } finally {
+      setValidatingDiscount(false);
+    }
   };
 
   if (loadingEvent) {
@@ -188,7 +229,7 @@ const EventDetail = () => {
     );
   }
 
-  const totalAmount = calculateTotalAmount();
+  const totalAmount = Math.max(0, calculateTotalAmount() - appliedDiscount);
   const selectedItemsCount = Object.values(selectedTickets).reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -423,13 +464,32 @@ const EventDetail = () => {
                     </motion.div>
                   </div>
                   <div className="mb-4">
-                    <input
-                      type="text"
-                      className="border border-purple-300 rounded px-3 py-2 text-sm w-full text-black"
-                      placeholder="Nhập mã giảm giá (nếu có)"
-                      value={discountCode}
-                      onChange={e => setDiscountCode(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="border border-purple-300 rounded px-3 py-2 text-sm w-full text-black"
+                        placeholder="Nhập mã giảm giá (nếu có)"
+                        value={discountCode}
+                        onChange={e => { setDiscountCode(e.target.value); setDiscountValidation(null); setAppliedDiscount(0); }}
+                        disabled={validatingDiscount}
+                      />
+                      <button
+                        type="button"
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded disabled:opacity-60"
+                        onClick={handleValidateDiscount}
+                        disabled={validatingDiscount || !discountCode.trim()}
+                      >
+                        {validatingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : "Áp dụng"}
+                      </button>
+                    </div>
+                    {discountValidation && (
+                      <div className={`mt-2 text-sm ${discountValidation.success ? "text-green-400" : "text-red-400"}`}>
+                        {discountValidation.message}
+                        {discountValidation.success && appliedDiscount > 0 && (
+                          <span> (-{appliedDiscount.toLocaleString('vi-VN')} VNĐ)</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.03, boxShadow: "0px 0px 15px rgba(56, 189, 248, 0.5)" }}

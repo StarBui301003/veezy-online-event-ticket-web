@@ -12,7 +12,7 @@ import { Category, CreateEventData } from '@/types/event';
 
 interface EnhancedContent {
   position: number;
-  contentType: 'description' | 'image' | 'both';
+  contentType: "description" | "image";
   description: string;
   imageUrl: string;
 }
@@ -22,19 +22,25 @@ interface EnhancedCreateEventData extends Omit<CreateEventData, 'contents'> {
 }
 
 const contentTypeOptions = [
-  { value: 'description', label: 'Description Only' },
-  { value: 'image', label: 'Image Only' },
-  { value: 'both', label: 'Both' },
+  { value: "description", label: "Description Only" },
+  { value: "image", label: "Image Only" }
 ];
+
+// Hàm loại bỏ HTML tags và trả về plain text
+function stripHtmlTags(html: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || "";
+}
 
 // Hàm loại bỏ <p></p> và <p><br></p> rỗng ở đầu/cuối hoặc toàn bộ
 function cleanHtml(html: string) {
   const cleaned = html
-    .replace(/<p><br><\/p>/g, '')
-    .replace(/<p>\s*<\/p>/g, '')
-    .replace(/^\s+|\s+$/g, '');
-  // Nếu chỉ còn lại chuỗi rỗng hoặc toàn dấu cách thì trả về ""
-  return cleaned.trim() === '' ? '' : cleaned;
+    .replace(/<p><br><\/p>/g, "")
+    .replace(/<p>\s*<\/p>/g, "")
+    .replace(/^\s+|\s+$/g, "");
+  // Nếu chỉ còn lại chuỗi rỗng hoặc toàn dấu cách thì trả về plain text
+  const plainText = stripHtmlTags(cleaned);
+  return plainText.trim() === "" ? "" : plainText;
 }
 
 export default function CreateEventForm() {
@@ -53,8 +59,8 @@ export default function CreateEventForm() {
     endAt: '',
     tags: [],
     categoryIds: [],
-    contents: [{ position: 1, contentType: 'both', description: '', imageUrl: '' }],
-    bankAccount: '',
+    contents: [{ position: 1, contentType: "description", description: "", imageUrl: "" }],
+    bankAccount: "",
   });
 
   const { quill, quillRef } = useQuill();
@@ -151,10 +157,7 @@ export default function CreateEventForm() {
       setFormData((prev) => ({ ...prev, contents: newContents }));
     };
 
-  const handleContentTypeChange = (
-    index: number,
-    contentType: 'description' | 'image' | 'both'
-  ) => {
+  const handleContentTypeChange = (index: number, contentType: "description" | "image") => {
     const newContents = [...formData.contents];
     newContents[index] = {
       ...newContents[index],
@@ -178,11 +181,11 @@ export default function CreateEventForm() {
         ...prev,
         contents: [
           ...prev.contents,
-          {
-            position: prev.contents.length + 1,
-            contentType: 'both',
-            description: '',
-            imageUrl: '',
+          { 
+            position: prev.contents.length + 1, 
+            contentType: "description", 
+            description: "", 
+            imageUrl: "" 
           },
         ],
       }));
@@ -463,9 +466,26 @@ export default function CreateEventForm() {
           </div>
 
           <div className="space-y-6">
-            <h3 className="text-2xl font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Event Contents
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Event Contents
+              </h3>
+              <Button
+                type="button"
+                onClick={handleAddContent}
+                disabled={formData.contents.length >= 5}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-1.5 text-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                + Add Content
+              </Button>
+            </div>
+            
+            {formData.contents.length === 0 && (
+              <div className="text-center py-8 text-slate-400">
+                <p>No content sections yet. Click "Add Content" to get started.</p>
+              </div>
+            )}
+            
             {formData.contents.map((content, index) => (
               <div
                 key={index}
@@ -490,12 +510,7 @@ export default function CreateEventForm() {
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() =>
-                          handleContentTypeChange(
-                            index,
-                            option.value as 'description' | 'image' | 'both'
-                          )
-                        }
+                        onClick={() => handleContentTypeChange(index, option.value as "description" | "image")}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           content.contentType === option.value
                             ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
@@ -507,27 +522,25 @@ export default function CreateEventForm() {
                     ))}
                   </div>
                 </div>
-                {(content.contentType === 'description' || content.contentType === 'both') && (
+                {content.contentType === "description" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Description{' '}
-                      {content.contentType === 'description' ? '(required)' : '(optional)'}
+                      Description (required)
                     </label>
                     <input
                       type="text"
                       value={content.description}
-                      onChange={handleContentChange(index, 'description')}
-                      className="w-full p-4 rounded-xl bg-slate-600/50 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500
-                      focus:border-transparent transition-all duration-200"
+                      onChange={handleContentChange(index, "description")}
+                      className="w-full p-4 rounded-xl bg-slate-600/50 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       placeholder="Enter content description"
-                      required={content.contentType === 'description'}
+                      required
                     />
                   </div>
                 )}
-                {(content.contentType === 'image' || content.contentType === 'both') && (
+                {content.contentType === "image" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Upload Image {content.contentType === 'image' ? '(required)' : '(optional)'}
+                      Upload Image (required)
                     </label>
                     <input
                       type="file"
@@ -536,7 +549,7 @@ export default function CreateEventForm() {
                         e.target.files?.[0] && handleContentImageDrop(index, e.target.files[0])
                       }
                       className="w-full p-3 rounded-xl bg-slate-600/50 border border-purple-700 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 transition-all duration-200"
-                      required={content.contentType === 'image' && !content.imageUrl}
+                      required={!content.imageUrl}
                     />
                     {uploadingContentImage && (
                       <div className="flex items-center space-x-2">
@@ -581,7 +594,7 @@ export default function CreateEventForm() {
                   <span>Creating Event...</span>
                 </div>
               ) : (
-                ' Create Event'
+                "Create Event"
               )}
             </Button>
           </div>

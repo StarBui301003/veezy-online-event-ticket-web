@@ -1,11 +1,9 @@
 import instance from "@/services/axios.customize";
-import { CreateEventData, TicketPayload } from "@/types/event";
-import { CreateTicketData } from "@/types/event";
+import { CreateEventData, NewsPayload, CreateTicketData, News } from "@/types/event";
 
 // === Event APIs ===
 
 export async function createEvent(data: CreateEventData) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const response = await instance.post(
     "/api/Event",
     data
@@ -81,7 +79,6 @@ export async function getMyApprovedEvents(page = 1, pageSize = 100) {
 
 // === Cancel Event ===
 export async function cancelEvent(eventId: string) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const response = await instance.post(
     `/api/Event/${eventId}/cancel`,
     {}
@@ -91,7 +88,6 @@ export async function cancelEvent(eventId: string) {
 
 // === Update Event ===
 export async function updateEvent(eventId: string, data: CreateEventData) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const response = await instance.put(
     `/api/Event/${eventId}`,
     data
@@ -101,7 +97,6 @@ export async function updateEvent(eventId: string, data: CreateEventData) {
 
 // === Delete Event Image ===
 export async function deleteEventImage(imageUrl: string) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   return instance.delete(
     `/api/Event/delete-image?imageUrl=${encodeURIComponent(imageUrl)}`
   );
@@ -109,7 +104,6 @@ export async function deleteEventImage(imageUrl: string) {
 
 // === Get My Events With Status & Search ===
 export async function getMyEventsWithStatus(filter: string, searchTerm: string) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const response = await instance.get(
     `/api/Event?filter=${filter}&searchTerm=${searchTerm}`
   );
@@ -152,7 +146,7 @@ export async function getMyPendingEvents(page = 1, pageSize = 100) {
 
 // === Ticket APIs ===
 
-export async function createTicket(data: TicketPayload) {
+export async function createTicket(data: CreateTicketData) {
   const response = await instance.post(
     "/api/Ticket",
     data
@@ -201,19 +195,82 @@ export async function updateTicketStatus(id: string, status: string) {
   );
   return response.data?.data || response.data;
 }
-// === Get All News (public) ===
-export async function getAllNews(page = 1, pageSize = 0) {
+
+// === News APIs ===
+
+export const createNews = async (data: NewsPayload) => {
   try {
-    const response = await instance.get("/api/News/all-Home", {
-      params: { page, pageSize },
+    console.log('createNews API call - URL:', '/api/News');
+    console.log('createNews API call - Data:', JSON.stringify(data, null, 2));
+    console.log('createNews API call - Headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('access_token')
     });
-    console.log("Raw News Response:", response.data);
-    return response.data?.data || { items: [], currentPage: 1, totalPages: 0 };
+    
+    const response = await instance.post('/api/News', data);
+    console.log('Create news API response:', response);
+    return response;
   } catch (error) {
-    console.error("Failed to fetch news", error);
-    return { items: [], currentPage: 1, totalPages: 0 };
+    console.error('Create news API error:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
+      console.error('Error response details:', {
+        status: errorResponse.response?.status,
+        data: errorResponse.response?.data,
+        headers: errorResponse.response?.headers
+      });
+      
+      if (errorResponse.response?.data) {
+        console.error('Full error response data:', JSON.stringify(errorResponse.response.data, null, 2));
+      }
+    }
+    throw error;
   }
-}
+};
+
+export const getAllNews = (page: number = 1, pageSize: number = 10) => instance.get<{ 
+  flag: boolean; 
+  code: number; 
+  data: { 
+    items: News[]; 
+    currentPage: number; 
+    pageSize: number; 
+    totalItems: number; 
+    totalPages: number; 
+    hasNextPage: boolean; 
+    hasPreviousPage: boolean; 
+  }; 
+  message: string; 
+}>(`/api/News/all?Page=${page}&PageSize=${pageSize}`);
+
+export const getNewsByEvent = (eventId: string) => instance.get<{ 
+  flag: boolean; 
+  code: number; 
+  data: { 
+    items: News[]; 
+    currentPage: number; 
+    pageSize: number; 
+    totalItems: number; 
+    totalPages: number; 
+    hasNextPage: boolean; 
+    hasPreviousPage: boolean; 
+  }; 
+  message: string; 
+}>(`/api/News/byEvent?eventId=${eventId}`);
+
+export const deleteNews = (newsId: string) => instance.delete(`/api/News/${newsId}`);
+
+export const uploadNewsImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await instance.post("/api/News/upload-image", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data.data;
+};
+
+export const getNewsDetail = (newsId: string) => instance.get(`/api/News/${newsId}`);
+
 // === Order APIs ===
 
 interface OrderItemPayload {
@@ -311,7 +368,33 @@ export async function getDiscountCodesByEvent(eventId: string) {
   return response.data?.data || response.data;
 }
 
-export async function useDiscountCode(orderId: string, code: string) {
-  const response = await instance.post('/api/DiscountCode/use', { orderId, code });
+export async function useDiscountCode(eventId: string, code: string) {
+  const response = await instance.post('/api/DiscountCode/use', { eventId, code });
   return response.data;
+}
+
+export async function deleteDiscountCode(id: string) {
+  const response = await instance.delete(`/api/DiscountCode/${id}`);
+  return response.data;
+}
+
+// Cập nhật tin tức
+export async function updateNews(newsId: string, data: Partial<NewsPayload>) {
+  const response = await instance.put(`/api/News/${newsId}`, data);
+  return response.data?.data || response.data;
+}
+
+// Validate discount code
+export async function validateDiscountCode(eventId: string, code: string, orderAmount: number) {
+  const response = await instance.post('/api/DiscountCode/validate', {
+    eventId,
+    code,
+    orderAmount,
+  });
+  return response.data;
+}
+
+export async function getOrderById(orderId: string) {
+  const response = await instance.get(`/api/Order/${orderId}`);
+  return response.data?.data || response.data;
 }

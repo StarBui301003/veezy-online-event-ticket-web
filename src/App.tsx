@@ -34,6 +34,12 @@ import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
 import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
 import ProfilePage from '@/pages/Admin/ProfilePage';
 import CategoryList from './pages/Admin/Category/CategoryList';
+import NewsManager from './pages/EventManager/NewsManager';
+import CreateNews from './pages/EventManager/CreateNews';
+import NewsDetail from './pages/Customer/NewsDetail';
+import EditNews from './pages/EventManager/EditNews';
+// import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
+
 import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
 import { AdminList } from './pages/Admin/User/AdminList';
 import ProfileEventManager from './pages/EventManager/ProfileEventManager';
@@ -101,6 +107,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[1]}>
               <ProfileCustomer />,
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news/:newsId',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <NewsDetail />
             </ProtectedRoute>
           ),
         },
@@ -327,6 +341,30 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <CreateDiscountCode />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <NewsManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news/create/:eventId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <CreateNews />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'news/edit/:newsId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EditNews />
             </ProtectedRoute>
           ),
         },

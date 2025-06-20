@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Loader2, AlertCircle, CreditCard } from 'lucide-react';
-import { createOrder, createVnPayPayment } from '@/services/Event Manager/event.service';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Loader2, AlertCircle, CreditCard } from "lucide-react";
+import { createOrder, createVnPayPayment, useDiscountCode, getOrderById } from '@/services/Event Manager/event.service';
+
 
 interface CheckoutItem {
   ticketId: string;
@@ -19,6 +20,7 @@ interface CheckoutData {
   customerId: string;
   items: CheckoutItem[];
   discountCode?: string;
+  discountAmount?: number;
 }
 
 const ConfirmOrderPage = () => {
@@ -39,7 +41,16 @@ const ConfirmOrderPage = () => {
         setLoading(false);
         return;
       }
-      setCheckout(JSON.parse(data));
+      const checkoutObj = JSON.parse(data);
+      // Always get customerId from account.userId if possible
+      try {
+        const accStr = localStorage.getItem('account');
+        if (accStr) {
+          const accObj = JSON.parse(accStr);
+          checkoutObj.customerId = accObj.userId || checkoutObj.customerId;
+        }
+      } catch {/* ignore parse error */}
+      setCheckout(checkoutObj);
     } catch {
       setError('Dữ liệu đơn hàng không hợp lệ.');
     } finally {
@@ -51,23 +62,37 @@ const ConfirmOrderPage = () => {
     ? checkout.items.reduce((sum, item) => sum + item.ticketPrice * item.quantity, 0)
     : 0;
 
+  const discountAmount = checkout?.discountAmount || 0;
+  const finalTotal = total - discountAmount;
+
   const handleConfirm = async () => {
     if (!checkout) return;
     setConfirming(true);
     setError(null);
     try {
-      // Gọi API tạo order
+      // Gọi API tạo order (KHÔNG truyền discountCode)
       const orderPayload = {
         eventId: checkout.eventId,
         customerId: checkout.customerId,
-        items: checkout.items.map((i) => ({ ticketId: i.ticketId, quantity: i.quantity })),
-        discountCode: checkout.discountCode,
+        items: checkout.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
       };
       const orderRes = await createOrder(orderPayload);
       const orderId = orderRes.orderId;
       if (!orderId) throw new Error('Không lấy được mã đơn hàng từ server.');
-      setOrderInfo(orderRes); // Lưu lại thông tin đơn hàng
-      // Gọi API tạo thanh toán VNPAY
+
+      // Nếu có discountCode, gọi tiếp /use và lấy lại order đã giảm giá
+      let finalOrder = orderRes;
+      if (checkout.discountCode) {
+        const useRes = await useDiscountCode(checkout.eventId, checkout.discountCode);
+        if (!useRes.flag) {
+          throw new Error(useRes.message || 'Mã giảm giá không hợp lệ hoặc không áp dụng được.');
+        }
+        // Lấy lại order đã giảm giá
+        finalOrder = await getOrderById(orderId);
+      }
+
+      setOrderInfo(finalOrder); // Lưu lại thông tin đơn hàng đã giảm giá (nếu có)
+      // Gọi API tạo thanh toán VNPAY như cũ
       const payRes = await createVnPayPayment(orderId);
       let paymentUrl = '';
       if (payRes && payRes.paymentUrl) paymentUrl = payRes.paymentUrl;
@@ -201,7 +226,17 @@ const ConfirmOrderPage = () => {
           </div>
           <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-6">
             <span>Tổng cộng:</span>
-            <span>{(orderInfo.totalAmount || total).toLocaleString('vi-VN')} VNĐ</span>
+            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
+              <span>Giảm giá:</span>
+              <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
+            <span>Thành tiền:</span>
+            <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           <div className="mb-4 text-sm text-gray-500">
             Mã đơn hàng: <b>{orderInfo.orderId}</b>
@@ -276,9 +311,19 @@ const ConfirmOrderPage = () => {
             ))}
           </div>
         </div>
-        <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-6">
+        <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-2">
           <span>Tổng cộng:</span>
           <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+        </div>
+        {discountAmount > 0 && (
+          <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
+            <span>Giảm giá:</span>
+            <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
+          <span>Thành tiền:</span>
+          <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
         </div>
         <button
           onClick={handleConfirm}

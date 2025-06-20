@@ -26,7 +26,7 @@ interface News {
   newsTitle: string;
   newsDescription: string;
   imageUrl: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export const HomePage = () => {
@@ -52,9 +52,9 @@ export const HomePage = () => {
 
     // Fetch news
     setLoadingNews(true);
-    getAllNews()
-      .then((data) => {
-        setNews(data.items || []);
+    getAllNews(1, 10) // Get first page with 10 items
+      .then((response) => {
+        setNews(response.data?.data?.items || []);
       })
       .catch(() => setNews([]))
       .finally(() => setLoadingNews(false));
@@ -177,7 +177,8 @@ export const HomePage = () => {
               news.slice(0, 3).map((item) => (
                 <div
                   key={item.newsId}
-                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition"
+                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+                  onClick={() => navigate(`/news/${item.newsId}`)}
                 >
                   <img
                     src={item.imageUrl}
