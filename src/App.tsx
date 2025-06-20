@@ -40,10 +40,13 @@ import HomePage from './pages/Customer/Home';
 import ProfileCustomer from './pages/Customer/ProfileCustomer';
 import EventListTabs from './pages/Admin/Event/EventListTabs';
 import { ReportPage } from './pages/Admin/Report/ReportPage';
-import { NewsPage } from './pages/Admin/News/NewsPage';
+
 import NewsManager from './pages/EventManager/NewsManager';
 import CreateNews from './pages/EventManager/CreateNews';
 import EditNews from './pages/EventManager/EditNews';
+import { CommentList } from './pages/Admin/Comment/CommentList';
+
+import { NewsListTabs } from './pages/Admin/News/NewListTabs';
 
 function App() {
   const router = createBrowserRouter([
@@ -188,15 +191,16 @@ function App() {
           path: 'news-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <NewsPage />
+              <NewsListTabs />
             </ProtectedRoute>
           ),
         },
+
         {
           path: 'comment-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <NewsPage />
+              <CommentList />
             </ProtectedRoute>
           ),
         },
