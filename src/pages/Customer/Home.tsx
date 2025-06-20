@@ -7,8 +7,9 @@ import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { NO_IMAGE } from '@/assets/img';
 
-interface Event {
+interface EventData {
   eventId: string;
   eventName: string;
   eventCoverImageUrl: string;
@@ -31,7 +32,7 @@ interface News {
 }
 
 export const HomePage = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventData[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingNews, setLoadingNews] = useState(true);
@@ -73,6 +74,12 @@ export const HomePage = () => {
     className: 'w-full',
   };
 
+  // Xử lý fallback ảnh: chỉ hiện NO_IMAGE nếu không có hoặc lỗi
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, globalThis.Event>) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = NO_IMAGE;
+  };
+
   return (
     <div className="relative min-h-screen bg-gray-50 pt-20">
       {/* Spinner overlay cho loading event hoặc news */}
@@ -95,10 +102,11 @@ export const HomePage = () => {
                   <Link to={`/event/${event.eventId}`}>
                     <div className="relative h-[400px] w-full overflow-hidden rounded-2xl shadow-lg">
                       <img
-                        src={event.eventCoverImageUrl}
+                        src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
                         alt={event.eventName}
                         className="object-cover w-full h-full"
                         loading="lazy"
+                        onError={handleImgError}
                       />
                     </div>
                   </Link>
@@ -130,10 +138,11 @@ export const HomePage = () => {
                   <Link to={`/event/${event.eventId}`}>
                     <div className="relative h-40 w-full overflow-hidden">
                       <img
-                        src={event.eventCoverImageUrl}
+                        src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
                         alt={event.eventName}
                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
+                        onError={handleImgError}
                       />
                       <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-white/90 to-transparent" />
                     </div>
@@ -184,9 +193,10 @@ export const HomePage = () => {
                   onClick={() => navigate(`/news/${item.newsId}`)}
                 >
                   <img
-                    src={item.imageUrl}
+                    src={item.imageUrl ? item.imageUrl : NO_IMAGE}
                     alt={item.newsTitle}
                     className="w-20 h-20 object-cover rounded-md"
+                    onError={handleImgError}
                   />
                   <div className="flex flex-col">
                     <h3 className="text-sm font-bold text-gray-800 line-clamp-2">

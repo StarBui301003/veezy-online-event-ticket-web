@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { loginAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { IoReturnUpBackOutline } from 'react-icons/io5';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -152,6 +153,15 @@ export const LoginPage = () => {
   return (
     <>
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,_#091D4B_50%,_#0B1736_50%)] min-h-screen w-full" />
+      {/* Back to Home button */}
+      <div
+        className="fixed top-6 left-6 z-20 flex items-center gap-2 bg-white text-[#091D4B] px-4 py-2 rounded-full shadow cursor-pointer hover:bg-blue-50 transition"
+        onClick={() => navigate('/')}
+        style={{ userSelect: 'none' }}
+      >
+        <IoReturnUpBackOutline className="w-6 h-6" />
+        <span className="font-semibold text-[16px]">Back to Home</span>
+      </div>
       <div className="min-h-screen text-white flex relative">
         <div className="flex-1"></div>
         <div className="flex-1 flex justify-center items-center">

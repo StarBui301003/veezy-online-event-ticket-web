@@ -155,7 +155,7 @@ export const ApprovedEventList = () => {
   const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
@@ -349,7 +349,7 @@ export const ApprovedEventList = () => {
                       <TableCell>
                         {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center justify-center flex items-center">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
                           onClick={() => setSelectedEvent(event)}
