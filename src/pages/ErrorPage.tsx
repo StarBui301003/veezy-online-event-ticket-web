@@ -14,7 +14,7 @@ export const ErrorPage = () => {
         <div className="mt-6">
           <button
             type="button"
-            className="inline-flex items-center rounded-[4px] bg-blue-600 hover:bg-blue-500 px-4 py-2 text-white font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus:outline-none"
+            className="inline-flex items-center rounded-[4px] bg-blue-600 hover:bg-blue-700 px-4 py-2 text-white font-medium text-primary-foreground shadow-sm transition-colors focus:outline-none"
             onClick={() => {
               const accStr = localStorage.getItem('account');
               if (!accStr) {

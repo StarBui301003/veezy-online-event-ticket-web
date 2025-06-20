@@ -94,6 +94,7 @@ export const Register = () => {
     if (accStr) {
       navigate('/');
     }
+    // Không lấy giá trị từ sessionStorage khi vào trang Register
   }, [navigate]);
 
   return (

@@ -8,7 +8,7 @@ export function Layout() {
   const [show, setShow] = useState(false);
   const navigate = useNavigate();
 
-   useEffect(() => {
+  useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
     const accessToken = localStorage.getItem('access_token');

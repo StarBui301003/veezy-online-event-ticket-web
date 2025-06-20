@@ -21,6 +21,12 @@ const PAGE_TITLES: Record<string, string> = {
   'pending-events-list': 'Pending Events List',
   'order-list': 'Orders List',
   'user-list': 'Users List',
+  'payment-list': 'Payments List',
+  'category-list': 'Categories List',
+  'discountCode-list': 'Discount Codes List',
+  'event-list': 'Events List',
+  'report-list': 'Reports List',
+
   // Thêm các path khác nếu có
 };
 
@@ -112,7 +118,7 @@ export function AdminLayout() {
               </Breadcrumb>
             </div>
           </header>
-          <div className="flex flex-1 flex-col p-4 pt-0 bg-blue-200/75">
+          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0">
             <Outlet />
           </div>
           {showGoTop && (

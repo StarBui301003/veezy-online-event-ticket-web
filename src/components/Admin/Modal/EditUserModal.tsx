@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useEffect } from 'react';
+import { useState, ChangeEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,9 +7,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
-import { editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
-import { getAllCategory } from '@/services/Admin/event.service';
-import { Category } from '@/types/event';
+import { editUserAPI, uploadUserAvatarAPI } from '@/services/User/user.service';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { FaSpinner } from 'react-icons/fa';
+import { NO_AVATAR } from '@/assets/img';
 
 interface Props {
   user: User;
@@ -19,14 +26,9 @@ interface Props {
 
 export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
   const [form, setForm] = useState<User>({ ...user });
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(user.avatarUrl || '');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    getAllCategory().then(setAllCategories);
-  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -51,11 +53,6 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
         location: form.location,
         dob: form.dob,
         gender: form.gender,
-        categories: form.categories?.map((c) => ({
-          categoryId: c.categoryId,
-          categoryName: c.categoryName,
-          categoryDescription: c.categoryDescription,
-        })) || [],
       });
       if (avatarFile instanceof File) {
         await uploadUserAvatarAPI(form.userId, avatarFile);
@@ -70,19 +67,19 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
 
   return (
     <Dialog open={!!user} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
-        <div className="border-b-2 border-gray-400 pb-4 p-4">
+      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+        <div className="p-4">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-20 h-20 rounded-full border bg-gray-100 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center gap-2 mb-4">
+            <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 flex items-center justify-center overflow-hidden shadow">
               {previewUrl ? (
                 <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
               ) : (
-                <span className="text-gray-400">No Avatar</span>
+                <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
               )}
             </div>
             <input
@@ -94,104 +91,95 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
             />
             <button
               type="button"
-              className="mt-2 px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 text-sm"
+              className="mt-2 w-[100px] h-[38px] rounded-[8px] bg-[#f3f7fe] text-[#3b82f6] border-none cursor-pointer font-medium text-base transition duration-300 hover:bg-[#3b82f6] hover:text-white hover:shadow-[0_0_0_5px_#3b83f65f]"
               onClick={() => document.getElementById('edit-avatar-input')?.click()}
               tabIndex={-1}
             >
               Edit Avatar
             </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Full Name</label>
-            <input
-              name="fullName"
-              className="border rounded px-2 py-1 w-full"
-              value={form.fullName}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              name="email"
-              className="border rounded px-2 py-1 w-full"
-              value={form.email}
-              onChange={handleInputChange}
-              disabled
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Phone</label>
-            <input
-              name="phone"
-              className="border rounded px-2 py-1 w-full"
-              value={form.phone}
-              onChange={handleInputChange}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Gender</label>
-            <select
-              name="gender"
-              className="border rounded px-2 py-1 w-full"
-              value={form.gender}
-              onChange={(e) => setForm((f) => ({ ...f, gender: Number(e.target.value) }))}
-            >
-              <option value={0}>Male</option>
-              <option value={1}>Female</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Date of Birth</label>
-            <input
-              name="dob"
-              type="date"
-              className="border rounded px-2 py-1 w-full"
-              value={form.dob ? form.dob.slice(0, 10) : ''}
-              onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Hobbies</label>
-            <div className="flex flex-wrap gap-3 py-2">
-              {allCategories.map((cat) => {
-                const checked = !!form.categories?.some((c) => c.categoryId === cat.categoryId);
-                return (
-                  <label key={cat.categoryId} className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {
-                        setForm((prev) => ({
-                          ...prev,
-                          categories: checked
-                            ? prev.categories.filter((c) => c.categoryId !== cat.categoryId)
-                            : [...(prev.categories || []), cat],
-                        }));
-                      }}
-                    />
-                    <span>{cat.categoryName}</span>
-                  </label>
-                );
-              })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+              <input
+                name="fullName"
+                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                value={form.fullName}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <input
+                name="email"
+                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                value={form.email}
+                onChange={handleInputChange}
+                disabled
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+              <input
+                name="phone"
+                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                value={form.phone}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Gender</label>
+              <Select
+                value={String(form.gender)}
+                onValueChange={(val) => setForm((prev) => ({ ...prev, gender: Number(val) }))}
+              >
+                <SelectTrigger className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Male</SelectItem>
+                  <SelectItem value="1">Female</SelectItem>
+                  <SelectItem value="2">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-600 mb-1">Date of Birth</label>
+              <input
+                name="dob"
+                type="date"
+                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                value={form.dob ? form.dob.slice(0, 10) : ''}
+                onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+              />
             </div>
           </div>
         </div>
-        <div className="p-4 border-t-2 border-gray-400">
+
+        <div className="p-4 flex justify-end gap-2">
           <DialogFooter>
             <button
-              className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 mr-2"
+              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
               onClick={onClose}
               disabled={loading}
+              type="button"
             >
               Cancel
             </button>
             <button
-              className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
               onClick={handleEdit}
               disabled={loading}
+              type="button"
             >
-              {loading ? 'Saving...' : 'Edit'}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <FaSpinner className="animate-spin" />
+                  Editing...
+                </div>
+              ) : (
+                'Edit'
+              )}
             </button>
           </DialogFooter>
         </div>

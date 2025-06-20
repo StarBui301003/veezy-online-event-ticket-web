@@ -34,6 +34,7 @@ export function EventManagerLayout() {
     content: false,
   });
   const [loading, setLoading] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
@@ -99,6 +100,28 @@ export function EventManagerLayout() {
     }, 500);
   }, []);
 
+  // Lấy avatar từ localStorage/account và cập nhật khi user-updated
+  useEffect(() => {
+    const updateAvatar = () => {
+      try {
+        const accStr = localStorage.getItem('account');
+        if (accStr) {
+          const acc = JSON.parse(accStr);
+          setAvatar(acc.avatar || '');
+        }
+      } catch {
+        setAvatar(null);
+      }
+    };
+    updateAvatar();
+    window.addEventListener('user-updated', updateAvatar);
+    window.addEventListener('storage', updateAvatar);
+    return () => {
+      window.removeEventListener('user-updated', updateAvatar);
+      window.removeEventListener('storage', updateAvatar);
+    };
+  }, []);
+
   const NavItem = ({
     href,
     icon: Icon,
@@ -150,6 +173,22 @@ export function EventManagerLayout() {
     </button>
   );
 
+  // Lấy role từ localStorage
+  const getHomePathByRole = () => {
+    try {
+      const accStr = localStorage.getItem('account');
+      if (accStr) {
+        const acc = JSON.parse(accStr);
+        if (acc.role === 2) return '/event-manager';
+        if (acc.role === 1) return '/';
+        if (acc.role === 0) return '/admin';
+      }
+    } catch {
+      console.error('Error parsing account from localStorage');
+    }
+    return '/';
+  };
+
   return (
     <>
       {loading && <SpinnerOverlay show={loading} />}
@@ -161,18 +200,17 @@ export function EventManagerLayout() {
               <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
                 Veezy Manager
               </h1>
-              
-            
+
               <p className="text-xs text-gray-400 mt-1">Event Management Dashboard</p>
-          <br />
-            <button
-    onClick={() => navigate("/")}
-    className="ml-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
-    title="Về trang chủ"
-  >
-    <FaHome className="text-sm" />
-    Home
-  </button>
+              <br />
+              <button
+                onClick={() => navigate(getHomePathByRole())}
+                className="ml-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
+                title="Về trang chủ"
+              >
+                <FaHome className="text-sm" />
+                Home
+              </button>
             </div>
 
             {/* Navigation */}
@@ -345,8 +383,16 @@ export function EventManagerLayout() {
                   onClick={() => setDropdownOpen(!isDropdownOpen)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-gradient-to-r from-[#3a324e] to-[#4b3e65] hover:from-[#4b3e65] hover:to-[#5c4d7a] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all duration-300 rounded-lg border border-purple-500/20"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full flex items-center justify-center shadow-lg">
-                    <FaUserCircle className="text-lg" />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-r from-pink-500 to-purple-500 overflow-hidden">
+                    {avatar ? (
+                      <img
+                        src={avatar}
+                        alt="avatar"
+                        className="object-cover w-full h-full rounded-full"
+                      />
+                    ) : (
+                      <FaUserCircle className="text-lg text-white" />
+                    )}
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium text-white">Event Manager</div>
