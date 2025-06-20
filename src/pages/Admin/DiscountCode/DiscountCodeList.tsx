@@ -58,7 +58,9 @@ export const DiscountCodeList = () => {
     setLoading(true);
     getDiscountCodes()
       .then((res) => setDiscountData(res.data))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   };
 
   const items = discountData?.items || [];

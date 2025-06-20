@@ -37,7 +37,9 @@ export const OrderListAdmin = () => {
       .catch(() => {
         setOrders([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   }, []);
 
   // Nếu có filter/search, hãy filter ở đây (giống ApprovedEventList)

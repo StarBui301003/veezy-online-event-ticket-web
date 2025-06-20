@@ -112,7 +112,9 @@ const ProfilePage = () => {
       setAvatarFile(null);
       window.dispatchEvent(new Event('user-updated'));
     } finally {
-      setLoading(false);
+      {
+        setTimeout(() => setLoading(false), 500);
+      }
     }
   };
 

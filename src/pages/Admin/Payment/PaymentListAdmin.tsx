@@ -33,7 +33,9 @@ export const PaymentListAdmin = () => {
     setLoading(true);
     getPaymentsAdmin()
       .then((res) => setPayments(res.data.items))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   }, []);
 
   const pagedPayments = payments.slice((page - 1) * pageSize, page * pageSize);

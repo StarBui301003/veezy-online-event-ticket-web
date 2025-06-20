@@ -2,11 +2,9 @@ import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export function Layout() {
   const [show, setShow] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
@@ -17,15 +15,18 @@ export function Layout() {
         const accObj = JSON.parse(accStr);
         if (accObj && typeof accObj.role === 'number') {
           if (accObj.role === 0) {
-            navigate('/admin');
-            return;
+            // Nếu là admin, luôn chuyển hướng về /admin khi vào trang chủ
+            if (window.location.pathname === '/') {
+              window.location.replace('/admin');
+              return;
+            }
           }
           // Không ép role 2 về /event-manager, cho phép họ ở lại Home
           if (accObj.role === 2 && window.location.pathname === '/') {
             return; // Nếu đang ở Home, không chuyển hướng
           }
           if (accObj.role === 2) {
-            navigate('/event-manager');
+            window.location.replace('/event-manager');
             return;
           }
         }
@@ -33,7 +34,7 @@ export function Layout() {
         localStorage.removeItem('account');
       }
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {

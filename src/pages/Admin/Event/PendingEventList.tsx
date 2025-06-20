@@ -207,7 +207,9 @@ export const PendingEventList = () => {
         setUsernames(usernameMap);
       })
       .catch(() => setEvents([]))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   };
 
   useEffect(() => {

@@ -150,7 +150,9 @@ export const AdminList = () => {
               );
               setRoles(roleMap);
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+              setTimeout(() => setLoading(false), 500);
+            });
         }}
       />
       <div className="overflow-x-auto mb-10">
@@ -390,3 +392,5 @@ export const AdminList = () => {
     </div>
   );
 };
+
+export default AdminList;
