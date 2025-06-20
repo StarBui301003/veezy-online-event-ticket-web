@@ -61,3 +61,26 @@ export interface EditUserRequest {
     categoryDescription: string;
   }[];
 }
+
+export interface NewsPayload {
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+}
+
+export interface News {
+  newsId: string;
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

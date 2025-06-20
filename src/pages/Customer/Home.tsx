@@ -29,7 +29,7 @@ interface News {
   newsTitle: string;
   newsDescription: string;
   imageUrl: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 export const HomePage = () => {
@@ -55,9 +55,9 @@ export const HomePage = () => {
 
     // Fetch news
     setLoadingNews(true);
-    getAllNews()
-      .then((data) => {
-        setNews(data.items || []);
+    getAllNews(1, 10) // Get first page with 10 items
+      .then((response) => {
+        setNews(response.data?.data?.items || []);
       })
       .catch(() => setNews([]))
       .finally(() => setLoadingNews(false));
@@ -163,12 +163,6 @@ export const HomePage = () => {
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold text-gray-800">Tin tức</h2>
-              <button
-                className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate("/news")}
-              >
-                Xem thêm
-              </button>
             </div>
             {loadingNews ? (
               <div className="flex justify-center items-center h-40">
@@ -182,7 +176,8 @@ export const HomePage = () => {
               news.slice(0, 3).map((item) => (
                 <div
                   key={item.newsId}
-                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition"
+                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+                  onClick={() => navigate(`/news/${item.newsId}`)}
                 >
                   <img
                     src={item.imageUrl}

@@ -37,9 +37,37 @@ export function EventManagerLayout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
-  localStorage.removeItem("access_token");
-  navigate('/login');
-};
+    // Xóa tất cả localStorage
+    localStorage.clear();
+    
+    // Hoặc xóa từng key cụ thể nếu muốn giữ lại một số dữ liệu khác
+    // localStorage.removeItem("access_token");
+    // localStorage.removeItem("refresh_token");
+    // localStorage.removeItem("user_data");
+    // localStorage.removeItem("user_preferences");
+    
+    // Xóa tất cả sessionStorage (nếu có sử dụng)
+    sessionStorage.clear();
+    
+    // Xóa tất cả cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    
+    // Xóa cookies với domain cụ thể nếu cần
+    const clearCookie = (name, domain = '') => {
+      const domainPart = domain ? `; domain=${domain}` : '';
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${domainPart}`;
+    };
+    
+    // Ví dụ xóa cookies cụ thể
+    // clearCookie('access_token');
+    // clearCookie('refresh_token');
+    // clearCookie('session_id');
+    
+    // Chuyển hướng về trang login
+    navigate('/login');
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({

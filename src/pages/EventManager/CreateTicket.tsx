@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   FaTicketAlt,
   FaImage,
@@ -9,6 +9,7 @@ import {
   FaSortNumericUp,
   FaExchangeAlt,
 } from 'react-icons/fa';
+import { createTicket } from '@/services/Event Manager/event.service';
 
 const defaultTicket = {
   name: '',
@@ -43,7 +44,7 @@ export default function CreateTicket() {
     if (!file) return;
     setUploading(true);
     try {
-      const url = URL.createObjectURL(file); // Sử dụng URL.createObjectURL để tạo URL tạm
+      const url = URL.createObjectURL(file);
       setForm((prev) => ({ ...prev, imageUrl: url }));
     } finally {
       setUploading(false);
@@ -54,7 +55,7 @@ export default function CreateTicket() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-
+  
     // Validate
     if (!form.name.trim()) return setError('Tên vé không được để trống!');
     if (!form.price || form.price < 0) return setError('Giá vé phải >= 0!');
@@ -65,24 +66,47 @@ export default function CreateTicket() {
       return setError('Thời gian kết thúc phải sau thời gian mở bán!');
     if (!eventId) return setError('Không tìm thấy sự kiện!');
     if (!form.description.trim()) return setError('Mô tả vé không được để trống!');
+  
     try {
-      console.log('Ticket gửi lên:', {
+      const ticketPayload = {
         eventId,
-        ticketName: form.name,
-        ticketDescription: form.description,
-        ticketPrice: Number(form.price),
-        quantityAvailable: Number(form.quantity),
-        startSellAt: form.saleStartTime,
-        endSellAt: form.saleEndTime,
+        name: form.name,
+        description: form.description,
+        price: Number(form.price),
+        quantity: Number(form.quantity),
+        saleStartTime: form.saleStartTime,
+        saleEndTime: form.saleEndTime,
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
         isTransferable: form.isTransferable,
         imageUrl: form.imageUrl,
-      });
-      setSuccess('Tạo vé thành công!');
-      setTimeout(() => navigate(-1), 1200);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Tạo vé thất bại!');
+      };
+  
+      // (Tùy chọn) Log để debug
+      // console.log(ticketPayload);
+  
+      const ticket = await createTicket(ticketPayload); // Gọi API tạo vé
+  
+      if (ticket) {
+        setSuccess('Tạo vé thành công!');
+        setTimeout(() => {
+          navigate('/event-manager/tickets/manage');
+        }, 1000);
+      } else {
+        setError('Tạo vé thất bại! Hệ thống không trả về ID.');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'errors' in err.response.data) {
+        // Hiển thị lỗi chi tiết từ backend (nếu có)
+        setError(
+          Object.values(err.response.data.errors as Record<string, unknown>)
+            .flat()
+            .join(' | ')
+        );
+      } else if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+        setError(err.response.data.message as string || 'Tạo vé thất bại!');
+      } else {
+        setError('Tạo vé thất bại!');
+      }
     }
   };
 
@@ -101,6 +125,7 @@ export default function CreateTicket() {
             </h2>
           </div>
 
+          {/* Các trường nhập liệu */}
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
               <FaHashtag /> Tên vé
@@ -114,6 +139,7 @@ export default function CreateTicket() {
               required
             />
           </div>
+
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
               <FaTicketAlt /> Mô tả vé
