@@ -59,11 +59,11 @@ export const VerifyRegister = () => {
           navigate('/login');
         }, 1200);
       } else {
-        setMessage(res.status || 'Verification failed. Please try again.');
+        setMessage(res.message || 'Verification failed. Please try again.');
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      setMessage(error?.response?.data?.status || 'Verification failed. Please try again.');
+      setMessage(error?.response?.data?.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -71,15 +71,31 @@ export const VerifyRegister = () => {
 
   const handleResend = async () => {
     setMessage('');
-    setCountdown(30);
+    setCountdown(5);
     setCanResend(false);
     try {
-      await resendVerifyEmailRegisterAPI(email);
-      setMessage('Verification code resent! Please check your email.');
+      const res = await resendVerifyEmailRegisterAPI(email);
+      if (res.flag === true && res.code === 0) {
+        setMessage(res.message || 'Verification code resent! Please check your email.');
+      } else {
+        setMessage(res.message || 'Failed to resend code. Please try again.');
+      }
     } catch (error: any) {
-      setMessage(error?.response?.data?.status || 'Failed to resend code. Please try again.');
+      setMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          'Failed to resend code. Please try again.'
+      );
     }
   };
+
+  function formatCountdown(sec: number) {
+    const m = Math.floor(sec / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200 to-blue-400">
@@ -135,7 +151,7 @@ export const VerifyRegister = () => {
             disabled={!canResend}
             onClick={handleResend}
           >
-            {canResend ? 'Resend code' : `Resend in ${countdown}s`}
+            {canResend ? 'Resend code' : `Resend in ${formatCountdown(countdown)}`}
           </Button>
         </div>
 

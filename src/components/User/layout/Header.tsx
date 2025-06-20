@@ -1,5 +1,5 @@
 import { CiSearch } from 'react-icons/ci';
-import { Button } from '../ui/button';
+import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AVATAR, LOGO } from '@/assets/img';
 import { useEffect, useState } from 'react';
@@ -7,19 +7,25 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
-import { Input } from '../ui/input';
-import { LogoutAPI } from '@/services/auth.service';
+import { Input } from '../../ui/input';
+import { LogoutAPI, getUserAPI } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
 import { Account } from '@/types/auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { FiUser } from 'react-icons/fi';
+import { LogOut } from 'lucide-react';
 
 export const Header = () => {
   const [blur, setBlur] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null); // Thêm state user
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
 
@@ -30,6 +36,12 @@ export const Header = () => {
       try {
         const acc = JSON.parse(accStr);
         setAccount(acc);
+        // Gọi API lấy user
+        if (acc.userId) {
+          getUserAPI(acc.userId)
+            .then((userData) => setUser(userData))
+            .catch(() => setUser(null));
+        }
       } catch {
         // Failed to parse account from localStorage
       }
@@ -114,7 +126,7 @@ export const Header = () => {
           </div>
 
           <div className="mr-14">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -129,7 +141,16 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex gap-x-6 ml-0">
+          <div className="flex gap-x-6 ml-0 items-center">
+            {/* Nút chuyển sang event manager chỉ hiện với role 2 */}
+            {account?.role === 2 && (
+              <Button
+                className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-lg shadow hover:scale-105 transition-transform duration-200 mr-2"
+                onClick={() => navigate('/event-manager')}
+              >
+                Quản lý sự kiện
+              </Button>
+            )}
             {!account ? (
               <>
                 <Link
@@ -146,38 +167,78 @@ export const Header = () => {
                 </Link>
               </>
             ) : (
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     className="flex items-center gap-2 px-3 bg-transparent"
                     style={{ minWidth: 0 }}
                   >
-                    {account.avatar ? (
-                      <img
-                        src={account.avatar}
-                        alt="avatar"
-                        className="w-8 h-8 rounded-full object-cover border border-gray-300"
-                      />
-                    ) : (
-                      <span className="w-8 h-8 rounded-full border border-black flex items-center justify-center bg-white">
-                        <img src={AVATAR} alt="default avatar" className="w-6 h-6" />
-                      </span>
-                    )}
+                    <Avatar className="w-8 h-8 border border-zinc-500 rounded-full">
+                      <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                      <AvatarFallback>
+                        {user?.fullName?.[0]?.toUpperCase() ||
+                          account.fullname?.[0]?.toUpperCase() ||
+                          account.username?.[0]?.toUpperCase() ||
+                          'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="hidden sm:inline whitespace-nowrap">
-                      Welcome,{' '}
-                      <b>{account.fullname?.trim() ? account.fullname : account.username}</b>!
+                      {user?.fullName || account.fullname || account.username}
                     </span>
                     <IoIosArrowDown />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white text-black">
-                  <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-60 rounded-lg bg-white dark:bg-zinc-900"
+                >
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 pl-2 py-2">
+                      <Avatar className="h-10 w-10 rounded-full border border-zinc-500 dark:border-zinc-700">
+                        <AvatarImage src={account.avatar || AVATAR} alt="avatar" />
+                        <AvatarFallback className="rounded-full">
+                          {user?.fullName?.[0]?.toUpperCase() ||
+                            account.fullname?.[0]?.toUpperCase() ||
+                            account.username?.[0]?.toUpperCase() ||
+                            'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col justify-center">
+                        <span className="font-semibold text-sm truncate max-w-[140px]">
+                          {user?.username || account.username || account.fullname}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {user?.email || account.email}
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} disabled={loadingLogout}>
-                    {loadingLogout && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Logout
+                  <DropdownMenuItem
+                    className="hover:bg-blue-50 pl-5"
+                    onClick={() => navigate('/profile')}
+                  >
+                    <FiUser className="mr-2" />
+                    Profile
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    disabled={loadingLogout}
+                    className="hover:bg-blue-50 pl-5"
+                  >
+                    <LogOut className="mr-2" />
+                    {loadingLogout ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging out...
+                      </>
+                    ) : (
+                      'Logout'
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

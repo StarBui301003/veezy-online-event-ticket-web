@@ -4,25 +4,45 @@ import { getUserAPI } from '@/services/auth.service';
 export const HomePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<number | null>(null);
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     if (!accStr) return;
     const accObj = JSON.parse(accStr);
-    const userId = accObj.userId; // chỉ lấy userId
+    setRole(accObj.role); // Lấy role từ localStorage
+    const userId = accObj.userId;
     if (!userId) return;
     getUserAPI(userId)
       .then((user) => {
-        console.log(user);
         setUser(user);
       })
       .catch(() => setUser(null));
   }, []);
 
+  // Map role number to text
+  const roleText = (role: number | null) => {
+    switch (role) {
+      case 1:
+        return 'Customer';
+      case 2:
+        return 'Event Manager';
+      case 3:
+        return 'Collaborator';
+      case 4:
+        return 'Other';
+      default:
+        return 'Unknown';
+    }
+  };
+
   return (
     <>
-      <div className="bg-blue-300 w-full h-[500px] flex items-center justify-center">
+      <div className="bg-blue-300 w-full h-[500px] flex flex-col items-center justify-center">
         <div className="text-blue-950 text-[80px] font-bold">Welcome!!</div>
+        {role !== null && (
+          <div className="text-blue-800 text-2xl font-semibold mt-2">Role: {roleText(role)}</div>
+        )}
       </div>
       <div className="bg-blue-300 w-full h-[400px] flex flex-col items-center justify-center">
         {user && (

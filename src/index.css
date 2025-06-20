@@ -22,7 +22,6 @@ html, body, #root {
   padding: 0;
   width: 100%;
   height: 100%;
-  /* overflow-x: hidden; */
 }
 
 a {
@@ -88,7 +87,9 @@ h1 {
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%}
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+ 
   .dark {
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -97,14 +98,12 @@ h1 {
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%}
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-    
-  }
+  
   body {
     @apply bg-background text-foreground;
      overflow: auto !important;

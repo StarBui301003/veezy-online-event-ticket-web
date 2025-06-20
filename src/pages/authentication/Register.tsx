@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
 import { AiOutlineCalendar } from 'react-icons/ai';
 import { Eye, EyeOff } from 'lucide-react';
@@ -10,6 +10,7 @@ import { RegisterAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
+import RegisterChooseRoleModal from '@/components/Admin/Modal/RegisterChooseRoleModal';
 
 export const Register = () => {
   const [date, setDate] = useState<Date>();
@@ -17,16 +18,24 @@ export const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<number | null>(null);
+  const [showRoleModal, setShowRoleModal] = useState(true);
 
   const navigate = useNavigate();
 
   const handleRegister = async () => {
+    if (!role) {
+      setShowRoleModal(true);
+      toast.error('Please choose your role!');
+      return;
+    }
     if (!username || !fullName || !email || !password || !confirmPassword || !date) {
-      toast.error('Please fill all fields!');
+      toast.error('Please fill in all fields!');
       return;
     }
     if (password !== confirmPassword) {
@@ -35,18 +44,46 @@ export const Register = () => {
     }
     setLoading(true);
     try {
-      const dob = format(date, 'yyyy-MM-dd');
-      const response = await RegisterAPI({ username, fullName, email, password, dob, role: 1 });
+      const dateOfBirth = format(date, 'yyyy-MM-dd', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const response = await RegisterAPI({
+        username,
+        fullName,
+        email,
+        phone,
+        password,
+        dateOfBirth,
+        role,
+      });
       sessionStorage.setItem('registerEmail', email);
-      
-      if (response.code === 400) {
-              toast.error(response.status);
-      } else if (response.code === 200) {
-        toast.success('Register successful! Please verify your email.');
+
+      if (response && response.flag && response.code === 200) {
+        toast.success('Registration successful! Please verify your email.');
         navigate('/verify-email');
-      }     
-    } catch {
-      toast.error('Register failed!');
+      } else {
+        // Xử lý lỗi trả về từ backend (bao gồm errors object)
+        if (response?.errors && typeof response.errors === 'object') {
+          Object.entries(response.errors).forEach(([messages]) => {
+            if (Array.isArray(messages)) {
+              messages.forEach((msg) => toast.error(msg));
+            }
+          });
+        } else {
+          toast.error(response?.message || 'Registration failed!');
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      // Xử lý lỗi trả về từ backend (bao gồm errors object)
+      const errors = err?.errors || err?.response?.data?.errors;
+      if (errors && typeof errors === 'object') {
+        Object.entries(errors).forEach(([messages]) => {
+          if (Array.isArray(messages)) {
+            messages.forEach((msg) => toast.error(msg));
+          }
+        });
+      } else {
+        toast.error('Registration failed!');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,46 +98,66 @@ export const Register = () => {
 
   return (
     <>
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,_#091D4B_50%,_#0B1736_50%)] min-h-screen w-full" />
-      <div className="min-h-screen text-white flex relative">
-        <div className="flex-1 flex justify-center items-center">
-          <div className="text-center">
-            <div className="text-[38px] text-bold pb-6">Create Your Veezy Account</div>
-            <div className="mt-6 flex flex-col gap-4 items-center">
-              <div className="w-[380px] text-[#A1A1AA] text-[24px]">
+      <RegisterChooseRoleModal
+        open={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        onChooseRole={(r) => {
+          setRole(r);
+          setShowRoleModal(false);
+        }}
+      />
+      <div className="absolute inset-0 -z-10 bg-[#091D4B] min-h-screen w-full " />
+      <div className="min-h-screen text-white flex items-center justify-center relative">
+        <div className="bg-white/10 rounded-2xl shadow-lg p-10 w-[800px] max-w-full flex flex-col md:flex-row gap-8 items-center justify-center">
+          {/* Left: Form fields */}
+          <div className="flex-1 flex flex-col gap-4 items-center justify-center">
+            <div className="text-[38px] font-bold pb-6 text-center w-full text-white">
+              Create Your Veezy Account
+            </div>
+            <div className="flex flex-col gap-4 w-full items-center justify-center">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
                 <Input
                   type="text"
                   placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
                 />
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px]">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
                 <Input
                   type="text"
                   placeholder="Fullname"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
                 />
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px]">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
                 <Input
                   type="text"
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
                 />
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px] relative">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                <Input
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
+                />
+              </div>
+              <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
                 />
                 <button
                   type="button"
@@ -111,13 +168,13 @@ export const Register = () => {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px] relative">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
                 <Input
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
+                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
                 />
                 <button
                   type="button"
@@ -132,7 +189,7 @@ export const Register = () => {
                   )}
                 </button>
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px]">
+              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
                 <Popover>
                   <PopoverTrigger asChild>
                     <div className="relative w-full">
@@ -140,7 +197,7 @@ export const Register = () => {
                         readOnly
                         value={date ? format(date, 'dd/MM/yyyy') : ''}
                         placeholder="Day of Birth"
-                        className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12 text-left cursor-pointer"
+                        className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12 text-left cursor-pointer"
                       />
                       <AiOutlineCalendar
                         className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A1A1AA] pointer-events-none"
@@ -164,25 +221,25 @@ export const Register = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-            </div>
-
-            <Button
-              onClick={handleRegister}
-              disabled={loading}
-              className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-[380px] rounded-[8px] py-6 text-[20px] mt-[46px]"
-            >
-              {loading ? 'Signing Up...' : 'Sign Up'}
-            </Button>
-
-            <div className="mt-6 text-start w-[380px] mx-auto">
-              Already have an account?{' '}
-              <Link to="/login" className="text-[#60A5FA] hover:underline">
-                Login
-              </Link>
+              {/* Đưa nút và link vào giữa */}
+              <div className="flex flex-col items-center justify-center w-full mt-4">
+                <Button
+                  onClick={handleRegister}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-2/3 rounded-[8px] py-4 text-[20px] mb-4"
+                >
+                  {loading ? 'Signing Up...' : 'Sign Up'}
+                </Button>
+                <div className="text-center w-full">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-[#60A5FA] hover:underline">
+                    Login
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex-1"></div>
       </div>
     </>
   );

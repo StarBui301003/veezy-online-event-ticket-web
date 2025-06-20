@@ -17,10 +17,30 @@ export const LoginPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
     const accStr = localStorage.getItem('account');
-    if (accStr) {
-      navigate('/');
+    const accessToken = localStorage.getItem('access_token');
+    if (accStr && accessToken) {
+      try {
+        const accObj = JSON.parse(accStr);
+        if (accObj && typeof accObj.role === 'number') {
+          if (accObj.role === 0) {
+            navigate('/admin');
+            return;
+          }
+          if (accObj.role === 2) {
+            navigate('/');
+            return;
+          }
+          
+          navigate('/');
+          return;
+        }
+      } catch {
+        localStorage.removeItem('account');
+      }
     }
+    // ...các logic khác như remembered username...
     const remembered = localStorage.getItem('remembered_username');
     if (remembered) {
       setUsername(remembered);
@@ -33,54 +53,60 @@ export const LoginPage = () => {
     try {
       const data = { username, password };
       const apiResult = await loginAPI(data);
-      localStorage.setItem('access_token', apiResult.accessToken);
-      document.cookie = `refresh_token=${apiResult.refreshToken}; path=/; secure; samesite=strict`;
-      localStorage.setItem('account', JSON.stringify(apiResult.account));
+
+      if (!apiResult.data || !apiResult.data.accessToken) {
+        toast.error('Đăng nhập thất bại, không nhận được access token!');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('access_token', apiResult.data.accessToken);
+      document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
+      localStorage.setItem('account', JSON.stringify(apiResult.data.account));
+
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
         localStorage.removeItem('remembered_username');
       }
-      toast.success(`Welcome ${apiResult.account.username}!`, {
+
+      // Nếu là admin thì chuyển sang trang admin
+      if (apiResult.data.account.role === 0) {
+        toast.success(`Welcome admin ${apiResult.data.account.username}!`, {
+          position: 'top-right',
+        });
+        navigate('/admin');
+        return;
+      }
+      // Nếu là Event Manager thì chuyển sang dashboard Event Manager
+      if (apiResult.data.account.role === 2) {
+        toast.success(`Welcome ${apiResult.data.account.username}!`, {
+          position: 'top-right',
+        });
+        navigate('/event-manager');
+        return;
+      }
+      toast.success(`Welcome ${apiResult.data.account.username}!`, {
         position: 'top-right',
       });
       navigate('/');
-    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       let errorMessage = 'Invalid username or password.';
       if (
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof (error as { response?: unknown }).response === 'object' &&
-        (error as { response?: unknown }).response !== null &&
-        (error as { response?: { data?: unknown } }).response &&
-        'data' in (error as { response: { data?: unknown } }).response &&
-        typeof ((error as { response: { data?: unknown } }).response as { data?: unknown }).data ===
-          'object' &&
-        ((error as { response: { data?: unknown } }).response as { data?: unknown }).data !==
-          null &&
-        'status' in
-          (
-            (error as { response: { data?: { status?: string } } }).response as {
-              data?: { status?: string };
-            }
-          ).data!
+        error &&
+        error.response &&
+        error.response.data &&
+        typeof error.response.data.message === 'string'
       ) {
-        errorMessage =
-          (
-            (
-              (error as { response: { data?: { status?: string } } }).response as {
-                data?: { status?: string };
-              }
-            ).data as { status?: string }
-          ).status ?? errorMessage;
+        errorMessage = error.response.data.message;
       } else if (
         typeof error === 'object' &&
         error !== null &&
         'message' in error &&
-        typeof (error as { message?: string }).message === 'string'
+        typeof error.message === 'string'
       ) {
-        errorMessage = (error as { message: string }).message;
+        errorMessage = error.message;
       }
       toast.error(errorMessage, {
         position: 'top-right',
@@ -107,6 +133,11 @@ export const LoginPage = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  autoComplete="username"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleLogin();
+                  }}
                 />
               </div>
               <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px] relative">
@@ -116,6 +147,10 @@ export const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
+                  autoComplete="current-password"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleLogin();
+                  }}
                 />
                 <button
                   type="button"
@@ -168,7 +203,7 @@ export const LoginPage = () => {
               </div>
             </Button> */}
             <div className="mt-6">
-              Don’t have an account?{' '}
+              Don't have an account?{' '}
               <Link to="/register" className="text-[#60A5FA] hover:underline">
                 Sign up
               </Link>
