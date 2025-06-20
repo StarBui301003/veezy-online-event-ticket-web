@@ -47,7 +47,9 @@ export const CategoryList = () => {
     setLoading(true);
     getAllCategory()
       .then((data) => setCategories(data))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   };
 
   const pagedCategories = categories.slice((page - 1) * pageSize, page * pageSize);

@@ -119,7 +119,9 @@ export const UserList = () => {
                 );
                 setRoles(roleMap);
               })
-              .finally(() => setLoading(false));
+              .finally(() => {
+                setTimeout(() => setLoading(false), 500);
+              });
           }}
         />
       )}

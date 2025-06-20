@@ -10,7 +10,7 @@ const Spinner = () => (
       borderRadius: '50%',
       height: 96,
       width: 96,
-      animation: 'rotate_3922 1.2s linear infinite',
+      animation: 'rotate_3922 1.5s linear infinite',
       backgroundColor: '#9b59b6',
       backgroundImage: 'linear-gradient(#9b59b6, #84cdfa, #5ad1cd)',
       transform: 'translate(-50%, -50%)',
@@ -99,10 +99,11 @@ interface SpinnerOverlayProps {
 
 const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children }) => {
   if (!show) return null;
+  // Sửa lại overlay: chỉ dùng màu nền mờ, không dùng opacity hoặc backdropFilter trên div cha
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ background: '#e3edf3', opacity: 0.8, backdropFilter: 'blur(1px)' }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20"
+      // XÓA style={{ background: '#e3edf3', opacity: 0.8, backdropFilter: 'blur(1px)' }}
     >
       <Spinner />
       {children}

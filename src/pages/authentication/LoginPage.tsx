@@ -66,6 +66,7 @@ export const LoginPage = () => {
 
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
+      document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
 
       // Tách userConfig, account
       const {

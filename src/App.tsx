@@ -4,8 +4,7 @@ import { ErrorPage } from '@/pages/ErrorPage';
 // import { HomePage } from '@/pages/User/HomePage';
 import { LoginPage } from '@/pages/authentication/LoginPage';
 import { Register } from './pages/authentication/Register';
-import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
-import { Loader2 } from 'lucide-react';
+import { LoadingProvider } from '@/contexts/LoadingContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
@@ -34,48 +33,16 @@ import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
 import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
 import ProfilePage from '@/pages/Admin/ProfilePage';
 import CategoryList from './pages/Admin/Category/CategoryList';
-import NewsManager from './pages/EventManager/NewsManager';
-import CreateNews from './pages/EventManager/CreateNews';
-import NewsDetail from './pages/Customer/NewsDetail';
-import EditNews from './pages/EventManager/EditNews';
-// import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
-
 import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
 import { AdminList } from './pages/Admin/User/AdminList';
 import ProfileEventManager from './pages/EventManager/ProfileEventManager';
 import HomePage from './pages/Customer/Home';
 import ProfileCustomer from './pages/Customer/ProfileCustomer';
 import EventListTabs from './pages/Admin/Event/EventListTabs';
-import { useState, useEffect, useRef } from 'react';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { registerGlobalSpinner } from '@/services/axios.customize';
 import { ReportPage } from './pages/Admin/Report/ReportPage';
 import { NewsPage } from './pages/Admin/News/NewsPage';
-import { CommentList } from './pages/Admin/Comment/CommentList';
 
 function App() {
-  const { loading } = useLoading();
-  const [showSpinner, setShowSpinner] = useState(false);
-  const spinnerTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    registerGlobalSpinner((show) => {
-      if (show) {
-        // Khi bắt đầu loading, show spinner ngay
-        if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
-        setShowSpinner(true);
-      } else {
-        // Khi kết thúc loading, delay 300ms rồi mới tắt spinner
-        if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
-        spinnerTimeout.current = setTimeout(() => setShowSpinner(false), 300);
-      }
-    });
-    // Cleanup timeout khi unmount
-    return () => {
-      if (spinnerTimeout.current) clearTimeout(spinnerTimeout.current);
-    };
-  }, []);
-
   const router = createBrowserRouter([
     {
       path: '/',
@@ -108,14 +75,6 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[1]}>
               <ProfileCustomer />,
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'news/:newsId',
-          element: (
-            <ProtectedRoute allowedRoles={[1, 2]}>
-              <NewsDetail />
             </ProtectedRoute>
           ),
         },
@@ -234,7 +193,7 @@ function App() {
           path: 'comment-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <CommentList />
+              <NewsPage />
             </ProtectedRoute>
           ),
         },
@@ -345,30 +304,6 @@ function App() {
             </ProtectedRoute>
           ),
         },
-        {
-          path: 'news',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <NewsManager />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'news/create/:eventId',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <CreateNews />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'news/edit/:newsId',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <EditNews />
-            </ProtectedRoute>
-          ),
-        },
       ],
     },
     {
@@ -394,11 +329,12 @@ function App() {
   ]);
   return (
     <LoadingProvider>
-      {loading && (
+      {/* Nếu muốn giữ loading context, chỉ show loading nhỏ hoặc bỏ luôn */}
+      {/* {loading && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
         </div>
-      )}
+      )} */}
       <RouterProvider router={router} />
       <ToastContainer
         position="top-center"
@@ -412,7 +348,6 @@ function App() {
         pauseOnHover
         theme="light"
       />
-      <SpinnerOverlay show={showSpinner} />
     </LoadingProvider>
   );
 }

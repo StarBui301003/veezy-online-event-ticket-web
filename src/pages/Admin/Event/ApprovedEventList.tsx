@@ -125,7 +125,9 @@ export const ApprovedEventList = () => {
         setUsernames(usernameMap);
       })
       .catch(() => setEvents([]))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

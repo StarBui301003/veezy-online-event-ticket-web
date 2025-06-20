@@ -124,7 +124,9 @@ export const RejectedEventList = () => {
         setUsernames(usernameMap);
       })
       .catch(() => setEvents([]))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   }, [page, pageSize]);
 
   // Filter logic (giống user và pending: filter toàn bộ rồi phân trang)

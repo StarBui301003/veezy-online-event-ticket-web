@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Frame, Map, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MdEvent } from 'react-icons/md';
-import { FaShoppingCart } from 'react-icons/fa';
+import { FaRegCommentDots, FaShoppingCart } from 'react-icons/fa';
 import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
 import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
@@ -24,6 +24,7 @@ import { MdOutlinePayment } from 'react-icons/md';
 import { RiCoupon2Line } from 'react-icons/ri';
 import { FaUserTie } from 'react-icons/fa';
 import { MdReportGmailerrorred } from 'react-icons/md';
+import { FaRegNewspaper } from 'react-icons/fa6';
 
 const data = {
   navMain: [
@@ -41,6 +42,11 @@ const data = {
       title: 'Events',
       url: '/admin/event-list',
       icon: MdEvent,
+    },
+    {
+      title: 'News',
+      url: '/admin/news-list',
+      icon: FaRegNewspaper,
     },
     {
       title: 'Orders',
@@ -62,6 +68,12 @@ const data = {
       title: 'Discount Codes',
       url: '/admin/discountCode-list',
       icon: RiCoupon2Line,
+    },
+
+    {
+      title: 'Comments',
+      url: '/admin/comment-list',
+      icon: FaRegCommentDots,
     },
     {
       title: 'Reports',

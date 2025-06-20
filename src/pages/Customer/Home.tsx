@@ -6,6 +6,7 @@ import { getAllEvents, getAllNews } from '@/services/Event Manager/event.service
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 interface Event {
   eventId: string;
@@ -74,6 +75,8 @@ export const HomePage = () => {
 
   return (
     <div className="relative min-h-screen bg-gray-50 pt-20">
+      {/* Spinner overlay cho loading event hoặc news */}
+      <SpinnerOverlay show={loadingEvents || loadingNews} />
       <div className="relative z-10 max-w-7xl mx-auto px-4">
         {/* Carousel */}
         <div className="w-full mb-12">

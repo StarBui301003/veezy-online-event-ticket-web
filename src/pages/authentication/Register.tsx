@@ -58,7 +58,10 @@ export const Register = () => {
 
       if (response && response.flag && response.code === 200) {
         toast.success('Registration successful! Please verify your email.');
-        navigate('/verify-email');
+        // Đảm bảo navigate được gọi sau khi toast, không bị block bởi loading/spinner
+        setTimeout(() => {
+          navigate('/verify-email', { replace: true });
+        }, 500);
       } else {
         // Xử lý lỗi trả về từ backend (bao gồm errors object)
         if (response?.errors && typeof response.errors === 'object') {
