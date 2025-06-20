@@ -26,6 +26,9 @@ const PAGE_TITLES: Record<string, string> = {
   'discountCode-list': 'Discount Codes List',
   'event-list': 'Events List',
   'report-list': 'Reports List',
+  'comment-list': 'Comments List',
+  'news-list': 'News List',
+  'news-own-list': 'My News List',
 
   // Thêm các path khác nếu có
 };

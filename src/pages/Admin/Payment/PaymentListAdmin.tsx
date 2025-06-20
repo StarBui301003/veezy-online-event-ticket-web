@@ -67,11 +67,11 @@ export const PaymentListAdmin = () => {
                 <TableHead className="pl-4">#</TableHead>
                 <TableHead>PaymentId</TableHead>
                 <TableHead>OrderId</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Amount</TableHead>
+                <TableHead className="text-center">Method</TableHead>
+                <TableHead className="text-center">Status</TableHead>
                 <TableHead>Transaction Code</TableHead>
-                <TableHead>Paid At</TableHead>
+                <TableHead className="text-center">Paid At</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -87,9 +87,11 @@ export const PaymentListAdmin = () => {
                     <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell>{p.paymentId}</TableCell>
                     <TableCell>{p.orderId}</TableCell>
-                    <TableCell>{p.amount}</TableCell>
-                    <TableCell>{paymentMethodLabel(p.paymentMethod)}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">{p.amount}</TableCell>
+                    <TableCell className="text-center">
+                      {paymentMethodLabel(p.paymentMethod)}
+                    </TableCell>
+                    <TableCell className="text-center">
                       {p.paymentStatus === 0 && (
                         <Badge className=" border-green-500 bg-green-500 items-center border-2 rounded-[10px] cursor-pointer transition-all text-white hover:bg-green-600 hover:text-white hover:border-green-500">
                           Success
@@ -112,7 +114,9 @@ export const PaymentListAdmin = () => {
                       )}
                     </TableCell>
                     <TableCell>{p.transactionCode}</TableCell>
-                    <TableCell>{p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}</TableCell>
+                    <TableCell className="text-center">
+                      {p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

@@ -138,7 +138,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
           {/* Cover Image */}
           <div className="flex flex-col items-center mb-4">
-            <div className="w-48 h-32 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
+            <div className="w-69 h-48 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
               <img
                 src={event.eventCoverImageUrl || NO_IMAGE}
                 alt="cover"

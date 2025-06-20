@@ -57,29 +57,33 @@ export const OrderListAdmin = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
+                <TableHead className="text-center sticky left-0 bg-blue-200 z-10">#</TableHead>
                 <TableHead className="text-center sticky left-0 bg-blue-200 z-10">
                   Customer ID
                 </TableHead>
                 <TableHead>Event ID</TableHead>
                 <TableHead>Ticket Name(s)</TableHead>
-                <TableHead>Price Per Ticket</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Subtotal</TableHead>
-                <TableHead>Discount Code</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Total Amount</TableHead>
+                <TableHead className="text-center">Price Per Ticket</TableHead>
+                <TableHead className="text-center">Quantity</TableHead>
+                <TableHead className="text-center">Subtotal</TableHead>
+                <TableHead className="text-center">Discount Code</TableHead>
+                <TableHead className="text-center">Created At</TableHead>
+                <TableHead className="text-center">Total Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pagedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={10} className="text-center py-4 text-gray-500">
                     No orders found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedOrders.map((order) => (
+                pagedOrders.map((order, idx) => (
                   <TableRow key={order.orderId}>
+                    <TableCell className="text-center sticky left-0 bg-white z-10">
+                      {(page - 1) * pageSize + idx + 1}
+                    </TableCell>
                     <TableCell className="text-center sticky left-0 bg-white z-10">
                       {order.customerId}
                     </TableCell>
@@ -91,33 +95,33 @@ export const OrderListAdmin = () => {
                         <span className="text-gray-400">No ticket items</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       {order.items && order.items.length > 0
                         ? order.items.map((item) => item.pricePerTicket).join(', ')
                         : ''}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       {order.items && order.items.length > 0
                         ? order.items.map((item) => item.quantity).join(', ')
                         : ''}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">
                       {order.items && order.items.length > 0
                         ? order.items.map((item) => item.subtotal).join(', ')
                         : ''}
                     </TableCell>
-                    <TableCell>{order.discountCode}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-center">{order.discountCode}</TableCell>
+                    <TableCell className="text-center">
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                     </TableCell>
-                    <TableCell>{order.totalAmount}</TableCell>
+                    <TableCell className="text-center">{order.totalAmount}</TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={9}>
+                <TableCell colSpan={10}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>

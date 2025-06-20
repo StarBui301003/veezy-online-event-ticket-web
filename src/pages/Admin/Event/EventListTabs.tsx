@@ -101,7 +101,7 @@ export default function EventListTabs() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-6">
+        <div>
           <TabsContent value="approved">
             {loadedTabs.includes('approved') && <ApprovedEventList />}
           </TabsContent>
