@@ -27,3 +27,30 @@ export interface DiscountCodeResponse {
   };
   message: string | null;
 }
+
+export interface DiscountCodeCreateInput {
+  eventId: string;
+  code: string;
+  discountType: number;
+  value: number;
+  minimum: number;
+  maximum: number;
+  maxUsage: number;
+  expiredAt: string; 
+}
+
+export interface DiscountCodeUpdateInput {
+  code: string;
+  discountType: number;
+  value: number;
+  minimum: number;
+  maximum: number;
+  maxUsage: number;
+  expiredAt: string;
+}
+
+export enum DiscountType {
+  Percentage = 0,
+  Fixed = 1,
+  Other = 3,
+}

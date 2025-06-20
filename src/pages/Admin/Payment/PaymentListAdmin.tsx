@@ -19,6 +19,7 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import { Badge } from '@/components/ui/badge';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -53,25 +54,9 @@ export const PaymentListAdmin = () => {
     }
   };
 
-  const paymentStatusLabel = (status: number) => {
-    switch (status) {
-      case 0:
-        return 'Success';
-      case 1:
-        return 'Failed';
-      case 2:
-        return 'Pending';
-      case 3:
-        return 'Other';
-      default:
-        return 'Unknown';
-    }
-  };
-
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
-      <h2 className="text-2xl font-bold mb-4">Payment List</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           <Table className="min-w-full">
@@ -81,8 +66,8 @@ export const PaymentListAdmin = () => {
                 <TableHead>PaymentId</TableHead>
                 <TableHead>OrderId</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Payment Method</TableHead>
-                <TableHead>Payment Status</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Transaction Code</TableHead>
                 <TableHead>Paid At</TableHead>
               </TableRow>
@@ -102,7 +87,28 @@ export const PaymentListAdmin = () => {
                     <TableCell>{p.orderId}</TableCell>
                     <TableCell>{p.amount}</TableCell>
                     <TableCell>{paymentMethodLabel(p.paymentMethod)}</TableCell>
-                    <TableCell>{paymentStatusLabel(p.paymentStatus)}</TableCell>
+                    <TableCell>
+                      {p.paymentStatus === 0 && (
+                        <Badge className=" border-green-500 bg-green-500 items-center border-2 rounded-[10px] cursor-pointer transition-all text-white hover:bg-green-600 hover:text-white hover:border-green-500">
+                          Success
+                        </Badge>
+                      )}
+                      {p.paymentStatus === 1 && (
+                        <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white hover:border-red-500">
+                          Failed
+                        </Badge>
+                      )}
+                      {p.paymentStatus === 2 && (
+                        <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
+                          Pending
+                        </Badge>
+                      )}
+                      {p.paymentStatus === 3 && (
+                        <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all  hover:bg-black/100 hover:text-white">
+                          Other
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{p.transactionCode}</TableCell>
                     <TableCell>{p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}</TableCell>
                   </TableRow>

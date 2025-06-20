@@ -1,13 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { createEvent, getAllCategories, uploadImage } from "@/services/Event Manager/event.service";
-import { Button } from "@/components/ui/button";
-import { useDropzone } from "react-dropzone";
-import Select from "react-select";
-import { useQuill } from "react-quilljs";
-import "quill/dist/quill.snow.css";
-import { Category, CreateEventData } from "@/types/event";
+import React, { useState, useEffect, useCallback } from 'react';
+import { createEvent, getAllCategories, uploadImage } from '@/services/Event Manager/event.service';
+import { Button } from '@/components/ui/button';
+import { useDropzone } from 'react-dropzone';
+import Select from 'react-select';
+import { useQuill } from 'react-quilljs';
+import 'quill/dist/quill.snow.css';
+import { Category, CreateEventData } from '@/types/event';
 
 interface EnhancedContent {
   position: number;
@@ -48,14 +49,14 @@ export default function CreateEventForm() {
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
   const [formData, setFormData] = useState<EnhancedCreateEventData>({
-    eventName: "",
-    eventDescription: "",
-    eventCoverImageUrl: "",
-    eventLocation: "",
-    startAt: "",
-    endAt: "",
+    eventName: '',
+    eventDescription: '',
+    eventCoverImageUrl: '',
+    eventLocation: '',
+    startAt: '',
+    endAt: '',
     tags: [],
     categoryIds: [],
     contents: [{ position: 1, contentType: "description", description: "", imageUrl: "" }],
@@ -87,8 +88,8 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     if (quill) {
-      quill.root.setAttribute("style", "background:#27272a;color:#fff;min-height:160px;");
-      quill.on("text-change", () => {
+      quill.root.setAttribute('style', 'background:#27272a;color:#fff;min-height:160px;');
+      quill.on('text-change', () => {
         setFormData((prev) => ({
           ...prev,
           eventDescription: cleanHtml(quill.root.innerHTML),
@@ -107,7 +108,7 @@ export default function CreateEventForm() {
         eventCoverImageUrl: url,
       }));
     } catch (err) {
-      alert("Upload cover image failed.");
+      alert('Upload cover image failed.');
     } finally {
       setUploadingCover(false);
     }
@@ -130,7 +131,7 @@ export default function CreateEventForm() {
       newContents[index].imageUrl = url;
       setFormData((prev) => ({ ...prev, contents: newContents }));
     } catch (err) {
-      alert("Upload content image failed.");
+      alert('Upload content image failed.');
     } finally {
       setUploadingContentImage(false);
     }
@@ -158,11 +159,11 @@ export default function CreateEventForm() {
 
   const handleContentTypeChange = (index: number, contentType: "description" | "image") => {
     const newContents = [...formData.contents];
-    newContents[index] = { 
-      ...newContents[index], 
+    newContents[index] = {
+      ...newContents[index],
       contentType,
-      description: contentType === "image" ? "" : newContents[index].description,
-      imageUrl: contentType === "description" ? "" : newContents[index].imageUrl
+      description: contentType === 'image' ? '' : newContents[index].description,
+      imageUrl: contentType === 'description' ? '' : newContents[index].imageUrl,
     };
     setFormData((prev) => ({ ...prev, contents: newContents }));
   };
@@ -189,15 +190,19 @@ export default function CreateEventForm() {
         ],
       }));
     } else {
-      alert("Maximum 5 sections allowed.");
+      alert('Maximum 5 sections allowed.');
     }
   };
 
   const validateContents = (contents: EnhancedContent[]) => {
-    const positions = contents.map(content => content.position);
+    const positions = contents.map((content) => content.position);
     const uniquePositions = new Set(positions);
 
-    if (contents.length > 5 || uniquePositions.size !== contents.length || positions.some(pos => pos < 1 || pos > 5)) {
+    if (
+      contents.length > 5 ||
+      uniquePositions.size !== contents.length ||
+      positions.some((pos) => pos < 1 || pos > 5)
+    ) {
       return false;
     }
     return true;
@@ -206,7 +211,9 @@ export default function CreateEventForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateContents(formData.contents)) {
-      alert("Invalid event contents. Maximum 5 sections allowed and positions must be unique between 1-5.");
+      alert(
+        'Invalid event contents. Maximum 5 sections allowed and positions must be unique between 1-5.'
+      );
       return;
     }
 
@@ -218,13 +225,13 @@ export default function CreateEventForm() {
         contents: formData.contents.map((content) => ({
           position: content.position,
           description: content.description,
-          imageUrl: content.imageUrl
-        }))
+          imageUrl: content.imageUrl,
+        })),
       };
       await createEvent(apiData);
-      alert("Event created successfully!");
+      alert('Event created successfully!');
     } catch (error) {
-      alert("Failed to create event.");
+      alert('Failed to create event.');
     } finally {
       setLoading(false);
     }
@@ -240,46 +247,46 @@ export default function CreateEventForm() {
       minHeight: 48,
       boxShadow: 'none',
       '&:hover': {
-        borderColor: '#a21caf'
-      }
+        borderColor: '#a21caf',
+      },
     }),
     menu: (provided: any) => ({
       ...provided,
       backgroundColor: '#18181b',
-      border: '1px solid #a21caf'
+      border: '1px solid #a21caf',
     }),
     option: (provided: any, state: any) => ({
       ...provided,
       backgroundColor: state.isFocused ? '#a21caf' : '#18181b',
       color: '#fff',
       '&:hover': {
-        backgroundColor: '#a21caf'
-      }
+        backgroundColor: '#a21caf',
+      },
     }),
     multiValue: (provided: any) => ({
       ...provided,
-      backgroundColor: '#a21caf'
+      backgroundColor: '#a21caf',
     }),
     multiValueLabel: (provided: any) => ({
       ...provided,
-      color: '#fff'
+      color: '#fff',
     }),
     multiValueRemove: (provided: any) => ({
       ...provided,
       color: '#fff',
       '&:hover': {
         backgroundColor: '#ef4444',
-        color: '#fff'
-      }
+        color: '#fff',
+      },
     }),
     input: (provided: any) => ({
       ...provided,
-      color: '#fff'
+      color: '#fff',
     }),
     placeholder: (provided: any) => ({
       ...provided,
-      color: '#a3a3a3'
-    })
+      color: '#a3a3a3',
+    }),
   };
 
   return (
@@ -427,7 +434,10 @@ export default function CreateEventForm() {
               onChange={(e) => {
                 const raw = e.target.value;
                 setTagInput(raw);
-                const tags = raw.split(",").map((tag) => tag.trim()).filter((tag) => tag !== "");
+                const tags = raw
+                  .split(',')
+                  .map((tag) => tag.trim())
+                  .filter((tag) => tag !== '');
                 setFormData((prev) => ({ ...prev, tags }));
               }}
               placeholder="e.g. game, workshop, offline"
@@ -451,7 +461,7 @@ export default function CreateEventForm() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">Event Description</label>
             <div className="rounded-xl border border-purple-700 bg-[#27272a] p-2">
-              <div ref={quillRef} style={{ minHeight: 160, color: "#fff" }} />
+              <div ref={quillRef} style={{ minHeight: 160, color: '#fff' }} />
             </div>
           </div>
 
@@ -482,9 +492,7 @@ export default function CreateEventForm() {
                 className="p-6 border border-purple-700/40 rounded-xl space-y-4 bg-slate-700/40 backdrop-blur-sm mb-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-medium text-purple-300">
-                    Content {index + 1}
-                  </span>
+                  <span className="text-lg font-medium text-purple-300">Content {index + 1}</span>
                   <Button
                     type="button"
                     variant="destructive"
@@ -505,8 +513,8 @@ export default function CreateEventForm() {
                         onClick={() => handleContentTypeChange(index, option.value as "description" | "image")}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           content.contentType === option.value
-                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                            : "bg-slate-600/50 text-slate-300 hover:bg-slate-600"
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                            : 'bg-slate-600/50 text-slate-300 hover:bg-slate-600'
                         }`}
                       >
                         {option.label}
@@ -538,8 +546,7 @@ export default function CreateEventForm() {
                       type="file"
                       accept="image/*"
                       onChange={(e) =>
-                        e.target.files?.[0] &&
-                        handleContentImageDrop(index, e.target.files[0])
+                        e.target.files?.[0] && handleContentImageDrop(index, e.target.files[0])
                       }
                       className="w-full p-3 rounded-xl bg-slate-600/50 border border-purple-700 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 transition-all duration-200"
                       required={!content.imageUrl}
@@ -557,6 +564,18 @@ export default function CreateEventForm() {
                         className="mt-3 h-40 w-full object-cover rounded-xl border border-purple-700"
                       />
                     )}
+                  </div>
+                )}
+                {/* Nút Add Content chỉ hiện ở section cuối */}
+                {index === formData.contents.length - 1 && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={handleAddContent}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg transition-all duration-200"
+                    >
+                      Add Content
+                    </Button>
                   </div>
                 )}
               </div>

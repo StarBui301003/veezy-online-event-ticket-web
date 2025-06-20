@@ -22,9 +22,9 @@ import {
 import { MdOutlineEdit } from 'react-icons/md';
 import { FaEye, FaPlus, FaRegTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import CreateCategoryModal from '@/components/Admin/Modal/CreateCategoryModal';
-import CategoryDetailModal from '@/components/Admin/Modal/CategoryDetailModal';
-import EditCategoryModal from '@/components/Admin/Modal/EditCategoryModal';
+import CreateCategoryModal from '@/components/Admin/Modal/Category/CreateCategoryModal';
+import CategoryDetailModal from '@/components/Admin/Modal/Category/CategoryDetailModal';
+import EditCategoryModal from '@/components/Admin/Modal/Category/EditCategoryModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -67,7 +67,6 @@ export const CategoryList = () => {
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
-      <h2 className="text-2xl font-bold mb-4">Category List</h2>
       {/* Modal tạo category */}
       {editCategory && (
         <EditCategoryModal
@@ -87,34 +86,75 @@ export const CategoryList = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
-              <input
-                className="border px-3 py-2 rounded w-full max-w-xs pr-8"
-                placeholder="Search by category name..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
+              <div
+                className="InputContainer relative"
+                style={{
+                  width: 310,
+                  height: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+                  borderRadius: 30,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+                  position: 'relative',
                 }}
-              />
-              {search && (
-                <button
-                  className="ml-[-32px] text-gray-400 hover:text-gray-700 focus:outline-none"
-                  onClick={() => {
-                    setSearch('');
+              >
+                <input
+                  className="input pr-8"
+                  style={{
+                    width: 300,
+                    height: 40,
+                    border: 'none',
+                    outline: 'none',
+                    caretColor: 'rgb(255,81,0)',
+                    backgroundColor: 'rgb(255,255,255)',
+                    borderRadius: 30,
+                    paddingLeft: 15,
+                    letterSpacing: 0.8,
+                    color: 'rgb(19,19,19)',
+                    fontSize: 13.4,
+                  }}
+                  placeholder="Search by category name..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
                     setPage(1);
                   }}
-                  tabIndex={-1}
-                  type="button"
-                  aria-label="Clear search"
-                >
-                  &#10005;
-                </button>
-              )}
+                />
+                {search && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setSearch('');
+                      setPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
+              </div>
             </div>
             {/* Create button (right) */}
             <div className="flex justify-end">
               <button
-                className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 font-semibold flex items-center gap-2 transition"
+                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
                 onClick={() => setShowCreateModal(true)}
               >
                 <FaPlus />
@@ -157,21 +197,21 @@ export const CategoryList = () => {
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button
-                          className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition flex items-center justify-center "
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
                           title="View details"
                           onClick={() => setViewCategory(cat)}
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
                         <button
-                          className="px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition flex items-center justify-center"
+                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
                           title="Edit"
                           onClick={() => setEditCategory(cat)}
                         >
                           <MdOutlineEdit className="w-4 h-4" />
                         </button>
                         <button
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition flex items-center justify-center"
+                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
                           title="Delete"
                           onClick={() => handleDelete(cat)}
                         >

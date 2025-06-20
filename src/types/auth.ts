@@ -83,11 +83,6 @@ export interface User {
   gender: number;
   dob: string;
   location: string;
-  categories: {
-    categoryId: string;
-    categoryName: string;
-    categoryDescription: string;
-  }[];
   createdAt: string;
 }
 

@@ -43,7 +43,7 @@ export const Dashboard = () => {
         )}
       </div>
       <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
-        {user && (
+        {user ? (
           <div className="w-full flex flex-col md:flex-row items-center gap-8">
             <div className="flex-shrink-0 flex flex-col items-center">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-300 bg-gray-100 flex items-center justify-center">
@@ -80,10 +80,20 @@ export const Dashboard = () => {
               </div>
               <div>
                 <span className="font-semibold">Date of Birth:</span>{' '}
-                <span className="font-light">{user.dob}</span>
+                <span className="font-light">
+                  {user.dob
+                    ? new Date(user.dob).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                    : ''}
+                </span>
               </div>
             </div>
           </div>
+        ) : (
+          <div className="text-gray-500 text-lg">Không tìm thấy thông tin người dùng.</div>
         )}
       </div>
     </div>

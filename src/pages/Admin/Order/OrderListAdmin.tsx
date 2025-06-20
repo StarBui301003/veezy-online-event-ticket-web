@@ -50,7 +50,6 @@ export const OrderListAdmin = () => {
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
-      <h2 className="text-2xl font-bold mb-4">Orders</h2>
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           <Table className="min-w-full">

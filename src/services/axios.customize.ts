@@ -1,12 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-import NProgress from "nprogress";
 import { toast } from "react-toastify";
-
-// Configure loading bar
-NProgress.configure({
-  showSpinner: false,
-  trickleSpeed: 100,
-});
 
 // Create Axios instance
 const instance = axios.create({
@@ -19,21 +13,16 @@ const instance = axios.create({
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 
-// Call all subscribers after refreshing token
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
+let setSpinner: ((show: boolean) => void) | null = null;
 
-// Add subscriber while waiting for refresh
-function addRefreshSubscriber(callback: (token: string) => void) {
-  refreshSubscribers.push(callback);
+export function registerGlobalSpinner(fn: (show: boolean) => void) {
+  setSpinner = fn;
 }
 
 // Axios request interceptor
 instance.interceptors.request.use(
   (config) => {
-    NProgress.start();
+    if (setSpinner) setSpinner(true);
     const token = window.localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -41,7 +30,7 @@ instance.interceptors.request.use(
     return config;
   },
   (error) => {
-    NProgress.done();
+    if (setSpinner) setSpinner(false);
     return Promise.reject(error);
   }
 );
@@ -49,14 +38,12 @@ instance.interceptors.request.use(
 // Axios response interceptor
 instance.interceptors.response.use(
   (response) => {
-    NProgress.done();
+    if (setSpinner) setSpinner(false);
     return response;
   },
   async (error) => {
-    NProgress.done();
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalRequest: any = error.config;
+    if (setSpinner) setSpinner(false);
+    const originalRequest = error.config;
     const ERROR_TOAST_ID = "global-error-toast";
 
     // Handle 401 Unauthorized (token expired)
@@ -67,47 +54,74 @@ instance.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          // Get refresh token from cookie only
-          const refreshToken =
-            document.cookie
-              .split("; ")
-              .find((row) => row.startsWith("refresh_token="))
-              ?.split("=")[1];
+          // Get refresh token from cookie
+          const refreshToken = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("refresh_token="))
+            ?.split("=")[1];
 
-          if (!refreshToken) throw new Error("Refresh token not found in cookies");
+          if (!refreshToken) {
+            isRefreshing = false;
+            return Promise.reject(error);
+          }
 
-          const response = await axios.post(
+          // Call refresh token API with separate axios instance to avoid interceptors
+          const refreshResponse = await axios.post(
             `${import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000"}/api/Account/refresh-token`,
-            { refreshToken }
+            { refreshToken },
+            {
+              headers: { 'Content-Type': 'application/json' }
+            }
           );
 
-          const { accessToken } = response.data;
+          const { accessToken } = refreshResponse.data;
+
+          if (!accessToken) {
+            isRefreshing = false;
+            return Promise.reject(error);
+          }
+
+          // Update access token
           window.localStorage.setItem("access_token", accessToken);
 
-          isRefreshing = false;
-          onRefreshed(accessToken);
-
+          // Update Authorization header for original request
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return instance(originalRequest);
-        } catch (refreshError) {
+
+          // Notify subscribers with new token
+          refreshSubscribers.forEach((cb) => cb(accessToken));
+          refreshSubscribers = [];
+
           isRefreshing = false;
 
-          // Remove tokens and redirect to login
-          window.localStorage.removeItem("access_token");
+          // Retry original request with new token
+          return instance(originalRequest);
 
-          toast.error("Your session has expired. Please log in again.");
-          window.location.href = "/login";
+        } catch (refreshError: any) {
+          isRefreshing = false;
+          refreshSubscribers = [];
 
+          // Only clear auth and redirect if refresh token API returns 401/403
+          if (refreshError?.response?.status === 401 || refreshError?.response?.status === 403) {
+            window.localStorage.removeItem("access_token");
+            window.localStorage.removeItem("account");
+            window.localStorage.removeItem("customerId");
+            window.localStorage.removeItem("user_config");
+            document.cookie = "refresh_token=; Max-Age=0; path=/;";
+
+            toast.error("Session expired. Please login again.", {
+              toastId: ERROR_TOAST_ID
+            });
+
+            window.location.href = "/login";
+          }
           return Promise.reject(refreshError);
         }
       }
 
-      // Queue requests while refreshing
-      return new Promise((resolve, reject) => {
-        addRefreshSubscriber((newToken: string) => {
-          if (!newToken) return reject(error);
-
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      // Queue retry if refresh is in progress
+      return new Promise((resolve) => {
+        refreshSubscribers.push((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
           resolve(instance(originalRequest));
         });
       });
@@ -118,7 +132,6 @@ instance.interceptors.response.use(
       toast.error(error.response.data?.message || "Invalid data provided.", {
         toastId: ERROR_TOAST_ID,
       });
-      return Promise.reject(error.response.data);
     }
 
     // Handle other error messages
@@ -141,3 +154,4 @@ instance.interceptors.response.use(
 );
 
 export default instance;
+
