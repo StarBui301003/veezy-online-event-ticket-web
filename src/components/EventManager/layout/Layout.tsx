@@ -55,11 +55,6 @@ export function EventManagerLayout() {
       document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
     });
     
-    // Xóa cookies với domain cụ thể nếu cần
-    const clearCookie = (name, domain = '') => {
-      const domainPart = domain ? `; domain=${domain}` : '';
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/${domainPart}`;
-    };
     
     // Ví dụ xóa cookies cụ thể
     // clearCookie('access_token');
