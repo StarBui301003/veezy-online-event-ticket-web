@@ -1,31 +1,51 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { toast } from "react-toastify";
 
-// Create Axios instance
-const instance = axios.create({
+// Mở rộng InternalAxiosRequestConfig cho phép thêm trường _retry
+interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
+const instance: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
+// Biến toàn cục để xử lý refresh token
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 
+// Biến spinner để điều khiển hiển thị loading toàn cục
 let setSpinner: ((show: boolean) => void) | null = null;
 
 export function registerGlobalSpinner(fn: (show: boolean) => void) {
   setSpinner = fn;
 }
 
-// Axios request interceptor
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
+const addRefreshSubscriber = (callback: (token: string) => void) => {
+  refreshSubscribers.push(callback);
+};
+
 instance.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     if (setSpinner) setSpinner(true);
     const token = window.localStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (token && config.headers) {
+      if (typeof config.headers.set === "function") {
+        config.headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -35,18 +55,17 @@ instance.interceptors.request.use(
   }
 );
 
-// Axios response interceptor
 instance.interceptors.response.use(
   (response) => {
     if (setSpinner) setSpinner(false);
     return response;
   },
-  async (error) => {
+  async (error: AxiosError) => {
     if (setSpinner) setSpinner(false);
-    const originalRequest = error.config;
+    const originalRequest = error.config as CustomAxiosRequestConfig;
     const ERROR_TOAST_ID = "global-error-toast";
 
-    // Handle 401 Unauthorized (token expired)
+    // Xử lý lỗi 401 (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -54,106 +73,91 @@ instance.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          // Get refresh token from cookie
+          // Lấy refresh token từ cookie
           const refreshToken = document.cookie
             .split("; ")
             .find((row) => row.startsWith("refresh_token="))
             ?.split("=")[1];
 
-          if (!refreshToken) {
-            isRefreshing = false;
-            return Promise.reject(error);
-          }
+          if (!refreshToken) throw new Error("No refresh token");
 
-          // Call refresh token API with separate axios instance to avoid interceptors
-          const refreshResponse = await axios.post(
-            `${import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000"}/api/Account/refresh-token`,
+          const response = await axios.post(
+            `${
+              import.meta.env.VITE_GATEWAY_URL || "http://localhost:5000"
+            }/api/Account/refresh-token`,
             { refreshToken },
-            {
-              headers: { 'Content-Type': 'application/json' }
-            }
+            { headers: { "Content-Type": "application/json" }, withCredentials: true }
           );
 
-          const { accessToken } = refreshResponse.data;
+          const newAccessToken = response.data.accessToken;
+          window.localStorage.setItem("access_token", newAccessToken);
+          onRefreshed(newAccessToken);
 
-          if (!accessToken) {
-            isRefreshing = false;
-            return Promise.reject(error);
+          // Cập nhật header của request với token mới
+          if (originalRequest.headers) {
+            if (typeof originalRequest.headers.set === "function") {
+              originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
+            } else {
+              originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            }
           }
-
-          // Update access token
-          window.localStorage.setItem("access_token", accessToken);
-
-          // Update Authorization header for original request
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-          // Notify subscribers with new token
-          refreshSubscribers.forEach((cb) => cb(accessToken));
-          refreshSubscribers = [];
-
-          isRefreshing = false;
-
-          // Retry original request with new token
           return instance(originalRequest);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          // Xóa sạch token và refresh token nếu lỗi refresh
+          window.localStorage.clear();
+          document.cookie = "refresh_token=; Max-Age=0; path=/;";
 
-        } catch (refreshError: any) {
-          isRefreshing = false;
           refreshSubscribers = [];
+          onRefreshed("");
 
-          // Only clear auth and redirect if refresh token API returns 401/403
-          if (refreshError?.response?.status === 401 || refreshError?.response?.status === 403) {
-            window.localStorage.removeItem("access_token");
-            window.localStorage.removeItem("account");
-            window.localStorage.removeItem("customerId");
-            window.localStorage.removeItem("user_config");
-            document.cookie = "refresh_token=; Max-Age=0; path=/;";
-
-            toast.error("Session expired. Please login again.", {
-              toastId: ERROR_TOAST_ID
+          if (!toast.isActive(ERROR_TOAST_ID)) {
+            toast.error("Your session has expired. Please log in again.", {
+              toastId: ERROR_TOAST_ID,
             });
-
-            window.location.href = "/login";
           }
-          return Promise.reject(refreshError);
+
+          // Để cho toast hiển thị trước khi redirect
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 200);
+
+          return Promise.reject(err);
+        } finally {
+          isRefreshing = false;
         }
       }
 
-      // Queue retry if refresh is in progress
+      // Nếu token đang được refresh, chờ các request treo hoàn thành
       return new Promise((resolve) => {
-        refreshSubscribers.push((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+        addRefreshSubscriber((token: string) => {
+          if (originalRequest.headers) {
+            if (typeof originalRequest.headers.set === "function") {
+              originalRequest.headers.set("Authorization", `Bearer ${token}`);
+            } else {
+              originalRequest.headers["Authorization"] = `Bearer ${token}`;
+            }
+          }
           resolve(instance(originalRequest));
         });
       });
     }
 
-    // Handle 400 Bad Request
+    // Xử lý một số lỗi khác
     if (error.response?.status === 400) {
-      toast.error(error.response.data?.message || "Invalid data provided.", {
+      const data = error.response.data as { message?: string } | undefined;
+      toast.error(data?.message || "Invalid data provided.", {
         toastId: ERROR_TOAST_ID,
       });
-    }
-
-    // Handle other error messages
-    if (error.response?.data?.message) {
-      toast.error(error.response.data.message, {
-        toastId: ERROR_TOAST_ID,
-      });
-      return Promise.reject(error.response.data);
-    }
-
-    // Handle generic errors
-    if (error.message) {
-      toast.error(error.message, {
-        toastId: ERROR_TOAST_ID,
-      });
+    } else if ((error.response?.data as { message?: string } | undefined)?.message) {
+      const data = error.response?.data as { message?: string } | undefined;
+      toast.error(data?.message, { toastId: ERROR_TOAST_ID });
+    } else if (error.message) {
+      toast.error(error.message, { toastId: ERROR_TOAST_ID });
     }
 
     return Promise.reject(error);
   }
 );
 
-
-
 export default instance;
-
