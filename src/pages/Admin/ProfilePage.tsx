@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/User/user.service';
+import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
 import { Input } from '@/components/ui/input';
 import {
   Select,

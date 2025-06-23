@@ -23,7 +23,6 @@ import CreateTicket from './pages/EventManager/CreateTicket';
 import EventListWithTicketManager from './pages/EventManager/EventListWithTicketManager';
 import EditTicket from './pages/EventManager/EditTicket';
 import { OrderListAdmin } from './pages/Admin/Order/OrderListAdmin';
-import { UserList } from './pages/Admin/User/UserList';
 import EventDetail from './pages/Customer/EventDetail';
 import ManagerDiscountCode from './pages/EventManager/ManagerDiscountCode';
 import CreateDiscountCode from './pages/EventManager/CreateDiscountCode';
@@ -34,7 +33,6 @@ import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
 import ProfilePage from '@/pages/Admin/ProfilePage';
 import CategoryList from './pages/Admin/Category/CategoryList';
 import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
-import { AdminList } from './pages/Admin/User/AdminList';
 import ProfileEventManager from './pages/EventManager/ProfileEventManager';
 import HomePage from './pages/Customer/Home';
 import ProfileCustomer from './pages/Customer/ProfileCustomer';
@@ -47,6 +45,7 @@ import EditNews from './pages/EventManager/EditNews';
 import { CommentList } from './pages/Admin/Comment/CommentList';
 
 import { NewsListTabs } from './pages/Admin/News/NewListTabs';
+import UserListTabs from './pages/Admin/User/UserListTabs';
 
 function App() {
   const router = createBrowserRouter([
@@ -143,15 +142,7 @@ function App() {
           path: 'user-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <UserList />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'admin-list',
-          element: (
-            <ProtectedRoute allowedRoles={[0]}>
-              <AdminList />
+              <UserListTabs />
             </ProtectedRoute>
           ),
         },

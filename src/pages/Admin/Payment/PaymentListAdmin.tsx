@@ -64,14 +64,24 @@ export const PaymentListAdmin = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4">#</TableHead>
-                <TableHead>PaymentId</TableHead>
-                <TableHead>OrderId</TableHead>
-                <TableHead className="text-center">Amount</TableHead>
-                <TableHead className="text-center">Method</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead>Transaction Code</TableHead>
-                <TableHead className="text-center">Paid At</TableHead>
+                <TableHead className="pl-4" style={{ width: '5%' }}>
+                  #
+                </TableHead>
+                <TableHead style={{ width: '25%' }}>PaymentId</TableHead>
+                <TableHead style={{ width: '15%' }}>OrderId</TableHead>
+                <TableHead style={{ width: '5%' }} className="text-center">
+                  Amount
+                </TableHead>
+                <TableHead style={{ width: '5%' }} className="text-center">
+                  Method
+                </TableHead>
+                <TableHead style={{ width: '5%' }} className="text-center">
+                  Status
+                </TableHead>
+                <TableHead style={{ width: '10%' }}>Transaction Code</TableHead>
+                <TableHead style={{ width: '5%' }} className="text-center">
+                  Paid At
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

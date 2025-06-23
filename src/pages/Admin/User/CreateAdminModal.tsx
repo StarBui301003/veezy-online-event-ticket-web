@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { createAdminAPI } from '@/services/User/user.service';
+import { createAdminAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
 import type { CreateAdminRequest } from '@/types/Admin/user';
 import { FaSpinner } from 'react-icons/fa';

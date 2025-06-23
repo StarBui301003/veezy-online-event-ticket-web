@@ -167,10 +167,14 @@ export const CategoryList = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4">#</TableHead>
-                <TableHead>Category Name</TableHead>
+                <TableHead className="pl-4" style={{ width: '5%' }}>
+                  #
+                </TableHead>
+                <TableHead style={{ width: '15%' }}>Category Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead style={{ width: '20%' }} className="text-center">
+                  Action
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

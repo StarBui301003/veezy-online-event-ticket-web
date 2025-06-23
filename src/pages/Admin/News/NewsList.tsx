@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAllNews, deleteNews, deleteNewsImage } from '@/services/Admin/news.service';
-import { getUserByIdAPI } from '@/services/User/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsDetailModal from '@/pages/Admin/News/NewsDetailModal';
 import { Badge } from '@/components/ui/badge';

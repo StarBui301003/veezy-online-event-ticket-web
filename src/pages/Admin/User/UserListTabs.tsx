@@ -1,0 +1,126 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AdminList } from './AdminList';
+import { CustomerList } from './CustomerList';
+import { CollaboratorList } from './CollaboratorList';
+import { EventManagerList } from './EventManagerList';
+import { FaUserShield, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
+import { cn } from '@/lib/utils';
+
+export default function UserListTabs() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Nếu chưa có param tab, set mặc định là admin
+  useEffect(() => {
+    if (!searchParams.get('tab')) {
+      setSearchParams({ tab: 'admin' }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ưu tiên tab từ param, nếu không có thì mặc định là 'admin'
+  const getInitialTab = () => {
+    const tab = searchParams.get('tab');
+    if (['admin', 'customer', 'collaborator', 'eventmanager'].includes(tab || '')) return tab!;
+    return 'admin';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
+
+  // Khi đổi tab, update query param
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Khi URL query param thay đổi (ví dụ reload, hoặc back/forward), update tab
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (
+      tab &&
+      tab !== activeTab &&
+      ['admin', 'customer', 'collaborator', 'eventmanager'].includes(tab)
+    ) {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!loadedTabs.includes(activeTab)) {
+      setLoadedTabs((prev) => [...prev, activeTab]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  return (
+    <div className="p-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="flex w-[600px] items-center rounded-[99px] py-4 gap-2 m-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)]">
+          <TabsTrigger
+            value="admin"
+            className={cn(
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              activeTab === 'admin'
+                ? '!text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 text-center'
+                : 'hover:bg-gray-200 text-gray-600'
+            )}
+          >
+            <FaUserShield className="w-4 h-4" />
+            <span>Admin</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="eventmanager"
+            className={cn(
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              activeTab === 'eventmanager'
+                ? '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 text-center'
+                : 'hover:bg-gray-200 text-gray-600'
+            )}
+          >
+            <FaUserTie className="w-4 h-4" />
+            <span>Event Manager</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="collaborator"
+            className={cn(
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              activeTab === 'collaborator'
+                ? '!text-white bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 text-center'
+                : 'hover:bg-gray-200 text-gray-600'
+            )}
+          >
+            <FaUsers className="w-4 h-4" />
+            <span>Collaborator</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="customer"
+            className={cn(
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              activeTab === 'customer'
+                ? '!text-white bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 text-center'
+                : 'hover:bg-gray-200 text-gray-600'
+            )}
+          >
+            <FaUser className="w-4 h-4" />
+            <span>Customer</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <div>
+          <TabsContent value="admin">{loadedTabs.includes('admin') && <AdminList />}</TabsContent>
+          <TabsContent value="eventmanager">
+            {loadedTabs.includes('eventmanager') && <EventManagerList />}
+          </TabsContent>
+          <TabsContent value="collaborator">
+            {loadedTabs.includes('collaborator') && <CollaboratorList />}
+          </TabsContent>
+          <TabsContent value="customer">
+            {loadedTabs.includes('customer') && <CustomerList />}
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+}

@@ -103,7 +103,7 @@ const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children }) => {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20"
-      // XÓA style={{ background: '#e3edf3', opacity: 0.8, backdropFilter: 'blur(1px)' }}
+      // style={{ background: '#e3edf3', opacity: 0.7, backdropFilter: 'blur(1px)' }}
     >
       <Spinner />
       {children}

@@ -10,7 +10,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/User/user.service';
+import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
 import { NO_AVATAR } from '@/assets/img';
 
 const ProfileEventManager = () => {

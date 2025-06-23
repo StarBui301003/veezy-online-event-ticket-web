@@ -1,12 +1,6 @@
-import { AdminOrderListResponse } from "@/types/Admin/order";
 import instance from "../axios.customize";
 import { User } from "@/types/auth";
 import type { CreateAdminRequest, EditUserRequest } from "@/types/Admin/user";
-
-export async function getOrdersAdmin(params?: { page?: number; pageSize?: number; eventId?: string }) {
-  const res = await instance.get<AdminOrderListResponse>('/api/Order', { params });
-  return res.data;
-}
 
 
 export const getAccountByIdAPI = async (accountId: string) => {
@@ -71,5 +65,25 @@ export const createAdminAPI = async (data: CreateAdminRequest) => {
   const response = await instance.post('/api/Account/create-admin', payload);
   return response.data;
 };
+
+export async function getAdminUsers() {
+  const res = await instance.get<UserListResponse>('/api/User/admins');
+  return res.data.data.items;
+}
+
+export async function getCustomerUsers() {
+  const res = await instance.get<UserListResponse>('/api/User/customers');
+  return res.data.data.items;
+}
+
+export async function getEventManagerUsers() {
+  const res = await instance.get<UserListResponse>('/api/User/event-managers');
+  return res.data.data.items;
+}
+
+export async function getCollaboratorUsers() {
+  const res = await instance.get<UserListResponse>('/api/User/collaborators');
+  return res.data.data.items;
+}
 
 

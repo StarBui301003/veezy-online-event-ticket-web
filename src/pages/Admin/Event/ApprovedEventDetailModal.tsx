@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, AdminTicket } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/User/user.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import { getCategoryById, getTicketsByEventAdmin } from '@/services/Admin/event.service';
 import { NO_IMAGE } from '@/assets/img';
 

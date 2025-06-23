@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getApprovedEvents, getCategoryById } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/User/user.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -286,13 +286,15 @@ export const ApprovedEventList = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="text-center">#</TableHead>
-                <TableHead>Event Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Approved By</TableHead>
-                <TableHead>Approved At</TableHead>
-                <TableHead>Created By</TableHead>
-                <TableHead>Created At</TableHead>
+                <TableHead className="text-center" style={{ width: '5%' }}>
+                  #
+                </TableHead>
+                <TableHead style={{ width: '20%' }}>Event Name</TableHead>
+                <TableHead style={{ width: '10%' }}>Category</TableHead>
+                <TableHead style={{ width: '15%' }}>Approved By</TableHead>
+                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '15%' }}>Created By</TableHead>
+                <TableHead style={{ width: '20%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>

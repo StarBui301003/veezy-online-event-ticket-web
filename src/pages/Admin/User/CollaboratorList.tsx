@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers } from '@/services/Admin/user.service';
+import { getCollaboratorUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
 import {
   Table,
@@ -26,50 +26,47 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { MdOutlineEdit } from 'react-icons/md';
-import { FaEye, FaPlus } from 'react-icons/fa';
+import { FaEye } from 'react-icons/fa';
 import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
 import EditUserModal from '@/pages/Admin/User/EditUserModal';
-import CreateAdminModal from '@/pages/Admin/User/CreateAdminModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const AdminList = () => {
+export const CollaboratorList = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [adminPage, setAdminPage] = useState(1);
-  const [adminPageSize, setAdminPageSize] = useState(10);
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(10);
 
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const [adminSearch, setAdminSearch] = useState('');
+  const [userSearch, setUserSearch] = useState('');
 
-  useEffect(() => {
+  const reloadUsers = () => {
     setLoading(true);
-    getUsers()
+    getCollaboratorUsers()
       .then((data) => {
         setUsers(data);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadUsers();
   }, []);
 
-  const adminUsers = users;
-
-  const filteredAdmins = adminUsers.filter(
+  const filteredUsers = users.filter(
     (user) =>
-      !adminSearch ||
-      user.fullName.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
-      user.email.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
-      (user.phone && user.phone.toLowerCase().includes(adminSearch.trim().toLowerCase()))
+      !userSearch ||
+      user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+      (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
   );
 
-  const pagedAdmins = filteredAdmins.slice(
-    (adminPage - 1) * adminPageSize,
-    adminPage * adminPageSize
-  );
-  const adminTotalPages = Math.max(1, Math.ceil(filteredAdmins.length / adminPageSize));
+  const pagedUsers = filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
+  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
 
   return (
     <div className="p-3">
@@ -81,37 +78,14 @@ export const AdminList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            setLoading(true);
-            getUsers()
-              .then((data) => {
-                setUsers(data);
-              })
-              .finally(() => setLoading(false));
+            reloadUsers();
           }}
-          title="Edit Admin"
-          disableEmail
+          title="Edit Collaborator"
         />
       )}
-      <CreateAdminModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={() => {
-          setShowCreateModal(false);
-          setLoading(true);
-          getUsers()
-            .then((data) => {
-              setUsers(data);
-            })
-            .finally(() => {
-              setTimeout(() => setLoading(false), 500);
-            });
-        }}
-      />
-      <div className="overflow-x-auto mb-10">
+      <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Remove <h2 className="font-bold text-lg text-blue-700">Admin List</h2> */}
-            {/* Keep search and create button layout */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -144,14 +118,14 @@ export const AdminList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search admin by name, email, or phone..."
-                  value={adminSearch}
+                  placeholder="Search by full name, email, or phone..."
+                  value={userSearch}
                   onChange={(e) => {
-                    setAdminSearch(e.target.value);
-                    setAdminPage(1);
+                    setUserSearch(e.target.value);
+                    setUserPage(1);
                   }}
                 />
-                {adminSearch && (
+                {userSearch && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -166,8 +140,8 @@ export const AdminList = () => {
                       justifyContent: 'center',
                     }}
                     onClick={() => {
-                      setAdminSearch('');
-                      setAdminPage(1);
+                      setUserSearch('');
+                      setUserPage(1);
                     }}
                     tabIndex={-1}
                     type="button"
@@ -177,15 +151,6 @@ export const AdminList = () => {
                   </button>
                 )}
               </div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <FaPlus />
-                Create
-              </button>
             </div>
           </div>
           <Table className="min-w-full">
@@ -197,29 +162,27 @@ export const AdminList = () => {
                 <TableHead style={{ width: '25%' }}>Full Name</TableHead>
                 <TableHead style={{ width: '15%' }}>Phone</TableHead>
                 <TableHead style={{ width: '25%' }}>Email</TableHead>
-                {/* <TableHead>Role</TableHead> */}
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedAdmins.length === 0 ? (
+              {pagedUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    No admins found.
+                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
+                    No users found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedAdmins.map((user, idx) => (
+                pagedUsers.map((user, idx) => (
                   <TableRow key={user.userId}>
                     <TableCell className="pl-4">
-                      {(adminPage - 1) * adminPageSize + idx + 1}
+                      {(userPage - 1) * userPageSize + idx + 1}
                     </TableCell>
                     <TableCell>{user.fullName}</TableCell>
                     <TableCell>
                       {user.phone || <span className="text-gray-400">N/A</span>}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
                         className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
@@ -249,19 +212,19 @@ export const AdminList = () => {
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setAdminPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={adminPage === 1}
-                              className={adminPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                              aria-disabled={userPage === 1}
+                              className={userPage === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: adminTotalPages }, (_, i) => i + 1).map((i) => (
+                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
-                                isActive={i === adminPage}
-                                onClick={() => setAdminPage(i)}
+                                isActive={i === userPage}
+                                onClick={() => setUserPage(i)}
                                 className={`transition-colors rounded 
                                   ${
-                                    i === adminPage
+                                    i === userPage
                                       ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
@@ -273,12 +236,10 @@ export const AdminList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setAdminPage((p) => Math.min(adminTotalPages, p + 1))}
-                              aria-disabled={adminPage === adminTotalPages}
+                              onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
+                              aria-disabled={userPage === userTotalPages}
                               className={
-                                adminPage === adminTotalPages
-                                  ? 'pointer-events-none opacity-50'
-                                  : ''
+                                userPage === userTotalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -287,18 +248,18 @@ export const AdminList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredAdmins.length === 0
+                        {filteredUsers.length === 0
                           ? '0-0 of 0'
-                          : `${(adminPage - 1) * adminPageSize + 1}-${Math.min(
-                              adminPage * adminPageSize,
-                              filteredAdmins.length
-                            )} of ${filteredAdmins.length}`}
+                          : `${(userPage - 1) * userPageSize + 1}-${Math.min(
+                              userPage * userPageSize,
+                              filteredUsers.length
+                            )} of ${filteredUsers.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {adminPageSize}
+                            {userPageSize}
                             <svg
                               className="w-4 h-4 ml-1"
                               fill="none"
@@ -319,10 +280,10 @@ export const AdminList = () => {
                             <DropdownMenuItem
                               key={size}
                               onClick={() => {
-                                setAdminPageSize(size);
-                                setAdminPage(1);
+                                setUserPageSize(size);
+                                setUserPage(1);
                               }}
-                              className={size === adminPageSize ? 'font-bold bg-primary/10' : ''}
+                              className={size === userPageSize ? 'font-bold bg-primary/10' : ''}
                             >
                               {size}
                             </DropdownMenuItem>
@@ -341,4 +302,4 @@ export const AdminList = () => {
   );
 };
 
-export default AdminList;
+export default CollaboratorList;

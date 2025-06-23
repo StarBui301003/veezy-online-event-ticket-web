@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
-import { editUserAPI, uploadUserAvatarAPI } from '@/services/User/user.service';
+import { editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
 import {
   Select,
   SelectTrigger,
@@ -22,9 +22,17 @@ interface Props {
   user: User;
   onClose: () => void;
   onUpdated?: (user: User) => void;
+  title?: string; // Thêm prop để tuỳ chỉnh tiêu đề modal
+  disableEmail?: boolean; // Cho phép disable email input nếu cần
 }
 
-export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
+export const EditUserModal = ({
+  user,
+  onClose,
+  onUpdated,
+  title = 'Edit User',
+  disableEmail = false,
+}: Props) => {
   const [form, setForm] = useState<User>({ ...user });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(user.avatarUrl || '');
@@ -70,7 +78,7 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
@@ -115,7 +123,7 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 value={form.email}
                 onChange={handleInputChange}
-                disabled
+                disabled={disableEmail}
               />
             </div>
             <div>
@@ -187,4 +195,5 @@ export const EditUserModal = ({ user, onClose, onUpdated }: Props) => {
     </Dialog>
   );
 };
+
 export default EditUserModal;

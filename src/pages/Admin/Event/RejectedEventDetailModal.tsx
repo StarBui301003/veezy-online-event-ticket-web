@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
-import { getUsernameByAccountId } from '@/services/User/user.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import { getCategoryById } from '@/services/Admin/event.service';
 import { Category } from '@/types/Admin/category';
 import { NO_IMAGE } from '@/assets/img';

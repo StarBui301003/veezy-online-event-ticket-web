@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/User/user.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -373,14 +373,16 @@ export const PendingEventList = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="text-center">#</TableHead>
-                <TableHead>Event Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Approved By</TableHead>
-                <TableHead>Approved At</TableHead>
-                <TableHead>Created By</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="text-center" style={{ width: '5%' }}>
+                  #
+                </TableHead>
+                <TableHead style={{ width: '20%' }}>Event Name</TableHead>
+                <TableHead style={{ width: '10%' }}>Category</TableHead>
+                <TableHead style={{ width: '15%' }}>Approved By</TableHead>
+                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '15%' }}>Created By</TableHead>
+                <TableHead style={{ width: '20%' }}>Created At</TableHead>
+                <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -394,7 +396,7 @@ export const PendingEventList = () => {
               ).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No pending events found.
+                    No approved events found.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -412,29 +414,73 @@ export const PendingEventList = () => {
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
-                      <TableCell>{event.eventName}</TableCell>
-                      <TableCell>
+                      <TableCell
+                        style={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {event.eventName}
+                      </TableCell>
+                      <TableCell
+                        style={{
+                          maxWidth: 100,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {event.categoryIds && event.categoryIds.length > 0
                           ? event.categoryIds
                               .map((id) => categories[id]?.categoryName || id)
                               .join(', ')
-                          : 'unknown'}
+                          : 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        style={{
+                          maxWidth: 100,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {event.approvedBy
                           ? usernames[event.approvedBy] || event.approvedBy
-                          : 'unknown'}
+                          : 'Unknown'}
                       </TableCell>
-                      <TableCell>
-                        {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'unknown'}
+                      <TableCell
+                        style={{
+                          maxWidth: 180,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        style={{
+                          maxWidth: 120,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {event.createdBy
                           ? usernames[event.createdBy] || event.createdBy
-                          : 'unknown'}
+                          : 'Unknown'}
                       </TableCell>
-                      <TableCell>
-                        {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'unknown'}
+                      <TableCell
+                        style={{
+                          maxWidth: 180,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center flex gap-2 justify-center">
                         <button

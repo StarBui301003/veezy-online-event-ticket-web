@@ -192,16 +192,34 @@ export const DiscountCodeList = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4">#</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Discount Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Minimum</TableHead>
-                <TableHead>Maximum</TableHead>
+                <TableHead className="pl-4" style={{ width: '5%' }}>
+                  #
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Code
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Discount Type
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Value
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Minimum
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Maximum
+                </TableHead>
 
-                <TableHead>Expired At</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Expired At
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Created At
+                </TableHead>
+                <TableHead style={{ width: '10%' }} className="text-center">
+                  Action
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,16 +240,20 @@ export const DiscountCodeList = () => {
                   .map((item, idx) => (
                     <TableRow key={item.discountId}>
                       <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
-                      <TableCell>{item.code}</TableCell>
-                      <TableCell className="truncate whitespace-nowrap overflow-hidden">
+                      <TableCell className="text-center">{item.code}</TableCell>
+                      <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">
                         {discountTypeMap[item.discountType] ?? item.discountType}
                       </TableCell>
-                      <TableCell>{item.value}</TableCell>
-                      <TableCell>{item.minimum}</TableCell>
-                      <TableCell>{item.maximum}</TableCell>
+                      <TableCell className="text-center">{item.value}</TableCell>
+                      <TableCell className="text-center">{item.minimum}</TableCell>
+                      <TableCell className="text-center">{item.maximum}</TableCell>
 
-                      <TableCell>{new Date(item.expiredAt).toLocaleString()}</TableCell>
-                      <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="text-center">
+                        {new Date(item.expiredAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </TableCell>
 
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button

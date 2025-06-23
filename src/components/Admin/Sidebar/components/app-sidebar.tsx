@@ -22,7 +22,6 @@ import {
 import { LOGO_RECTANGLE } from '@/assets/img';
 import { MdOutlinePayment } from 'react-icons/md';
 import { RiCoupon2Line } from 'react-icons/ri';
-import { FaUserTie } from 'react-icons/fa';
 import { MdReportGmailerrorred } from 'react-icons/md';
 import { FaRegNewspaper } from 'react-icons/fa6';
 
@@ -32,11 +31,6 @@ const data = {
       title: 'Users',
       url: '/admin/user-list',
       icon: FaUserFriends,
-    },
-    {
-      title: 'Admins',
-      url: '/admin/admin-list',
-      icon: FaUserTie,
     },
     {
       title: 'Events',

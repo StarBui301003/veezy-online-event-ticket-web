@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers, getAccountByIdAPI } from '@/services/User/user.service';
+import { getCustomerUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
 import {
   Table,
@@ -32,9 +32,8 @@ import EditUserModal from '@/pages/Admin/User/EditUserModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const UserList = () => {
+export const CustomerList = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const [userPage, setUserPage] = useState(1);
@@ -45,30 +44,21 @@ export const UserList = () => {
 
   const [userSearch, setUserSearch] = useState('');
 
-  useEffect(() => {
+  // Thêm hàm reload danh sách
+  const reloadUsers = () => {
     setLoading(true);
-    getUsers()
-      .then(async (data) => {
+    getCustomerUsers()
+      .then((data) => {
         setUsers(data);
-        const roleMap: Record<string, number> = {};
-        await Promise.all(
-          data.map(async (user) => {
-            try {
-              const account = await getAccountByIdAPI(user.accountId);
-              roleMap[user.accountId] = account.role;
-            } catch {
-              roleMap[user.accountId] = -1;
-            }
-          })
-        );
-        setRoles(roleMap);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadUsers();
   }, []);
 
-  const nonAdminUsers = users.filter((u) => roles[u.accountId] !== 0);
-
-  const filteredUsers = nonAdminUsers.filter(
+  const filteredUsers = users.filter(
     (user) =>
       !userSearch ||
       user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
@@ -79,21 +69,8 @@ export const UserList = () => {
   const pagedUsers = filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
 
-  const roleLabel = (role: number) => {
-    switch (role) {
-      case 0:
-        return 'Admin';
-      case 1:
-        return 'Customer';
-      case 2:
-        return 'EventManager';
-      default:
-        return 'Unknown';
-    }
-  };
-
   return (
-    <div className="p-6">
+    <div className="p-3">
       <SpinnerOverlay show={loading} />
       {viewUser && <UserDetailModal user={viewUser} onClose={() => setViewUser(null)} />}
       {editUser && (
@@ -102,27 +79,9 @@ export const UserList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            setLoading(true);
-            getUsers()
-              .then(async (data) => {
-                setUsers(data);
-                const roleMap: Record<string, number> = {};
-                await Promise.all(
-                  data.map(async (user) => {
-                    try {
-                      const account = await getAccountByIdAPI(user.accountId);
-                      roleMap[user.accountId] = account.role;
-                    } catch {
-                      roleMap[user.accountId] = -1;
-                    }
-                  })
-                );
-                setRoles(roleMap);
-              })
-              .finally(() => {
-                setTimeout(() => setLoading(false), 500);
-              });
+            reloadUsers();
           }}
+          title="Edit Customer"
         />
       )}
       <div className="overflow-x-auto">
@@ -198,11 +157,12 @@ export const UserList = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4">#</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead className="pl-4" style={{ width: '10%' }}>
+                  #
+                </TableHead>
+                <TableHead style={{ width: '25%' }}>Full Name</TableHead>
+                <TableHead style={{ width: '15%' }}>Phone</TableHead>
+                <TableHead style={{ width: '25%' }}>Email</TableHead>
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -224,13 +184,7 @@ export const UserList = () => {
                       {user.phone || <span className="text-gray-400">N/A</span>}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {roles[user.accountId] !== undefined ? (
-                        roleLabel(roles[user.accountId])
-                      ) : (
-                        <span className="text-gray-400">...</span>
-                      )}
-                    </TableCell>
+
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
                         className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
