@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,21 +7,20 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { createNews } from '@/services/Admin/news.service';
+import { updateNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
-import { toast } from 'react-toastify';
-import type { CreateNewsRequest } from '@/types/Admin/news';
-import { FaUpload, FaSpinner } from 'react-icons/fa';
+import type { News } from '@/types/Admin/news';
 import { SerializedEditorState } from 'lexical';
-import { Editor } from '@/components/blocks/editor-00/editor'; // Đường dẫn đúng với file shadcn-editor generate
+import { Editor } from '@/components/blocks/editor-00/editor';
 import { lexicalStateToHtml } from '@/utils/lexicalToHtml';
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from '@/components/ui/select';
+import { FaSpinner } from 'react-icons/fa';
 
 const initialLexicalValue = {
   root: {
@@ -54,21 +53,18 @@ const initialLexicalValue = {
 } as unknown as SerializedEditorState;
 
 interface Props {
-  open: boolean;
+  news: (News & { newsId: string }) | null;
   onClose: () => void;
-  onCreated?: () => void;
-  authorId: string;
+  onUpdated?: () => void;
 }
 
-export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) => {
-  const [form, setForm] = useState<
-    Omit<CreateNewsRequest, 'newsContent'> & { newsContent: SerializedEditorState }
-  >({
+export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
+  const [form, setForm] = useState({
     eventId: '',
     newsDescription: '',
     newsTitle: '',
-    newsContent: initialLexicalValue, // <-- Sửa ở đây
-    authorId,
+    newsContent: initialLexicalValue,
+    authorId: '',
     imageUrl: '',
     status: true,
   });
@@ -77,18 +73,34 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
-    if (open) {
+    if (news) {
+      setForm({
+        eventId: news.eventId || '',
+        newsDescription: news.newsDescription || '',
+        newsTitle: news.newsTitle || '',
+        newsContent: news.newsContent
+          ? typeof news.newsContent === 'object'
+            ? news.newsContent
+            : initialLexicalValue
+          : initialLexicalValue,
+        authorId: news.authorId || '',
+        imageUrl: news.imageUrl || '',
+        status: news.status ?? true,
+      });
+    }
+  }, [news]);
+
+  useEffect(() => {
+    if (news) {
       getApprovedEvents()
         .then((res) => {
           setEvents(res.data.items || []);
         })
         .catch(() => setEvents([]));
     }
-  }, [open]);
+  }, [news]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setForm((prev) => ({
       ...prev,
@@ -100,64 +112,46 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
-
-    // Nếu có API upload ảnh, upload tại đây và lấy url trả về
-    // const url = await uploadImageAPI(file);
-    // setForm((prev) => ({ ...prev, imageUrl: url }));
-
-    // Nếu chỉ lấy local url để preview:
     const url = URL.createObjectURL(file);
     setForm((prev) => ({ ...prev, imageUrl: url }));
   };
 
-  const handleCreate = async () => {
+  const handleEdit = async () => {
     if (!form.newsTitle.trim()) {
-      toast.error('Title is required!');
+      alert('Title is required!');
       return;
     }
     if (!form.newsDescription.trim()) {
-      toast.error('Description is required!');
+      alert('Description is required!');
       return;
     }
     if (!form.eventId) {
-      toast.error('Event is required!');
+      alert('Event is required!');
       return;
     }
     setLoading(true);
     try {
-      // Chuyển Lexical state sang HTML string
       const htmlContent = lexicalStateToHtml(form.newsContent);
-
-      await createNews({ ...form, newsContent: htmlContent, authorId }); // newsContent là string
-
-      toast.success('News created successfully!');
-      setForm({
-        eventId: '',
-        newsDescription: '',
-        newsTitle: '',
-        newsContent: initialLexicalValue,
-        authorId,
-        imageUrl: '',
-        status: true,
+      await updateNews(news.newsId, {
+        ...form,
+        newsContent: htmlContent,
       });
+      onUpdated && onUpdated();
       onClose();
-      if (onCreated) onCreated();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create news!');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={!!news} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Create News</DialogTitle>
+            <DialogTitle>Edit News</DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-3 p-4 pt-0">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <Select
@@ -165,11 +159,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               onValueChange={(value) => setForm((prev) => ({ ...prev, eventId: value }))}
               disabled={loading}
             >
-              <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
+              <SelectTrigger className="border-gray-200 border rounded px-2 py-1 w-full">
                 <SelectValue placeholder="Select event" />
               </SelectTrigger>
               <SelectContent>
-                <SelectValue placeholder="Select event" />
                 {events.map((ev) => (
                   <SelectItem key={ev.eventId} value={ev.eventId}>
                     {ev.eventName}
@@ -181,7 +174,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           <div>
             <label className="block text-xs text-gray-500 mb-1">Title</label>
             <input
-              className="border px-3 py-2 rounded w-full"
+              className="border rounded px-2 py-1 w-full"
               name="newsTitle"
               value={form.newsTitle}
               onChange={handleInputChange}
@@ -192,7 +185,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           <div>
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <textarea
-              className="border px-3 py-2 rounded w-full"
+              className="border rounded px-2 py-1 w-full"
               name="newsDescription"
               value={form.newsDescription}
               onChange={handleInputChange}
@@ -211,39 +204,36 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           <div>
             <label className="block text-xs text-gray-500 mb-1">Image</label>
             <div className="flex items-center gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <label
-                  className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500"
-                  style={{ marginBottom: 0 }}
-                >
-                  <FaUpload />
-                  Import
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={loading}
-                    className="hidden m-0"
-                  />
-                </label>
-                {/* Hiển thị preview ảnh và tên file nếu đã chọn */}
-                {(form.imageUrl || imageFile) && (
-                  <div className="flex items-center gap-2">
-                    {form.imageUrl && (
-                      <img
-                        src={form.imageUrl}
-                        alt="Preview"
-                        className="h-12 w-12 object-cover rounded border"
-                      />
-                    )}
-                    {imageFile && (
-                      <span className="text-xs text-gray-700 max-w-[120px] truncate block">
-                        {imageFile.name}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
+              <label
+                className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500"
+                style={{ marginBottom: 0 }}
+              >
+                <FaSpinner />
+                Import
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  disabled={loading}
+                  className="hidden m-0"
+                />
+              </label>
+              {(form.imageUrl || imageFile) && (
+                <div className="flex items-center gap-2">
+                  {form.imageUrl && (
+                    <img
+                      src={form.imageUrl}
+                      alt="Preview"
+                      className="h-12 w-12 object-cover rounded border"
+                    />
+                  )}
+                  {imageFile && (
+                    <span className="text-xs text-gray-700 max-w-[120px] truncate block">
+                      {imageFile.name}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div>
@@ -253,7 +243,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               onValueChange={(value) => setForm((prev) => ({ ...prev, status: value === 'true' }))}
               disabled={loading}
             >
-              <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
+              <SelectTrigger className="border-gray-200 border rounded px-2 py-1 w-full">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -263,11 +253,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             </Select>
           </div>
         </div>
-
-        <div className="p-4 flex justify-end gap-2">
+        <div className="p-4">
           <DialogFooter>
             <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
               onClick={onClose}
               disabled={loading}
               type="button"
@@ -275,18 +264,18 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               Cancel
             </button>
             <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
-              onClick={handleCreate}
+              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+              onClick={handleEdit}
               disabled={loading}
               type="button"
             >
               {loading ? (
-                <>
+                <div className="flex items-center gap-2">
                   <FaSpinner className="animate-spin" />
-                  Creating...
-                </>
+                  Editing...
+                </div>
               ) : (
-                'Create'
+                'Edit'
               )}
             </button>
           </DialogFooter>
@@ -296,4 +285,4 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   );
 };
 
-export default CreateNewsModal;
+export default EditNewsModal;

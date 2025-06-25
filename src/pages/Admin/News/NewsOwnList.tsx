@@ -24,6 +24,8 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import EditNewsModal from './EditNewsModal';
+import { MdOutlineEdit } from 'react-icons/md';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -35,6 +37,7 @@ export const NewsOwnList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState(''); // Thêm state search
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editNews, setEditNews] = useState<News | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -272,6 +275,13 @@ export const NewsOwnList = () => {
                         <FaEye className="w-4 h-4" />
                       </button>
                       <button
+                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
+                        title="Edit"
+                        onClick={() => setEditNews(item)}
+                      >
+                        <MdOutlineEdit className="w-4 h-4" />
+                      </button>
+                      <button
                         className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
                         title="Delete"
                         onClick={() => handleDelete(item)}
@@ -367,6 +377,9 @@ export const NewsOwnList = () => {
         onCreated={reloadList}
         authorId={authorId}
       />
+      {editNews && (
+        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={reloadList} />
+      )}
     </div>
   );
 };

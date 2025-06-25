@@ -48,3 +48,8 @@ export async function createNews(data: CreateNewsRequest): Promise<News> {
   const res = await instance.post('/api/News', data);
   return res.data;
 }
+
+export async function updateNews(newsId: string, data: CreateNewsRequest): Promise<News> {
+  const res = await instance.put(`/api/News/${newsId}`, data);
+  return res.data;
+}
