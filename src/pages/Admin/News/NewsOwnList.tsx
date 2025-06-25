@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { getNewsByAuthor, deleteNews, deleteNewsImage } from '@/services/Admin/news.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsDetailModal from '@/pages/Admin/News/NewsDetailModal';
+import CreateNewsModal from './CreateNewsModal';
 import { Badge } from '@/components/ui/badge';
 import type { News } from '@/types/Admin/news';
-import { FaEye, FaRegTrashAlt } from 'react-icons/fa';
+import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import {
   Table,
@@ -32,6 +33,8 @@ export const NewsOwnList = () => {
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState(''); // Thêm state search
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -60,9 +63,6 @@ export const NewsOwnList = () => {
       });
   }, []);
 
-  const pagedNews = news.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(news.length / pageSize));
-
   const reloadList = () => {
     setLoading(true);
     // Lấy authorId từ localStorage account
@@ -90,6 +90,13 @@ export const NewsOwnList = () => {
       });
   };
 
+  // Lọc theo search
+  const filteredNews = news.filter(
+    (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
+  );
+  const pagedNews = filteredNews.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
+
   // Delete handler
   const handleDelete = async (item: News) => {
     if (!window.confirm('Are you sure you want to delete this news?')) return;
@@ -105,11 +112,103 @@ export const NewsOwnList = () => {
     }
   };
 
+  // Lấy authorId từ localStorage (có thể đặt ngoài useEffect để dùng cho CreateNewsModal)
+  const accStr = localStorage.getItem('account');
+  let authorId = '';
+  if (accStr) {
+    try {
+      const acc = JSON.parse(accStr);
+      authorId = acc.userId;
+    } catch {
+      authorId = '';
+    }
+  }
+
   return (
     <div className="pl-1 pt-3">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
+          {/* Thanh search và nút create */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
+            <div className="flex-1 flex items-center gap-2">
+              <div
+                className="InputContainer relative"
+                style={{
+                  width: 310,
+                  height: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+                  borderRadius: 30,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+                  position: 'relative',
+                }}
+              >
+                <input
+                  className="input pr-8"
+                  style={{
+                    width: 300,
+                    height: 40,
+                    border: 'none',
+                    outline: 'none',
+                    caretColor: 'rgb(255,81,0)',
+                    backgroundColor: 'rgb(255,255,255)',
+                    borderRadius: 30,
+                    paddingLeft: 15,
+                    letterSpacing: 0.8,
+                    color: 'rgb(19,19,19)',
+                    fontSize: 13.4,
+                  }}
+                  placeholder="Search by news title..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                {search && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setSearch('');
+                      setPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Create button (right) */}
+            <div className="flex justify-end">
+              <button
+                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <FaPlus />
+                Create
+              </button>
+            </div>
+          </div>
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
@@ -262,6 +361,12 @@ export const NewsOwnList = () => {
       {selectedNews && (
         <NewsDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
       )}
+      <CreateNewsModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={reloadList}
+        authorId={authorId}
+      />
     </div>
   );
 };
