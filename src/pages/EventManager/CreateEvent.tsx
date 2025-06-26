@@ -9,6 +9,7 @@ import Select from 'react-select';
 import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import { Category, CreateEventData } from '@/types/event';
+import { useNavigate } from 'react-router-dom';
 
 interface EnhancedContent {
   position: number;
@@ -64,6 +65,7 @@ export default function CreateEventForm() {
   });
 
   const { quill, quillRef } = useQuill();
+  const navigate = useNavigate();
 
   const fetchCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -230,6 +232,7 @@ export default function CreateEventForm() {
       };
       await createEvent(apiData);
       alert('Event created successfully!');
+      navigate('/event-manager/pending-events');
     } catch (error) {
       alert('Failed to create event.');
     } finally {
@@ -323,6 +326,15 @@ export default function CreateEventForm() {
         `}
       </style>
       <div className="w-full h-full p-6">
+        <div className="flex justify-start mb-6">
+          <button
+            type="button"
+            onClick={() => navigate('/event-manager')}
+            className="bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white px-6 py-2 rounded-lg font-bold shadow transition-all"
+          >
+            Trở về Dashboard
+          </button>
+        </div>
         <form
           onSubmit={handleSubmit}
           className="space-y-8 bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-purple-700/40 w-full max-w-[1100px] mx-auto"

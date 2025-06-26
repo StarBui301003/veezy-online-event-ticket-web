@@ -1,83 +1,438 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search } from 'lucide-react';
+import { Plus, DollarSign, Users, Calendar, ArrowUpRight, Ticket, Percent, ChartBar, Newspaper, Bell, MessageCircle, Eye, Clock, CheckCircle, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { getMyEvents, getEventFund, getCollaboratorsForEvent } from '@/services/Event Manager/event.service';
+import { toast } from 'react-toastify';
 
-const events = [
-  {
-    id: 1,
-    title: 'RAVE IN THE CITY',
-    location: 'Ho Chi Minh City',
-    date: '2025-06-10',
-    coverImage: 'https://images.unsplash.com/photo-1582719478175-ff7c5c9da1e8',
-  },
-  {
-    id: 2,
-    title: 'NEON BEATS FESTIVAL',
-    location: 'Da Nang',
-    date: '2025-07-12',
-    coverImage: 'https://images.unsplash.com/photo-1549921296-3a26f982a853',
-  },
-  {
-    id: 3,
-    title: 'ART & MUSIC NIGHT',
-    location: 'Hanoi',
-    date: '2025-08-05',
-    coverImage: 'https://images.unsplash.com/photo-1526178610531-d6f542f1b001',
-  },
-];
+interface Event {
+  eventId: string;
+  eventName: string;
+  eventLocation: string;
+  startAt: string;
+  endAt: string;
+  isApproved: number;
+  isCancelled: boolean;
+}
+
+interface DashboardStats {
+  totalEvents: number;
+  pendingEvents: number;
+  approvedEvents: number;
+  totalRevenue: number;
+  totalCollaborators: number;
+}
 
 export default function EventManagerHome() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEvents: 0,
+    pendingEvents: 0,
+    approvedEvents: 0,
+    totalRevenue: 0,
+    totalCollaborators: 0,
+  });
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const eventData = await getMyEvents(1, 1000); // Assuming 1000 events is enough
+      const allEvents: Event[] = Array.isArray(eventData.items) ? eventData.items : [];
+      
+      const approvedEventsList = allEvents.filter(e => e.isApproved === 1 && !e.isCancelled);
+      const pendingEventsCount = allEvents.filter(e => e.isApproved === 0 && !e.isCancelled).length;
+
+      let totalRevenue = 0;
+      let totalCollaborators = 0;
+
+      if (approvedEventsList.length > 0) {
+        const fundPromises = approvedEventsList.map(e => getEventFund(e.eventId));
+        const collaboratorPromises = approvedEventsList.map(e => getCollaboratorsForEvent(e.eventId));
+
+        const fundResults = await Promise.all(fundPromises);
+        totalRevenue = fundResults.reduce((sum, res) => sum + (res.data?.totalRevenue || 0), 0);
+        
+        const collaboratorResults = await Promise.all(collaboratorPromises);
+        totalCollaborators = collaboratorResults.reduce((sum, res) => sum + (Array.isArray(res) ? res.length : 0), 0);
+      }
+
+      setStats({
+        totalEvents: pendingEventsCount + approvedEventsList.length,
+        pendingEvents: pendingEventsCount,
+        approvedEvents: approvedEventsList.length,
+        totalRevenue: totalRevenue,
+        totalCollaborators: totalCollaborators,
+      });
+
+    } catch (error) {
+      console.error('Failed to fetch dashboard data', error);
+      toast.error('Không thể tải dữ liệu dashboard!');
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.5
+      }
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
+
+  const dashboardSections = [
+    {
+      title: "Quản lý sự kiện",
+      icon: Calendar,
+      color: "from-blue-500 to-cyan-500",
+      items: [
+        { name: "Tạo sự kiện mới", path: "/event-manager/create-event", icon: Plus },
+        { name: "Đang chờ duyệt", path: "/event-manager/pending-events", icon: Clock, count: stats.pendingEvents },
+        { name: "Đã duyệt", path: "/event-manager/approved-events", icon: CheckCircle, count: stats.approvedEvents },
+        { name: "Cộng tác viên", path: "/event-manager/collaborators", icon: Users, count: stats.totalCollaborators }
+      ]
+    },
+    {
+      title: "Quản lý vé",
+      icon: Ticket,
+      color: "from-green-500 to-emerald-500",
+      items: [
+        { name: "Quản lý vé", path: "/event-manager/tickets/manage", icon: Ticket },
+        { name: "Mã giảm giá", path: "/event-manager/discount-codes", icon: Percent },
+        { name: "Theo dõi bán vé", path: "/event-manager/ticket-sales", icon: ChartBar },
+        { name: "Check-in & QR", path: "/event-manager/check-ins", icon: CheckCircle }
+      ]
+    },
+    {
+      title: "Báo cáo & Phân tích",
+      icon: ChartBar,
+      color: "from-purple-500 to-pink-500",
+      items: [
+        { name: "Tổng quan", path: "/event-manager/analytics/overview", icon: ChartBar },
+        { name: "Danh sách tham gia", path: "/event-manager/analytics/participants", icon: Users },
+        { name: "Đánh giá sự kiện", path: "/event-manager/reviews", icon: Eye },
+        { name: "Dự đoán AI", path: "/event-manager/analytics/predictions", icon: ChartBar }
+      ]
+    },
+    {
+      title: "Nội dung & Liên lạc",
+      icon: Newspaper,
+      color: "from-orange-500 to-red-500",
+      items: [
+        { name: "Quản lý tin tức", path: "/event-manager/news", icon: Newspaper },
+        { name: "Thông báo", path: "/event-manager/notifications", icon: Bell },
+        { name: "Chat hỗ trợ", path: "/event-manager/chat", icon: MessageCircle }
+      ]
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white p-8 font-extrabold">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-400 to-purple-600 animate-pulse">
-          EVENT MANAGER
-        </h1>
-        <Link to="/event-manager/create-event">
-          <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-6 py-2 rounded-xl text-lg shadow-lg">
-            <Plus size={20} /> Tạo Sự Kiện Mới
-          </Button>
-        </Link>
-      </div>
-
-      <div className="mb-8">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sự kiện..."
-            className="w-full p-4 pl-12 rounded-full bg-zinc-800 text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-inner"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={22} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {events.map((event) => (
-          <motion.div
-            key={event.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="rounded-2xl overflow-hidden shadow-2xl border border-zinc-700"
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8">
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="max-w-7xl mx-auto"
+      >
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row items-center justify-between mb-12">
+          <motion.h1 
+            className="text-5xl lg:text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-yellow-400 to-purple-400 mb-6 lg:mb-0"
+            animate={{ 
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{ 
+              duration: 3,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            style={{ backgroundSize: '200% 200%' }}
           >
-            <Card className="bg-zinc-900">
-              <div
-                className="h-56 bg-cover bg-center"
-                style={{ backgroundImage: `url(${event.coverImage})` }}
-              ></div>
-              <CardContent className="p-5 flex flex-col h-full">
-                <h2 className="text-2xl text-pink-400 mb-2 uppercase tracking-wide min-h-[4rem]">
-                  {event.title}
-                </h2>
+            EVENT MANAGER DASHBOARD
+          </motion.h1>
+          <Link to="/event-manager/create-event">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-8 py-4 rounded-2xl text-lg shadow-2xl">
+                <Plus size={24} className="mr-2" /> Tạo Sự Kiện Mới
+              </Button>
+            </motion.div>
+          </Link>
+        </div>
 
-                <p className="text-sm text-zinc-300 mb-1">📍 {event.location}</p>
-                <p className="text-sm text-zinc-400">🗓 {event.date}</p>
+        {/* Quick Stats */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12"
+        >
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-pink-500/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-pink-300 text-sm font-semibold">Tổng Sự Kiện</p>
+                    <p className="text-3xl font-bold text-yellow-400">{stats.totalEvents}</p>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Calendar className="text-pink-400" size={32} />
+                  </motion.div>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
-        ))}
-      </div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-pink-500/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-pink-300 text-sm font-semibold">Tổng Doanh Thu</p>
+                    <p className="text-3xl font-bold text-green-400">{formatCurrency(stats.totalRevenue)}</p>
+                  </div>
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <DollarSign className="text-green-400" size={32} />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-pink-500/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-pink-300 text-sm font-semibold">Sự kiện đã duyệt</p>
+                    <p className="text-3xl font-bold text-blue-400">{stats.approvedEvents}</p>
+                  </div>
+                  <motion.div
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <CheckCircle className="text-blue-400" size={32} />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-pink-500/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-pink-300 text-sm font-semibold">Cộng tác viên</p>
+                    <p className="text-3xl font-bold text-purple-400">{stats.totalCollaborators}</p>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Users className="text-purple-400" size={32} />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+        {/* Dashboard Sections */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        >
+          {dashboardSections.map((section, sectionIndex) => (
+            <motion.div
+              key={section.title}
+              variants={itemVariants}
+              className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-pink-500/30 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`p-3 rounded-xl bg-gradient-to-r ${section.color}`}>
+                  <section.icon className="text-white" size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-white">{section.title}</h2>
+              </div>
+              
+              <div className="space-y-3">
+                {section.items.map((item, itemIndex) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: sectionIndex * 0.1 + itemIndex * 0.05 }}
+                  >
+                    <Link to={item.path}>
+                      <div className="flex items-center justify-between p-4 bg-[#1a0022]/60 rounded-xl border border-pink-500/20 hover:border-pink-400/40 transition-all duration-200 group">
+                        <div className="flex items-center gap-3">
+                          <item.icon className="text-pink-400 group-hover:text-pink-300 transition-colors" size={20} />
+                          <span className="text-white font-medium group-hover:text-pink-200 transition-colors">
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {item.count !== undefined && (
+                            <span className="px-2 py-1 bg-pink-500/20 text-pink-300 text-xs font-bold rounded-full">
+                              {item.count}
+                            </span>
+                          )}
+                          <ArrowUpRight className="text-pink-400 group-hover:text-pink-300 transition-colors" size={16} />
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-12"
+        >
+          <h3 className="text-2xl font-bold text-cyan-300 mb-6">Hành Động Nhanh</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link to="/event-manager/create-event">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-cyan-500/30 shadow-2xl hover:border-cyan-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <Plus className="text-cyan-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-cyan-300 mb-2">Tạo Sự Kiện</h4>
+                  <p className="text-gray-400 text-sm">Tạo sự kiện mới</p>
+                </div>
+              </motion.div>
+            </Link>
+
+            <Link to="/event-manager/ticket-sales">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-green-500/30 shadow-2xl hover:border-green-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <ChartBar className="text-green-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-green-300 mb-2">Báo Cáo Bán Vé</h4>
+                  <p className="text-gray-400 text-sm">Xem thống kê bán vé</p>
+                </div>
+              </motion.div>
+            </Link>
+
+            <Link to="/event-manager/analytics/overview">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-purple-500/30 shadow-2xl hover:border-purple-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <ChartBar className="text-purple-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-purple-300 mb-2">Phân Tích</h4>
+                  <p className="text-gray-400 text-sm">Xem báo cáo chi tiết</p>
+                </div>
+              </motion.div>
+            </Link>
+
+            <Link to="/event-manager/notifications">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-orange-500/30 shadow-2xl hover:border-orange-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <Bell className="text-orange-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-orange-300 mb-2">Thông Báo</h4>
+                  <p className="text-gray-400 text-sm">Xem thông báo mới</p>
+                </div>
+              </motion.div>
+            </Link>
+          </div>
+
+          {/* Additional Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+            <Link to="/event-manager/fund-management">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-emerald-500/30 shadow-2xl hover:border-emerald-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <Wallet className="text-emerald-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-emerald-300 mb-2">Quản Lý Quỹ</h4>
+                  <p className="text-gray-400 text-sm">Theo dõi doanh thu & rút tiền</p>
+                </div>
+              </motion.div>
+            </Link>
+
+            <Link to="/event-manager/collaborators">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl hover:border-blue-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <Users className="text-blue-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-blue-300 mb-2">Cộng Tác Viên</h4>
+                  <p className="text-gray-400 text-sm">Quản lý team</p>
+                </div>
+              </motion.div>
+            </Link>
+
+            <Link to="/event-manager/news">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-pink-500/30 shadow-2xl hover:border-pink-400 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <Newspaper className="text-pink-400 mx-auto mb-4" size={40} />
+                  <h4 className="text-lg font-bold text-pink-300 mb-2">Tin Tức</h4>
+                  <p className="text-gray-400 text-sm">Quản lý nội dung</p>
+                </div>
+              </motion.div>
+            </Link>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

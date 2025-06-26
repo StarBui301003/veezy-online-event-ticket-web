@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getMyApprovedEvents, getNewsByEvent, deleteNews } from "@/services/Event Manager/event.service";
+import { getMyApprovedEvents, getMyNews, deleteNews } from "@/services/Event Manager/event.service";
 import { News } from "@/types/event";
 import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
@@ -67,60 +67,13 @@ const NewsManager: React.FC = () => {
   const fetchNewsForEvent = async (eventId: string) => {
     setLoadingNews(true);
     try {
-      console.log('Fetching news for event:', eventId);
-      
-      // Check if user is logged in
-      const account = JSON.parse(localStorage.getItem("account") || "{}");
-      const accessToken = localStorage.getItem("access_token");
-      console.log('Current user account:', account);
-      console.log('Access token exists:', !!accessToken);
-      console.log('User role:', account.role);
-      
-      // Check if the selected event belongs to the current user
-      if (selectedEvent) {
-        console.log('Selected event creator ID:', selectedEvent.creatorId);
-        console.log('Current user ID:', account.userId);
-        console.log('Is event creator:', selectedEvent.creatorId === account.userId);
-        
-        // If user is not the creator, show a warning
-        if (selectedEvent.creatorId && account.userId && selectedEvent.creatorId !== account.userId) {
-          console.warn('User is not the event creator, this might cause permission issues');
-        }
-      }
-      
-      const response = await getNewsByEvent(eventId);
-      console.log('News API response:', response);
-      
-      // API returns: { flag, code, data: { items: [], ... } }
+      // Lấy tất cả news của user, sau đó lọc theo eventId
+      const response = await getMyNews(1, 100);
       const newsItems = response.data?.data?.items || [];
-      console.log('News items:', newsItems);
-      
-      const activeNews = newsItems.filter((news: News) => news.status);
-      console.log('Active news:', activeNews);
-      
+      const activeNews = newsItems.filter((news: News) => news.status && news.eventId === eventId);
       setNewsList(activeNews);
     } catch (error) {
-      console.error("Failed to fetch news:", error);
-      if (error && typeof error === 'object' && 'response' in error) {
-        const errorResponse = error as { response?: { status?: number; data?: { message?: string } } };
-        if (errorResponse.response?.status === 403) {
-          toast.error("Không có quyền truy cập tin tức này! Vui lòng kiểm tra quyền của bạn.");
-          console.log('403 Error Details:', {
-            status: errorResponse.response?.status,
-            message: errorResponse.response?.data?.message,
-            eventId: eventId,
-            userAccount: JSON.parse(localStorage.getItem("account") || "{}")
-          });
-          
-          // Show a helpful message to the user
-          setNewsList([]);
-          return;
-        } else {
-          toast.error(`Lỗi ${errorResponse.response?.status}: ${errorResponse.response?.data?.message || 'Không thể tải tin tức!'}`);
-        }
-      } else {
-        toast.error("Không thể tải tin tức!");
-      }
+      toast.error("Không thể tải tin tức!");
       setNewsList([]);
     } finally {
       setLoadingNews(false);
