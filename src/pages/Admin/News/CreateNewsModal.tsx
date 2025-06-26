@@ -12,9 +12,7 @@ import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import type { CreateNewsRequest } from '@/types/Admin/news';
 import { FaUpload, FaSpinner } from 'react-icons/fa';
-import { SerializedEditorState } from 'lexical';
-import { Editor } from '@/components/blocks/editor-00/editor'; // Đường dẫn đúng với file shadcn-editor generate
-import { lexicalStateToHtml } from '@/utils/lexicalToHtml';
+import RichTextEditor from '@/components/RichTextEditor';
 import {
   Select,
   SelectContent,
@@ -23,35 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const initialLexicalValue = {
-  root: {
-    children: [
-      {
-        children: [
-          {
-            detail: 0,
-            format: 0,
-            mode: 'normal',
-            style: '',
-            text: '',
-            type: 'text',
-            version: 1,
-          },
-        ],
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        type: 'paragraph',
-        version: 1,
-      },
-    ],
-    direction: 'ltr',
-    format: '',
-    indent: 0,
-    type: 'root',
-    version: 1,
-  },
-} as unknown as SerializedEditorState;
+const initialLexicalValue = ''; // TipTap dùng HTML string
 
 interface Props {
   open: boolean;
@@ -62,12 +32,12 @@ interface Props {
 
 export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) => {
   const [form, setForm] = useState<
-    Omit<CreateNewsRequest, 'newsContent'> & { newsContent: SerializedEditorState }
+    Omit<CreateNewsRequest, 'newsContent'> & { newsContent: string }
   >({
     eventId: '',
     newsDescription: '',
     newsTitle: '',
-    newsContent: initialLexicalValue, // <-- Sửa ở đây
+    newsContent: initialLexicalValue,
     authorId,
     imageUrl: '',
     status: true,
@@ -125,10 +95,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     }
     setLoading(true);
     try {
-      // Chuyển Lexical state sang HTML string
-      const htmlContent = lexicalStateToHtml(form.newsContent);
-
-      await createNews({ ...form, newsContent: htmlContent, authorId }); // newsContent là string
+      await createNews({ ...form, newsContent: form.newsContent, authorId });
 
       toast.success('News created successfully!');
       setForm({
@@ -203,9 +170,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Content</label>
-            <Editor
-              editorSerializedState={form.newsContent}
-              onSerializedChange={(val) => setForm((prev) => ({ ...prev, newsContent: val }))}
+            <RichTextEditor
+              value={form.newsContent}
+              onChange={(val: string) => setForm((prev) => ({ ...prev, newsContent: val }))}
+              disabled={loading}
             />
           </div>
           <div>

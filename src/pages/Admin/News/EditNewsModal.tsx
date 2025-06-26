@@ -10,9 +10,7 @@ import {
 import { updateNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import type { News } from '@/types/Admin/news';
-import { SerializedEditorState } from 'lexical';
-import { Editor } from '@/components/blocks/editor-00/editor';
-import { lexicalStateToHtml } from '@/utils/lexicalToHtml';
+import RichTextEditor from '@/components/RichTextEditor';
 import {
   Select,
   SelectTrigger,
@@ -22,35 +20,7 @@ import {
 } from '@/components/ui/select';
 import { FaSpinner } from 'react-icons/fa';
 
-const initialLexicalValue = {
-  root: {
-    children: [
-      {
-        children: [
-          {
-            detail: 0,
-            format: 0,
-            mode: 'normal',
-            style: '',
-            text: '',
-            type: 'text',
-            version: 1,
-          },
-        ],
-        direction: 'ltr',
-        format: '',
-        indent: 0,
-        type: 'paragraph',
-        version: 1,
-      },
-    ],
-    direction: 'ltr',
-    format: '',
-    indent: 0,
-    type: 'root',
-    version: 1,
-  },
-} as unknown as SerializedEditorState;
+const initialLexicalValue = ''; // TipTap dùng HTML string
 
 interface Props {
   news: (News & { newsId: string }) | null;
@@ -78,11 +48,7 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
         eventId: news.eventId || '',
         newsDescription: news.newsDescription || '',
         newsTitle: news.newsTitle || '',
-        newsContent: news.newsContent
-          ? typeof news.newsContent === 'object'
-            ? news.newsContent
-            : initialLexicalValue
-          : initialLexicalValue,
+        newsContent: typeof news.newsContent === 'string' ? news.newsContent : initialLexicalValue,
         authorId: news.authorId || '',
         imageUrl: news.imageUrl || '',
         status: news.status ?? true,
@@ -131,10 +97,9 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
     }
     setLoading(true);
     try {
-      const htmlContent = lexicalStateToHtml(form.newsContent);
       await updateNews(news.newsId, {
         ...form,
-        newsContent: htmlContent,
+        newsContent: form.newsContent,
       });
       onUpdated && onUpdated();
       onClose();
@@ -196,9 +161,10 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Content</label>
-            <Editor
-              editorSerializedState={form.newsContent}
-              onSerializedChange={(val) => setForm((prev) => ({ ...prev, newsContent: val }))}
+            <RichTextEditor
+              value={form.newsContent}
+              onChange={(val: string) => setForm((prev) => ({ ...prev, newsContent: val }))}
+              disabled={loading}
             />
           </div>
           <div>
