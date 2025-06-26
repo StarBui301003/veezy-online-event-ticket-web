@@ -1,5 +1,6 @@
+import { CreateNewsRequest } from './../../types/Admin/news';
 import instance from '@/services/axios.customize';
-import type { NewsListResponse } from '@/types/Admin/news';
+import type { NewsListResponse, News } from '@/types/Admin/news';
 
 export async function getAllNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/all`, {
@@ -41,4 +42,14 @@ export async function deleteNewsImage(imageUrl: string): Promise<void> {
   await instance.delete(`/api/News/delete-image`, {
     params: { imageUrl }
   });
+}
+
+export async function createNews(data: CreateNewsRequest): Promise<News> {
+  const res = await instance.post('/api/News', data);
+  return res.data;
+}
+
+export async function updateNews(newsId: string, data: CreateNewsRequest): Promise<News> {
+  const res = await instance.put(`/api/News/${newsId}`, data);
+  return res.data;
 }
