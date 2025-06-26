@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, CalendarDays, MapPin, Ticket, ShoppingCart, AlertCircle, CheckCircle, MinusCircle, PlusCircle } from "lucide-react";
 import { getEventById, getTicketsByEvent, validateDiscountCode } from "@/services/Event Manager/event.service";
 import { toast } from "react-toastify";
+import CommentSection from "@/components/Customer/CommentSection";
 
 interface EventDetailData {
   eventId: string;
@@ -334,6 +335,11 @@ const EventDetail = () => {
                 </div>
               )
             )}
+
+            {/* ====== COMMENT SECTION START ====== */}
+            <CommentSection eventId={event.eventId} />
+            {/* ====== COMMENT SECTION END ====== */}
+
           </motion.div>
 
           {/* Right Column: Tickets & Order */}

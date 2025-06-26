@@ -17,6 +17,7 @@ import {
   FaEye,
   FaChevronDown,
   FaChevronRight,
+  FaDollarSign,
 } from 'react-icons/fa';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
@@ -204,13 +205,6 @@ export function EventManagerLayout() {
                 {expandedSections.events && (
                   <div className="ml-4 space-y-1 mt-2">
                     <NavItem
-                      to="my-events"
-                      icon={FaCalendarAlt}
-                      isActive={isActiveRoute('/event-manager/my-events')}
-                    >
-                      Sự kiện của tôi
-                    </NavItem>
-                    <NavItem
                       to="create-event"
                       icon={FaPlus}
                       isActive={isActiveRoute('/event-manager/create-event')}
@@ -313,6 +307,13 @@ export function EventManagerLayout() {
                       isActive={isActiveRoute('/event-manager/analytics/predictions')}
                     >
                       Dự đoán AI
+                    </NavItem>
+                    <NavItem
+                      to="fund-management"
+                      icon={FaDollarSign}
+                      isActive={isActiveRoute('/event-manager/fund-management')}
+                    >
+                      Quản lý quỹ
                     </NavItem>
                   </div>
                 )}

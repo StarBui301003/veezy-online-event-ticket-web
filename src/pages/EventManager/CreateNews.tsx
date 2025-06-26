@@ -166,7 +166,6 @@ const CreateNews: React.FC = () => {
           <h1 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent tracking-wide uppercase text-center">
             Tạo tin tức mới
           </h1>
-          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Image Upload Dropzone */}
             <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -203,7 +202,6 @@ const CreateNews: React.FC = () => {
                 />
               </div>
             </div>
-
             {/* News Title */}
             <div>
               <label htmlFor="newsTitle" className="block text-sm font-bold text-pink-300">Tiêu đề tin tức</label>
@@ -218,7 +216,6 @@ const CreateNews: React.FC = () => {
                 required
               />
             </div>
-
             {/* News Content - Rich Text Editor (useQuill) */}
             <div>
               <label htmlFor="newsContent" className="block text-sm font-bold text-pink-300 mb-2">Nội dung chi tiết</label>
@@ -226,7 +223,6 @@ const CreateNews: React.FC = () => {
                 <div ref={quillRef} style={{ minHeight: 160, color: '#fff' }} />
               </div>
             </div>
-
             {/* Status */}
             <div className="flex items-center gap-3">
               <input
@@ -241,7 +237,6 @@ const CreateNews: React.FC = () => {
                 Tin tức đang hoạt động
               </label>
             </div>
-
             <div className="flex justify-end space-x-4">
               <button 
                 type="button" 

@@ -271,6 +271,21 @@ export const uploadNewsImage = async (file: File): Promise<string> => {
 
 export const getNewsDetail = (newsId: string) => instance.get(`/api/News/${newsId}`);
 
+export const getMyNews = (page: number = 1, pageSize: number = 10) => instance.get<{
+  flag: boolean;
+  code: number;
+  data: {
+    items: News[];
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string;
+}>(`/api/News/my-news?Page=${page}&PageSize=${pageSize}`);
+
 // === Order APIs ===
 
 interface OrderItemPayload {
@@ -397,4 +412,165 @@ export async function validateDiscountCode(eventId: string, code: string, orderA
 export async function getOrderById(orderId: string) {
   const response = await instance.get(`/api/Order/${orderId}`);
   return response.data?.data || response.data;
+}
+
+// === Collaborator APIs ===
+
+// Create collaborator account first
+export async function createCollaboratorAccount(data: {
+  username: string;
+  emId: string;
+  email: string;
+  phone: string;
+  password: string;
+  fullName: string;
+  dateOfBirth: string;
+}) {
+  const response = await instance.post('/api/Account/create-collaborator', data);
+  return response.data;
+}
+
+export async function getCollaboratorsForEvent(eventId: string) {
+  const response = await instance.get(`/api/Event/${eventId}/collaborators`);
+  // API có thể trả về data rỗng hoặc một object có data
+  return response.data?.data || response.data || [];
+}
+
+// Get all collaborators available for an Event Manager
+export async function getCollaboratorsByEventManager() {
+  const response = await instance.get(`/api/Account/collaborators-by-eventManager`);
+  // Chuẩn hóa trả về mảng items nếu có
+  if (Array.isArray(response.data?.data?.items)) {
+    return response.data.data.items;
+  }
+  if (Array.isArray(response.data?.items)) {
+    return response.data.items;
+  }
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+  return [];
+}
+
+export async function addCollaborator(eventId: string, accountId: string) {
+  // Body của request là một string chứa accountId
+  const response = await instance.post(`/api/Event/${eventId}/add-collaborator`, accountId, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return response.data;
+}
+
+export async function removeCollaborator(eventId: string, collaboratorAccountId: string) {
+  const response = await instance.delete(`/api/Event/${eventId}/collaborator/${collaboratorAccountId}`);
+  return response.data;
+}
+
+// === Fund/Revenue APIs ===
+
+// Tạo fund cho event
+export async function createEventFund(eventId: string) {
+  const response = await instance.post(`/api/Fund/event/${eventId}/create`);
+  return response.data;
+}
+
+// Lấy thông tin fund của event
+export async function getEventFund(eventId: string) {
+  const response = await instance.get(`/api/Fund/event/${eventId}`);
+  return response.data;
+}
+
+// Bật rút tiền
+export async function enableWithdrawal(eventId: string) {
+  const response = await instance.post(`/api/Fund/event/${eventId}/enable-withdrawal`);
+  return response.data;
+}
+
+// Tắt rút tiền
+export async function disableWithdrawal(eventId: string) {
+  const response = await instance.post(`/api/Fund/event/${eventId}/disable-withdrawal`);
+  return response.data;
+}
+
+// Lấy số dư
+export async function getEventBalance(eventId: string) {
+  const response = await instance.get(`/api/Fund/event/${eventId}/balance`);
+  return response.data;
+}
+
+// Lấy doanh thu
+export async function getEventRevenue(eventId: string) {
+  const response = await instance.get(`/api/Fund/event/${eventId}/revenue`);
+  return response.data;
+}
+
+// Lấy lịch sử giao dịch
+export async function getEventTransactions(eventId: string) {
+  const response = await instance.get(`/api/Fund/event/${eventId}/transactions`);
+  return response.data;
+}
+
+// Yêu cầu rút tiền
+export async function requestWithdrawal(eventId: string, amount: number) {
+  const response = await instance.post(`/api/Fund/event/${eventId}/request-withdrawal`, { amount });
+  return response.data;
+}
+
+// Duyệt rút tiền
+export async function approveWithdrawal(transactionId: string) {
+  const response = await instance.post(`/api/Fund/withdrawal/${transactionId}/approve`);
+  return response.data;
+}
+
+// Xác nhận thanh toán
+export async function confirmPayment(transactionId: string) {
+  const response = await instance.post(`/api/Fund/withdrawal/${transactionId}/confirm-payment`);
+  return response.data;
+}
+
+// Từ chối rút tiền
+export async function rejectWithdrawal(transactionId: string) {
+  const response = await instance.post(`/api/Fund/withdrawal/${transactionId}/reject`);
+  return response.data;
+}
+
+// Lấy danh sách yêu cầu rút tiền đang chờ
+export async function getPendingWithdrawals() {
+  const response = await instance.get(`/api/Fund/pending-withdrawals`);
+  return response.data;
+}
+
+// Lấy chi tiết yêu cầu rút tiền đang chờ
+export async function getPendingWithdrawalsDetails() {
+  const response = await instance.get(`/api/Fund/pending-withdrawals-details`);
+  return response.data;
+}
+
+// Lấy chi tiết yêu cầu rút tiền đang xử lý
+export async function getProcessingWithdrawalsDetails() {
+  const response = await instance.get(`/api/Fund/processing-withdrawals-details`);
+  return response.data;
+}
+
+// Lấy tất cả yêu cầu rút tiền
+export async function getAllWithdrawalRequestsDetails() {
+  const response = await instance.get(`/api/Fund/all-withdrawal-requests-details`);
+  return response.data;
+}
+
+// Lấy tất cả fund
+export async function getAllFunds() {
+  const response = await instance.get(`/api/Fund/all`);
+  return response.data;
+}
+
+// Cập nhật phí platform
+export async function updatePlatformFee(eventId: string, fee: number) {
+  const response = await instance.put(`/api/Fund/event/${eventId}/platform-fee`, { fee });
+  return response.data;
+}
+
+// Bật rút tiền cho sự kiện đã hoàn thành
+export async function enableWithdrawalForCompletedEvents() {
+  const response = await instance.post(`/api/Fund/enable-withdrawal-for-completed-events`);
+  return response.data;
 }
