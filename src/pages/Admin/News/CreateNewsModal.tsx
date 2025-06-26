@@ -118,7 +118,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-3xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>Create News</DialogTitle>
