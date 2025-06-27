@@ -12,7 +12,7 @@ import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import type { CreateNewsRequest } from '@/types/Admin/news';
 import { FaUpload, FaSpinner } from 'react-icons/fa';
-import RichTextEditor from '@/components/RichTextEditor';
+
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 const initialLexicalValue = ''; // TipTap dùng HTML string
 
@@ -133,10 +134,16 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               disabled={loading}
             >
               <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
-                <SelectValue placeholder="Select event" />
+                <SelectValue
+                  placeholder="Select event"
+                  // Hiển thị tên event đã chọn
+                >
+                  {form.eventId
+                    ? events.find((ev) => ev.eventId === form.eventId)?.eventName || ''
+                    : ''}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectValue placeholder="Select event" />
                 {events.map((ev) => (
                   <SelectItem key={ev.eventId} value={ev.eventId}>
                     {ev.eventName}

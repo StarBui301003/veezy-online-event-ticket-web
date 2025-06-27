@@ -1,11 +1,4 @@
 import { useEffect, useState } from 'react';
-import { getOwnNews, deleteNews } from '@/services/Admin/news.service';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
-import CreateNewsModal from './CreateNewsModal';
-import type { News } from '@/types/Admin/news';
-import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 import {
   Table,
   TableHeader,
@@ -23,100 +16,78 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import EditNewsModal from './EditNewsModal';
-import { MdOutlineEdit } from 'react-icons/md';
-import { Switch } from '@/components/ui/switch';
-import { hideNews, showNews } from '@/services/Admin/news.service';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { getPendingNews } from '@/services/Admin/news.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
+import type { News } from '@/types/Admin/news';
+import { FaEye } from 'react-icons/fa';
+import PendingNewsDetailModal from './PendingNewsDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const NewsOwnList = () => {
+export const PendingNewsList = ({ onChangePending }: { onChangePending?: () => void }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState(''); // Thêm state search
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editNews, setEditNews] = useState<News | null>(null);
+  const [search, setSearch] = useState('');
+  const [selectedNews, setSelectedNews] = useState<News | null>(null);
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  const fetchData = () => {
     setLoading(true);
-    getOwnNews(1, 100)
+    getPendingNews(1, 100)
       .then((res) => {
         setNews(res.data.items || []);
       })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  }, []);
-
-  const reloadList = () => {
-    setLoading(true);
-    getOwnNews()
-      .then((res) => {
-        setNews(res.data.items || []);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+      .finally(() => setTimeout(() => setLoading(false), 500));
   };
 
-  // Lọc theo search
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchAuthors = async () => {
+      const ids = Array.from(new Set(news.map((n) => n.authorId).filter(Boolean)));
+      const names: Record<string, string> = {};
+      await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const res = await getUserByIdAPI(id);
+            names[id] = res.fullName || id;
+          } catch {
+            names[id] = id;
+          }
+        })
+      );
+      setAuthorNames(names);
+    };
+    if (news.length > 0) fetchAuthors();
+  }, [news]);
+
+  const reloadList = () => {
+    fetchData();
+    if (onChangePending) {
+      setTimeout(() => {
+        onChangePending();
+      }, 600); // đảm bảo gọi sau khi fetchData hoàn thành
+    }
+  };
+
   const filteredNews = news.filter(
     (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
   );
   const pagedNews = filteredNews.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
 
-  // Delete handler
-  const handleDelete = async (item: News) => {
-    if (!window.confirm('Are you sure you want to delete this news?')) return;
-    try {
-      await deleteNews(item.newsId);
-      toast.success('News deleted successfully!');
-      reloadList();
-    } catch {
-      toast.error('Cannot delete this news!');
-    }
-  };
-
-  // Toggle status handler
-  const handleToggleStatus = async (item: News) => {
-    try {
-      if (item.status) {
-        await hideNews(item.newsId);
-        toast.success('News hidden successfully!');
-      } else {
-        await showNews(item.newsId);
-        toast.success('News shown successfully!');
-      }
-      reloadList();
-    } catch {
-      toast.error('Failed to update status!');
-    }
-  };
-
-  // Lấy authorId từ localStorage (có thể đặt ngoài useEffect để dùng cho CreateNewsModal)
-  const accStr = localStorage.getItem('account');
-  let authorId = '';
-  if (accStr) {
-    try {
-      const acc = JSON.parse(accStr);
-      authorId = acc.userId;
-    } catch {
-      authorId = '';
-    }
-  }
-
   return (
-    <div className="pl-1 pt-3">
+    <div className="p-3">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          {/* Thanh search và nút create */}
+          {/* Search */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -183,34 +154,23 @@ export const NewsOwnList = () => {
                 )}
               </div>
             </div>
-            {/* Create button (right) */}
-            <div className="flex justify-end">
-              <button
-                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <FaPlus />
-                Create
-              </button>
-            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4 text-center" style={{ width: '5%' }}>
+              <TableRow className="bg-yellow-200 hover:bg-yellow-200">
+                <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '35%' }}>Title</TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
-                  Status
-                </TableHead>
+                <TableHead style={{ width: '25%' }}>Title</TableHead>
+                <TableHead style={{ width: '15%' }}>Author Name</TableHead>
                 <TableHead className="text-center" style={{ width: '15%' }}>
                   Created At
                 </TableHead>
                 <TableHead className="text-center" style={{ width: '15%' }}>
                   Updated At
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '20%' }}>
+
+                <TableHead className="text-center" style={{ width: '15%' }}>
                   Action
                 </TableHead>
               </TableRow>
@@ -218,30 +178,19 @@ export const NewsOwnList = () => {
             <TableBody>
               {pagedNews.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                    No news found.
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                    No pending news found.
                   </TableCell>
                 </TableRow>
               ) : (
                 pagedNews.map((item, idx) => (
                   <TableRow key={item.newsId} className="hover:bg-blue-50">
-                    <TableCell className="pl-4 text-center">
-                      {(page - 1) * pageSize + idx + 1}
-                    </TableCell>
-                    <TableCell className="truncate max-w-[320px] overflow-hidden text-ellipsis whitespace-nowrap">
+                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
+                    <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                       {item.newsTitle}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={item.status}
-                        onCheckedChange={() => handleToggleStatus(item)}
-                        disabled={loading}
-                        className={
-                          item.status
-                            ? '!bg-green-500 !border-green-500'
-                            : '!bg-red-400 !border-red-400'
-                        }
-                      />
+                    <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      {authorNames[item.authorId] || item.authorId || 'unknown'}
                     </TableCell>
                     <TableCell className="text-center">
                       {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
@@ -249,6 +198,7 @@ export const NewsOwnList = () => {
                     <TableCell className="text-center">
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
                     </TableCell>
+
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
                         className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
@@ -257,20 +207,6 @@ export const NewsOwnList = () => {
                       >
                         <FaEye className="w-4 h-4" />
                       </button>
-                      <button
-                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
-                        title="Edit"
-                        onClick={() => setEditNews(item)}
-                      >
-                        <MdOutlineEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                        title="Delete"
-                        onClick={() => handleDelete(item)}
-                      >
-                        <FaRegTrashAlt className="w-4 h-4" />
-                      </button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -278,7 +214,7 @@ export const NewsOwnList = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -298,8 +234,8 @@ export const NewsOwnList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      ? 'bg-yellow-400 text-white border hover:bg-yellow-500 hover:text-white'
+                                      : 'text-gray-700 hover:bg-yellow-100 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}
                               >
@@ -321,12 +257,12 @@ export const NewsOwnList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {news.length === 0
+                        {filteredNews.length === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              news.length
-                            )} of ${news.length}`}
+                              filteredNews.length
+                            )} of ${filteredNews.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select
@@ -349,22 +285,16 @@ export const NewsOwnList = () => {
               </TableRow>
             </TableFooter>
           </Table>
+          {selectedNews && (
+            <PendingNewsDetailModal
+              news={selectedNews}
+              authorName={authorNames[selectedNews.authorId] || selectedNews.authorId || 'unknown'}
+              onClose={() => setSelectedNews(null)}
+              onActionDone={reloadList}
+            />
+          )}
         </div>
       </div>
-      {selectedNews && (
-        <NewsOwnDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
-      )}
-      <CreateNewsModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
-        authorId={authorId}
-      />
-      {editNews && (
-        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={reloadList} />
-      )}
     </div>
   );
 };
-
-export default NewsOwnList;

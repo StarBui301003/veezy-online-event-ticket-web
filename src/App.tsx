@@ -38,7 +38,7 @@ import CollaboratorManager from './pages/EventManager/CollaboratorManager';
 import HomePage from './pages/Customer/Home';
 import ProfileCustomer from './pages/Customer/ProfileCustomer';
 import EventListTabs from './pages/Admin/Event/EventListTabs';
-import { ReportPage } from './pages/Admin/Report/ReportPage';
+import { ReportList } from './pages/Admin/Report/ReportList';
 
 import NewsManager from './pages/EventManager/NewsManager';
 import CreateNews from './pages/EventManager/CreateNews';
@@ -190,7 +190,7 @@ function App() {
           path: 'report-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <ReportPage />
+              <ReportList />
             </ProtectedRoute>
           ),
         },
@@ -397,7 +397,9 @@ function App() {
               <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
                 <div className="text-center">
                   <Users className="text-blue-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-blue-300 mb-4">Danh Sách Người Tham Gia</h1>
+                  <h1 className="text-3xl font-bold text-blue-300 mb-4">
+                    Danh Sách Người Tham Gia
+                  </h1>
                   <p className="text-gray-300">Trang này đang được phát triển</p>
                 </div>
               </div>

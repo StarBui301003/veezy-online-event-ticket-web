@@ -16,12 +16,12 @@ interface Props {
   onClose: () => void;
 }
 
-const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
-  const [imgSrc, setImgSrc] = useState(news.imageUrl || NO_IMAGE);
+const NewsOwnDetailModal = ({ news, onClose }: Props) => {
   const [imgLoading, setImgLoading] = useState(!!news.imageUrl);
+
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.onerror = null;
-    setImgSrc(NO_IMAGE);
+    e.currentTarget.src = NO_IMAGE;
     setImgLoading(false);
   };
 
@@ -48,7 +48,7 @@ const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
                 </div>
               )}
               <img
-                src={imgSrc}
+                src={news.imageUrl || NO_IMAGE}
                 alt="news"
                 className="object-contain w-full h-full"
                 style={imgLoading ? { opacity: 0 } : { opacity: 1, transition: 'opacity 0.2s' }}
@@ -59,14 +59,14 @@ const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
           </div>
           {/* Info fields as input/textarea (style giống approvedeventdetail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            {/* <div>
               <label className="block text-xs text-gray-500 mb-1">News ID</label>
               <input
                 value={news.newsId ?? 'unknown'}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
-            </div>
+            </div> */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Title</label>
               <input
@@ -75,14 +75,7 @@ const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Author</label>
-              <input
-                value={authorName || news.authorId || 'unknown'}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
+
             <div>
               <label className="block text-xs text-gray-500 mb-1">Status</label>
               <input
@@ -132,7 +125,10 @@ const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <div className="bg-gray-100 border rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto">
               {news.newsDescription ? (
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: news.newsDescription }} />
+                <div
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: news.newsDescription }}
+                />
               ) : (
                 <span className="text-gray-400">No description</span>
               )}
@@ -165,4 +161,4 @@ const NewsDetailModal = ({ news, authorName, onClose }: Props) => {
   );
 };
 
-export default NewsDetailModal;
+export default NewsOwnDetailModal;

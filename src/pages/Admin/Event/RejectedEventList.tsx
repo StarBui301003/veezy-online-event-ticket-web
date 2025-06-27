@@ -299,7 +299,7 @@ export const RejectedEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-red-200 hover:bg-red-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
@@ -443,7 +443,7 @@ export const RejectedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-red-500 text-white border hover:bg-red-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

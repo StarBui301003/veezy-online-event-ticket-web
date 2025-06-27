@@ -1,11 +1,4 @@
 import { useEffect, useState } from 'react';
-import { getOwnNews, deleteNews } from '@/services/Admin/news.service';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
-import CreateNewsModal from './CreateNewsModal';
-import type { News } from '@/types/Admin/news';
-import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 import {
   Table,
   TableHeader,
@@ -23,100 +16,115 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import EditNewsModal from './EditNewsModal';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { getAllReport } from '@/services/Admin/report.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
+import type { Report } from '@/types/Admin/report';
+import { FaEye } from 'react-icons/fa';
 import { MdOutlineEdit } from 'react-icons/md';
-import { Switch } from '@/components/ui/switch';
-import { hideNews, showNews } from '@/services/Admin/news.service';
+import ReportDetailModal from './ReportDetailModal';
+import EditReportStatus from './EditReportStatus';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const NewsOwnList = () => {
-  const [news, setNews] = useState<News[]>([]);
+const targetTypeMap: Record<number, string> = {
+  0: 'News',
+  1: 'Event',
+  2: 'EventManager',
+  3: 'Comment',
+};
+
+const statusMap: Record<number, string> = {
+  0: 'Pending',
+  1: 'UnderReview',
+  2: 'Resolved',
+  3: 'Rejected',
+};
+
+export const ReportList = () => {
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState(''); // Thêm state search
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editNews, setEditNews] = useState<News | null>(null);
+  const [search, setSearch] = useState('');
+  const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
+  const [viewReport, setViewReport] = useState<Report | null>(null);
+  const [editReport, setEditReport] = useState<Report | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    getOwnNews(1, 100)
+    getAllReport()
       .then((res) => {
-        setNews(res.data.items || []);
+        // Đúng: res.data là mảng Report[]
+        if (res && Array.isArray(res.data)) {
+          setReports(res.data);
+        } else {
+          setReports([]);
+        }
       })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+      .finally(() => setTimeout(() => setLoading(false), 500));
   }, []);
 
-  const reloadList = () => {
-    setLoading(true);
-    getOwnNews()
-      .then((res) => {
-        setNews(res.data.items || []);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  };
+  useEffect(() => {
+    const fetchReporters = async () => {
+      const ids = Array.from(new Set(reports.map((r) => r.reporterId).filter(Boolean)));
+      const names: Record<string, string> = {};
+      await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const res = await getUserByIdAPI(id);
+            names[id] = res.fullName || id;
+          } catch {
+            names[id] = id;
+          }
+        })
+      );
+      setReporterNames(names);
+    };
+    if (reports.length > 0) fetchReporters();
+  }, [reports]);
 
-  // Lọc theo search
-  const filteredNews = news.filter(
-    (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
+  const filteredReports = reports.filter(
+    (item) =>
+      !search ||
+      item.reason.toLowerCase().includes(search.trim().toLowerCase()) ||
+      item.reportId.toLowerCase().includes(search.trim().toLowerCase())
   );
-  const pagedNews = filteredNews.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
-
-  // Delete handler
-  const handleDelete = async (item: News) => {
-    if (!window.confirm('Are you sure you want to delete this news?')) return;
-    try {
-      await deleteNews(item.newsId);
-      toast.success('News deleted successfully!');
-      reloadList();
-    } catch {
-      toast.error('Cannot delete this news!');
-    }
-  };
-
-  // Toggle status handler
-  const handleToggleStatus = async (item: News) => {
-    try {
-      if (item.status) {
-        await hideNews(item.newsId);
-        toast.success('News hidden successfully!');
-      } else {
-        await showNews(item.newsId);
-        toast.success('News shown successfully!');
-      }
-      reloadList();
-    } catch {
-      toast.error('Failed to update status!');
-    }
-  };
-
-  // Lấy authorId từ localStorage (có thể đặt ngoài useEffect để dùng cho CreateNewsModal)
-  const accStr = localStorage.getItem('account');
-  let authorId = '';
-  if (accStr) {
-    try {
-      const acc = JSON.parse(accStr);
-      authorId = acc.userId;
-    } catch {
-      authorId = '';
-    }
-  }
+  const pagedReports = filteredReports.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
 
   return (
-    <div className="pl-1 pt-3">
+    <div className="p-3">
       <SpinnerOverlay show={loading} />
+      {/* Modal detail */}
+      {viewReport && (
+        <ReportDetailModal
+          report={viewReport}
+          reporterName={reporterNames[viewReport.reporterId]}
+          onClose={() => setViewReport(null)}
+          targetTypeMap={targetTypeMap}
+          statusMap={statusMap}
+        />
+      )}
+      {/* Modal edit */}
+      {editReport && (
+        <EditReportStatus
+          report={editReport}
+          onClose={() => setEditReport(null)}
+          onUpdated={() => {
+            setEditReport(null);
+            // Reload data nếu cần
+            getAllReport().then((res) => {
+              if (res && Array.isArray(res.data)) setReports(res.data);
+            });
+          }}
+          statusMap={statusMap}
+        />
+      )}
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          {/* Thanh search và nút create */}
+          {/* Search */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -149,7 +157,7 @@ export const NewsOwnList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by news title..."
+                  placeholder="Search by reason or report ID..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -183,94 +191,69 @@ export const NewsOwnList = () => {
                 )}
               </div>
             </div>
-            {/* Create button (right) */}
-            <div className="flex justify-end">
-              <button
-                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <FaPlus />
-                Create
-              </button>
-            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4 text-center" style={{ width: '5%' }}>
+                <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '35%' }}>Title</TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
-                  Status
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Created At
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Updated At
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '20%' }}>
+                <TableHead style={{ width: '10%' }}>Target Type</TableHead>
+                <TableHead style={{ width: '10%' }}>Reporter</TableHead>
+                <TableHead style={{ width: '20%' }}>Reason</TableHead>
+                <TableHead style={{ width: '7%' }}>Status</TableHead>
+                <TableHead style={{ width: '5%' }}>Created At</TableHead>
+                <TableHead style={{ width: '7%' }}>Updated At</TableHead>
+                <TableHead style={{ width: '20%' }} className="text-center">
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedNews.length === 0 ? (
+              {pagedReports.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                    No news found.
+                  <TableCell colSpan={10} className="text-center py-4 text-gray-500">
+                    No reports found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedNews.map((item, idx) => (
-                  <TableRow key={item.newsId} className="hover:bg-blue-50">
-                    <TableCell className="pl-4 text-center">
-                      {(page - 1) * pageSize + idx + 1}
+                pagedReports.map((item, idx) => (
+                  <TableRow key={item.reportId} className="hover:bg-blue-50">
+                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
+                    <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
+                    <TableCell className="truncate max-w-[120px]">
+                      {reporterNames[item.reporterId] || item.reporterId || 'unknown'}
                     </TableCell>
-                    <TableCell className="truncate max-w-[320px] overflow-hidden text-ellipsis whitespace-nowrap">
-                      {item.newsTitle}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={item.status}
-                        onCheckedChange={() => handleToggleStatus(item)}
-                        disabled={loading}
-                        className={
-                          item.status
-                            ? '!bg-green-500 !border-green-500'
-                            : '!bg-red-400 !border-red-400'
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
+
+                    <TableCell>{statusMap[item.status] ?? item.status}</TableCell>
+                    <TableCell>
                       {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
                     </TableCell>
                     <TableCell className="text-center">
-                      {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
+                      {item.updatedAt ? (
+                        new Date(item.updatedAt).toLocaleString()
+                      ) : (
+                        <span className="text-gray-400 ">N/A</span>
+                      )}
                     </TableCell>
-                    <TableCell className="text-center flex items-center justify-center gap-2">
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
-                        onClick={() => setSelectedNews(item)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
-                        title="Edit"
-                        onClick={() => setEditNews(item)}
-                      >
-                        <MdOutlineEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                        title="Delete"
-                        onClick={() => handleDelete(item)}
-                      >
-                        <FaRegTrashAlt className="w-4 h-4" />
-                      </button>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setViewReport(item)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-[#0071e2]"
+                          title="Edit"
+                          onClick={() => setEditReport(item)}
+                        >
+                          <MdOutlineEdit className="w-4 h-4" />
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -278,7 +261,7 @@ export const NewsOwnList = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={10}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -321,12 +304,12 @@ export const NewsOwnList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {news.length === 0
+                        {filteredReports.length === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              news.length
-                            )} of ${news.length}`}
+                              filteredReports.length
+                            )} of ${filteredReports.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select
@@ -351,20 +334,6 @@ export const NewsOwnList = () => {
           </Table>
         </div>
       </div>
-      {selectedNews && (
-        <NewsOwnDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
-      )}
-      <CreateNewsModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
-        authorId={authorId}
-      />
-      {editNews && (
-        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={reloadList} />
-      )}
     </div>
   );
 };
-
-export default NewsOwnList;

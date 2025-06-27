@@ -285,7 +285,7 @@ export const ApprovedEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-green-200 hover:bg-green-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
@@ -385,7 +385,7 @@ export const ApprovedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}
