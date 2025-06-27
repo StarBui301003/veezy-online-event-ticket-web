@@ -175,7 +175,7 @@ export const RejectedNewsList = () => {
                 </TableRow>
               ) : (
                 pagedNews.map((item, idx) => (
-                  <TableRow key={item.newsId} className="hover:bg-red-50">
+                  <TableRow key={item.newsId} className="hover:bg-red-100/60">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                       {item.newsTitle}

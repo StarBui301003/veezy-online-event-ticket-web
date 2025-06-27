@@ -323,7 +323,7 @@ export const ApprovedEventList = () => {
                       )
                   )
                   .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
+                    <TableRow key={event.eventId} className="hover:bg-green-50">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
@@ -385,7 +385,7 @@ export const ApprovedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-600 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

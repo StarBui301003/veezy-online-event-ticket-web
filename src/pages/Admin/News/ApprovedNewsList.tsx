@@ -257,7 +257,7 @@ export const ApprovedNewsList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-600 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

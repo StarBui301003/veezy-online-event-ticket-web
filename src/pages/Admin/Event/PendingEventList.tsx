@@ -413,7 +413,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                       )
                   )
                   .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
+                    <TableRow key={event.eventId} className="hover:bg-yellow-50">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>

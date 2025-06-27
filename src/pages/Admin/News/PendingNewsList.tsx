@@ -184,7 +184,7 @@ export const PendingNewsList = ({ onChangePending }: { onChangePending?: () => v
                 </TableRow>
               ) : (
                 pagedNews.map((item, idx) => (
-                  <TableRow key={item.newsId} className="hover:bg-blue-50">
+                  <TableRow key={item.newsId} className="hover:bg-yellow-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                       {item.newsTitle}

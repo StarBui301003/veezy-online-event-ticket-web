@@ -210,8 +210,8 @@ export const AdminList = () => {
                 </TableRow>
               ) : (
                 pagedAdmins.map((user, idx) => (
-                  <TableRow key={user.userId}>
-                    <TableCell className="pl-4">
+                  <TableRow key={user.userId} className="hover:bg-blue-50">
+                    <TableCell className="pl-4 ">
                       {(adminPage - 1) * adminPageSize + idx + 1}
                     </TableCell>
                     <TableCell>{user.fullName}</TableCell>

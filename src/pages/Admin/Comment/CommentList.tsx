@@ -23,8 +23,11 @@ import { getEventById } from '@/services/Admin/event.service';
 import type { Comment } from '@/types/Admin/comment';
 import { Badge } from '@/components/ui/badge';
 import { FaRegTrashAlt } from 'react-icons/fa';
+import { FaEye } from 'react-icons/fa';
 import { deleteComment } from '@/services/Admin/comment.service';
 import { toast } from 'react-toastify';
+// Thêm import cho Dialog UI
+import CommentDetailModal from './CommentDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -35,6 +38,7 @@ export const CommentList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
+  const [viewComment, setViewComment] = useState<Comment | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +111,15 @@ export const CommentList = () => {
 
   return (
     <div className="p-6">
+      {/* Modal xem chi tiết comment */}
+      {viewComment && (
+        <CommentDetailModal
+          comment={viewComment}
+          userName={userNames[viewComment.userId]}
+          eventName={eventNames[viewComment.eventId]}
+          onClose={() => setViewComment(null)}
+        />
+      )}
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
@@ -142,13 +155,13 @@ export const CommentList = () => {
             <TableBody>
               {pagedComments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
                     No comments found.
                   </TableCell>
                 </TableRow>
               ) : (
                 pagedComments.map((comment, idx) => (
-                  <TableRow key={comment.commentId}>
+                  <TableRow key={comment.commentId} className="hover:bg-blue-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell className="text-center">
                       {userNames[comment.userId] || comment.userId || 'unknown'}
@@ -179,6 +192,15 @@ export const CommentList = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
+                      {/* Nút xem chi tiết */}
+                      <button
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                        title="View details"
+                        onClick={() => setViewComment(comment)}
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
+                      {/* Nút xóa */}
                       <button
                         className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
                         title="Delete"
@@ -193,7 +215,7 @@ export const CommentList = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>

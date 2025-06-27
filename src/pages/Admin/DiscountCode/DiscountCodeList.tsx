@@ -238,7 +238,7 @@ export const DiscountCodeList = () => {
                       !search || item.code.toLowerCase().includes(search.trim().toLowerCase())
                   )
                   .map((item, idx) => (
-                    <TableRow key={item.discountId}>
+                    <TableRow key={item.discountId} className="hover:bg-blue-50">
                       <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
                       <TableCell className="text-center">{item.code}</TableCell>
                       <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">

@@ -195,7 +195,7 @@ export const CategoryList = () => {
                       cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
                   )
                   .map((cat, idx) => (
-                    <TableRow key={cat.categoryId}>
+                    <TableRow key={cat.categoryId} className="hover:bg-blue-50">
                       <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
                       <TableCell>{cat.categoryName}</TableCell>
                       <TableCell className="truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">

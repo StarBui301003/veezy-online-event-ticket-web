@@ -80,7 +80,7 @@ export const OrderListAdmin = () => {
                 </TableRow>
               ) : (
                 pagedOrders.map((order, idx) => (
-                  <TableRow key={order.orderId}>
+                  <TableRow key={order.orderId} className="hover:bg-blue-50">
                     <TableCell className="text-center sticky left-0 bg-white z-10">
                       {(page - 1) * pageSize + idx + 1}
                     </TableCell>
