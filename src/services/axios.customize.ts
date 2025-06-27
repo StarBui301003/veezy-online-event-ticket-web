@@ -89,9 +89,20 @@ instance.interceptors.response.use(
             { headers: { "Content-Type": "application/json" }, withCredentials: true }
           );
 
-          const newAccessToken = response.data.accessToken;
+          // Lấy accessToken từ response.data.data.accessToken
+          const tokenData = response.data?.data;
+          if (!tokenData || !tokenData.accessToken) {
+            throw new Error("No access token in refresh response");
+          }
+
+          const newAccessToken = tokenData.accessToken;
           window.localStorage.setItem("access_token", newAccessToken);
           onRefreshed(newAccessToken);
+
+          // Cập nhật refresh token mới vào cookie nếu có
+          if (tokenData.refreshToken) {
+            document.cookie = `refresh_token=${tokenData.refreshToken}; path=/;`;
+          }
 
           // Cập nhật header của request với token mới
           if (originalRequest.headers) {
