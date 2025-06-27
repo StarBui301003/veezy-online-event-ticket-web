@@ -118,13 +118,13 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
 
   return (
     <Dialog open={!!news} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-2xl  bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>Edit News</DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 p-4 pt-0">
+        <div className="space-y-3 max-h-[70vh] overflow-auto p-4 pt-0 ">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <Select

@@ -231,31 +231,16 @@ const ProfileCustomer = () => {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-300">Date of Birth</label>
             <div className="relative">
-              <Input
+              <input
                 name="dob"
                 type="date"
-                value={form.dob ? form.dob.substring(0, 10) : ''}
-                onChange={handleInputChange}
+                className="border border-purple-700 rounded-xl px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 bg-slate-700/60 text-white"
+                value={form.dob ? form.dob.slice(0, 10) : ''}
+                onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
                 disabled={!editMode}
-                className="w-full h-9 px-3 rounded-xl bg-slate-700/60 border border-purple-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 pr-10"
                 placeholder="Date of birth"
-                style={{ colorScheme: 'light' }}
+                style={{ colorScheme: 'dark' }}
               />
-              <span
-                className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: '#fff' }}
-              >
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                  <rect width="18" height="18" x="3" y="3" rx="4" fill="#fff" fillOpacity="0.15" />
-                  <path
-                    d="M8 7V3M16 7V3M3 9h18M7 13h2v2H7v-2Z"
-                    stroke="#fff"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
             </div>
           </div>
           <div className="flex justify-end gap-4 pt-4">
