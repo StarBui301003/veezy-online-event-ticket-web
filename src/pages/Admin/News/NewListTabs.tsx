@@ -15,7 +15,7 @@ export function NewsListTabs() {
   // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
   const getInitialTab = () => {
     const tab = searchParams.get('tab');
-    if (tab === 'pending' || tab === 'all' || tab === 'own') return tab;
+    if (tab === 'pending' || tab === 'approved' || tab === 'rejected' || tab === 'own') return tab;
     return 'pending';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -45,7 +45,7 @@ export function NewsListTabs() {
   // Khi URL query param thay đổi (ví dụ reload, hoặc back/forward), update tab
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && tab !== activeTab && ['pending', 'all', 'own'].includes(tab)) {
+    if (tab && tab !== activeTab && ['pending', 'approved', 'rejected', 'own'].includes(tab)) {
       setActiveTab(tab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,16 +141,18 @@ export function NewsListTabs() {
         <div>
           <TabsContent value="pending">
             {loadedTabs.includes('pending') && (
-              <PendingNewsList onChangePending={fetchPendingCount} />
+              <PendingNewsList onChangePending={fetchPendingCount} activeTab={activeTab} />
             )}
           </TabsContent>
           <TabsContent value="approved">
-            {loadedTabs.includes('approved') && <ApprovedNewsList />}
+            {loadedTabs.includes('approved') && <ApprovedNewsList activeTab={activeTab} />}
           </TabsContent>
           <TabsContent value="rejected">
-            {loadedTabs.includes('rejected') && <RejectedNewsList />}
+            {loadedTabs.includes('rejected') && <RejectedNewsList activeTab={activeTab} />}
           </TabsContent>
-          <TabsContent value="own">{loadedTabs.includes('own') && <NewsOwnList />}</TabsContent>
+          <TabsContent value="own">
+            {loadedTabs.includes('own') && <NewsOwnList activeTab={activeTab} />}
+          </TabsContent>
         </div>
       </Tabs>
     </div>

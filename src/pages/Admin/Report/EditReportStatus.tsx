@@ -28,9 +28,9 @@ interface Props {
 
 const statusOptions = [
   { value: 0, label: 'Pending' },
-  { value: 1, label: 'UnderReview' },
-  { value: 2, label: 'Resolved' },
-  { value: 3, label: 'Rejected' },
+  { value: 1, label: 'Resolved' },
+  { value: 2, label: 'Rejected' },
+  { value: 3, label: 'Other' },
 ];
 
 const EditReportStatus = ({ report, onClose, onUpdated, statusMap }: Props) => {

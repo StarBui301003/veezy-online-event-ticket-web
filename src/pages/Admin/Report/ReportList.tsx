@@ -36,9 +36,9 @@ const targetTypeMap: Record<number, string> = {
 
 const statusMap: Record<number, string> = {
   0: 'Pending',
-  1: 'UnderReview',
-  2: 'Resolved',
-  3: 'Rejected',
+  1: 'Resolved',
+  2: 'Rejected',
+  3: 'Other',
 };
 
 export const ReportList = () => {

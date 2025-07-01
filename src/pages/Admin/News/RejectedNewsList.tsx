@@ -25,7 +25,7 @@ import RejectedNewsDetailModal from '@/pages/Admin/News/RejectedNewsDetailModal'
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const RejectedNewsList = () => {
+export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -44,8 +44,9 @@ export const RejectedNewsList = () => {
   };
 
   useEffect(() => {
+    if (activeTab !== 'rejected') return;
     fetchData();
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchAuthors = async () => {

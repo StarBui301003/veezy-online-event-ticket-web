@@ -90,13 +90,15 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
       toast.error('Description is required!');
       return;
     }
-    if (!form.eventId) {
-      toast.error('Event is required!');
-      return;
-    }
+
     setLoading(true);
     try {
-      await createNews({ ...form, newsContent: form.newsContent, authorId });
+      await createNews({
+        ...form,
+        eventId: form.eventId ? form.eventId : null, // Truyền null nếu không chọn event
+        newsContent: form.newsContent,
+        authorId,
+      });
 
       toast.success('News created successfully!');
       setForm({
@@ -129,26 +131,37 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <Select
-              value={form.eventId}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, eventId: value }))}
+              value={form.eventId || '__no_event__'}
+              onValueChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  eventId: value === '__no_event__' ? '' : value, // "" là không chọn event
+                }))
+              }
               disabled={loading}
             >
               <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
-                <SelectValue
-                  placeholder="Select event"
-                  // Hiển thị tên event đã chọn
-                >
+                <SelectValue placeholder="Select event">
                   {form.eventId
                     ? events.find((ev) => ev.eventId === form.eventId)?.eventName || ''
                     : ''}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {events.map((ev) => (
-                  <SelectItem key={ev.eventId} value={ev.eventId}>
-                    {ev.eventName}
+                {events.length === 0 ? (
+                  <SelectItem value="__no_event__" disabled>
+                    No event found
                   </SelectItem>
-                ))}
+                ) : (
+                  <>
+                    <SelectItem value="__no_event__">No event</SelectItem>
+                    {events.map((ev) => (
+                      <SelectItem key={ev.eventId} value={ev.eventId}>
+                        {ev.eventName}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

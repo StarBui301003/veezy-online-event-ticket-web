@@ -7,8 +7,9 @@ import {
 } from '@/components/ui/dialog';
 import type { News } from '@/types/Admin/news';
 import { NO_IMAGE } from '@/assets/img';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getApprovedEvents } from '@/services/Admin/event.service';
 
 interface Props {
   news: News;
@@ -18,6 +19,19 @@ interface Props {
 
 const NewsOwnDetailModal = ({ news, onClose }: Props) => {
   const [imgLoading, setImgLoading] = useState(!!news.imageUrl);
+  const [eventName, setEventName] = useState<string>('unknown');
+
+  useEffect(() => {
+    if (news?.eventId) {
+      getApprovedEvents()
+        .then((res) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const found = res.data.items?.find((ev: any) => ev.eventId === news.eventId);
+          setEventName(found?.eventName || news.eventId || 'unknown');
+        })
+        .catch(() => setEventName(news.eventId || 'unknown'));
+    }
+  }, [news?.eventId]);
 
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     e.currentTarget.onerror = null;
@@ -59,14 +73,17 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
           </div>
           {/* Info fields as input/textarea (style giống approvedeventdetail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* <div>
-              <label className="block text-xs text-gray-500 mb-1">News ID</label>
+            {/* Event Name/ID */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Event</label>
               <input
-                value={news.newsId ?? 'unknown'}
+                value={eventName}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                tabIndex={0}
+                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 cursor-text select-all focus:outline-none"
+                onFocus={(e) => e.target.select()}
               />
-            </div> */}
+            </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Title</label>
               <input

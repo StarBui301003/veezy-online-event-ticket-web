@@ -25,7 +25,13 @@ import PendingNewsDetailModal from './PendingNewsDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const PendingNewsList = ({ onChangePending }: { onChangePending?: () => void }) => {
+export const PendingNewsList = ({
+  onChangePending,
+  activeTab,
+}: {
+  onChangePending?: () => void;
+  activeTab: string;
+}) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -44,8 +50,9 @@ export const PendingNewsList = ({ onChangePending }: { onChangePending?: () => v
   };
 
   useEffect(() => {
+    if (activeTab !== 'pending') return;
     fetchData();
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchAuthors = async () => {

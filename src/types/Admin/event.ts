@@ -72,4 +72,3 @@ export interface AdminTicketListResponse {
     hasPreviousPage: boolean;
   };
 }
-

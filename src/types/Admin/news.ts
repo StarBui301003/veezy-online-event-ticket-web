@@ -7,10 +7,10 @@ export interface News {
   authorId: string;
   imageUrl: string;
   status: boolean;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
-
 
 export interface CreateNewsRequest {
   eventId?: string;

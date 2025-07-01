@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { getOwnNews, deleteNews } from '@/services/Admin/news.service';
+import {
+  getOwnNews,
+  deleteNews,
+  hideNews,
+  showNews,
+  deleteNewsImage,
+} from '@/services/Admin/news.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
 import CreateNewsModal from './CreateNewsModal';
@@ -26,11 +32,10 @@ import {
 import EditNewsModal from './EditNewsModal';
 import { MdOutlineEdit } from 'react-icons/md';
 import { Switch } from '@/components/ui/switch';
-import { hideNews, showNews } from '@/services/Admin/news.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const NewsOwnList = () => {
+export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
@@ -41,6 +46,7 @@ export const NewsOwnList = () => {
   const [editNews, setEditNews] = useState<News | null>(null);
 
   useEffect(() => {
+    if (activeTab !== 'own') return;
     setLoading(true);
     getOwnNews(1, 100)
       .then((res) => {
@@ -49,7 +55,7 @@ export const NewsOwnList = () => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
-  }, []);
+  }, [activeTab]);
 
   const reloadList = () => {
     setLoading(true);
@@ -73,6 +79,10 @@ export const NewsOwnList = () => {
   const handleDelete = async (item: News) => {
     if (!window.confirm('Are you sure you want to delete this news?')) return;
     try {
+      // Nếu imageUrl là blob (tức là ảnh vừa upload, chưa lưu lên server), bỏ qua xóa ảnh
+      if (item.imageUrl && !item.imageUrl.startsWith('blob:')) {
+        await deleteNewsImage(item.imageUrl);
+      }
       await deleteNews(item.newsId);
       toast.success('News deleted successfully!');
       reloadList();

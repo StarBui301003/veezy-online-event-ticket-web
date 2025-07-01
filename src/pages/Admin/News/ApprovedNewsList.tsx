@@ -28,7 +28,7 @@ import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const ApprovedNewsList = () => {
+export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -47,8 +47,9 @@ export const ApprovedNewsList = () => {
   };
 
   useEffect(() => {
+    if (activeTab !== 'approved') return;
     fetchData();
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchAuthors = async () => {
