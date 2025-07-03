@@ -27,7 +27,7 @@ export default function TicketSalesDashboard() {
 
   const fetchSalesData = async () => {
     try {
-      setLoading(true);
+      //setLoading(true);
       const events = await getMyApprovedEvents(1, 100);
       
       // Mock data - thay bằng API thực tế
@@ -42,10 +42,11 @@ export default function TicketSalesDashboard() {
       }));
       
       setSalesData(mockSalesData);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.error('Không thể tải dữ liệu bán vé!');
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 

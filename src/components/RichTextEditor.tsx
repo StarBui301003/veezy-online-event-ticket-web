@@ -75,7 +75,7 @@ export function RichTextEditor({
         class:
           'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[200px] p-4',
       },
-      handleKeyDown(view, event) {
+      handleKeyDown(_, event) {
         // Prevent event bubbling for ctrl/cmd + b, i, u, etc. to avoid sidebar toggle
         if ((event.ctrlKey || event.metaKey) && ['b', 'i', 'u'].includes(event.key.toLowerCase())) {
           event.stopPropagation();
