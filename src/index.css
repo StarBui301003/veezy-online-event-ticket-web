@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear,
+input[type='password']::-webkit-input-password-toggle-button {
+  display: none;
+}
+
 @keyframes morphingGradient {
   0% {
     background-position: 0% 50%;
@@ -15,7 +21,6 @@
 }
 
 .morphing-gradient-bg {
-
   background: linear-gradient(-45deg, #008acf, #87e9f9, #839dfad6, #73ffc2);
   background-size: 400% 400%;
   animation: morphingGradient 10s ease infinite;
@@ -34,7 +39,9 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -84,11 +91,8 @@ h1 {
 
 .btn-donate-tailwind {
   background-size: 280% auto;
-  box-shadow:
-    0px 0px 20px rgba(71, 184, 255, 0.5),
-    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
-    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
-    inset -4px -4px 8px rgba(19, 95, 216, 0.35);
+  box-shadow: 0px 0px 20px rgba(71, 184, 255, 0.5), 0px 5px 5px -1px rgba(58, 125, 233, 0.25),
+    inset 4px 4px 8px rgba(175, 230, 255, 0.5), inset -4px -4px 8px rgba(19, 95, 216, 0.35);
   transition: 0.8s;
 }
 .btn-donate-tailwind:hover {
@@ -96,12 +100,8 @@ h1 {
 }
 .btn-donate-tailwind:focus {
   outline: none;
-  box-shadow:
-    0 0 0 3px #fff,
-    0 0 0 6px #2563eb,
-    0px 0px 20px rgba(71, 184, 255, 0.5),
-    0px 5px 5px -1px rgba(58, 125, 233, 0.25),
-    inset 4px 4px 8px rgba(175, 230, 255, 0.5),
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px #2563eb, 0px 0px 20px rgba(71, 184, 255, 0.5),
+    0px 5px 5px -1px rgba(58, 125, 233, 0.25), inset 4px 4px 8px rgba(175, 230, 255, 0.5),
     inset -4px -4px 8px rgba(19, 95, 216, 0.35);
 }
 
@@ -129,7 +129,7 @@ h1 {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
- 
+
   .dark {
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -143,10 +143,8 @@ h1 {
 }
 
 @layer base {
-  
   body {
     @apply bg-background text-foreground;
-     overflow: auto !important;
+    overflow: auto !important;
   }
 }
-
