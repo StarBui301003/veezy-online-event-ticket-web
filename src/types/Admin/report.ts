@@ -8,6 +8,7 @@ export interface Report {
   status: number;
   createdAt: string;
   updatedAt: string | null;
+  note: string | null;
 }
 
 export interface GetAllReportResponse {

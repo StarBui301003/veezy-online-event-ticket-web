@@ -17,13 +17,11 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getAllReport } from '@/services/Admin/report.service';
+import { getPendingReport } from '@/services/Admin/report.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import type { Report } from '@/types/Admin/report';
 import { FaEye } from 'react-icons/fa';
-import { MdOutlineEdit } from 'react-icons/md';
 import ReportDetailModal from './ReportDetailModal';
-import EditReportStatus from './EditReportStatus';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -38,10 +36,10 @@ const statusMap: Record<number, string> = {
   0: 'Pending',
   1: 'Resolved',
   2: 'Rejected',
-  3: 'Other',
 };
 
-export const ReportList = () => {
+// Thêm prop onChangePending
+export const PendingReportList = ({ onChangePending }: { onChangePending?: () => void }) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -49,21 +47,22 @@ export const ReportList = () => {
   const [search, setSearch] = useState('');
   const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
   const [viewReport, setViewReport] = useState<Report | null>(null);
-  const [editReport, setEditReport] = useState<Report | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    getAllReport()
+    getPendingReport()
       .then((res) => {
-        // Đúng: res.data là mảng Report[]
         if (res && Array.isArray(res.data)) {
           setReports(res.data);
+          // Gọi callback khi mount hoặc reload
+          if (onChangePending) onChangePending();
         } else {
           setReports([]);
+          if (onChangePending) onChangePending();
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
-  }, []);
+  }, [onChangePending]);
 
   useEffect(() => {
     const fetchReporters = async () => {
@@ -104,23 +103,17 @@ export const ReportList = () => {
           onClose={() => setViewReport(null)}
           targetTypeMap={targetTypeMap}
           statusMap={statusMap}
-        />
-      )}
-      {/* Modal edit */}
-      {editReport && (
-        <EditReportStatus
-          report={editReport}
-          onClose={() => setEditReport(null)}
-          onUpdated={() => {
-            setEditReport(null);
-            // Reload data nếu cần
-            getAllReport().then((res) => {
+          showNote={false}
+          onActionDone={() => {
+            setViewReport(null);
+            getPendingReport().then((res) => {
               if (res && Array.isArray(res.data)) setReports(res.data);
+              if (onChangePending) onChangePending();
             });
           }}
-          statusMap={statusMap}
         />
       )}
+
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           {/* Search */}
@@ -225,7 +218,6 @@ export const ReportList = () => {
                       {reporterNames[item.reporterId] || item.reporterId || 'unknown'}
                     </TableCell>
                     <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
-
                     <TableCell>{statusMap[item.status] ?? item.status}</TableCell>
                     <TableCell>
                       {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
@@ -246,13 +238,7 @@ export const ReportList = () => {
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
-                        <button
-                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-[#0071e2]"
-                          title="Edit"
-                          onClick={() => setEditReport(item)}
-                        >
-                          <MdOutlineEdit className="w-4 h-4" />
-                        </button>
+                        {/* Xóa nút Edit */}
                       </div>
                     </TableCell>
                   </TableRow>

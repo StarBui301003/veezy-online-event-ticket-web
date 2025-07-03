@@ -38,27 +38,22 @@ import CollaboratorManager from './pages/EventManager/CollaboratorManager';
 import HomePage from './pages/Customer/Home';
 import ProfileCustomer from './pages/Customer/ProfileCustomer';
 import EventListTabs from './pages/Admin/Event/EventListTabs';
-import { ReportList } from './pages/Admin/Report/ReportList';
-
 import NewsManager from './pages/EventManager/NewsManager';
 import CreateNews from './pages/EventManager/CreateNews';
 import EditNews from './pages/EventManager/EditNews';
 import { CommentList } from './pages/Admin/Comment/CommentList';
-
 import { NewsListTabs } from './pages/Admin/News/NewListTabs';
 import UserListTabs from './pages/Admin/User/UserListTabs';
 import NewsDetail from './pages/Customer/NewsDetail';
-
 // Import new dashboard pages
 import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
 import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
 import NotificationsDashboard from './pages/EventManager/NotificationsDashboard';
 import FundManagement from './pages/EventManager/FundManagement';
-
 // Import icons for placeholder pages
 import { Users, Eye, ChartBar, MessageCircle, CheckCircle } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
-
+import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 function App() {
   const router = createBrowserRouter([
     {
@@ -190,7 +185,7 @@ function App() {
           path: 'report-list',
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <ReportList />
+              <ReportListTabs />
             </ProtectedRoute>
           ),
         },
