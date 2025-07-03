@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { getMyApprovedEvents, getCollaboratorsByEventManager, addCollaborator, getCollaboratorsForEvent, removeCollaborator } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { FaCalendarAlt } from "react-icons/fa";
+import { useNavigate } from 'react-router-dom';
+import noPicture from '@/assets/img/no-picture-available.png';
 
 interface Event {
   eventId: string;
@@ -32,6 +34,8 @@ const CollaboratorManager = () => {
   const [assignedCollaborators, setAssignedCollaborators] = useState<Collaborator[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const COLLABS_PER_PAGE = 6;
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     setLoadingCollabs(true);
@@ -159,21 +163,21 @@ const CollaboratorManager = () => {
             <div className="flex items-center gap-2">
               <FaCalendarAlt className="text-yellow-400" />
               <span className="text-lg font-bold text-yellow-300">Danh sách cộng tác viên</span>
-              <select
-                className="ml-2 p-2 rounded-lg bg-[#1a0022]/80 border-2 border-yellow-500/30 text-white"
-                value={selectedEvent?.eventId || ''}
-                onChange={e => {
-                  const ev = events.find(ev => ev.eventId === e.target.value);
-                  setSelectedEvent(ev || null);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">-- Chọn sự kiện --</option>
-                {events.map(ev => (
-                  <option key={ev.eventId} value={ev.eventId}>{ev.eventName}</option>
-                ))}
-              </select>
             </div>
+            {/* Nút tạo cộng tác viên mới */}
+            <button
+              className="px-5 py-3 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-xl font-bold shadow transition-all duration-200 text-base"
+              onClick={() => {
+                if (selectedEvent) {
+                  navigate(`/event-manager/collaborators/create/${selectedEvent.eventId}`);
+                } else {
+                  navigate('/event-manager/collaborators/create');
+                }
+              }}
+              type="button"
+            >
+              + Tạo cộng tác viên mới
+            </button>
           </div>
           <input
             type="text"
@@ -204,7 +208,7 @@ const CollaboratorManager = () => {
                       <tr key={collab.accountId} className={`border-b border-pink-500/10 transition-all ${isSelected ? 'bg-green-100/10' : 'hover:bg-[#3a0ca3]/10'}`}>
                         <td className="px-4 py-2">
                           <img
-                            src={collab.avatar || 'https://via.placeholder.com/40'}
+                            src={collab.avatar || noPicture}
                             alt={collab.fullName}
                             className="w-10 h-10 rounded-full object-cover border-2 border-pink-400"
                           />

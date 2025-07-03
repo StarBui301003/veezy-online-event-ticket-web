@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   FaTicketAlt,
-  FaImage,
   FaMoneyBill,
   FaHashtag,
   FaCalendarAlt,
@@ -19,15 +18,12 @@ const defaultTicket = {
   saleStartTime: '',
   saleEndTime: '',
   maxTicketsPerOrder: 1,
-  isTransferable: false,
-  imageUrl: '',
 };
 
 export default function CreateTicket() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [form, setForm] = useState({ ...defaultTicket });
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -37,18 +33,6 @@ export default function CreateTicket() {
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }));
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = URL.createObjectURL(file);
-      setForm((prev) => ({ ...prev, imageUrl: url }));
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,12 +61,8 @@ export default function CreateTicket() {
         saleStartTime: form.saleStartTime,
         saleEndTime: form.saleEndTime,
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
-        isTransferable: form.isTransferable,
-        imageUrl: form.imageUrl,
+        isTransferable: false,
       };
-  
-      // (Tùy chọn) Log để debug
-      // console.log(ticketPayload);
   
       const ticket = await createTicket(ticketPayload); // Gọi API tạo vé
   
@@ -228,51 +208,6 @@ export default function CreateTicket() {
               placeholder="Số vé tối đa mỗi đơn"
               required
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              name="isTransferable"
-              type="checkbox"
-              checked={form.isTransferable}
-              onChange={handleChange}
-              id="isTransferable"
-              className="w-5 h-5 accent-pink-500 rounded"
-            />
-            <label
-              htmlFor="isTransferable"
-              className="font-bold text-pink-300 flex items-center gap-2"
-            >
-              Vé có thể chuyển nhượng
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaImage /> Ảnh minh họa (tùy chọn)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                id="ticket-image"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-              <label
-                htmlFor="ticket-image"
-                className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 font-bold shadow-lg"
-              >
-                {uploading ? 'Đang tải...' : 'Chọn ảnh'}
-              </label>
-              {form.imageUrl && (
-                <img
-                  src={form.imageUrl}
-                  alt="ticket"
-                  className="h-16 w-24 object-cover rounded-xl border-2 border-pink-400 shadow-lg"
-                />
-              )}
-            </div>
           </div>
 
           {error && (

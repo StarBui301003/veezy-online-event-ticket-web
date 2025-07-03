@@ -26,6 +26,7 @@ interface TicketData {
   ticketName: string;
   ticketPrice: number;
   quantityAvailable: number;
+  maxTicketsPerOrder?: number;
 }
 
 interface SelectedTicket {
@@ -145,6 +146,18 @@ const EventDetail = () => {
       return;
     }
 
+    // Kiểm tra giới hạn maxTicketsPerOrder cho từng vé
+    for (const ticket of tickets) {
+      const selected = selectedTickets[ticket.ticketId];
+      if (selected) {
+        const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+        if (selected.quantity > maxPerOrder) {
+          toast.error(`Bạn chỉ được mua tối đa ${maxPerOrder} vé cho loại "${ticket.ticketName}".`);
+          return;
+        }
+      }
+    }
+
     // Lưu thông tin checkout vào localStorage
     const checkoutData = {
       eventId,
@@ -193,6 +206,8 @@ const EventDetail = () => {
       setValidatingDiscount(false);
     }
   };
+
+  const isEventEnded = event && new Date() > new Date(event.endAt);
 
   if (loadingEvent) {
     return (
@@ -349,6 +364,11 @@ const EventDetail = () => {
             transition={{ duration: 0.7, delay: 0.6 }}
             className="lg:col-span-1 space-y-6"
           >
+            {isEventEnded && (
+              <div className="text-center text-red-500 font-bold text-lg my-4">
+                Sự kiện đã kết thúc, không thể mua vé.
+              </div>
+            )}
             <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-6 md:p-8 rounded-xl shadow-xl">
               <button
                 onClick={() => setShowTickets(v => !v)}
@@ -358,7 +378,9 @@ const EventDetail = () => {
                 <span>{showTickets ? "▲" : "▼"}</span>
               </button>
               {showTickets && (
-                loadingTickets ? (
+                isEventEnded ? (
+                  <div className="text-center text-red-400 py-8 font-semibold">Không thể mua vé vì sự kiện đã kết thúc.</div>
+                ) : loadingTickets ? (
                   <div className="flex justify-center items-center py-8">
                     <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
                   </div>
@@ -370,6 +392,8 @@ const EventDetail = () => {
                       const quantity = selectedTickets[ticket.ticketId]?.quantity || 0;
                       const price = typeof ticket.ticketPrice === "number" ? ticket.ticketPrice : Number(ticket.ticketPrice) || 0;
                       const subtotal = price * quantity;
+                      const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+                      const canIncrease = quantity < Math.min(ticket.quantityAvailable, maxPerOrder);
                       return (
                         <motion.div
                           key={ticket.ticketId}
@@ -409,7 +433,7 @@ const EventDetail = () => {
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleQuantityChange(ticket, quantity + 1)}
-                                disabled={quantity >= ticket.quantityAvailable}
+                                disabled={!canIncrease}
                                 className="p-2 rounded-full bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
                               >
                                 <PlusCircle className="w-5 h-5 text-white" />
@@ -425,6 +449,11 @@ const EventDetail = () => {
                               {subtotal > 0 ? `${subtotal.toLocaleString('vi-VN')} VNĐ` : ''}
                             </motion.div>
                           </div>
+                          {!canIncrease && (
+                            <div className="text-xs text-red-400 mt-1">
+                              Đã đạt giới hạn số vé mua tối đa ({maxPerOrder} vé/lần)
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}

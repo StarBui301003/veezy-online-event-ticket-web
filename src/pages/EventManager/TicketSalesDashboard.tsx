@@ -19,7 +19,7 @@ interface TicketSalesData {
 export default function TicketSalesDashboard() {
   const [salesData, setSalesData] = useState<TicketSalesData[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
-  const [loading, setLoading] = useState(true);
+  // const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchSalesData();

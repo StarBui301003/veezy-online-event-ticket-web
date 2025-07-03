@@ -7,7 +7,9 @@ import {
   CreditCard, 
   Download, 
   RefreshCw, 
-  Search
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
@@ -75,6 +77,10 @@ export default function FundManagement() {
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchEvent, setSearchEvent] = useState('');
+  const [eventRevenues, setEventRevenues] = useState<Record<string, number>>({});
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const visibleCount = 3;
 
   useEffect(() => {
     fetchEvents();
@@ -85,6 +91,22 @@ export default function FundManagement() {
       fetchFundData(selectedEvent.eventId);
     }
   }, [selectedEvent]);
+
+  useEffect(() => {
+    if (events.length === 0) return;
+    (async () => {
+      const revenues: Record<string, number> = {};
+      await Promise.all(events.map(async (ev) => {
+        try {
+          const res = await getEventRevenue(ev.eventId);
+          revenues[ev.eventId] = res.data || 0;
+        } catch {
+          revenues[ev.eventId] = 0;
+        }
+      }));
+      setEventRevenues(revenues);
+    })();
+  }, [events]);
 
   const fetchEvents = async () => {
     try {
@@ -178,6 +200,27 @@ export default function FundManagement() {
       (filterStatus === 'all' || transaction.transactionStatus.toString() === filterStatus);
   });
 
+  const filteredEvents = searchEvent.trim()
+    ? events.filter(ev =>
+        ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
+      )
+    : events;
+
+  const sortedEvents = [...filteredEvents].sort((a, b) => (eventRevenues[b.eventId] || 0) - (eventRevenues[a.eventId] || 0));
+  const total = sortedEvents.length;
+  const getCardColor = (idx) => {
+    const colors = [
+      'bg-yellow-100/30 border-yellow-400',
+      'bg-gray-100/30 border-gray-400',
+      'bg-orange-100/30 border-orange-400',
+      'bg-green-100/30 border-green-400',
+      'bg-purple-100/30 border-purple-400',
+      'bg-blue-100/30 border-blue-400',
+    ];
+    return colors[idx % colors.length];
+  };
+  const visibleEvents = Array.from({length: Math.min(visibleCount, total)}, (_, i) => sortedEvents[(carouselIndex + i) % total]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
@@ -229,29 +272,82 @@ export default function FundManagement() {
           </div>
         </div>
 
-        {/* Event Selector */}
+        {/* Event Selector - Card Grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
+          <div className="mb-4 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
             <label className="text-lg font-semibold text-green-300">Chọn Sự Kiện:</label>
-            <select
-              value={selectedEvent?.eventId || ''}
-              onChange={(e) => {
-                const event = events.find(ev => ev.eventId === e.target.value);
-                setSelectedEvent(event || null);
-              }}
-              className="flex-1 p-3 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400"
-            >
-              {events.map((event) => (
-                <option key={event.eventId} value={event.eventId}>
-                  {event.eventName} - {formatDate(event.startAt)}
-                </option>
+            <input
+              type="text"
+              placeholder="Tìm kiếm sự kiện..."
+              value={searchEvent}
+              onChange={e => setSearchEvent(e.target.value)}
+              className="flex-1 min-w-[200px] p-3 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 placeholder:text-green-200"
+            />
+          </div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setCarouselIndex((prev) => (prev - 1 + total) % total)}
+                disabled={total <= visibleCount}
+                aria-label="Trước"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <div className="flex gap-6">
+                {visibleEvents.map((event, idx) => {
+                  const isSelected = selectedEvent?.eventId === event.eventId;
+                  let cardClass = `transition-all duration-300 rounded-2xl p-8 border-4 shadow-2xl min-w-[320px] max-w-[400px] cursor-pointer ${getCardColor((carouselIndex + idx) % total)}`;
+                  if (isSelected) {
+                    cardClass += ' scale-105 shadow-2xl z-10 ring-4 ring-green-400/60';
+                  } else {
+                    cardClass += ' scale-100 opacity-90';
+                  }
+                  return (
+                    <div
+                      key={event.eventId}
+                      className={cardClass}
+                      onClick={() => setSelectedEvent(event)}
+                      style={{ transition: 'all 0.3s cubic-bezier(.4,2,.6,1)' }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="text-2xl font-bold text-black">{event.eventName}</div>
+                      </div>
+                      <div className="text-gray-800 text-sm mb-1">
+                        {event.startAt && event.endAt
+                          ? `${new Date(event.startAt).toLocaleDateString('vi-VN')} - ${new Date(event.endAt).toLocaleDateString('vi-VN')}`
+                          : ''}
+                      </div>
+                      <div className="text-black text-xs font-semibold mb-2">{event.eventLocation}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button
+                className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setCarouselIndex((prev) => (prev + 1) % total)}
+                disabled={total <= visibleCount}
+                aria-label="Sau"
+              >
+                <ChevronRight size={28} />
+              </button>
+            </div>
+            {/* Dots indicator */}
+            <div className="flex gap-2 mt-2">
+              {Array.from({length: total}).map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`w-3 h-3 rounded-full ${carouselIndex === idx ? 'bg-green-400' : 'bg-gray-400'}`}
+                  onClick={() => setCarouselIndex(idx)}
+                  aria-label={`Chọn card ${idx+1}`}
+                />
               ))}
-            </select>
+            </div>
           </div>
         </motion.div>
 

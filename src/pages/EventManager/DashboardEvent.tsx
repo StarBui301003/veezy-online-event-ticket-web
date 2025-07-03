@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, DollarSign, Users, Calendar, ArrowUpRight, Ticket, Percent, ChartBar, Newspaper, Bell, MessageCircle, Eye, Clock, CheckCircle, Wallet } from 'lucide-react';
@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { getMyEvents, getEventFund, getCollaboratorsForEvent } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
+import { getUserNotifications } from '@/services/notification.service';
 
 interface Event {
   eventId: string;
@@ -25,6 +26,17 @@ interface DashboardStats {
   totalCollaborators: number;
 }
 
+interface NotificationApi {
+  notificationId: string;
+  notificationTitle: string;
+  notificationMessage: string;
+  notificationType: number;
+  isRead: boolean;
+  createdAt: string;
+  createdAtVietnam?: string;
+  category?: string;
+}
+
 export default function EventManagerHome() {
   const [stats, setStats] = useState<DashboardStats>({
     totalEvents: 0,
@@ -34,9 +46,48 @@ export default function EventManagerHome() {
     totalCollaborators: 0,
   });
 
+  const [notifDropdown, setNotifDropdown] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationApi[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const [notifPage, setNotifPage] = useState(1);
+  const [notifHasMore, setNotifHasMore] = useState(true);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    const fetchNotifs = async (page = 1, append = false) => {
+      try {
+        setNotifLoading(true);
+        const accStr = localStorage.getItem('account');
+        const userId = accStr ? JSON.parse(accStr).userId : null;
+        if (!userId) return;
+        const res = await getUserNotifications(userId, page, 5);
+        const items = res.data?.data?.items || [];
+        if (append) {
+          setNotifications(prev => [...prev, ...items]);
+        } else {
+          setNotifications(items);
+        }
+        setNotifHasMore(items.length === 5); // Nếu trả về đủ 5 thì còn nữa
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+    if (notifDropdown) fetchNotifs(1, false);
+  }, [notifDropdown]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifDropdown(false);
+      }
+    };
+    if (notifDropdown) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [notifDropdown]);
 
   const fetchDashboardData = async () => {
     try {
@@ -172,16 +223,71 @@ export default function EventManagerHome() {
           >
             EVENT MANAGER DASHBOARD
           </motion.h1>
-          <Link to="/event-manager/create-event">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-8 py-4 rounded-2xl text-lg shadow-2xl">
-                <Plus size={24} className="mr-2" /> Tạo Sự Kiện Mới
-              </Button>
-            </motion.div>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/event-manager/create-event">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white px-8 py-4 rounded-2xl text-lg shadow-2xl">
+                  <Plus size={24} className="mr-2" /> Tạo Sự Kiện Mới
+                </Button>
+              </motion.div>
+            </Link>
+            {/* Nút chuông thông báo */}
+            <div className="relative" ref={notifRef}>
+              <button
+                className="ml-1 flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 hover:scale-110 transition-all shadow-lg relative"
+                onClick={() => setNotifDropdown((v) => !v)}
+                title="Thông báo"
+              >
+                <Bell className="text-white text-2xl" />
+                {notifications.some(n => !n.isRead) && (
+                  <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                )}
+              </button>
+              {notifDropdown && (
+                <div className="absolute right-0 z-30 mt-2 w-80 bg-white text-gray-900 rounded-xl shadow-2xl border border-pink-400/30 overflow-hidden animate-fadeIn">
+                  <div className="p-4 border-b font-bold text-pink-600 flex items-center gap-2">
+                    <Bell className="text-pink-400" /> Thông báo mới
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifLoading ? (
+                      <div className="p-4 text-center text-gray-400">Đang tải...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-400">Không có thông báo mới</div>
+                    ) : notifications.map((n) => (
+                      <div key={n.notificationId} className={`px-4 py-3 border-b last:border-b-0 ${n.isRead ? 'bg-white' : 'bg-pink-50'}`}> 
+                        <div className="font-semibold text-sm text-pink-700 truncate">{n.notificationTitle}</div>
+                        <div className="text-xs text-gray-600 truncate">{n.notificationMessage}</div>
+                        <div className="text-[10px] text-gray-400 mt-1">{n.createdAtVietnam || n.createdAt}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className={`w-full py-3 text-center text-pink-600 font-semibold hover:bg-pink-50 border-t border-pink-100 ${!notifHasMore ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={async () => {
+                      if (!notifHasMore) return;
+                      const nextPage = notifPage + 1;
+                      setNotifPage(nextPage);
+                      setNotifLoading(true);
+                      const accStr = localStorage.getItem('account');
+                      const userId = accStr ? JSON.parse(accStr).userId : null;
+                      if (!userId) return;
+                      const res = await getUserNotifications(userId, nextPage, 5);
+                      const items = res.data?.data?.items || [];
+                      setNotifications(prev => [...prev, ...items]);
+                      setNotifHasMore(items.length === 5);
+                      setNotifLoading(false);
+                    }}
+                    disabled={!notifHasMore}
+                  >
+                    {notifHasMore ? 'Xem thông báo trước đó' : 'Đã xem hết thông báo'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Quick Stats */}

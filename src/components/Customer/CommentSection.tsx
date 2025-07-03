@@ -6,8 +6,8 @@ import { toast } from "react-toastify";
 interface Comment {
   commentId: string;
   userId: string;
-  userName: string;
-  userAvatar: string;
+  fullName: string;
+  avatarUrl: string;
   content: string;
   createdAt: string;
 }
@@ -47,8 +47,38 @@ export default function CommentSection({ eventId }: { eventId: string }) {
     setLoading(true);
     instance.get(`/api/Comment/event/${eventId}`)
       .then(res => {
-          setComments(res.data?.data || [])
-        })
+        const apiData = res.data?.data;
+        if (Array.isArray(apiData)) {
+          setComments(
+            apiData.map((c: unknown) => {
+              if (
+                typeof c === 'object' && c !== null &&
+                'commentId' in c && 'userId' in c && 'content' in c && 'createdAt' in c
+              ) {
+                const obj = c as Partial<Comment> & { fullName?: string; avatarUrl?: string };
+                return {
+                  commentId: obj.commentId ?? '',
+                  userId: obj.userId ?? '',
+                  fullName: obj.fullName || 'Ẩn danh',
+                  avatarUrl: obj.avatarUrl || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U',
+                  content: obj.content ?? '',
+                  createdAt: obj.createdAt ?? '',
+                };
+              }
+              return {
+                commentId: '',
+                userId: '',
+                fullName: 'Ẩn danh',
+                avatarUrl: 'https://via.placeholder.com/150/94a3b8/ffffff?text=U',
+                content: '',
+                createdAt: '',
+              };
+            })
+          );
+        } else {
+          setComments([]);
+        }
+      })
       .catch(() => {
         toast.error("Không thể tải bình luận.");
         setComments([])
@@ -134,23 +164,25 @@ export default function CommentSection({ eventId }: { eventId: string }) {
           {comments.length === 0 ? (
             <div className="text-slate-400 text-center py-4">Chưa có bình luận nào. Hãy là người đầu tiên!</div>
           ) : (
-            comments.map(c => (
-              <div key={c.commentId} className="flex items-start gap-4">
-                <img
-                    src={c.userAvatar || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'}
-                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
-                    alt={`${c.userName}'s avatar`}
-                    className="w-10 h-10 rounded-full object-cover"
-                />
-                <div className="flex-1 bg-slate-700 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-purple-300">{c.userName}</p>
-                    <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+            [...comments]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map(c => (
+                <div key={c.commentId} className="flex items-start gap-4">
+                  <img
+                      src={c.avatarUrl}
+                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
+                      alt={`${c.fullName}'s avatar`}
+                      className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1 bg-slate-700 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-purple-300">{c.fullName}</p>
+                      <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+                    </div>
+                    <p className="text-sm text-slate-200 mt-1">{c.content}</p>
                   </div>
-                  <p className="text-sm text-slate-200 mt-1">{c.content}</p>
                 </div>
-              </div>
-            ))
+              ))
           )}
         </div>
       )}
