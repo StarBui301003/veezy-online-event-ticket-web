@@ -129,9 +129,7 @@ export const LoginPage = () => {
         const data = error.response.data;
         if (data.errors && typeof data.errors === 'object') {
           // Lấy tất cả message trong errors
-          errorMessage = Object.values(data.errors)
-            .flat()
-            .join('\n');
+          errorMessage = Object.values(data.errors).flat().join('\n');
         } else if (typeof data.message === 'string') {
           errorMessage = data.message;
         }

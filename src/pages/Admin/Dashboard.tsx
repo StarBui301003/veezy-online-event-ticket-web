@@ -70,7 +70,7 @@ export const Dashboard = () => {
     <div className="p-6">
       <AnimatePresence>
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-between"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-center"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
@@ -118,9 +118,7 @@ export const Dashboard = () => {
             <div className="text-sm text-gray-600 font-semibold">
               Completed: {data.systemOverview.completedEvents}
             </div>
-            <div className="text-xs text-gray-400">
-              Active: {data.systemOverview.activeEvents}
-            </div>
+            <div className="text-xs text-gray-400">Active: {data.systemOverview.activeEvents}</div>
           </motion.div>
           {/* Financial Overview */}
           <motion.div
@@ -158,9 +156,7 @@ export const Dashboard = () => {
             <div className="text-3xl font-bold text-gray-800 mb-1">
               {data.systemOverview.totalTicketsSold.toLocaleString()}
             </div>
-            <div className="text-sm text-gray-600 font-semibold">
-              Total tickets sold in system
-            </div>
+            <div className="text-sm text-gray-600 font-semibold">Total tickets sold in system</div>
           </motion.div>
         </motion.div>
       </AnimatePresence>
