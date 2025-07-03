@@ -8,7 +8,13 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { getApprovedEvents, getCategoryById } from '@/services/Admin/event.service';
+import {
+  getApprovedEvents,
+  getCategoryById,
+  hideEvent,
+  showEvent,
+  deleteEvent,
+} from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
@@ -25,10 +31,12 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaRegTrashAlt } from 'react-icons/fa';
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'react-toastify'; // Thêm dòng này
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -153,6 +161,82 @@ export const ApprovedEventList = () => {
 
   const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+
+  // Toggle status handler
+  const handleToggleStatus = async (event: ApprovedEvent) => {
+    try {
+      if (event.isActive) {
+        await hideEvent(event.eventId);
+      } else {
+        await showEvent(event.eventId);
+      }
+      // Reload list after toggle
+      setLoading(true);
+      getApprovedEvents()
+        .then(async (res) => {
+          setEvents(res.data.items);
+
+          const allCategoryIds = Array.from(
+            new Set(res.data.items.flatMap((event) => event.categoryIds || []))
+          );
+          const categoryMap: Record<string, Category> = { ...categories };
+          const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
+          await Promise.all(
+            idsToFetch.map(async (id) => {
+              try {
+                const cat = await getCategoryById(id);
+                categoryMap[id] = cat;
+              } catch {
+                categoryMap[id] = {
+                  categoryId: id,
+                  categoryName: 'Unknown',
+                  categoryDescription: '',
+                };
+              }
+            })
+          );
+          setCategories(categoryMap);
+
+          const allAccountIds = Array.from(
+            new Set(
+              res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
+            )
+          );
+          const usernameMap: Record<string, string> = { ...usernames };
+          const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
+          await Promise.all(
+            idsToFetchUser.map(async (id) => {
+              try {
+                const username = await getUsernameByAccountId(id);
+                usernameMap[id] = username;
+              } catch {
+                usernameMap[id] = id;
+              }
+            })
+          );
+          setUsernames(usernameMap);
+        })
+        .catch(() => setEvents([]))
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    } catch {
+      // Optionally show error toast
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async (event: ApprovedEvent) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      await deleteEvent(event.eventId);
+      setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      toast.success('Event deleted successfully!');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Cannot delete this event!');
+    }
+  };
 
   return (
     <div className="p-3">
@@ -285,13 +369,18 @@ export const ApprovedEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-green-200 hover:bg-green-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
-                <TableHead style={{ width: '15%' }}>Approved By</TableHead>
+                <TableHead style={{ width: '10%' }} className="text-center">
+                  Status
+                </TableHead>
+                <TableHead style={{ width: '15%' }} className="text-center">
+                  Approved By
+                </TableHead>
                 <TableHead style={{ width: '20%' }}>Approved At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
                 <TableHead style={{ width: '20%' }}>Created At</TableHead>
@@ -308,7 +397,7 @@ export const ApprovedEventList = () => {
                   )
               ).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-4 text-gray-500">
                     No approved events found.
                   </TableCell>
                 </TableRow>
@@ -323,7 +412,7 @@ export const ApprovedEventList = () => {
                       )
                   )
                   .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
+                    <TableRow key={event.eventId} className="hover:bg-green-50">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
@@ -335,7 +424,20 @@ export const ApprovedEventList = () => {
                               .join(', ')
                           : 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
+                        {/* Status switch giống NewsOwnList */}
+                        <Switch
+                          checked={event.isActive}
+                          onCheckedChange={() => handleToggleStatus(event)}
+                          disabled={loading}
+                          className={
+                            event.isActive
+                              ? '!bg-green-500 !border-green-500'
+                              : '!bg-red-400 !border-red-400'
+                          }
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
                         {event.approvedBy
                           ? usernames[event.approvedBy] || event.approvedBy
                           : 'Unknown'}
@@ -358,6 +460,13 @@ export const ApprovedEventList = () => {
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
+                        <button
+                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
+                          title="Delete"
+                          onClick={() => handleDelete(event)}
+                        >
+                          <FaRegTrashAlt className="w-4 h-4" />
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -365,7 +474,7 @@ export const ApprovedEventList = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -385,7 +494,7 @@ export const ApprovedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-600 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

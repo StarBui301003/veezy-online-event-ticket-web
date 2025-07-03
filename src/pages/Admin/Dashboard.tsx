@@ -1,101 +1,191 @@
 import { useEffect, useState } from 'react';
-import { getUserAPI } from '@/services/auth.service';
+import { getAdminDashboard } from '@/services/Admin/dashboard.service';
+import type { AdminDashboardData } from '@/types/Admin/dashboard';
+// Thay import chart bằng recharts (hỗ trợ Vite tốt)
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { toast } from 'react-toastify';
+// Thêm import cho animation
+import { motion, AnimatePresence } from 'framer-motion';
+
+const cardClass =
+  'flex-1 min-w-[220px] max-w-[340px] bg-white rounded-xl shadow border p-5 flex flex-col justify-between mx-2 my-2';
 
 export const Dashboard = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null);
-  const [role, setRole] = useState<number | null>(null);
+  const [data, setData] = useState<AdminDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const accStr = localStorage.getItem('account');
-    if (!accStr) return;
-    const accObj = JSON.parse(accStr);
-    setRole(accObj.role); // Lấy role từ localStorage
-    const userId = accObj.userId;
-    if (!userId) return;
-    getUserAPI(userId)
-      .then((user) => {
-        setUser(user);
-      })
-      .catch(() => setUser(null));
-  }, []);
-
-  // Map role number to text
-  const roleText = (role: number | null) => {
-    switch (role) {
-      case 0:
-        return 'Admin';
-      default:
-        return 'Unknown';
-    }
+  // Tham số ví dụ cho dashboard (AllTime, so sánh với Yesterday, group theo ngày)
+  const dashboardParams = {
+    Period: 15, // AllTime
+    IncludeComparison: true,
+    ComparisonPeriod: 2, // Yesterday
+    GroupBy: 1, // Day
+    IncludeMetrics: ['revenue', 'ticketsSold'],
+    IncludeRealtimeData: false,
   };
 
+  useEffect(() => {
+    setLoading(true);
+    getAdminDashboard(dashboardParams)
+      .then((res) => setData(res.data))
+      .catch(() => {
+        toast.error('Unable to load dashboard data. Please try again later.!');
+        setData(null);
+      })
+      .finally(() => setTimeout(() => setLoading(false), 100));
+  }, []);
+
+  // Hiển thị spinner overlay khi loading
+  if (loading) {
+    return <SpinnerOverlay show />;
+  }
+
+  if (!data) {
+    return (
+      <div className="flex justify-center items-center h-40 text-lg text-red-500">
+        Failed to load dashboard data.
+      </div>
+    );
+  }
+
+  // Chuẩn bị dữ liệu cho chart
+  const chartData =
+    data.financialOverview.revenueTimeline?.map((item) => ({
+      period: item.periodLabel,
+      revenue: item.revenue,
+      ticketsSold: item.transactionCount,
+    })) || [];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-200 to-blue-300 flex flex-col items-center py-12">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-8 flex flex-col items-center mb-8">
-        <div className="text-blue-950 text-4xl md:text-6xl font-bold mb-2 text-center">
-          Admin Dashboard
+    <div className="p-6">
+      <AnimatePresence>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-between"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 40 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* User Overview */}
+          <motion.div
+            className={cardClass}
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-500 font-medium">Users</span>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                +{data.systemOverview.growth.usersGrowth ?? 0}%
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-1">
+              {data.systemOverview.totalUsers.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600 font-semibold">
+              Active: {data.userStatistics.growth.activeUsers.toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-400">
+              New today: {data.userStatistics.growth.newUsersToday}
+            </div>
+          </motion.div>
+          {/* Event Overview */}
+          <motion.div
+            className={cardClass}
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-500 font-medium">Events</span>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                +{data.systemOverview.growth.eventsGrowth ?? 0}%
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-1">
+              {data.systemOverview.totalEvents.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600 font-semibold">
+              Completed: {data.systemOverview.completedEvents}
+            </div>
+            <div className="text-xs text-gray-400">
+              Active: {data.systemOverview.activeEvents}
+            </div>
+          </motion.div>
+          {/* Financial Overview */}
+          <motion.div
+            className={cardClass}
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-500 font-medium">Financial</span>
+              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
+                +{data.systemOverview.growth.revenueGrowth ?? 0}%
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-1">
+              {data.systemOverview.totalRevenue.toLocaleString('vi-VN')}₫
+            </div>
+            <div className="text-sm text-gray-600 font-semibold">
+              Platform: {data.systemOverview.platformRevenue.toLocaleString('vi-VN')}₫
+            </div>
+          </motion.div>
+          {/* Tickets Sold Overview */}
+          <motion.div
+            className={cardClass}
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-500 font-medium">Tickets Sold</span>
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                +{data.systemOverview.growth.ticketsGrowth ?? 0}%
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-gray-800 mb-1">
+              {data.systemOverview.totalTicketsSold.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600 font-semibold">
+              Total tickets sold in system
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+      {/* Chart section */}
+      <motion.div
+        className="mt-8 bg-white rounded-xl shadow border p-6"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <div className="mb-4 text-lg font-semibold text-gray-700">
+          Revenue & Tickets Sold Over Time
         </div>
-        {role !== null && (
-          <div className="text-blue-800 text-xl md:text-2xl font-semibold mt-2 mb-4">
-            Role: {roleText(role)}
-          </div>
-        )}
-      </div>
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg p-8 flex flex-col items-center">
-        {user ? (
-          <div className="w-full flex flex-col md:flex-row items-center gap-8">
-            <div className="flex-shrink-0 flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-300 bg-gray-100 flex items-center justify-center">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="avatar" className="object-contain w-full h-full" />
-                ) : (
-                  <span className="text-gray-400 text-lg">No avatar</span>
-                )}
-              </div>
-              <div className="mt-3 text-blue-900 font-semibold text-lg">{user.fullName}</div>
-            </div>
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-blue-900 text-base">
-              <div>
-                <span className="font-semibold">User ID:</span>{' '}
-                <span className="font-light">{user.userId}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Account ID:</span>{' '}
-                <span className="font-light">{user.accountId}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Phone:</span>{' '}
-                <span className="font-light">{user.phone}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Email:</span>{' '}
-                <span className="font-light">{user.email}</span>
-              </div>
-              <div>
-                <span className="font-semibold">Gender:</span>{' '}
-                <span className="font-light">
-                  {user.gender === 0 ? 'Male' : user.gender === 1 ? 'Female' : 'Other'}
-                </span>
-              </div>
-              <div>
-                <span className="font-semibold">Date of Birth:</span>{' '}
-                <span className="font-light">
-                  {user.dob
-                    ? new Date(user.dob).toLocaleDateString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                      })
-                    : ''}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-gray-500 text-lg">Không tìm thấy thông tin người dùng.</div>
-        )}
-      </div>
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="period" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="revenue" stroke="#f59e42" name="Revenue (VND)" />
+            <Line type="monotone" dataKey="ticketsSold" stroke="#6366f1" name="Tickets Sold" />
+          </LineChart>
+        </ResponsiveContainer>
+      </motion.div>
     </div>
   );
 };

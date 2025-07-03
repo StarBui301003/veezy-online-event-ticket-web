@@ -10,7 +10,8 @@ import {
 import { updateNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import type { News } from '@/types/Admin/news';
-import RichTextEditor from '@/components/RichTextEditor';
+import { RichTextEditor } from '@/components/RichTextEditor';
+
 import {
   Select,
   SelectTrigger,
@@ -18,7 +19,8 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaUpload } from 'react-icons/fa';
+import { NO_IMAGE } from '@/assets/img';
 
 const initialLexicalValue = ''; // TipTap dùng HTML string
 
@@ -82,6 +84,11 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
     setForm((prev) => ({ ...prev, imageUrl: url }));
   };
 
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = NO_IMAGE;
+  };
+
   const handleEdit = async () => {
     if (!form.newsTitle.trim()) {
       alert('Title is required!');
@@ -102,21 +109,22 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
         newsContent: form.newsContent,
       });
       onUpdated && onUpdated();
+      setLoading(false); // Đặt loading về false trước khi đóng modal
       onClose();
-    } finally {
-      setLoading(false);
+    } catch {
+      setLoading(false); // Đảm bảo loading về false khi có lỗi
     }
   };
 
   return (
     <Dialog open={!!news} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-2xl  bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>Edit News</DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 p-4 pt-0">
+        <div className="space-y-3 max-h-[70vh] overflow-auto p-4 pt-0 ">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <Select
@@ -174,7 +182,7 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
                 className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500"
                 style={{ marginBottom: 0 }}
               >
-                <FaSpinner />
+                <FaUpload />
                 Import
                 <input
                   type="file"
@@ -184,39 +192,20 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
                   className="hidden m-0"
                 />
               </label>
-              {(form.imageUrl || imageFile) && (
-                <div className="flex items-center gap-2">
-                  {form.imageUrl && (
-                    <img
-                      src={form.imageUrl}
-                      alt="Preview"
-                      className="h-12 w-12 object-cover rounded border"
-                    />
-                  )}
-                  {imageFile && (
-                    <span className="text-xs text-gray-700 max-w-[120px] truncate block">
-                      {imageFile.name}
-                    </span>
-                  )}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <img
+                  src={form.imageUrl || NO_IMAGE}
+                  alt="Preview"
+                  className="h-12 w-12 object-cover rounded border"
+                  onError={handleImgError}
+                />
+                {imageFile && (
+                  <span className="text-xs text-gray-700 max-w-[120px] truncate block">
+                    {imageFile.name}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Status</label>
-            <Select
-              value={form.status ? 'true' : 'false'}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, status: value === 'true' }))}
-              disabled={loading}
-            >
-              <SelectTrigger className="border-gray-200 border rounded px-2 py-1 w-full">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
         <div className="p-4">

@@ -60,7 +60,7 @@ export const LoginPage = () => {
       const apiResult = await loginAPI(data);
 
       if (!apiResult.data || !apiResult.data.accessToken) {
-        toast.error('Đăng nhập thất bại, không nhận được access token!');
+        toast.error('Login failed: No access token received!', { position: 'top-right' });
         setLoading(false);
         return;
       }
@@ -69,7 +69,6 @@ export const LoginPage = () => {
       localStorage.setItem('customerId', apiResult.data.account.userId);
       document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
 
-      // Tách userConfig, account
       const {
         userConfig,
         accountId,
@@ -79,8 +78,9 @@ export const LoginPage = () => {
         phone,
         role,
         userId,
-        username: accountUsername, // Đổi tên để tránh conflict
+        username: accountUsername,
       } = apiResult.data.account;
+
       if (userConfig !== undefined) {
         localStorage.setItem('user_config', JSON.stringify(userConfig));
       } else {
@@ -104,36 +104,37 @@ export const LoginPage = () => {
         localStorage.removeItem('remembered_username');
       }
 
-      // Nếu là admin thì chuyển sang trang admin
+      // Thông báo và điều hướng theo role
+      let welcomeMsg = `Welcome ${accountUsername}!`;
+      let redirectPath = '/';
       if (role === 0) {
-        toast.success(`Welcome admin ${accountUsername}!`, {
-          position: 'top-right',
-        });
-        navigate('/admin', { replace: true });
-        return;
+        welcomeMsg = `Welcome admin ${accountUsername}!`;
+        redirectPath = '/admin';
+      } else if (role === 2) {
+        welcomeMsg = `Welcome event manager ${accountUsername}!`;
+        redirectPath = '/event-manager';
       }
-      // Nếu là Event Manager thì chuyển sang dashboard Event Manager
-      if (role === 2) {
-        toast.success(`Welcome ${accountUsername}!`, {
-          position: 'top-right',
-        });
-        navigate('/event-manager', { replace: true });
-        return;
-      }
-      toast.success(`Welcome ${accountUsername}!`, {
-        position: 'top-right',
-      });
-      navigate('/', { replace: true });
+      toast.success(welcomeMsg, { position: 'top-right' });
+      navigate(redirectPath, { replace: true });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       let errorMessage = 'Invalid username or password.';
+      // Nếu BE trả về lỗi dạng errors.{Field}: [msg]
       if (
         error &&
         error.response &&
         error.response.data &&
-        typeof error.response.data.message === 'string'
+        typeof error.response.data === 'object'
       ) {
-        errorMessage = error.response.data.message;
+        const data = error.response.data;
+        if (data.errors && typeof data.errors === 'object') {
+          // Lấy tất cả message trong errors
+          errorMessage = Object.values(data.errors)
+            .flat()
+            .join('\n');
+        } else if (typeof data.message === 'string') {
+          errorMessage = data.message;
+        }
       } else if (
         typeof error === 'object' &&
         error !== null &&
@@ -142,9 +143,7 @@ export const LoginPage = () => {
       ) {
         errorMessage = error.message;
       }
-      toast.error(errorMessage, {
-        position: 'top-right',
-      });
+      toast.error(errorMessage, { position: 'top-right' });
     } finally {
       setLoading(false);
     }
@@ -166,8 +165,8 @@ export const LoginPage = () => {
         <div className="flex-1"></div>
         <div className="flex-1 flex justify-center items-center">
           <div className="text-center">
-            <div className="w-[380px] invert brightness-0">
-              <img src={LOGO} alt="Logo" className="w-full h-auto" />
+            <div className="w-[380px]">
+              <img src={LOGO} alt="Logo" className="w-full h-auto invert brightness-0" />
             </div>
             <div className="mt-6 flex flex-col gap-4 items-center">
               <div className="w-[380px] text-[#A1A1AA] text-[24px]">
@@ -198,11 +197,16 @@ export const LoginPage = () => {
                 />
                 <button
                   type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none "
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-transparent outline-none focus:outline-none border-none z-10"
+                  style={{ isolation: 'isolate' }} // Thêm dòng này
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5 text-[#A1A1AA]" />
+                  ) : (
+                    <Eye className="w-5 h-5 text-[#A1A1AA]" />
+                  )}
                 </button>
               </div>
             </div>

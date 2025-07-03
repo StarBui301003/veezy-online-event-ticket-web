@@ -108,8 +108,9 @@ export function NavUser() {
       localStorage.removeItem('admin-event-tab');
       document.cookie = 'refresh_token=; Max-Age=0; path=/;';
       toast.success('Logged out successfully!');
-      // Sử dụng window.location để đảm bảo redirect về login (fix navigate không hoạt động do context hoặc layout)
-      window.location.href = '/login';
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 600); // Đợi toast hiển thị
     } finally {
       setLoadingLogout(false);
     }
@@ -129,13 +130,7 @@ export function NavUser() {
               <div className="relative">
                 {user.avatar && (
                   <Avatar className="h-9 w-9 rounded-full border-2 border-blue-400 shadow">
-                    <AvatarImage
-                      src={user.avatar}
-                      alt={user.name}
-                      // Không cần onLoad và style display nữa
-                    />
-                    {/* Không render spinner */}
-                    {/* Không render AvatarFallback khi đã có avatar */}
+                    <AvatarImage src={user.avatar} alt={user.name} />
                   </Avatar>
                 )}
                 {!user.avatar && (

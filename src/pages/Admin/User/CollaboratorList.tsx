@@ -155,7 +155,7 @@ export const CollaboratorList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-purple-300/70 hover:bg-purple-300/70">
                 <TableHead className="pl-4" style={{ width: '10%' }}>
                   #
                 </TableHead>
@@ -174,7 +174,7 @@ export const CollaboratorList = () => {
                 </TableRow>
               ) : (
                 pagedUsers.map((user, idx) => (
-                  <TableRow key={user.userId}>
+                  <TableRow key={user.userId} className="hover:bg-purple-100">
                     <TableCell className="pl-4">
                       {(userPage - 1) * userPageSize + idx + 1}
                     </TableCell>
@@ -225,7 +225,7 @@ export const CollaboratorList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === userPage
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-purple-500 text-white border hover:bg-purple-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

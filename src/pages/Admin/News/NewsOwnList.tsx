@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { getNewsByAuthor, deleteNews, deleteNewsImage } from '@/services/Admin/news.service';
+import {
+  getOwnNews,
+  deleteNews,
+  hideNews,
+  showNews,
+  deleteNewsImage,
+} from '@/services/Admin/news.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import NewsDetailModal from '@/pages/Admin/News/NewsDetailModal';
+import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
 import CreateNewsModal from './CreateNewsModal';
-import { Badge } from '@/components/ui/badge';
 import type { News } from '@/types/Admin/news';
 import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -26,10 +31,11 @@ import {
 } from '@/components/ui/pagination';
 import EditNewsModal from './EditNewsModal';
 import { MdOutlineEdit } from 'react-icons/md';
+import { Switch } from '@/components/ui/switch';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const NewsOwnList = () => {
+export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
@@ -40,51 +46,20 @@ export const NewsOwnList = () => {
   const [editNews, setEditNews] = useState<News | null>(null);
 
   useEffect(() => {
+    if (activeTab !== 'own') return;
     setLoading(true);
-    // Lấy authorId từ localStorage account
-    const accStr = localStorage.getItem('account');
-    let authorId = '';
-    if (accStr) {
-      try {
-        const acc = JSON.parse(accStr);
-        authorId = acc.userId;
-      } catch {
-        authorId = '';
-      }
-    }
-    if (!authorId) {
-      setNews([]);
-      setLoading(false);
-      return;
-    }
-    getNewsByAuthor(authorId, 1, 100)
+    getOwnNews(1, 100)
       .then((res) => {
         setNews(res.data.items || []);
       })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
-  }, []);
+  }, [activeTab]);
 
   const reloadList = () => {
     setLoading(true);
-    // Lấy authorId từ localStorage account
-    const accStr = localStorage.getItem('account');
-    let authorId = '';
-    if (accStr) {
-      try {
-        const acc = JSON.parse(accStr);
-        authorId = acc.userId;
-      } catch {
-        authorId = '';
-      }
-    }
-    if (!authorId) {
-      setNews([]);
-      setLoading(false);
-      return;
-    }
-    getNewsByAuthor(authorId, 1, 100)
+    getOwnNews()
       .then((res) => {
         setNews(res.data.items || []);
       })
@@ -104,7 +79,8 @@ export const NewsOwnList = () => {
   const handleDelete = async (item: News) => {
     if (!window.confirm('Are you sure you want to delete this news?')) return;
     try {
-      if (item.imageUrl) {
+      // Nếu imageUrl là blob (tức là ảnh vừa upload, chưa lưu lên server), bỏ qua xóa ảnh
+      if (item.imageUrl && !item.imageUrl.startsWith('blob:')) {
         await deleteNewsImage(item.imageUrl);
       }
       await deleteNews(item.newsId);
@@ -112,6 +88,22 @@ export const NewsOwnList = () => {
       reloadList();
     } catch {
       toast.error('Cannot delete this news!');
+    }
+  };
+
+  // Toggle status handler
+  const handleToggleStatus = async (item: News) => {
+    try {
+      if (item.status) {
+        await hideNews(item.newsId);
+        toast.success('News hidden successfully!');
+      } else {
+        await showNews(item.newsId);
+        toast.success('News shown successfully!');
+      }
+      reloadList();
+    } catch {
+      toast.error('Failed to update status!');
     }
   };
 
@@ -250,15 +242,16 @@ export const NewsOwnList = () => {
                       {item.newsTitle}
                     </TableCell>
                     <TableCell className="text-center">
-                      {item.status ? (
-                        <Badge className="border-green-500 bg-green-500 items-center border-2 rounded-[10px] cursor-pointer transition-all text-white hover:bg-green-600 hover:text-white hover:border-green-500">
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white hover:border-red-500">
-                          Inactive
-                        </Badge>
-                      )}
+                      <Switch
+                        checked={item.status}
+                        onCheckedChange={() => handleToggleStatus(item)}
+                        disabled={loading}
+                        className={
+                          item.status
+                            ? '!bg-green-500 !border-green-500'
+                            : '!bg-red-400 !border-red-400'
+                        }
+                      />
                     </TableCell>
                     <TableCell className="text-center">
                       {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
@@ -369,7 +362,7 @@ export const NewsOwnList = () => {
         </div>
       </div>
       {selectedNews && (
-        <NewsDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
+        <NewsOwnDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
       )}
       <CreateNewsModal
         open={showCreateModal}

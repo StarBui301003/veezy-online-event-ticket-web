@@ -153,6 +153,14 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
               />
             </div>
             <div>
+              <label className="block text-xs text-gray-500 mb-1">Active</label>
+              <input
+                value={event.isActive ? 'Active' : 'Inactive'}
+                readOnly
+                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+              />
+            </div>
+            <div>
               <label className="block text-xs text-gray-500 mb-1">Start At</label>
               <input
                 value={

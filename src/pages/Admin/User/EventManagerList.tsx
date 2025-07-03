@@ -155,7 +155,7 @@ export const EventManagerList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-green-200 hover:bg-green-200">
                 <TableHead className="pl-4" style={{ width: '10%' }}>
                   #
                 </TableHead>
@@ -174,7 +174,7 @@ export const EventManagerList = () => {
                 </TableRow>
               ) : (
                 pagedUsers.map((user, idx) => (
-                  <TableRow key={user.userId}>
+                  <TableRow className="hover:bg-green-50" key={user.userId}>
                     <TableCell className="pl-4">
                       {(userPage - 1) * userPageSize + idx + 1}
                     </TableCell>
@@ -225,7 +225,7 @@ export const EventManagerList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === userPage
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-600 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

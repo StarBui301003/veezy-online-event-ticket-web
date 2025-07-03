@@ -93,7 +93,7 @@ export const PaymentListAdmin = () => {
                 </TableRow>
               ) : (
                 pagedPayments.map((p, idx) => (
-                  <TableRow key={p.paymentId}>
+                  <TableRow key={p.paymentId} className="hover:bg-blue-50">
                     <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell>{p.paymentId}</TableCell>
                     <TableCell>{p.orderId}</TableCell>

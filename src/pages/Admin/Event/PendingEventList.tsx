@@ -34,7 +34,8 @@ import { Category } from '@/types/Admin/category';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const PendingEventList = () => {
+// Thêm prop onChangePending
+export const PendingEventList = ({ onChangePending }: { onChangePending?: () => void }) => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [allCategories, setAllCategories] = useState<Category[]>([]);
@@ -43,7 +44,6 @@ export const PendingEventList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
-  const [modalKey, setModalKey] = useState(0);
 
   // Filter state
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -152,14 +152,17 @@ export const PendingEventList = () => {
     }
   };
 
-  // Thay đổi: truyền thêm prop onActionDone để reload list khi approve/reject
-  const handleModalActionDone = () => {
-    setModalKey((k) => k + 1); // Đổi key để force remount modal
-    setSelectedEvent(null);
-    reloadList();
+  // Sau khi approve/reject thành công, gọi reloadList
+  const reloadList = () => {
+    fetchData();
+    if (onChangePending) {
+      setTimeout(() => {
+        onChangePending();
+      }, 600); // đảm bảo gọi sau khi fetchData hoàn thành
+    }
   };
 
-  const reloadList = () => {
+  const fetchData = () => {
     setLoading(true);
     getPendingEvents()
       .then(async (res) => {
@@ -372,7 +375,7 @@ export const PendingEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-yellow-200 hover:bg-yellow-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
@@ -410,7 +413,7 @@ export const PendingEventList = () => {
                       )
                   )
                   .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
+                    <TableRow key={event.eventId} className="hover:bg-yellow-50">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
@@ -531,8 +534,8 @@ export const PendingEventList = () => {
                                 className={`transition-colors rounded 
                                       ${
                                         i === page
-                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-yellow-400 text-white border hover:bg-yellow-500 hover:text-white'
+                                          : 'text-gray-700 hover:bg-yellow-100 hover:text-black'
                                       }
                                       px-2 py-1 mx-0.5`}
                               >
@@ -604,10 +607,9 @@ export const PendingEventList = () => {
           </Table>
           {selectedEvent && (
             <PendingEventDetailModal
-              key={modalKey}
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
-              onActionDone={handleModalActionDone}
+              onActionDone={reloadList}
             />
           )}
         </div>

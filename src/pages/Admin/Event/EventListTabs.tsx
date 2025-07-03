@@ -22,13 +22,16 @@ export default function EventListTabs() {
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
 
-  useEffect(() => {
-    // Fetch pending count
+  const fetchPendingCount = () => {
     getPendingEvents()
       .then((res) => {
         setPendingCount(res.data?.items?.length || 0);
       })
       .catch(() => setPendingCount(0));
+  };
+
+  useEffect(() => {
+    fetchPendingCount();
   }, []);
 
   // Khi đổi tab, update query param
@@ -112,7 +115,9 @@ export default function EventListTabs() {
             {loadedTabs.includes('approved') && <ApprovedEventList />}
           </TabsContent>
           <TabsContent value="pending">
-            {loadedTabs.includes('pending') && <PendingEventList />}
+            {loadedTabs.includes('pending') && (
+              <PendingEventList onChangePending={fetchPendingCount} />
+            )}
           </TabsContent>
           <TabsContent value="rejected">
             {loadedTabs.includes('rejected') && <RejectedEventList />}

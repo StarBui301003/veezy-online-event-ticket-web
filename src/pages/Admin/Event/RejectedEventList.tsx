@@ -8,7 +8,7 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { getRejectedEvents, getCategoryById } from '@/services/Admin/event.service';
+import { getRejectedEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
@@ -25,10 +25,11 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaRegTrashAlt } from 'react-icons/fa';
 import RejectedEventDetailModal from '@/pages/Admin/Event/RejectedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
+import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -167,6 +168,19 @@ export const RejectedEventList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredEvents.length]);
 
+  // Thêm hàm xử lý xóa
+  const handleDelete = async (event: ApprovedEvent) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) return;
+    try {
+      await deleteEvent(event.eventId);
+      setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      toast.success('Event deleted successfully!');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Cannot delete this event!');
+    }
+  };
+
   return (
     <div className="p-3">
       <SpinnerOverlay show={loading} />
@@ -299,7 +313,7 @@ export const RejectedEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-red-200 hover:bg-red-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
@@ -337,7 +351,7 @@ export const RejectedEventList = () => {
                       )
                   )
                   .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
+                    <TableRow key={event.eventId} className="hover:bg-red-100/60">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
@@ -416,6 +430,13 @@ export const RejectedEventList = () => {
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
+                        <button
+                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
+                          title="Delete"
+                          onClick={() => handleDelete(event)}
+                        >
+                          <FaRegTrashAlt className="w-4 h-4" />
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -443,7 +464,7 @@ export const RejectedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-red-500 text-white border hover:bg-red-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}
