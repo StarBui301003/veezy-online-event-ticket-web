@@ -1,6 +1,5 @@
 import instance from '../axios.customize';
 import type { GetAllReportResponse } from '@/types/Admin/report';
-import axios from 'axios';
 
 export async function getAllReport(): Promise<GetAllReportResponse> {
   const res = await instance.get(`/api/Report`);
