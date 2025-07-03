@@ -10,7 +10,6 @@ import {
   FaPercent,
   FaUsers,
   FaChartBar,
-  FaBell,
   FaNewspaper,
   FaUserCircle,
   FaComments,
@@ -211,7 +210,6 @@ export function EventManagerLayout() {
                     >
                       Tạo sự kiện mới
                     </NavItem>
-
                     <NavItem
                       to="pending-events"
                       icon={FaClock}
@@ -330,13 +328,6 @@ export function EventManagerLayout() {
                       isActive={isActiveRoute('/event-manager/news')}
                     >
                       Quản lý tin tức
-                    </NavItem>
-                    <NavItem
-                      to="notifications"
-                      icon={FaBell}
-                      isActive={isActiveRoute('/event-manager/notifications')}
-                    >
-                      Thông báo
                     </NavItem>
                     <NavItem
                       to="chat"

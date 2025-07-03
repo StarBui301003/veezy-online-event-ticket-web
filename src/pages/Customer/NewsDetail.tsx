@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getNewsDetail } from '@/services/Event Manager/event.service';
+import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 
 interface News {
   newsId: string;
@@ -12,6 +12,7 @@ interface News {
   imageUrl: string;
   createdAt?: string;
   authorId?: string;
+  eventId?: string;
 }
 
 const NewsDetail: React.FC = () => {
@@ -19,6 +20,8 @@ const NewsDetail: React.FC = () => {
   const navigate = useNavigate();
   const [news, setNews] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
+  const [relatedNews, setRelatedNews] = useState<News[]>([]);
+  const [showCount, setShowCount] = useState(3);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -28,6 +31,8 @@ const NewsDetail: React.FC = () => {
         const data = res.data?.data;
         if (data && data.newsId) {
           setNews(data);
+          // Lấy thêm tin liên quan
+          getAllNewsHome(1, 6).then(res => setRelatedNews(res.data?.data?.items?.filter(n => n.newsId !== newsId) || []));
         } else {
           toast.error('Không tìm thấy tin tức!');
           navigate('/');
@@ -52,41 +57,90 @@ const NewsDetail: React.FC = () => {
   if (!news) return null;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center w-full pt-20">
-      {/* Ảnh lớn full màn hình, tránh bị header che */}
-      {news.imageUrl && (
-        <div className="w-full relative">
-          <img
-            src={news.imageUrl}
-            alt={news.newsTitle}
-            className="w-full max-h-[420px] object-cover object-center"
-            style={{ minHeight: '220px' }}
-          />
-          {/* Nếu header là fixed, thêm margin-top cho phần dưới */}
+    <div className="bg-white font-serif min-h-screen pt-28">
+      {/* Newspaper Header */}
+      <header className="border-b-4 border-black">
+        <div className="max-w-4xl mx-auto px-4 py-2">
+          
         </div>
-      )}
-      {/* Nội dung */}
-      <div className="w-full max-w-4xl px-4 md:px-0 mx-auto flex flex-col items-center mt-10 mb-16">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 text-center leading-tight">
-          {news.newsTitle}
-        </h1>
-        {/* Mô tả ngắn ngay dưới tiêu đề */}
-        <div className="text-lg md:text-xl text-gray-700 font-medium mb-4 text-center">
-          {news.newsDescription}
-        </div>
-        {/* Ngày đăng */}
-        <div className="text-sm text-gray-400 mb-8 text-center">
-          {news.createdAt && (
-            <>Ngày đăng: {new Date(news.createdAt).toLocaleString('vi-VN')}</>
-          )}
+      </header>
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        {/* Headline Story */}
+        <div className="mb-8 pb-6 border-b-2 border-black">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
+                {news.newsTitle}
+              </h1>
+              {news.eventId && (
+                <button
+                  className="text-blue-600 underline text-sm flex items-center gap-1 mb-2 hover:text-blue-800 transition"
+                  title="Xem sự kiện của tin này"
+                  onClick={() => navigate(`/event/${news.eventId}`)}
+                  type="button"
+                >
+                  <ExternalLink className="w-4 h-4 inline-block" />
+                  Xem sự kiện của tin này
+                </button>
+              )}
+              <p className="text-lg leading-relaxed mb-4">
+                {news.newsDescription}
+              </p>
+              <div className="flex items-center text-sm text-gray-600">
+                <Clock className="w-4 h-4 mr-1" />
+                <span className="mr-4">{news.createdAt && new Date(news.createdAt).toLocaleString('vi-VN')}</span>
+              </div>
+            </div>
+            <div>
+              <img
+                src={news.imageUrl}
+                alt={news.newsTitle}
+                className="w-full h-80 object-cover border-2 border-gray-300"
+              />
+            </div>
+          </div>
         </div>
         {/* Nội dung chi tiết */}
-        <div
-          className="prose prose-gray max-w-4xl text-base md:text-lg leading-relaxed w-full"
-          style={{ wordBreak: 'break-word' }}
-          dangerouslySetInnerHTML={{ __html: news.newsContent }}
-        />
-      </div>
+        <div className="prose prose-gray max-w-4xl text-base md:text-lg leading-relaxed w-full mb-10" style={{ wordBreak: 'break-word' }} dangerouslySetInnerHTML={{ __html: news.newsContent }} />
+        {/* Tin liên quan */}
+        {relatedNews.length > 0 && (
+          <div className="mt-10 pt-6 border-t-2 border-black">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">TIN LIÊN QUAN</h2>
+              <a href="/news/all" className="text-blue-600 hover:underline text-sm font-semibold">Xem tất cả tin tức</a>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedNews.slice(0, showCount).map(item => (
+                <div key={item.newsId} className="bg-gray-50 rounded-lg shadow p-3 cursor-pointer hover:bg-gray-100" onClick={() => navigate(`/news/${item.newsId}`)}>
+                  <img src={item.imageUrl} alt={item.newsTitle} className="w-full h-28 object-cover rounded mb-2" />
+                  <div className="font-bold text-base mb-1 line-clamp-2 text-center">{item.newsTitle}</div>
+                  {item.eventId && (
+                    <button
+                      className="text-blue-600 underline text-xs flex items-center justify-center gap-1 mb-1 hover:text-blue-800 transition"
+                      title="Xem sự kiện liên quan"
+                      onClick={e => { e.stopPropagation(); navigate(`/event/${item.eventId}`); }}
+                      type="button"
+                    >
+                      <ExternalLink className="w-3 h-3 inline-block" />
+                      Xem sự kiện liên quan
+                    </button>
+                  )}
+                  <div className="text-xs text-gray-500 mb-1 text-center">{item.createdAt && new Date(item.createdAt).toLocaleString('vi-VN')}</div>
+                  <div className="text-sm text-gray-700 line-clamp-2 text-center">{item.newsDescription}</div>
+                </div>
+              ))}
+            </div>
+            {relatedNews.length > showCount && (
+              <div className="flex justify-center mt-6">
+                <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold" onClick={() => setShowCount(c => c + 3)}>
+                  Xem thêm
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 };

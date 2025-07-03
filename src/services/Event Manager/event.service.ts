@@ -286,6 +286,21 @@ export const getMyNews = (page: number = 1, pageSize: number = 10) => instance.g
   message: string;
 }>(`/api/News/my-news?Page=${page}&PageSize=${pageSize}`);
 
+export const getAllNewsHome = (page: number = 1, pageSize: number = 10) => instance.get<{
+  flag: boolean;
+  code: number;
+  data: {
+    items: News[];
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string;
+}>(`/api/News/all-Home?Page=${page}&PageSize=${pageSize}`);
+
 // === Order APIs ===
 
 interface OrderItemPayload {

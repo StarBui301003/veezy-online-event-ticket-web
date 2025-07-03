@@ -48,11 +48,12 @@ import NewsDetail from './pages/Customer/NewsDetail';
 // Import new dashboard pages
 import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
 import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
-import NotificationsDashboard from './pages/EventManager/NotificationsDashboard';
 import FundManagement from './pages/EventManager/FundManagement';
 // Import icons for placeholder pages
-import { Users, Eye, ChartBar, MessageCircle, CheckCircle } from 'lucide-react';
+import { Users, Eye, ChartBar } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
+import NewsAll from './pages/Customer/NewsAll';
+
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 function App() {
   const router = createBrowserRouter([
@@ -102,6 +103,10 @@ function App() {
               <PaymentSuccessPage />,
             </ProtectedRoute>
           ),
+        },
+        {
+          path: 'news/all',
+          element: <NewsAll />,
         },
       ],
     },
@@ -423,42 +428,6 @@ function App() {
                 <div className="text-center">
                   <ChartBar className="text-purple-400 mx-auto mb-4" size={64} />
                   <h1 className="text-3xl font-bold text-purple-300 mb-4">Dự Đoán AI</h1>
-                  <p className="text-gray-300">Trang này đang được phát triển</p>
-                </div>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'notifications',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <NotificationsDashboard />
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'chat',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <MessageCircle className="text-green-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-green-300 mb-4">Chat Hỗ Trợ</h1>
-                  <p className="text-gray-300">Trang này đang được phát triển</p>
-                </div>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'check-ins',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <CheckCircle className="text-emerald-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-emerald-300 mb-4">Check-in & QR Code</h1>
                   <p className="text-gray-300">Trang này đang được phát triển</p>
                 </div>
               </div>

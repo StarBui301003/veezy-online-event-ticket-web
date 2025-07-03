@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { getAllEvents, getAllNews } from '@/services/Event Manager/event.service';
+import { getAllEvents, getAllNewsHome } from '@/services/Event Manager/event.service';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -54,7 +54,7 @@ export const HomePage = () => {
 
     // Fetch news
     setLoadingNews(true);
-    getAllNews(1, 10) // Get first page with 10 items
+    getAllNewsHome() // Sử dụng API mới
       .then((response) => {
         setNews(response.data?.data?.items || []);
       })
@@ -174,7 +174,7 @@ export const HomePage = () => {
               <h2 className="text-xl font-bold text-gray-800">Tin tức</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate('/news')}
+                onClick={() => navigate('/news/all')}
               >
                 Xem thêm
               </button>
