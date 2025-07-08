@@ -239,7 +239,6 @@ const ProfileCustomer = () => {
                 onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
                 disabled={!editMode}
                 placeholder="Date of birth"
-                style={{ colorScheme: 'dark' }}
               />
             </div>
           </div>

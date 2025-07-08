@@ -30,8 +30,7 @@ input[type='password']::-webkit-input-password-toggle-button {
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: rgba(0, 0, 0, 0.87);
   background-color: #242424;
 
   font-synthesis: none;
@@ -103,19 +102,6 @@ h1 {
   box-shadow: 0 0 0 3px #fff, 0 0 0 6px #2563eb, 0px 0px 20px rgba(71, 184, 255, 0.5),
     0px 5px 5px -1px rgba(58, 125, 233, 0.25), inset 4px 4px 8px rgba(175, 230, 255, 0.5),
     inset -4px -4px 8px rgba(19, 95, 216, 0.35);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
 }
 
 @layer base {
