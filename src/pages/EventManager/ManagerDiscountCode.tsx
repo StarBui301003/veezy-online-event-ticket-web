@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import instance from "@/services/axios.customize";
 import { AxiosError } from "axios";
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 
 interface Event {
   eventId: string;
@@ -43,6 +44,7 @@ export default function ManagerDiscountCode() {
 
   // Load events
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     (async () => {
       setLoadingEvents(true);
       try {
@@ -56,6 +58,20 @@ export default function ManagerDiscountCode() {
         setLoadingEvents(false);
       }
     })();
+    // Lắng nghe realtime SignalR
+    const reload = async () => {
+      try {
+        const data = await getMyApprovedEvents();
+        setEvents(data);
+        setFilteredEvents(data);
+      } catch {}
+    };
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   // Search events

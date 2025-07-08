@@ -55,7 +55,95 @@ import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
 
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
+import { useEffect } from 'react';
+import {
+  connectNotificationHub, onNotification, disconnectNotificationHub,
+  connectEventHub, onEvent, disconnectEventHub,
+  connectTicketHub, onTicket, disconnectTicketHub,
+  connectFeedbackHub, onFeedback, disconnectFeedbackHub,
+  connectIdentityHub, onIdentity, disconnectIdentityHub
+} from './services/signalr.service';
 function App() {
+  useEffect(() => {
+    // NotificationService
+    connectNotificationHub('http://localhost:5003/hubs/notifications')
+      .then(() => {
+        console.log('Connected to NotificationService SignalR');
+        onNotification('ReceiveNotification', (data) => {
+          console.log('NotificationService:', data);
+        });
+      });
+    // EventService
+    connectEventHub('http://localhost:5004/notificationHub')
+      .then(() => {
+        console.log('Connected to EventService SignalR');
+        onEvent('OnEventCreated', (data) => {
+          console.log('OnEventCreated:', data);
+        });
+        onEvent('OnEventUpdated', (data) => {
+          console.log('OnEventUpdated:', data);
+        });
+        onEvent('OnEventDeleted', (data) => {
+          console.log('OnEventDeleted:', data);
+        });
+        onEvent('OnEventApproved', (data) => {
+          console.log('OnEventApproved:', data);
+        });
+        onEvent('OnEventCancelled', (data) => {
+          console.log('OnEventCancelled:', data);
+        });
+        onEvent('OnEventHidden', (data) => {
+          console.log('OnEventHidden:', data);
+        });
+        onEvent('OnEventShown', (data) => {
+          console.log('OnEventShown:', data);
+        });
+        onEvent('OnManagerAdded', (data) => {
+          console.log('OnManagerAdded:', data);
+        });
+        onEvent('OnCollaboratorAdded', (data) => {
+          console.log('OnCollaboratorAdded:', data);
+        });
+        onEvent('OnManagerRemoved', (data) => {
+          console.log('OnManagerRemoved:', data);
+        });
+        onEvent('OnCollaboratorRemoved', (data) => {
+          console.log('OnCollaboratorRemoved:', data);
+        });
+        onEvent('OnTicketSoldIncremented', (data) => {
+          console.log('OnTicketSoldIncremented:', data);
+        });
+        onEvent('OnTicketSoldDecremented', (data) => {
+          console.log('OnTicketSoldDecremented:', data);
+        });
+        onEvent('OnEventNotificationSent', (data) => {
+          console.log('OnEventNotificationSent:', data);
+        });
+      });
+    // TicketService
+    connectTicketHub('http://localhost:5005/notificationHub')
+      .then(() => {
+        console.log('Connected to TicketService SignalR');
+        onTicket('TicketChanged', (data) => {
+          console.log('TicketService:', data);
+        });
+      });
+    // FeedbackService
+    connectFeedbackHub('http://localhost:5008/notificationHub')
+      .then(() => {
+        console.log('Connected to FeedbackService SignalR');
+        onFeedback('FeedbackChanged', (data) => {
+          console.log('FeedbackService:', data);
+        });
+      });
+    // Cleanup
+    return () => {
+      disconnectNotificationHub();
+      disconnectEventHub();
+      disconnectTicketHub();
+      disconnectFeedbackHub();
+    };
+  }, []);
   const router = createBrowserRouter([
     {
       path: '/',

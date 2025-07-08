@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, DollarSign, Ticket, Users, Calendar, ArrowUpR
 import { motion } from 'framer-motion';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 
 interface TicketSalesData {
   eventId: string;
@@ -22,7 +23,16 @@ export default function TicketSalesDashboard() {
   // const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     fetchSalesData();
+    // Lắng nghe realtime SignalR
+    const reload = () => fetchSalesData();
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   const fetchSalesData = async () => {

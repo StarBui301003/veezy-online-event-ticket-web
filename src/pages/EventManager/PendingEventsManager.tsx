@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Clock, AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { getMyPendingEvents,  cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const EVENTS_PER_PAGE = 5;
 
@@ -29,7 +30,16 @@ const PendingEventsManager = () => {
   };
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     fetchEvents();
+    // Lắng nghe realtime SignalR
+    const reload = () => fetchEvents();
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventApproved', reload);
+    onEvent('OnEventCancelled', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   // Phân trang

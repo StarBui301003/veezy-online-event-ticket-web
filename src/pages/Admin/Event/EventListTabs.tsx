@@ -7,6 +7,7 @@ import { RejectedEventList } from './RejectedEventList';
 import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 import { getPendingEvents } from '@/services/Admin/event.service';
 import { cn } from '@/lib/utils';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 // import './EventTabs.css';
 
 export default function EventListTabs() {
@@ -31,7 +32,15 @@ export default function EventListTabs() {
   };
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     fetchPendingCount();
+    // Lắng nghe realtime SignalR cho event
+    const reloadEvent = () => fetchPendingCount();
+    onEvent('OnEventCreated', reloadEvent);
+    onEvent('OnEventUpdated', reloadEvent);
+    onEvent('OnEventDeleted', reloadEvent);
+    onEvent('OnEventApproved', reloadEvent);
+    onEvent('OnEventCancelled', reloadEvent);
   }, []);
 
   // Khi đổi tab, update query param
