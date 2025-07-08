@@ -30,6 +30,7 @@ import RejectedEventDetailModal from '@/pages/Admin/Event/RejectedEventDetailMod
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
 import { toast } from 'react-toastify';
+import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -78,6 +79,7 @@ export const RejectedEventList = () => {
 
   // Fetch paginated events from BE
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getRejectedEvents({ page, pageSize })
       .then(async (res) => {
@@ -128,6 +130,14 @@ export const RejectedEventList = () => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
+    // Lắng nghe realtime SignalR
+    const reload = () => getRejectedEvents({ page, pageSize }).then(res => setEvents(res.data.items));
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, [page, pageSize]);
 
   // Filter logic (giống user và pending: filter toàn bộ rồi phân trang)

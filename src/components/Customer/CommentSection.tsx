@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import instance from "@/services/axios.customize";
 import { Loader2, Send } from "lucide-react";
 import { toast } from "react-toastify";
+import { connectCommentHub, onComment } from '@/services/signalr.service';
 
 interface Comment {
   commentId: string;
@@ -89,6 +90,17 @@ export default function CommentSection({ eventId }: { eventId: string }) {
   useEffect(() => {
     if (eventId) {
       fetchComments();
+      connectCommentHub('http://localhost:5004/commentHub');
+      // Lắng nghe realtime SignalR cho comment
+      const reloadComment = (data: any) => {
+        // Nếu sự kiện liên quan đến eventId này thì refetch
+        if (data?.eventId === eventId || data === eventId) {
+          fetchComments();
+        }
+      };
+      onComment('OnCommentCreated', reloadComment);
+      onComment('OnCommentUpdated', reloadComment);
+      onComment('OnCommentDeleted', reloadComment);
     }
   }, [eventId]);
 

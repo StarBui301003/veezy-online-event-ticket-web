@@ -4,6 +4,8 @@ import { News } from "@/types/event";
 import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 
 interface Event {
   eventId: string;
@@ -30,6 +32,8 @@ const NewsManager: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
+    connectNewsHub('http://localhost:5004/newsHub');
     (async () => {
       setLoadingEvents(true);
       try {
@@ -43,6 +47,29 @@ const NewsManager: React.FC = () => {
         setLoadingEvents(false);
       }
     })();
+    // Lắng nghe realtime SignalR
+    const reload = async () => {
+      try {
+        const data = await getMyApprovedEvents(1, 100);
+        setEvents(data);
+        setFilteredEvents(data);
+      } catch {}
+    };
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Lắng nghe realtime SignalR cho news
+    const reloadNews = () => {
+      if (selectedEvent) fetchNewsForEvent(selectedEvent.eventId);
+    };
+    onNews('OnNewsCreated', reloadNews);
+    onNews('OnNewsUpdated', reloadNews);
+    onNews('OnNewsDeleted', reloadNews);
+    onNews('OnNewsApproved', reloadNews);
+    onNews('OnNewsRejected', reloadNews);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   useEffect(() => {

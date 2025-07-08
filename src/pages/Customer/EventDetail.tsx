@@ -5,6 +5,7 @@ import { Loader2, CalendarDays, MapPin, Ticket, ShoppingCart, AlertCircle, Check
 import { getEventById, getTicketsByEvent, validateDiscountCode } from "@/services/Event Manager/event.service";
 import { toast } from "react-toastify";
 import CommentSection from "@/components/Customer/CommentSection";
+import { connectCommentHub, onComment } from '@/services/signalr.service';
 
 interface EventDetailData {
   eventId: string;
@@ -107,6 +108,19 @@ const EventDetail = () => {
     fetchEventData();
     fetchTicketData();
   }, [eventId]);
+
+  useEffect(() => {
+    connectCommentHub('http://localhost:5004/commentHub');
+    // Lắng nghe realtime SignalR cho comment
+    const reloadComment = () => {
+      // Nếu có component CommentSection, nên expose hàm refetch comment qua ref hoặc context
+      // Hoặc có thể reload toàn bộ trang nếu cần
+      // window.location.reload();
+    };
+    onComment('OnCommentCreated', reloadComment);
+    onComment('OnCommentUpdated', reloadComment);
+    onComment('OnCommentDeleted', reloadComment);
+  }, []);
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
     const newQuantity = Math.max(0, Math.min(quantity, ticket.quantityAvailable));

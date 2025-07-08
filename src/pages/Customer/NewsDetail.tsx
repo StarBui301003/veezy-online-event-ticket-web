@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 
 interface News {
   newsId: string;
@@ -24,6 +25,7 @@ const NewsDetail: React.FC = () => {
   const [showCount, setShowCount] = useState(3);
 
   useEffect(() => {
+    connectNewsHub('http://localhost:5004/newsHub');
     const fetchNews = async () => {
       setLoading(true);
       try {

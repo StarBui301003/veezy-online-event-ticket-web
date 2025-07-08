@@ -37,6 +37,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-toastify'; // Thêm dòng này
+import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -87,6 +88,7 @@ export const ApprovedEventList = () => {
     })();
   }, []);
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getApprovedEvents()
       .then(async (res) => {
@@ -136,7 +138,14 @@ export const ApprovedEventList = () => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Lắng nghe realtime SignalR
+    const reload = () => getApprovedEvents().then(res => setEvents(res.data.items));
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   // Filter logic
