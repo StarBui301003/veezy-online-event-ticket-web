@@ -61,7 +61,7 @@ import {
   connectEventHub, onEvent, disconnectEventHub,
   connectTicketHub, onTicket, disconnectTicketHub,
   connectFeedbackHub, onFeedback, disconnectFeedbackHub,
-  connectIdentityHub, onIdentity, disconnectIdentityHub
+  // connectIdentityHub, onIdentity, disconnectIdentityHub
 } from './services/signalr.service';
 function App() {
   useEffect(() => {
