@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getRejectedEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getFullNameByUserId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -117,7 +117,7 @@ export const RejectedEventList = () => {
         await Promise.all(
           allAccountIds.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
+              const username = await getFullNameByUserId(id);
               usernameMap[id] = username;
             } catch {
               usernameMap[id] = id;
@@ -329,8 +329,8 @@ export const RejectedEventList = () => {
                 </TableHead>
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
-                <TableHead style={{ width: '15%' }}>Approved By</TableHead>
-                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '15%' }}>Rejected By</TableHead>
+                <TableHead style={{ width: '20%' }}>Rejected At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
                 <TableHead style={{ width: '20%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
