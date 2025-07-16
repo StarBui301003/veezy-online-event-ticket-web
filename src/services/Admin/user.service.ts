@@ -86,4 +86,27 @@ export async function getCollaboratorUsers() {
   return res.data.data.items;
 }
 
+export const updateFaceAPI = async (
+  accountId: string,
+  faceImage: File,
+  faceEmbedding: number[] | null,
+  password?: string
+) => {
+  const formData = new FormData();
+  if (faceEmbedding && faceEmbedding.length > 0) {
+    faceEmbedding.forEach((num, idx) => {
+      formData.append(`FaceEmbedding[${idx}]`, num.toString());
+    });
+  }
+  formData.append('AccountId', accountId);
+  formData.append('FaceImage', faceImage, 'face.jpg');
+  if (password) {
+    formData.append('Password', password);
+  }
+  const response = await instance.put('/api/Account/updateFace', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
 

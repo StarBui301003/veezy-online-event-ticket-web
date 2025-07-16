@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const cardClass =
-  'flex-1 min-w-[220px] max-w-[340px] bg-white rounded-xl shadow border p-5 flex flex-col justify-between mx-2 my-2';
+  'flex-1 min-w-[220px] max-w-[340px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-5 flex flex-col justify-between mx-2 my-2';
 
 export const Dashboard = () => {
   const [data, setData] = useState<AdminDashboardData | null>(null);
@@ -52,9 +52,9 @@ export const Dashboard = () => {
 
   if (!data) {
     return (
-      <div className="flex justify-center items-center h-40 text-lg text-red-500">
-        Failed to load dashboard data.
-      </div>
+          <div className="flex justify-center items-center h-40 text-lg text-red-500">
+      Failed to load dashboard data.
+    </div>
     );
   }
 
@@ -67,7 +67,7 @@ export const Dashboard = () => {
     })) || [];
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
       <AnimatePresence>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-between"
@@ -166,7 +166,7 @@ export const Dashboard = () => {
       </AnimatePresence>
       {/* Chart section */}
       <motion.div
-        className="mt-8 bg-white rounded-xl shadow border p-6"
+        className="mt-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}

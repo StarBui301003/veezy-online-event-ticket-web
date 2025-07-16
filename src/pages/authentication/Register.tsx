@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
 import { AiOutlineCalendar } from 'react-icons/ai';
@@ -11,6 +11,8 @@ import { toast } from 'react-toastify';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import RegisterChooseRoleModal from '@/pages/authentication/RegisterChooseRoleModal';
+import FaceCapture from '@/components/common/FaceCapture';
+import { registerWithFaceAPI } from '@/services/auth.service';
 
 export const Register = () => {
   const [date, setDate] = useState<Date>();
@@ -25,6 +27,9 @@ export const Register = () => {
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<number | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(true);
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  // Đã thay bằng faceRegisteringRef, không cần faceRegistering state nữa
+  const faceRegisteringRef = useRef(false);
 
   const navigate = useNavigate();
 
@@ -92,159 +97,260 @@ export const Register = () => {
     }
   };
 
+  const handleRegisterWithFace = async (faceFile?: File) => {
+    if (faceRegisteringRef.current) return; // Chặn double submit bằng ref
+    faceRegisteringRef.current = true;
+    if (!role) {
+      setShowRoleModal(true);
+      toast.error('Please choose your role!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    if (!username || !fullName || !email || !password || !confirmPassword || !date) {
+      toast.error('Please fill in all fields!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    const file = faceFile;
+    if (!file) {
+      toast.error('Please capture your face!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    setLoading(true);
+    try {
+      const dateOfBirth = format(date, 'yyyy-MM-dd', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const formData = new FormData();
+      formData.append('Username', username);
+      formData.append('FullName', fullName);
+      formData.append('Email', email);
+      formData.append('Phone', phone);
+      formData.append('Password', password);
+      formData.append('Role', String(role));
+      formData.append('Gender', '0'); // hoặc lấy từ form nếu có
+      formData.append('DateOfBirth', dateOfBirth);
+      formData.append('FaceEmbedding', '0'); // Gửi số bất kỳ, backend sẽ tự xử lý từ ảnh
+      formData.append('FaceImage', file);
+      // Các trường khác nếu cần
+      console.log('RegisterWithFace - file:', file);
+      const response = await registerWithFaceAPI(formData);
+      if (response && response.flag && response.code === 200) {
+        toast.success('Registration successful! Please verify your email.');
+        sessionStorage.setItem('registerEmail', email);
+        localStorage.setItem('registerEmail', email); // Lưu vào localStorage để bền hơn
+        setTimeout(() => {
+          navigate('/verify-email', { replace: true });
+        }, 500);
+      } else {
+        toast.error(response?.message || 'Registration failed!');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'message' in err) {
+        toast.error((err as { message?: string }).message || 'Registration failed!');
+      } else {
+        toast.error('Registration failed!');
+      }
+    } finally {
+      setLoading(false);
+      faceRegisteringRef.current = false;
+    }
+  };
+
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     if (accStr) {
       navigate('/');
+      return;
+    }
+    // Nếu đã đăng ký xong, đang chờ verify, thì chuyển sang verify luôn
+    const registerEmail = sessionStorage.getItem('registerEmail') || localStorage.getItem('registerEmail');
+    if (registerEmail) {
+      navigate('/verify-email', { replace: true });
+      return;
     }
     // Không lấy giá trị từ sessionStorage khi vào trang Register
   }, [navigate]);
 
   return (
     <>
-      <RegisterChooseRoleModal
-        open={showRoleModal}
-        onClose={() => setShowRoleModal(false)}
-        onChooseRole={(r) => {
-          setRole(r);
-          setShowRoleModal(false);
-        }}
-      />
+      {/* Chỉ render modal chọn role nếu chưa đăng ký xong */}
+      {!sessionStorage.getItem('registerEmail') && (
+        <RegisterChooseRoleModal
+          open={showRoleModal}
+          onClose={() => setShowRoleModal(false)}
+          onChooseRole={(r) => {
+            setRole(r);
+            setShowRoleModal(false);
+          }}
+        />
+      )}
       <div className="absolute inset-0 -z-10 bg-[#091D4B] min-h-screen w-full " />
-      <div className="min-h-screen text-white flex items-center justify-center relative">
-        <div className="bg-white/10 rounded-2xl shadow-lg p-10 w-[800px] max-w-full flex flex-col md:flex-row gap-8 items-center justify-center">
-          {/* Left: Form fields */}
-          <div className="flex-1 flex flex-col gap-4 items-center justify-center">
-            <div className="text-[38px] font-bold pb-6 text-center w-full text-white">
-              Create Your Veezy Account
-            </div>
-            <div className="flex flex-col gap-4 w-full items-center justify-center">
-              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
-                <Input
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
-                />
+      {/* Ẩn form đăng ký cho đến khi chọn vai trò xong */}
+      {!showRoleModal && (
+        <div className="min-h-screen text-white flex items-center justify-center relative">
+          <div className="bg-white/10 rounded-2xl shadow-lg p-10 w-[800px] max-w-full flex flex-col md:flex-row gap-8 items-center justify-center">
+            {/* Left: Form fields */}
+            <div className="flex-1 flex flex-col gap-4 items-center justify-center">
+              <div className="text-[38px] font-bold pb-6 text-center w-full text-white">
+                Create Your Veezy Account
               </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
-                <Input
-                  type="text"
-                  placeholder="Fullname"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
-                />
-              </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
-                <Input
-                  type="text"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
-                />
-              </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
-                <Input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
-                />
-              </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
-                />
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none"
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
-                <Input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
-                />
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none"
-                  onClick={() => setShowConfirmPassword((v) => !v)}
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              <div className="w-[70%] text-[#A1A1AA] text-[20px]">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <div className="relative w-full">
-                      <Input
-                        readOnly
-                        value={date ? format(date, 'dd/MM/yyyy') : ''}
-                        placeholder="Day of Birth"
-                        className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12 text-left cursor-pointer"
-                      />
-                      <AiOutlineCalendar
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A1A1AA] pointer-events-none"
-                        size={24}
-                      />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="right"
-                    sideOffset={30}
-                    className="w-auto p-0 bg-white text-black rounded-md shadow-md"
+              <div className="flex flex-col gap-4 w-full items-center justify-center">
+                <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
+                  />
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                  <Input
+                    type="text"
+                    placeholder="Fullname"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
+                  />
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                  <Input
+                    type="text"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
+                  />
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                  <Input
+                    type="tel"
+                    placeholder="Phone Number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3"
+                  />
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none"
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
                   >
-                    <DayPicker
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      captionLayout="dropdown"
-                      fromYear={1950}
-                      toYear={2025}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Đưa nút và link vào giữa */}
-              <div className="flex flex-col items-center justify-center w-full mt-4">
-                <Button
-                  onClick={handleRegister}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-2/3 rounded-[8px] py-4 text-[20px] mb-4"
-                >
-                  {loading ? 'Signing Up...' : 'Sign Up'}
-                </Button>
-                <div className="text-center w-full">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-[#60A5FA] hover:underline">
-                    Login
-                  </Link>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px] relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] bg-transparent outline-none focus:outline-none border-none"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                <div className="w-[70%] text-[#A1A1AA] text-[20px]">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="relative w-full">
+                        <Input
+                          readOnly
+                          value={date ? format(date, 'dd/MM/yyyy') : ''}
+                          placeholder="Day of Birth"
+                          className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-4 px-3 pr-12 text-left cursor-pointer"
+                        />
+                        <AiOutlineCalendar
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#A1A1AA] pointer-events-none"
+                          size={24}
+                        />
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="right"
+                      sideOffset={30}
+                      className="w-auto p-0 bg-white text-black rounded-md shadow-md"
+                    >
+                      <DayPicker
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        captionLayout="dropdown"
+                        fromYear={1950}
+                        toYear={2025}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                {/* Đưa nút và link vào giữa */}
+                <div className="flex flex-col items-center justify-center w-full mt-4">
+                  <Button
+                    onClick={handleRegister}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-2/3 rounded-[8px] py-4 text-[20px] mb-4"
+                  >
+                    {loading ? 'Signing Up...' : 'Sign Up'}
+                  </Button>
+                  <Button
+                    onClick={() => setShowFaceModal(true)}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 w-2/3 rounded-[8px] py-4 text-[20px] mb-4 mt-2"
+                  >
+                    Đăng ký bằng khuôn mặt
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/login?face=1')}
+                    variant="outline"
+                    className="w-2/3 rounded-[8px] py-4 text-[20px] border-blue-400 text-blue-600 hover:bg-blue-50 mb-2"
+                  >
+                    Đăng nhập bằng khuôn mặt
+                  </Button>
+                  <div className="text-center w-full">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-[#60A5FA] hover:underline">
+                      Login
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+      {showFaceModal && (
+        <FaceCapture
+          onCapture={({ image }) => {
+            if (faceRegisteringRef.current) return; // Chặn double callback bằng ref
+            setShowFaceModal(false);
+            handleRegisterWithFace(new File([image], 'face.jpg', { type: image.type || 'image/jpeg' }));
+          }}
+          onCancel={() => setShowFaceModal(false)}
+        />
+      )}
     </>
   );
 };

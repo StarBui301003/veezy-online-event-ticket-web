@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Clock, ExternalLink } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Loader2, Clock, ExternalLink, MoreVertical, Flag } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import ReportModal from '@/components/Customer/ReportModal';
+import CommentSection from '@/components/Customer/CommentSection';
 
 interface News {
   newsId: string;
@@ -22,6 +25,8 @@ const NewsDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const [showCount, setShowCount] = useState(3);
+  const [reportModal, setReportModal] = useState<{type: 'news' | 'comment', id: string} | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -47,6 +52,10 @@ const NewsDetail: React.FC = () => {
     if (newsId) fetchNews();
   }, [newsId, navigate]);
 
+  useEffect(() => {
+    return () => setReportModal(null);
+  }, [location]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -59,20 +68,18 @@ const NewsDetail: React.FC = () => {
   return (
     <div className="bg-white font-serif min-h-screen pt-28">
       {/* Newspaper Header */}
-      <header className="border-b-4 border-black">
-        <div className="max-w-4xl mx-auto px-4 py-2">
-          
-        </div>
-      </header>
+      <header className="border-b-4 border-black"></header>
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         {/* Headline Story */}
         <div className="mb-8 pb-6 border-b-2 border-black">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-                {news.newsTitle}
-              </h1>
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-0 flex-1">
+                  {news.newsTitle}
+                </h1>
+              </div>
               {news.eventId && (
                 <button
                   className="text-blue-600 underline text-sm flex items-center gap-1 mb-2 hover:text-blue-800 transition"
@@ -89,15 +96,33 @@ const NewsDetail: React.FC = () => {
               </p>
               <div className="flex items-center text-sm text-gray-600">
                 <Clock className="w-4 h-4 mr-1" />
-                <span className="mr-4">{news.createdAt && new Date(news.createdAt).toLocaleString('vi-VN')}</span>
+                <span>{news.createdAt && new Date(news.createdAt).toLocaleString('vi-VN')}</span>
               </div>
             </div>
-            <div>
+            <div className="relative">
               <img
                 src={news.imageUrl}
                 alt={news.newsTitle}
                 className="w-full h-80 object-cover border-2 border-gray-300"
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="absolute top-2 right-2 p-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 shadow-lg">
+                    <MoreVertical className="w-5 h-5 text-white" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onSelect={e => {
+                      e.preventDefault();
+                      setTimeout(() => setReportModal({type: 'news', id: news.newsId}), 10);
+                    }}
+                    className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                  >
+                    <Flag className="w-4 h-4" /> Báo cáo tin tức
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -141,6 +166,16 @@ const NewsDetail: React.FC = () => {
           </div>
         )}
       </main>
+      {reportModal && (
+        <ReportModal
+          key={reportModal.id}
+          open={Boolean(reportModal)}
+          targetType={reportModal.type}
+          targetId={reportModal.id}
+          onClose={() => setReportModal(null)}
+        />
+      )}
+      <CommentSection eventId={news.eventId || ''} setReportModal={setReportModal} />
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { getAllEvents, getAllNewsHome } from '@/services/Event Manager/event.service';
+import { getHomeEvents, getAllNewsHome } from '@/services/Event Manager/event.service';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
@@ -21,6 +21,7 @@ interface EventData {
   eventLocation: string;
   isApproved: number; // 0 = pending, 1 = approved
   isCancelled: boolean;
+  isActive: boolean;
 }
 
 interface News {
@@ -41,13 +42,11 @@ export const HomePage = () => {
   useEffect(() => {
     // Fetch events
     setLoadingEvents(true);
-    getAllEvents()
+    getHomeEvents()
       .then((fetchedEvents) => {
-        // Filter for approved and non-canceled events
-        const approvedEvents = fetchedEvents.filter(
-          (event) => event.isApproved === 1 && !event.isCancelled
-        );
-        setEvents(approvedEvents);
+        // Chỉ lấy sự kiện isActive === true
+        const activeEvents = (fetchedEvents || []).filter((event: EventData) => event.isActive === true);
+        setEvents(activeEvents);
       })
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));

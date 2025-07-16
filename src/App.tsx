@@ -55,6 +55,8 @@ import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
 
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
+import ReportCommentPage from './pages/Customer/ReportCommentPage';
+import PaymentFailedPage from './pages/Customer/PaymentFailedPage';
 function App() {
   const router = createBrowserRouter([
     {
@@ -105,8 +107,16 @@ function App() {
           ),
         },
         {
+          path: 'payment-failed',
+          element: <PaymentFailedPage />,
+        },
+        {
           path: 'news/all',
           element: <NewsAll />,
+        },
+        {
+          path: 'report/comment/:commentId',
+          element: <ReportCommentPage />,
         },
       ],
     },
