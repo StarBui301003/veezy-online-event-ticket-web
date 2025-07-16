@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectCommentHub, onComment } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -41,6 +42,7 @@ export const CommentList = () => {
   const [viewComment, setViewComment] = useState<Comment | null>(null);
 
   useEffect(() => {
+    connectCommentHub('http://localhost:5004/commentHub');
     setLoading(true);
     getAllComment()
       .then((res) => {
@@ -52,6 +54,23 @@ export const CommentList = () => {
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Lắng nghe realtime SignalR cho comment
+    const reload = () => {
+      setLoading(true);
+      getAllComment()
+        .then((res) => {
+          if (res && Array.isArray(res.data)) {
+            setComments(res.data);
+          } else {
+            setComments([]);
+          }
+        })
+        .finally(() => setTimeout(() => setLoading(false), 500));
+    };
+    onComment('OnCommentCreated', reload);
+    onComment('OnCommentUpdated', reload);
+    onComment('OnCommentDeleted', reload);
   }, []);
 
   const handleDelete = async (commentId: string) => {
@@ -144,9 +163,9 @@ export const CommentList = () => {
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   Updated At
                 </TableHead>
-                {/* <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center" style={{ width: '10%' }}>
                   Status
-                </TableHead> */}
+                </TableHead>
                 <TableHead className="text-center" style={{ width: '10%' }}>
                   Action
                 </TableHead>
@@ -180,7 +199,7 @@ export const CommentList = () => {
                     <TableCell className="text-center">
                       {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
                     </TableCell>
-                    {/* <TableCell className="text-center">
+                    <TableCell className="text-center">
                       {comment.isActive ? (
                         <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white hover:border-green-500">
                           Active
@@ -190,7 +209,7 @@ export const CommentList = () => {
                           Inactive
                         </Badge>
                       )}
-                    </TableCell> */}
+                    </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       {/* Nút xem chi tiết */}
                       <button

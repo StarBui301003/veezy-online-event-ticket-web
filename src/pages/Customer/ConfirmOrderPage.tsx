@@ -31,7 +31,7 @@ const ConfirmOrderPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [waitingPayment, setWaitingPayment] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<any>(null);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { getHomeEvents, getAllNewsHome } from '@/services/Event Manager/event.service';
+import { getHomeEvents, getAllNewsHome, getAllEvents } from '@/services/Event Manager/event.service';
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';

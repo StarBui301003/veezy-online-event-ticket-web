@@ -1,3 +1,5 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HubConnectionBuilder, HubConnection, LogLevel } from '@microsoft/signalr';
 
 let connections: Record<string, HubConnection | null> = {
