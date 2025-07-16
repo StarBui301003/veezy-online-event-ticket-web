@@ -307,7 +307,6 @@ const ProfileEventManager = () => {
                 disabled={!editMode}
                 className="w-full h-9 px-3 rounded-xl bg-slate-700/60 border border-purple-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 pr-10"
                 placeholder="Date of birth"
-                style={{ colorScheme: 'light' }}
               />
               {/* Nút chọn lịch nằm sát phải, màu trắng */}
               <span

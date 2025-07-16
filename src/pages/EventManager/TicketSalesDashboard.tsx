@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { Dialog } from '@/components/ui/dialog';
 import TicketStatsSection from './components/TicketStatsSection';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 
 interface TicketSalesData {
   eventId: string;
@@ -54,8 +55,15 @@ export default function TicketSalesDashboard() {
   const [filterTicketsMax, setFilterTicketsMax] = useState('');
 
   useEffect(() => {
-    fetchSalesData(selectedPeriod);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    connectEventHub('http://localhost:5004/notificationHub');
+    // Lắng nghe realtime SignalR
+    const reload = () => fetchSalesData(selectedPeriod);
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, [selectedPeriod]);
 
   const fetchSalesData = async (periodKey: string) => {

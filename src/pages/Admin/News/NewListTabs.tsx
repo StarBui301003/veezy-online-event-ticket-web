@@ -8,6 +8,7 @@ import { FaUser } from 'react-icons/fa';
 import { FiCheckCircle, FiX } from 'react-icons/fi';
 import { RejectedNewsList } from './RejectedNewsList';
 import { ApprovedNewsList } from './ApprovedNewsList';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 
 export function NewsListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +34,15 @@ export function NewsListTabs() {
   };
 
   useEffect(() => {
+    connectNewsHub('http://localhost:5004/newsHub');
     fetchPendingCount();
+    // Lắng nghe realtime SignalR cho news
+    const reloadNews = () => fetchPendingCount();
+    onNews('OnNewsCreated', reloadNews);
+    onNews('OnNewsUpdated', reloadNews);
+    onNews('OnNewsDeleted', reloadNews);
+    onNews('OnNewsApproved', reloadNews);
+    onNews('OnNewsRejected', reloadNews);
   }, []);
 
   // Khi đổi tab, update query param

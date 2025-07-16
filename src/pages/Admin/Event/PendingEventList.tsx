@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getFullNameByUserId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -31,6 +31,7 @@ import { FaEye } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
+import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -83,6 +84,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
   }, []);
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getPendingEvents()
       .then(async (res) => {
@@ -123,7 +125,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allAccountIds.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
+              const username = await getFullNameByUserId(id);
               usernameMap[id] = username;
             } catch {
               usernameMap[id] = id;
@@ -134,6 +136,15 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
+
+    // Lắng nghe realtime SignalR
+    const reload = () => fetchData();
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   const handleDelete = async (event: ApprovedEvent) => {
@@ -200,7 +211,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allAccountIds.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
+              const username = await getFullNameByUserId(id);
               usernameMap[id] = username;
             } catch {
               usernameMap[id] = id;

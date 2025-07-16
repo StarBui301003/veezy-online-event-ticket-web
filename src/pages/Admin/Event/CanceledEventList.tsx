@@ -8,14 +8,7 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import {
-  getApprovedEvents,
-  getCategoryById,
-  hideEvent,
-  showEvent,
-  deleteEvent,
-  cancelEvent,
-} from '@/services/Admin/event.service';
+import { getCanceledEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { getFullNameByUserId } from '@/services/Admin/user.service';
 import {
@@ -32,41 +25,37 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import { FaEye, FaRegTrashAlt, FaTimes } from 'react-icons/fa';
+import { FaEye, FaRegTrashAlt } from 'react-icons/fa';
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'react-toastify'; // Thêm dòng này
+import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const ApprovedEventList = () => {
+export const CanceledEventList = () => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
-
-  // Filter state
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
 
-  // Fetch all categories for filter
+  // Fetch all categories for filter (once)
   useEffect(() => {
     (async () => {
-      // Lấy tất cả categoryId duy nhất từ các event pending
-      const res = await getApprovedEvents();
-      // Chỉ lấy các id là UUID (36 ký tự, có dấu '-')
+      const res = await getCanceledEvents({ page: 1, pageSize: 1000 });
       const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
-
       const ids = Array.from(
         new Set(
-          res.data.items.flatMap((event) => event.categoryIds || []).filter(isValidCategoryId)
+          res.data.items
+            .flatMap((event: ApprovedEvent) => event.categoryIds || [])
+            .filter(isValidCategoryId)
         )
       );
       const cats: Category[] = [];
@@ -76,7 +65,6 @@ export const ApprovedEventList = () => {
             const cat = await getCategoryById(id);
             cats.push(cat);
           } catch {
-            // Nếu lỗi vẫn push object tạm để filter không bị thiếu
             cats.push({
               categoryId: id,
               categoryName: 'unknown',
@@ -88,27 +76,29 @@ export const ApprovedEventList = () => {
       setAllCategories(cats);
     })();
   }, []);
+
+  // Fetch paginated events from BE
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
-    getApprovedEvents()
+    getCanceledEvents({ page, pageSize })
       .then(async (res) => {
         setEvents(res.data.items);
 
+        // Lấy tất cả categoryId duy nhất từ các event
         const allCategoryIds = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryIds || []))
         );
-        const categoryMap: Record<string, Category> = { ...categories };
-        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
+        const categoryMap: Record<string, Category> = {};
         await Promise.all(
-          idsToFetch.map(async (id) => {
+          allCategoryIds.map(async (id) => {
             try {
               const cat = await getCategoryById(id);
               categoryMap[id] = cat;
             } catch {
               categoryMap[id] = {
                 categoryId: id,
-                categoryName: 'Unknown',
+                categoryName: 'unknown',
                 categoryDescription: '',
               };
             }
@@ -116,15 +106,15 @@ export const ApprovedEventList = () => {
         );
         setCategories(categoryMap);
 
+        // Lấy tất cả accountId duy nhất từ approvedBy và createdBy
         const allAccountIds = Array.from(
           new Set(
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = { ...usernames };
-        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
+        const usernameMap: Record<string, string> = {};
         await Promise.all(
-          idsToFetchUser.map(async (id) => {
+          allAccountIds.map(async (id) => {
             try {
               const username = await getFullNameByUserId(id);
               usernameMap[id] = username;
@@ -140,14 +130,13 @@ export const ApprovedEventList = () => {
         setTimeout(() => setLoading(false), 500);
       });
     // Lắng nghe realtime SignalR
-    const reload = () => getApprovedEvents().then(res => setEvents(res.data.items));
+    const reload = () => getCanceledEvents({ page, pageSize }).then(res => setEvents(res.data.items));
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+  }, [page, pageSize]);
 
   // Filter logic
   const filteredEvents = events.filter((event) => {
@@ -172,68 +161,18 @@ export const ApprovedEventList = () => {
   const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
   const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
 
-  // Toggle status handler
-  const handleToggleStatus = async (event: ApprovedEvent) => {
-    try {
-      if (event.isActive) {
-        await hideEvent(event.eventId);
-      } else {
-        await showEvent(event.eventId);
-      }
-      // Reload list after toggle
-      setLoading(true);
-      getApprovedEvents()
-        .then(async (res) => {
-          setEvents(res.data.items);
+  // Reset page when pageSize changes
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
 
-          const allCategoryIds = Array.from(
-            new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-          );
-          const categoryMap: Record<string, Category> = { ...categories };
-          const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
-          await Promise.all(
-            idsToFetch.map(async (id) => {
-              try {
-                const cat = await getCategoryById(id);
-                categoryMap[id] = cat;
-              } catch {
-                categoryMap[id] = {
-                  categoryId: id,
-                  categoryName: 'Unknown',
-                  categoryDescription: '',
-                };
-              }
-            })
-          );
-          setCategories(categoryMap);
-
-          const allAccountIds = Array.from(
-            new Set(
-              res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-            )
-          );
-          const usernameMap: Record<string, string> = { ...usernames };
-          const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
-          await Promise.all(
-            idsToFetchUser.map(async (id) => {
-              try {
-                const username = await getFullNameByUserId(id);
-                usernameMap[id] = username;
-              } catch {
-                usernameMap[id] = id;
-              }
-            })
-          );
-          setUsernames(usernameMap);
-        })
-        .catch(() => setEvents([]))
-        .finally(() => {
-          setTimeout(() => setLoading(false), 500);
-        });
-    } catch {
-      // Optionally show error toast
+  // Reset page if current page exceeds total pages after filtering
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+    if (page > newTotalPages) {
+      setPage(newTotalPages);
     }
-  };
+  }, [filteredEvents.length]);
 
   // Delete handler
   const handleDelete = async (event: ApprovedEvent) => {
@@ -242,69 +181,8 @@ export const ApprovedEventList = () => {
       await deleteEvent(event.eventId);
       setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
       toast.success('Event deleted successfully!');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err?.message || 'Cannot delete this event!');
-    }
-  };
-
-  // Thêm hàm handleCancelEvent
-  const handleCancelEvent = async (event: ApprovedEvent) => {
-    if (!window.confirm('Are you sure you want to cancel this event?')) return;
-    try {
-      await cancelEvent(event.eventId);
-      toast.success('Event canceled successfully!');
-      setLoading(true);
-      getApprovedEvents()
-        .then(async (res) => {
-          setEvents(res.data.items);
-
-          const allCategoryIds = Array.from(
-            new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-          );
-          const categoryMap: Record<string, Category> = { ...categories };
-          const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
-          await Promise.all(
-            idsToFetch.map(async (id) => {
-              try {
-                const cat = await getCategoryById(id);
-                categoryMap[id] = cat;
-              } catch {
-                categoryMap[id] = {
-                  categoryId: id,
-                  categoryName: 'Unknown',
-                  categoryDescription: '',
-                };
-              }
-            })
-          );
-          setCategories(categoryMap);
-
-          const allAccountIds = Array.from(
-            new Set(
-              res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-            )
-          );
-          const usernameMap: Record<string, string> = { ...usernames };
-          const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
-          await Promise.all(
-            idsToFetchUser.map(async (id) => {
-              try {
-                const username = await getFullNameByUserId(id);
-                usernameMap[id] = username;
-              } catch {
-                usernameMap[id] = id;
-              }
-            })
-          );
-          setUsernames(usernameMap);
-        })
-        .catch(() => setEvents([]))
-        .finally(() => {
-          setTimeout(() => setLoading(false), 500);
-        });
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Cannot cancel this event!');
     }
   };
 
@@ -382,6 +260,7 @@ export const ApprovedEventList = () => {
                 )}
               </div>
             </div>
+
             {/* Category filter (right) */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
@@ -439,119 +318,108 @@ export const ApprovedEventList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-green-200 hover:bg-green-200">
+              <TableRow className="bg-gray-200 hover:bg-gray-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
-                <TableHead style={{ width: '10%' }} className="text-center">
-                  Status
-                </TableHead>
-                <TableHead style={{ width: '15%' }} className="text-center">
-                  Approved By
-                </TableHead>
-                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '15%' }}>Canceled By</TableHead>
+                <TableHead style={{ width: '20%' }}>Canceled At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
                 <TableHead style={{ width: '20%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedEvents.filter(
-                (event) =>
-                  !search ||
-                  event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                  (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                    search.trim().toLowerCase()
-                  )
-              ).length === 0 ? (
+              {pagedEvents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-4 text-gray-500">
-                    No approved events found.
+                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
+                    No canceled events found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedEvents
-                  .filter(
-                    (event) =>
-                      !search ||
-                      event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                      (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                        search.trim().toLowerCase()
-                      )
-                  )
-                  .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-green-50">
-                      <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
-                      </TableCell>
-                      <TableCell>{event.eventName}</TableCell>
-                      <TableCell>
-                        {event.categoryIds && event.categoryIds.length > 0
-                          ? event.categoryIds
-                              .map((id) => categories[id]?.categoryName || id)
-                              .join(', ')
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {/* Status switch giống NewsOwnList */}
-                        <Switch
-                          checked={event.isActive}
-                          onCheckedChange={() => handleToggleStatus(event)}
-                          disabled={loading}
-                          className={
-                            event.isActive
-                              ? '!bg-green-500 !border-green-500'
-                              : '!bg-red-400 !border-red-400'
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {event.approvedBy
-                          ? usernames[event.approvedBy] || event.approvedBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.createdBy
-                          ? usernames[event.createdBy] || event.createdBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-center justify-center flex items-center">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          onClick={() => setSelectedEvent(event)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
-                          title="Delete"
-                          onClick={() => handleDelete(event)}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-gray-500 bg-gray-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-700 ml-2"
-                          title="Cancel Event"
-                          onClick={() => handleCancelEvent(event)}
-                        >
-                          <FaTimes className="w-4 h-4" />
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                pagedEvents.map((event, idx) => (
+                  <TableRow key={event.eventId} className="hover:bg-gray-100/60">
+                    <TableCell className="text-center">
+                      {(page - 1) * pageSize + idx + 1}
+                    </TableCell>
+                    <TableCell
+                      style={{
+                        maxWidth: 200,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {event.eventName}
+                    </TableCell>
+                    <TableCell
+                      style={{
+                        maxWidth: 100,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {event.categoryIds && event.categoryIds.length > 0
+                        ? event.categoryIds
+                            .map((id) => categories[id]?.categoryName || id)
+                            .join(', ')
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell
+                      style={{
+                        maxWidth: 100,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {event.approvedBy
+                        ? usernames[event.approvedBy] || event.approvedBy
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
+                    </TableCell>
+                    <TableCell
+                      style={{
+                        maxWidth: 100,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {event.createdBy
+                        ? usernames[event.createdBy] || event.createdBy
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
+                    </TableCell>
+                    <TableCell className="text-center justify-center flex items-center">
+                      <button
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
+                        title="Delete"
+                        onClick={() => handleDelete(event)}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={9}>
+                <TableCell colSpan={8}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -571,7 +439,7 @@ export const ApprovedEventList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-green-500 text-white border hover:bg-green-600 hover:text-white'
+                                      ? 'bg-gray-500 text-white border hover:bg-gray-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}
@@ -608,40 +476,20 @@ export const ApprovedEventList = () => {
                             )} of ${filteredEvents.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {pageSize}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => {
-                                setPageSize(size);
-                                setPage(1);
-                              }}
-                              className={size === pageSize ? 'font-bold bg-primary/10' : ''}
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <select
+                        className="border rounded px-2 py-1 text-sm bg-white"
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setPage(1);
+                        }}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>
@@ -658,4 +506,4 @@ export const ApprovedEventList = () => {
       </div>
     </div>
   );
-};
+}; 

@@ -21,6 +21,7 @@ import {
   requestWithdrawal
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 
 interface Event {
   eventId: string;
@@ -83,7 +84,16 @@ export default function FundManagement() {
   const visibleCount = 3;
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     fetchEvents();
+    // Lắng nghe realtime SignalR
+    const reload = () => fetchEvents();
+    onEvent('OnEventCreated', reload);
+    onEvent('OnEventUpdated', reload);
+    onEvent('OnEventDeleted', reload);
+    onEvent('OnEventCancelled', reload);
+    onEvent('OnEventApproved', reload);
+    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
   useEffect(() => {

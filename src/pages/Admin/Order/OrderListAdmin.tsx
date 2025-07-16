@@ -59,9 +59,9 @@ export const OrderListAdmin = () => {
               <TableRow className="bg-blue-200 hover:bg-blue-200">
                 <TableHead className="text-center sticky left-0 bg-blue-200 z-10">#</TableHead>
                 <TableHead className="text-center sticky left-0 bg-blue-200 z-10">
-                  Customer ID
+                  Customer Name
                 </TableHead>
-                <TableHead>Event ID</TableHead>
+                <TableHead>Event Name</TableHead>
                 <TableHead>Ticket Name(s)</TableHead>
                 <TableHead className="text-center">Price Per Ticket</TableHead>
                 <TableHead className="text-center">Quantity</TableHead>
@@ -85,9 +85,9 @@ export const OrderListAdmin = () => {
                       {(page - 1) * pageSize + idx + 1}
                     </TableCell>
                     <TableCell className="text-center sticky left-0 bg-white z-10">
-                      {order.customerId}
+                      {order.customerName}
                     </TableCell>
-                    <TableCell>{order.eventId}</TableCell>
+                    <TableCell>{order.eventName}</TableCell>
                     <TableCell>
                       {order.items && order.items.length > 0 ? (
                         order.items.map((item) => item.ticketName).join(', ')
@@ -110,7 +110,13 @@ export const OrderListAdmin = () => {
                         ? order.items.map((item) => item.subtotal).join(', ')
                         : ''}
                     </TableCell>
-                    <TableCell className="text-center">{order.discountCode}</TableCell>
+                    <TableCell className="text-center">
+                      {order.discountCode ? (
+                        order.discountCode
+                      ) : (
+                        <span className="text-gray-400">None</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-center">
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                     </TableCell>

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getFullNameByUserId } from '@/services/Admin/user.service';
 import { getCategoryById } from '@/services/Admin/event.service';
 import { Category } from '@/types/Admin/category';
 import { NO_IMAGE } from '@/assets/img';
@@ -24,12 +24,12 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
 
   useEffect(() => {
     if (event.createdBy) {
-      getUsernameByAccountId(event.createdBy)
+      getFullNameByUserId(event.createdBy)
         .then((name) => setCreatedByName(name || 'unknown'))
         .catch(() => setCreatedByName('unknown'));
     }
     if (event.approvedBy) {
-      getUsernameByAccountId(event.approvedBy)
+      getFullNameByUserId(event.approvedBy)
         .then((name) => setApprovedByName(name || 'unknown'))
         .catch(() => setApprovedByName('unknown'));
     }

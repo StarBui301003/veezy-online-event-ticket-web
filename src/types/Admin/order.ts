@@ -1,7 +1,9 @@
 export interface AdminOrder {
   orderId: string;
   customerId: string;
+  customerName: string;
   eventId: string;
+  eventName: string;
   items: AdminOrderTicketItem[];
   discountCode: string;
   holdUntil: string;

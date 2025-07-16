@@ -67,8 +67,8 @@ export const PaymentListAdmin = () => {
                 <TableHead className="pl-4" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>PaymentId</TableHead>
-                <TableHead style={{ width: '15%' }}>OrderId</TableHead>
+                {/* <TableHead style={{ width: '25%' }}>PaymentId</TableHead> */}
+                <TableHead style={{ width: '10%' }}>OrderId</TableHead>
                 <TableHead style={{ width: '5%' }} className="text-center">
                   Amount
                 </TableHead>
@@ -95,7 +95,7 @@ export const PaymentListAdmin = () => {
                 pagedPayments.map((p, idx) => (
                   <TableRow key={p.paymentId} className="hover:bg-blue-50">
                     <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    <TableCell>{p.paymentId}</TableCell>
+                    {/* <TableCell>{p.paymentId}</TableCell> */}
                     <TableCell>{p.orderId}</TableCell>
                     <TableCell className="text-center">{p.amount}</TableCell>
                     <TableCell className="text-center">

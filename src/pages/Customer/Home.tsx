@@ -8,6 +8,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { NO_IMAGE } from '@/assets/img';
+import { connectNewsHub, onNews, connectEventHub, onEvent } from '@/services/signalr.service';
 
 interface EventData {
   eventId: string;
@@ -59,6 +60,43 @@ export const HomePage = () => {
       })
       .catch(() => setNews([]))
       .finally(() => setLoadingNews(false));
+
+    // Kết nối SignalR hub
+    connectNewsHub('http://localhost:5004/newsHub');
+    connectEventHub('http://localhost:5004/notificationHub');
+    // Lắng nghe realtime news
+    const reloadNews = () => {
+      setLoadingNews(true);
+      getAllNewsHome()
+        .then((response) => {
+          setNews(response.data?.data?.items || []);
+        })
+        .catch(() => setNews([]))
+        .finally(() => setLoadingNews(false));
+    };
+    onNews('OnNewsCreated', reloadNews);
+    onNews('OnNewsUpdated', reloadNews);
+    onNews('OnNewsDeleted', reloadNews);
+    onNews('OnNewsApproved', reloadNews);
+    onNews('OnNewsRejected', reloadNews);
+    // Lắng nghe realtime event
+    const reloadEvents = () => {
+      setLoadingEvents(true);
+      getAllEvents()
+        .then((fetchedEvents) => {
+          const approvedEvents = fetchedEvents.filter(
+            (event) => event.isApproved === 1 && !event.isCancelled
+          );
+          setEvents(approvedEvents);
+        })
+        .catch(() => setEvents([]))
+        .finally(() => setLoadingEvents(false));
+    };
+    onEvent('OnEventCreated', reloadEvents);
+    onEvent('OnEventUpdated', reloadEvents);
+    onEvent('OnEventDeleted', reloadEvents);
+    onEvent('OnEventApproved', reloadEvents);
+    onEvent('OnEventCancelled', reloadEvents);
   }, []);
 
   const sliderSettings = {

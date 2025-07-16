@@ -18,6 +18,26 @@ export const getUsernameByAccountId = async (accountId: string) => {
   }
 };
 
+// Lấy username từ userId
+export const getUserNameByUserId = async (userId: string) => {
+  try {
+    const user = await getUserByIdAPI(userId);
+    return user?.username || userId;
+  } catch {
+    return userId;
+  }
+};
+
+// Lấy fullName từ userId
+export const getFullNameByUserId = async (userId: string) => {
+  try {
+    const user = await getUserByIdAPI(userId);
+    return user?.fullName || userId;
+  } catch {
+    return userId;
+  }
+};
+
 export const editUserAPI = async (
   userId: string,
   data: EditUserRequest
