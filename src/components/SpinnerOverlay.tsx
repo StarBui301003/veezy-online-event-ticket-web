@@ -95,13 +95,12 @@ const Spinner = () => (
 interface SpinnerOverlayProps {
   show: boolean;
   children?: React.ReactNode;
-  fullScreen?: boolean; // Thêm prop để có thể chọn full screen hoặc relative
+  fullScreen?: boolean;
 }
 
 const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScreen = false }) => {
   if (!show) return null;
 
-  // Nếu fullScreen = true, giữ nguyên behavior cũ
   if (fullScreen) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
@@ -111,7 +110,6 @@ const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScr
     );
   }
 
-  // Nếu fullScreen = false, chỉ che container cha (phải có position relative)
   return (
     <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/20">
       <Spinner />
