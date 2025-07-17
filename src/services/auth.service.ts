@@ -101,4 +101,18 @@ export async function createDiscountCode(data: CreateDiscountCodeData) {
 export async function deleteDiscountCode(id: string) {
   const response = await instance.delete(`/api/DiscountCode/${id}`);
   return response.data?.data || response.data;
-} 
+}
+
+export const loginByFaceAPI = async (formData: FormData) => {
+  const response = await instance.post("/api/Account/loginByFace", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const registerWithFaceAPI = async (formData: FormData) => {
+  const response = await instance.post("/api/Account/registerWithFace", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}; 

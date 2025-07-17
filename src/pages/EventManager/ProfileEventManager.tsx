@@ -10,8 +10,10 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
+import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
 import { NO_AVATAR } from '@/assets/img';
+import FaceCapture from '@/components/common/FaceCapture';
+import { toast } from 'react-toastify';
 
 const ProfileEventManager = () => {
   const [account, setAccount] = useState<any>(null);
@@ -20,6 +22,9 @@ const ProfileEventManager = () => {
   const [form, setForm] = useState<any>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [facePassword, setFacePassword] = useState('');
+  const [faceError, setFaceError] = useState('');
 
   useEffect(() => {
     // Lấy userId từ localStorage
@@ -147,6 +152,61 @@ const ProfileEventManager = () => {
               <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
             )}
           </div>
+          <button
+            type="button"
+            className="mb-2 w-[180px] h-[45px] rounded-[8px] bg-gradient-to-r from-purple-600 to-green-500 text-white font-medium text-base transition duration-300 hover:from-purple-700 hover:to-green-600 shadow"
+            onClick={() => setShowFaceModal(true)}
+          >
+            Cập nhật khuôn mặt
+          </button>
+          {showFaceModal && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+              <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+                <button
+                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
+                  onClick={() => setShowFaceModal(false)}
+                  aria-label="Đóng"
+                >×</button>
+                <h2 className="text-xl font-bold mb-4 text-center text-black">Cập nhật khuôn mặt</h2>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu tài khoản"
+                  value={facePassword}
+                  onChange={e => setFacePassword(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
+                <FaceCapture
+                  onCapture={async ({ image }) => {
+                    setFaceError('');
+                    try {
+                      const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
+                      await updateFaceAPI(account.userId, file, [0]);
+                      toast.success('Cập nhật khuôn mặt thành công!');
+                      setShowFaceModal(false);
+                    } catch (e: any) {
+                      let msg = 'Cập nhật khuôn mặt thất bại!';
+                      if (e?.response?.data?.message) {
+                        const m = e.response.data.message;
+                        if (
+                          m.includes('already been registered') ||
+                          m.includes('Liveness check failed') ||
+                          m.includes('No face could be detected') ||
+                          m.includes('Multiple faces detected')
+                        ) {
+                          msg = m;
+                        }
+                      }
+                      setFaceError(msg);
+                      toast.error(msg);
+                    }
+                  }}
+                  onError={(err) => setFaceError(err)}
+                  onCancel={() => setShowFaceModal(false)}
+                />
+              </div>
+            </div>
+          )}
           {editMode && (
             <>
               <input

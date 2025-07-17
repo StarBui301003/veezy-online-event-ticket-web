@@ -4,7 +4,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ApprovedEventList } from './ApprovedEventList';
 import { PendingEventList } from './PendingEventList';
 import { RejectedEventList } from './RejectedEventList';
-import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
+import { CanceledEventList } from './CanceledEventList';
+import { FiCheckCircle, FiClock, FiX, FiSlash } from 'react-icons/fi';
 import { getPendingEvents } from '@/services/Admin/event.service';
 import { cn } from '@/lib/utils';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
@@ -16,7 +17,7 @@ export default function EventListTabs() {
   // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
   const getInitialTab = () => {
     const tab = searchParams.get('tab');
-    if (tab === 'pending' || tab === 'approved' || tab === 'rejected') return tab;
+    if (tab === 'pending' || tab === 'approved' || tab === 'rejected' || tab === 'canceled') return tab;
     return 'pending';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -54,7 +55,7 @@ export default function EventListTabs() {
   // Khi URL query param thay đổi (ví dụ reload, hoặc back/forward), update tab
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && tab !== activeTab && ['pending', 'approved', 'rejected'].includes(tab)) {
+    if (tab && tab !== activeTab && ['pending', 'approved', 'rejected', 'canceled'].includes(tab)) {
       setActiveTab(tab);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,7 +77,7 @@ export default function EventListTabs() {
   return (
     <div className="p-6">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="flex w-[500px] items-center rounded-[99px] py-4 gap-2 m-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)]">
+        <TabsList className="flex w-[650px] items-center rounded-[99px] py-4 gap-2 m-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)]">
           <TabsTrigger
             value="pending"
             className={cn(
@@ -119,6 +120,19 @@ export default function EventListTabs() {
             <FiX className="w-4 h-4" />
             <span>Rejected</span>
           </TabsTrigger>
+
+          <TabsTrigger
+            value="canceled"
+            className={cn(
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              activeTab === 'canceled'
+                ? '!text-white bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-gray-300 dark:focus:ring-gray-800 shadow-lg shadow-gray-500/50 dark:shadow-lg dark:shadow-gray-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center '
+                : 'hover:bg-gray-200 text-gray-600'
+            )}
+          >
+            <FiSlash className="w-4 h-4" />
+            <span>Canceled</span>
+          </TabsTrigger>
         </TabsList>
 
         <div>
@@ -132,6 +146,9 @@ export default function EventListTabs() {
           </TabsContent>
           <TabsContent value="rejected">
             {loadedTabs.includes('rejected') && <RejectedEventList />}
+          </TabsContent>
+          <TabsContent value="canceled">
+            {loadedTabs.includes('canceled') && <CanceledEventList />}
           </TabsContent>
         </div>
       </Tabs>

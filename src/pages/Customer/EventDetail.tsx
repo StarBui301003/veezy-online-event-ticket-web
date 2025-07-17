@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CalendarDays, MapPin, Ticket, ShoppingCart, AlertCircle, CheckCircle, MinusCircle, PlusCircle } from "lucide-react";
-import { getEventById, getTicketsByEvent, validateDiscountCode } from "@/services/Event Manager/event.service";
+import { Loader2, CalendarDays, MapPin, Ticket, ShoppingCart, AlertCircle, CheckCircle, MinusCircle, PlusCircle, MoreVertical, Flag } from "lucide-react";
+import { getEventById, getTicketsByEvent, validateDiscountCode, createOrderWithFace } from "@/services/Event Manager/event.service";
 import { toast } from "react-toastify";
 import CommentSection from "@/components/Customer/CommentSection";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import ReportModal from '@/components/Customer/ReportModal';
+import FaceCapture from '@/components/common/FaceCapture';
+import { Camera } from 'lucide-react';
 import { connectCommentHub, onComment } from '@/services/signalr.service';
 
 interface EventDetailData {
@@ -53,18 +57,31 @@ const EventDetail = () => {
   const [discountValidation, setDiscountValidation] = useState<{ success: boolean; message: string; discountAmount?: number } | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
+  const [reportModal, setReportModal] = useState<{type: 'event' | 'comment', id: string} | null>(null);
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [faceLoading, setFaceLoading] = useState(false);
+  const [faceError, setFaceError] = useState('');
 
   let customerId = '';
   try {
     const accStr = localStorage.getItem('account');
     if (accStr) {
       const accObj = JSON.parse(accStr);
-      customerId = accObj.userId || '';
+      // Nếu là LoginResponse lưu thẳng, lấy account.userId
+      if (accObj.account && accObj.account.userId) {
+        customerId = accObj.account.userId;
+      } else if (accObj.userId) {
+        customerId = accObj.userId;
+      }
     }
   } catch {
-    // Ignore JSON parse errors, fallback to empty customerId
     customerId = '';
   }
+
+  const location = useLocation();
+  useEffect(() => {
+    return () => setReportModal(null);
+  }, [location]);
 
   useEffect(() => {
     if (!eventId) {
@@ -223,6 +240,98 @@ const EventDetail = () => {
 
   const isEventEnded = event && new Date() > new Date(event.endAt);
 
+  // Thêm hàm xử lý order bằng khuôn mặt
+  const handleOrderWithFace = async ({ image }: { image: Blob }) => {
+    setFaceLoading(true);
+    setFaceError('');
+    try {
+      // Validate GUID
+      const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (!eventId || !guidRegex.test(eventId)) {
+        toast.error('eventId không hợp lệ!');
+        setFaceLoading(false);
+        return;
+      }
+      if (!customerId || !guidRegex.test(customerId)) {
+        toast.error('customerId không hợp lệ!');
+        setFaceLoading(false);
+        return;
+      }
+      if (Object.keys(selectedTickets).length === 0) {
+        toast.warn('Vui lòng chọn ít nhất một vé.');
+        setFaceLoading(false);
+        return;
+      }
+      const items = Object.values(selectedTickets).map(st => ({
+        ticketId: st.ticketId,
+        quantity: st.quantity,
+      }));
+      // Kiểm tra tất cả ticketId phải là GUID hợp lệ
+      for (const item of items) {
+        if (!guidRegex.test(item.ticketId)) {
+          toast.error(`ticketId không hợp lệ: ${item.ticketId}`);
+          setFaceLoading(false);
+          return;
+        }
+      }
+      const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
+      console.log('DEBUG FACE ORDER PAYLOAD', {
+        eventId,
+        customerId,
+        items,
+        discountCode: discountCode.trim() || undefined,
+        faceImage: file,
+      });
+      const res = await createOrderWithFace({
+        eventId,
+        customerId,
+        items,
+        faceImage: file,
+        discountCode: discountCode.trim() || undefined,
+      });
+      if (res && res.success && res.data) {
+        // Lấy orderId an toàn
+        let orderId = '';
+        if ('orderId' in res.data && typeof (res.data as unknown as { orderId?: unknown }).orderId === 'string') {
+          orderId = (res.data as { orderId?: unknown }).orderId as string;
+        } else if ('items' in res.data && Array.isArray((res.data as { items?: unknown }).items)) {
+          const itemsArr = (res.data as { items?: unknown }).items as unknown[];
+          const found = itemsArr.find((item) => typeof (item as { orderId?: unknown }).orderId === 'string');
+          if (found) orderId = (found as { orderId: string }).orderId;
+        }
+        // Lưu thông tin checkout vào localStorage (giống flow thường)
+        const checkoutData = {
+          eventId,
+          eventName: event?.eventName || '',
+          eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${event ? new Date(event.endAt).toLocaleString('vi-VN') : ''}`,
+          customerId,
+          items: Object.values(selectedTickets).map(st => ({
+            ticketId: st.ticketId,
+            ticketName: st.ticketName,
+            ticketPrice: st.ticketPrice,
+            quantity: st.quantity,
+          })),
+          discountCode: discountCode.trim() || undefined,
+          discountAmount: appliedDiscount,
+          orderId,
+          faceOrder: true,
+        };
+        localStorage.setItem('checkout', JSON.stringify(checkoutData));
+        toast.success('Đặt vé bằng khuôn mặt thành công!');
+        setShowFaceModal(false);
+        navigate('/confirm-order');
+      } else {
+        throw new Error(res?.message || 'Đặt vé bằng khuôn mặt thất bại!');
+      }
+    } catch (e: unknown) {
+      const msg = (typeof e === 'object' && e && 'message' in e) ? (e as { message?: string }).message : undefined;
+      setFaceError(msg || 'Đặt vé bằng khuôn mặt thất bại!');
+      toast.error(msg || 'Đặt vé bằng khuôn mặt thất bại!');
+    } finally {
+      setFaceLoading(false);
+    }
+  };
+
   if (loadingEvent) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
@@ -277,6 +386,27 @@ const EventDetail = () => {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="relative rounded-3xl shadow-2xl overflow-hidden mb-12 h-[300px] md:h-[400px] lg:h-[500px]"
         >
+          {/* Nút 3 chấm overlay trên ảnh */}
+          <div className="absolute top-4 right-4 z-20">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700">
+                  <MoreVertical className="w-5 h-5 text-white" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={e => {
+                    e.preventDefault();
+                    setTimeout(() => setReportModal({type: 'event', id: event.eventId}), 10);
+                  }}
+                  className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                >
+                  <Flag className="w-4 h-4" /> Báo cáo sự kiện
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <img
             src={event.eventCoverImageUrl || "https://via.placeholder.com/1200x500/334155/94a3b8?text=Event+Cover"}
             alt={event.eventName}
@@ -284,14 +414,16 @@ const EventDetail = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
           <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
-            <motion.h1
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="text-3xl md:text-5xl font-bold text-white mb-2 shadow-text"
-            >
-              {event.eventName}
-            </motion.h1>
+            <div className="flex items-center justify-between">
+              <motion.h1
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                className="text-3xl md:text-5xl font-bold text-white mb-2 shadow-text"
+              >
+                {event.eventName}
+              </motion.h1>
+            </div>
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -366,7 +498,7 @@ const EventDetail = () => {
             )}
 
             {/* ====== COMMENT SECTION START ====== */}
-            <CommentSection eventId={event.eventId} />
+            <CommentSection eventId={event.eventId} setReportModal={setReportModal} />
             {/* ====== COMMENT SECTION END ====== */}
 
           </motion.div>
@@ -516,7 +648,7 @@ const EventDetail = () => {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        className="border border-purple-300 rounded px-3 py-2 text-sm w-full text-black"
+                        className="border border-purple-300 rounded px-3 py-2 text-sm w-56 max-w-xs text-black"
                         placeholder="Nhập mã giảm giá (nếu có)"
                         value={discountCode}
                         onChange={e => { setDiscountCode(e.target.value); setDiscountValidation(null); setAppliedDiscount(0); }}
@@ -552,7 +684,22 @@ const EventDetail = () => {
                     ) : (
                       <ShoppingCart className="w-6 h-6 mr-2" />
                     )}
-                    {isCreatingOrder ? "Đang xử lý..." : `Thanh toán (${selectedItemsCount} vé)`}
+                    {isCreatingOrder ? "Đang xử lý..." : `Đặt vé (${selectedItemsCount} vé)`}
+                  </motion.button>
+                  {/* Nút đặt vé bằng khuôn mặt */}
+                  <motion.button
+                    whileHover={{ scale: 1.03, boxShadow: "0px 0px 15px rgba(168,85,247,0.5)" }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { setShowFaceModal(true); setFaceError(''); }}
+                    disabled={isCreatingOrder || faceLoading || totalAmount === 0}
+                    className="w-full mt-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-purple-700 hover:to-pink-600 transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {faceLoading ? (
+                      <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                    ) : (
+                      <Camera className="w-6 h-6 mr-2" />
+                    )}
+                    {faceLoading ? "Đang xử lý..." : "Đặt vé bằng khuôn mặt"}
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
@@ -560,6 +707,34 @@ const EventDetail = () => {
           </motion.div>
         </div>
       </div>
+      {reportModal && (
+        <ReportModal
+          key={reportModal.id}
+          open={Boolean(reportModal)}
+          targetType={reportModal.type}
+          targetId={reportModal.id}
+          onClose={() => setReportModal(null)}
+        />
+      )}
+      {/* Modal FaceCapture */}
+      {showFaceModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
+              onClick={() => setShowFaceModal(false)}
+              aria-label="Đóng"
+            >×</button>
+            <h2 className="text-xl font-bold mb-4 text-center text-black">Đặt vé bằng khuôn mặt</h2>
+            {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
+            <FaceCapture
+              onCapture={handleOrderWithFace}
+              onError={err => setFaceError(err)}
+              onCancel={() => setShowFaceModal(false)}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

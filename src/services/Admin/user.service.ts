@@ -18,6 +18,26 @@ import type { CreateAdminRequest, EditUserRequest } from "@/types/Admin/user";
 //   }
 // };
 
+// Lấy username từ userId
+export const getUserNameByUserId = async (userId: string) => {
+  try {
+    const user = await getUserByIdAPI(userId);
+    return user?.username || userId;
+  } catch {
+    return userId;
+  }
+};
+
+// Lấy fullName từ userId
+export const getFullNameByUserId = async (userId: string) => {
+  try {
+    const user = await getUserByIdAPI(userId);
+    return user?.fullName || userId;
+  } catch {
+    return userId;
+  }
+};
+
 export const editUserAPI = async (
   userId: string,
   data: EditUserRequest
@@ -82,5 +102,28 @@ export async function getCollaboratorUsers() {
   const res = await instance.get<UserListResponse>('/api/User/collaborators');
   return res.data.data.items;
 }
+
+export const updateFaceAPI = async (
+  accountId: string,
+  faceImage: File,
+  faceEmbedding: number[] | null,
+  password?: string
+) => {
+  const formData = new FormData();
+  if (faceEmbedding && faceEmbedding.length > 0) {
+    faceEmbedding.forEach((num, idx) => {
+      formData.append(`FaceEmbedding[${idx}]`, num.toString());
+    });
+  }
+  formData.append('AccountId', accountId);
+  formData.append('FaceImage', faceImage, 'face.jpg');
+  if (password) {
+    formData.append('Password', password);
+  }
+  const response = await instance.put('/api/Account/updateFace', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
 
 

@@ -1,7 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import instance from "@/services/axios.customize";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, MoreVertical, Flag } from "lucide-react";
 import { toast } from "react-toastify";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+// import ReportModal from './ReportModal';
+
 import { connectCommentHub, onComment } from '@/services/signalr.service';
 
 interface Comment {
@@ -37,12 +42,13 @@ const getLoggedInUser = (): UserData | null => {
 }
 
 
-export default function CommentSection({ eventId }: { eventId: string }) {
+export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const loggedInUser = getLoggedInUser();
+  // Xoá state reportCommentId, pendingReportCommentId
 
   const fetchComments = () => {
     setLoading(true);
@@ -104,6 +110,10 @@ export default function CommentSection({ eventId }: { eventId: string }) {
     }
   }, [eventId]);
 
+  useEffect(() => {
+    // Xoá phần render ReportModal ở cuối file
+  }, []);
+
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !loggedInUser) return;
@@ -130,15 +140,14 @@ export default function CommentSection({ eventId }: { eventId: string }) {
       <h3 className="text-xl font-semibold text-purple-300 mb-6 border-b border-purple-700 pb-3">
         Bình luận & Thảo luận
       </h3>
-      
       {loggedInUser ? (
         <form onSubmit={handlePost} className="flex items-start gap-4 mb-8">
-           <img
-                src={loggedInUser.avatar || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'}
-                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
-                alt="Your avatar"
-                className="w-10 h-10 rounded-full object-cover"
-            />
+          <img
+            src={loggedInUser.avatar || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'}
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
+            alt="Your avatar"
+            className="w-10 h-10 rounded-full object-cover"
+          />
           <div className="flex-1">
             <textarea
               className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
@@ -149,28 +158,26 @@ export default function CommentSection({ eventId }: { eventId: string }) {
               rows={3}
             />
             <div className="flex justify-end mt-2">
-                 <button
-                    type="submit"
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={posting || !newComment.trim()}
-                    >
-                    {posting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
-                    <span>{posting ? "Đang gửi..." : "Gửi"}</span>
-                </button>
+              <button
+                type="submit"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={posting || !newComment.trim()}
+              >
+                {posting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
+                <span>{posting ? "Đang gửi..." : "Gửi"}</span>
+              </button>
             </div>
           </div>
         </form>
       ) : (
         <div className="text-center text-slate-400 mb-8 p-4 bg-slate-700/50 rounded-lg">
-            Vui lòng <a href="/login" className="text-purple-400 hover:underline font-semibold">đăng nhập</a> để bình luận.
+          Vui lòng <a href="/login" className="text-purple-400 hover:underline font-semibold">đăng nhập</a> để bình luận.
         </div>
       )}
-
-
       {loading ? (
-         <div className="flex justify-center items-center py-8">
-            <Loader2 className="animate-spin w-8 h-8 text-purple-400" />
-         </div>
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="animate-spin w-8 h-8 text-purple-400" />
+        </div>
       ) : (
         <div className="space-y-6">
           {comments.length === 0 ? (
@@ -181,15 +188,35 @@ export default function CommentSection({ eventId }: { eventId: string }) {
               .map(c => (
                 <div key={c.commentId} className="flex items-start gap-4">
                   <img
-                      src={c.avatarUrl}
-                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
-                      alt={`${c.fullName}'s avatar`}
-                      className="w-10 h-10 rounded-full object-cover"
+                    src={c.avatarUrl}
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
+                    alt={`${c.fullName}'s avatar`}
+                    className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="flex-1 bg-slate-700 p-4 rounded-lg">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-purple-300">{c.fullName}</p>
-                      <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 focus:outline-none border border-slate-700">
+                              <MoreVertical className="w-6 h-6 text-white" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={e => {
+                                e.preventDefault();
+                                setReportModal({type: 'comment', id: c.commentId});
+                              }}
+                              className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                            >
+                              <Flag className="w-4 h-4" /> Báo cáo bình luận
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                     <p className="text-sm text-slate-200 mt-1">{c.content}</p>
                   </div>
@@ -198,6 +225,7 @@ export default function CommentSection({ eventId }: { eventId: string }) {
           )}
         </div>
       )}
+      {/* Xoá phần render ReportModal ở cuối file */}
     </div>
   );
-} 
+}

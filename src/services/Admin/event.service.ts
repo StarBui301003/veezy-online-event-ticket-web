@@ -22,6 +22,11 @@ export async function getPendingEvents(params?: { page?: number; pageSize?: numb
   return res.data;
 }
 
+export async function getCanceledEvents(params?: { page?: number; pageSize?: number }) {
+  const res = await instance.get<EventListResponse>('/api/Event/canceled', { params });
+  return res.data;
+}
+
 export async function cancelEvent(eventId: string) {
   const res = await instance.post(`/api/Event/${eventId}/cancel`);
   return res.data;

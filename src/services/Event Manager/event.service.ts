@@ -375,6 +375,50 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   }
 }
 
+/**
+ * Create order with face authentication (multipart/form-data)
+ * @param {Object} params
+ * @param {string} params.eventId
+ * @param {string} params.customerId
+ * @param {Array<{ticketId: string, quantity: number}>} params.items
+ * @param {File} params.faceImage
+ * @param {number[]} [params.faceEmbedding]
+ * @param {string} [params.discountCode]
+ * @returns {Promise<OrderApiResponse>} API response
+ */
+export async function createOrderWithFace({ eventId, customerId, items, faceImage, faceEmbedding, discountCode }: {
+  eventId: string;
+  customerId: string;
+  items: { ticketId: string; quantity: number }[];
+  faceImage: File;
+  faceEmbedding?: number[];
+  discountCode?: string;
+}): Promise<OrderApiResponse> {
+  const formData = new FormData();
+  formData.append('EventId', eventId);
+  formData.append('CustomerId', customerId);
+  // Gửi từng item theo dạng Items[0].TicketId, Items[0].Quantity
+  items.forEach((item, idx) => {
+    formData.append(`Items[${idx}].TicketId`, item.ticketId);
+    formData.append(`Items[${idx}].Quantity`, item.quantity.toString());
+  });
+  // Gửi thêm cả chuỗi JSON cho Items
+  formData.append('Items', JSON.stringify(items));
+  formData.append('FaceImage', faceImage);
+  if (faceEmbedding && Array.isArray(faceEmbedding)) {
+    faceEmbedding.forEach((num) => {
+      formData.append('FaceEmbedding', String(num));
+    });
+  }
+  if (discountCode) {
+    formData.append('DiscountCode', discountCode);
+  }
+  const response = await instance.post('/api/Order/createOrderWithFace', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
 // === Payment APIs ===
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -588,4 +632,140 @@ export async function updatePlatformFee(eventId: string, fee: number) {
 export async function enableWithdrawalForCompletedEvents() {
   const response = await instance.post(`/api/Fund/enable-withdrawal-for-completed-events`);
   return response.data;
+}
+
+// === Event Manager Analytics APIs ===
+const ANALYTICS_PREFIX = "/api/analytics/eventManager";
+
+type DashboardParams = {
+  period?: number;
+  groupBy?: number;
+  includeMetrics?: string[];
+  includeRealtimeData?: boolean;
+  customStartDate?: string;
+  customEndDate?: string;
+  includeComparison?: boolean;
+  comparisonPeriod?: number;
+};
+
+type RevenueParams = {
+  eventIds?: string[];
+  categoryIds?: string[];
+  paymentStatus?: number;
+  period?: number;
+  groupBy?: number;
+  customStartDate?: string;
+  customEndDate?: string;
+  includeComparison?: boolean;
+  comparisonPeriod?: number;
+};
+
+type TicketStatsParams = {
+  period?: number;
+  groupBy?: number;
+  customStartDate?: string;
+  customEndDate?: string;
+  includeComparison?: boolean;
+  comparisonPeriod?: number;
+};
+
+// Dashboard tổng quan cho Event Manager
+export async function getEventManagerDashboard(params: DashboardParams = {}) {
+  const query = new URLSearchParams();
+  if (params.period) query.append("Period", params.period.toString());
+  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+  if (params.includeMetrics) params.includeMetrics.forEach(m => query.append("IncludeMetrics", m));
+  if (params.includeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.includeRealtimeData));
+  if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+  if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+  if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  const response = await instance.get(`${ANALYTICS_PREFIX}/dashboard?${query.toString()}`);
+  return response.data;
+}
+
+// Thống kê doanh thu Event Manager
+export async function getEventManagerRevenue(params: RevenueParams = {}) {
+  const query = new URLSearchParams();
+  if (params.eventIds) params.eventIds.forEach(id => query.append("EventIds", id));
+  if (params.categoryIds) params.categoryIds.forEach(id => query.append("CategoryIds", id));
+  if (params.paymentStatus !== undefined) query.append("PaymentStatus", params.paymentStatus.toString());
+  if (params.period) query.append("Period", params.period.toString());
+  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+  if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+  if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+  if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  const response = await instance.get(`${ANALYTICS_PREFIX}/revenue?${query.toString()}`);
+  return response.data;
+}
+
+// Thống kê vé Event Manager
+export async function getEventManagerTicketStats(params: TicketStatsParams = {}) {
+  const query = new URLSearchParams();
+  if (params.period) query.append("Period", params.period.toString());
+  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+  if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+  if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+  if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  const response = await instance.get(`${ANALYTICS_PREFIX}/tickets/stats?${query.toString()}`);
+  return response.data;
+}
+
+// Sự kiện sắp tới
+export async function getUpcomingEvents() {
+  const response = await instance.get(`${ANALYTICS_PREFIX}/events/upcoming`);
+  return response.data;
+}
+
+// Tổng quan realtime
+export async function getRealtimeOverview() {
+  const response = await instance.get(`${ANALYTICS_PREFIX}/realtime/overview`);
+  return response.data;
+}
+
+// So sánh hiệu suất
+export async function comparePerformance(currentPeriod: number, comparisonPeriod: number) {
+  const response = await instance.post(`${ANALYTICS_PREFIX}/performance/compare`, {
+    currentPeriod,
+    comparisonPeriod
+  });
+  return response.data;
+}
+
+// Export Dashboard PDF
+export async function exportDashboardPDF(dashboardData: unknown) {
+  const response = await instance.post(`${ANALYTICS_PREFIX}/dashboard/export/pdf`, {
+    dashboardData,
+    exportFormat: "pdf"
+  }, { responseType: 'blob' });
+  return response.data;
+}
+
+// Export Analytics Excel
+export async function exportAnalyticsExcel(
+  analyticsType: string,
+  analyticsData: unknown,
+  filter: unknown = {},
+  language: number = 0
+) {
+  const response = await instance.post(
+    `/api/analytics/eventManager/analytics/export/excel`,
+    {
+      analyticsType,
+      analyticsData,
+      filter,
+      language
+    },
+    { responseType: 'blob' }
+  );
+  return response.data;
+}
+
+// Lấy sự kiện trang chủ (chỉ sự kiện active)
+export async function getHomeEvents() {
+  const response = await instance.get('/api/Event/home');
+  // Trả về mảng sự kiện, có thể là response.data.data hoặc response.data tuỳ backend
+  return Array.isArray(response.data?.data) ? response.data.data : response.data;
 }

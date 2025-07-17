@@ -1,21 +1,78 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
+
+interface CheckoutData {
+  eventName?: string;
+  items?: { ticketName: string; quantity: number; ticketPrice: number }[];
+  totalAmount?: number;
+  orderId?: string;
+}
 
 const PaymentSuccessPage = () => {
+  const [checkout, setCheckout] = useState<CheckoutData | null>(null);
+
   useEffect(() => {
     // Gửi message về opener (tab gốc)
     if (window.opener) {
       window.opener.postMessage({ type: 'PAYMENT_SUCCESS' }, '*');
+      sessionStorage.setItem('paymentStatus', 'success');
     }
+    const handleUnload = () => {
+      if (window.opener && sessionStorage.getItem('paymentStatus') !== 'success') {
+        window.opener.postMessage({ type: 'PAYMENT_FAILED' }, '*');
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
   }, []);
+
+  useEffect(() => {
+    const data = localStorage.getItem('checkout');
+    if (data) setCheckout(JSON.parse(data));
+  }, []);
+
+  const total = checkout?.items?.reduce((sum, item) => sum + (item.ticketPrice || 0) * (item.quantity || 0), 0) || 0;
+
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-green-50 p-8 text-center">
-      <h2 className="text-3xl font-bold text-green-700 mb-4">Thanh toán thành công!</h2>
-      <p className="text-green-600 text-lg mb-6">Bạn có thể đóng tab này và quay lại trang trước.</p>
+      <div className="relative mb-6">
+        <span className="relative flex h-20 w-20">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-20 w-20 bg-green-500 items-center justify-center">
+            <Check className="w-12 h-12 text-white" />
+          </span>
+        </span>
+      </div>
+      <h2 className="text-3xl font-bold text-green-700 mb-2">Thanh toán thành công!</h2>
+      <p className="text-green-600 text-lg mb-6">Bạn đã nhận vé thành công cho sự kiện:</p>
+      {checkout?.eventName && (
+        <div className="text-xl font-semibold text-green-900 mb-2">🎫 {checkout.eventName}</div>
+      )}
+      {checkout?.orderId && (
+        <div className="text-green-700 text-base mb-2">Mã đơn hàng: <span className="font-bold">{checkout.orderId}</span></div>
+      )}
+      {checkout?.items && checkout.items.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
+          <div className="font-semibold text-green-800 mb-2">Chi tiết vé:</div>
+          <ul className="text-left space-y-2">
+            {checkout.items.map((item, idx) => (
+              <li key={idx} className="flex justify-between text-green-900">
+                <span>{item.ticketName} <span className="text-green-600">x{item.quantity}</span></span>
+                <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
+              </li>
+            ))}
+          </ul>
+          <div className="border-t border-green-100 mt-4 pt-3 flex justify-between font-bold text-green-700">
+            <span>Tổng cộng:</span>
+            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+          </div>
+        </div>
+      )}
       <button
-        onClick={() => window.close()}
-        className="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-all duration-300"
+        onClick={() => window.location.href = '/'}
+        className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold rounded-lg shadow-md hover:from-green-600 hover:to-green-800 transition-all duration-300 btn-shine"
       >
-        Đóng tab này
+        Về trang chủ
       </button>
     </div>
   );

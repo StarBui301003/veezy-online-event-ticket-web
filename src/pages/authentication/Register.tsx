@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
 import { AiOutlineCalendar } from 'react-icons/ai';
@@ -18,6 +18,8 @@ import {
   type FieldErrors,
   validateDateOfBirth,
 } from '@/utils/validation';
+import FaceCapture from '@/components/common/FaceCapture';
+import { registerWithFaceAPI } from '@/services/auth.service';
 
 export const Register = () => {
   const [date, setDate] = useState<Date>();
@@ -33,6 +35,9 @@ export const Register = () => {
   const [role, setRole] = useState<number | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  // Đã thay bằng faceRegisteringRef, không cần faceRegistering state nữa
+  const faceRegisteringRef = useRef(false);
 
   const navigate = useNavigate();
 
@@ -139,23 +144,98 @@ export const Register = () => {
     }
   };
 
+  const handleRegisterWithFace = async (faceFile?: File) => {
+    if (faceRegisteringRef.current) return; // Chặn double submit bằng ref
+    faceRegisteringRef.current = true;
+    if (!role) {
+      setShowRoleModal(true);
+      toast.error('Please choose your role!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    if (!username || !fullName || !email || !password || !confirmPassword || !date) {
+      toast.error('Please fill in all fields!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    const file = faceFile;
+    if (!file) {
+      toast.error('Please capture your face!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match!');
+      faceRegisteringRef.current = false;
+      return;
+    }
+    setLoading(true);
+    try {
+      const dateOfBirth = format(date, 'yyyy-MM-dd', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const formData = new FormData();
+      formData.append('Username', username);
+      formData.append('FullName', fullName);
+      formData.append('Email', email);
+      formData.append('Phone', phone);
+      formData.append('Password', password);
+      formData.append('Role', String(role));
+      formData.append('Gender', '0'); // hoặc lấy từ form nếu có
+      formData.append('DateOfBirth', dateOfBirth);
+      formData.append('FaceEmbedding', '0'); // Gửi số bất kỳ, backend sẽ tự xử lý từ ảnh
+      formData.append('FaceImage', file);
+      // Các trường khác nếu cần
+      console.log('RegisterWithFace - file:', file);
+      const response = await registerWithFaceAPI(formData);
+      if (response && response.flag && response.code === 200) {
+        toast.success('Registration successful! Please verify your email.');
+        sessionStorage.setItem('registerEmail', email);
+        localStorage.setItem('registerEmail', email); // Lưu vào localStorage để bền hơn
+        setTimeout(() => {
+          navigate('/verify-email', { replace: true });
+        }, 500);
+      } else {
+        toast.error(response?.message || 'Registration failed!');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'message' in err) {
+        toast.error((err as { message?: string }).message || 'Registration failed!');
+      } else {
+        toast.error('Registration failed!');
+      }
+    } finally {
+      setLoading(false);
+      faceRegisteringRef.current = false;
+    }
+  };
+
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     if (accStr) {
       navigate('/');
+      return;
+    }
+    // Nếu đã đăng ký xong, đang chờ verify, thì chuyển sang verify luôn
+    const registerEmail =
+      sessionStorage.getItem('registerEmail') || localStorage.getItem('registerEmail');
+    if (registerEmail) {
+      navigate('/verify-email', { replace: true });
+      return;
     }
   }, [navigate]);
 
   return (
     <>
-      <RegisterChooseRoleModal
-        open={showRoleModal}
-        onClose={() => setShowRoleModal(false)}
-        onChooseRole={(r) => {
-          setRole(r);
-          setShowRoleModal(false);
-        }}
-      />
+      {/* Chỉ render modal chọn role nếu chưa đăng ký xong */}
+      {!sessionStorage.getItem('registerEmail') && (
+        <RegisterChooseRoleModal
+          open={showRoleModal}
+          onClose={() => setShowRoleModal(false)}
+          onChooseRole={(r) => {
+            setRole(r);
+            setShowRoleModal(false);
+          }}
+        />
+      )}
 
       <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
 
@@ -416,15 +496,24 @@ export const Register = () => {
               </div>
             </div>
 
-            {/* Submit button */}
+            {/* Submit buttons */}
             <div className="w-full mt-6">
               <Button
                 onClick={handleRegister}
                 disabled={loading}
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-4"
               >
                 {loading ? 'Signing Up...' : 'Sign Up'}
               </Button>
+
+              <Button
+                onClick={() => setShowFaceModal(true)}
+                disabled={loading}
+                className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-4"
+              >
+                Đăng ký bằng khuôn mặt
+              </Button>
+
               <div className="text-center text-sm mt-4">
                 Already have an account?{' '}
                 <Link to="/login" className="text-blue-300 hover:underline font-medium">
@@ -435,6 +524,19 @@ export const Register = () => {
           </div>
         </div>
       </div>
+
+      {showFaceModal && (
+        <FaceCapture
+          onCapture={({ image }) => {
+            if (faceRegisteringRef.current) return; // Chặn double callback bằng ref
+            setShowFaceModal(false);
+            handleRegisterWithFace(
+              new File([image], 'face.jpg', { type: image.type || 'image/jpeg' })
+            );
+          }}
+          onCancel={() => setShowFaceModal(false)}
+        />
+      )}
     </>
   );
 };

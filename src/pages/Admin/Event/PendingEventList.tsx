@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
+import { getUsernameByAccountId } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -124,8 +124,8 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allUserId.map(async (id) => {
             try {
-              const user = await getUserByIdAPI(id);
-              usernameMap[id] = user.fullName || user.username || 'Unknown';
+              const username = await getUsernameByAccountId(id);
+              usernameMap[id] = username;
             } catch {
               usernameMap[id] = id;
             }
@@ -214,8 +214,8 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allUserId.map(async (id) => {
             try {
-              const user = await getUserByIdAPI(id);
-              usernameMap[id] = user.fullName || user.username || 'Unknown';
+              const username = await getUsernameByAccountId(id);
+              usernameMap[id] = username;
             } catch {
               usernameMap[id] = id;
             }

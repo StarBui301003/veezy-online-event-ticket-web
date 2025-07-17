@@ -17,6 +17,9 @@ import {
   hasFieldError,
   type FieldErrors,
 } from '@/utils/validation';
+import { FiCamera } from 'react-icons/fi';
+import FaceCapture from '@/components/common/FaceCapture';
+import { loginByFaceAPI } from '@/services/auth.service';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -24,8 +27,10 @@ export const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [showFaceCapture, setShowFaceCapture] = useState(false);
+  const [faceError, setFaceError] = useState('');
   const navigate = useNavigate();
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
@@ -166,6 +171,101 @@ export const LoginPage = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFaceLogin = async ({ image }: { image: Blob }) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('FaceImage', image, 'face.jpg');
+      const apiResult = await loginByFaceAPI(formData);
+
+      if (!apiResult.data || !apiResult.data.accessToken) {
+        toast.error('Face login failed: No access token received!', { position: 'top-right' });
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('access_token', apiResult.data.accessToken);
+      localStorage.setItem('customerId', apiResult.data.account.userId);
+      document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
+
+      const {
+        userConfig,
+        accountId,
+        avatar,
+        email,
+        gender,
+        phone,
+        role,
+        userId,
+        username: accountUsername,
+      } = apiResult.data.account;
+
+      if (userConfig !== undefined) {
+        localStorage.setItem('user_config', JSON.stringify(userConfig));
+      } else {
+        localStorage.removeItem('user_config');
+      }
+      const minimalAccount = {
+        accountId,
+        avatar,
+        email,
+        gender,
+        phone,
+        role,
+        userId,
+        username: accountUsername,
+      };
+      localStorage.setItem('account', JSON.stringify(minimalAccount));
+
+      if (rememberMe) {
+        localStorage.setItem('remembered_username', username);
+      } else {
+        localStorage.removeItem('remembered_username');
+      }
+
+      // Thông báo và điều hướng theo role
+      let welcomeMsg = `Welcome ${accountUsername}!`;
+      let redirectPath = '/';
+      if (role === 0) {
+        welcomeMsg = `Welcome admin ${accountUsername}!`;
+        redirectPath = '/admin';
+      } else if (role === 2) {
+        welcomeMsg = `Welcome event manager ${accountUsername}!`;
+        redirectPath = '/event-manager';
+      }
+      toast.success(welcomeMsg, { position: 'top-right' });
+      navigate(redirectPath, { replace: true });
+    } catch (error: unknown) {
+      let errorMessage = 'Face login failed.';
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        typeof (error as { response?: unknown }).response === 'object' &&
+        (error as { response: { data?: unknown } }).response?.data &&
+        typeof (error as { response: { data?: unknown } }).response.data === 'object'
+      ) {
+        const data = (error as { response: { data: Record<string, unknown> } }).response.data;
+        if (data.errors && typeof data.errors === 'object') {
+          errorMessage = Object.values(data.errors).flat().join('\n');
+        } else if (typeof data.message === 'string') {
+          errorMessage = data.message;
+        }
+      } else if (
+        typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        errorMessage = (error as { message: string }).message;
+      }
+      toast.error(errorMessage, { position: 'top-right' });
+    } finally {
+      setLoading(false);
+      setShowFaceCapture(false);
     }
   };
 
@@ -329,19 +429,32 @@ export const LoginPage = () => {
                 'Login'
               )}
             </Button>
-            {/* <div className="w-full flex justify-center">
-              <div className="flex items-center text-gray-400 text-sm my-6">
-                <div className="flex-grow border-t border-gray-300"></div>
-                <span className="mx-4 text-[#60A5FA] ">or</span>
-                <div className="flex-grow border-t border-gray-300"></div>
-              </div>
+            {/* OR Divider */}
+            <div className="flex items-center w-[380px] my-4">
+              <div className="flex-grow h-px bg-gray-300" />
+              <span className="mx-4 text-gray-400 font-semibold text-lg select-none">or</span>
+              <div className="flex-grow h-px bg-gray-300" />
             </div>
-            <Button className="bg-[#D9D9D9] hover:bg-[#bdbdbd] text-black font-normal px-6 w-[380px] rounded-[8px] py-6 text-[20px] mt-2 transition-colors">
-              <div className="flex gap-4 items-center">
-                <img src={GG_ICON} alt="Google Icon" className="w-6 h-6" />
-                <div>Login with Google</div>
-              </div>
-            </Button> */}
+            <Button
+              onClick={() => setShowFaceCapture(true)}
+              className="w-[380px] flex items-center justify-center gap-3 py-6 rounded-[8px] font-semibold text-white text-lg bg-gradient-to-r from-[#7B8FFF] to-[#6A5ACD] shadow-md hover:from-[#6A5ACD] hover:to-[#7B8FFF] transition-all duration-200 border-0 mt-0"
+              style={{ boxShadow: '0 4px 16px 0 rgba(122, 144, 255, 0.15)' }}
+            >
+              <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                <FiCamera className="text-[#6A5ACD] text-lg" />
+              </span>
+              <span>Login with Face</span>
+            </Button>
+            {faceError && (
+              <div className="text-red-500 mt-3 text-center text-base font-medium">{faceError}</div>
+            )}
+            {showFaceCapture && (
+              <FaceCapture
+                onCapture={handleFaceLogin}
+                onError={setFaceError}
+                onCancel={() => setShowFaceCapture(false)}
+              />
+            )}
             <div className="mt-6">
               Don't have an account?{' '}
               <Link to="/register" className="text-[#60A5FA] hover:underline">

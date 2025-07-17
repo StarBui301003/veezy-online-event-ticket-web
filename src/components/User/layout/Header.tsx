@@ -61,8 +61,8 @@ export const Header = () => {
               : undefined
           );
           // Gọi API lấy user
-          if (acc.accountId) {
-            getUserAPI(acc.accountId)
+          if (acc.userId) {
+            getUserAPI(acc.userId)
               .then((userData) => setUser(userData))
               .catch(() => setUser(null));
           }
@@ -82,8 +82,8 @@ export const Header = () => {
     window.addEventListener('storage', fetchAccountAndUser);
 
     // Fetch notifications if logged in
-    if (account?.accountId) {
-      getUserNotifications(account.accountId, 1, 5).then((res) => {
+    if (account?.userId) {
+      getUserNotifications(account.userId, 1, 5).then((res) => {
         const items = res.data?.data?.items || [];
         setNotifications(items);
         setNotifHasUnread(items.some((n: any) => !n.isRead));
@@ -98,9 +98,9 @@ export const Header = () => {
   }, []);
 
   useEffect(() => {
-    if (!notifDropdown || !account?.accountId) return;
+    if (!notifDropdown || !account?.userId) return;
     setNotifLoading(true);
-    getUserNotifications(account.accountId, 1, 5)
+    getUserNotifications(account.userId, 1, 5)
       .then((res) => {
         const items = res.data?.data?.items || [];
         setNotifications(items);
@@ -109,7 +109,7 @@ export const Header = () => {
         setNotifHasMore(res.data?.data?.hasNextPage ?? false);
       })
       .finally(() => setNotifLoading(false));
-  }, [notifDropdown, account?.accountId]);
+  }, [notifDropdown, account?.userId]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -142,12 +142,12 @@ export const Header = () => {
   };
 
   const handleReadNotification = async (notification: any) => {
-    if (!notification.isRead && account?.accountId) {
-      await markNotificationRead(notification.notificationId, account.accountId);
+    if (!notification.isRead && account?.userId) {
+      await markNotificationRead(notification.notificationId, account.userId);
     }
     // Refetch notifications
-    if (account?.accountId) {
-      const res = await getUserNotifications(account.accountId, 1, notifPage * 5);
+    if (account?.userId) {
+      const res = await getUserNotifications(account.userId, 1, notifPage * 5);
       const items = res.data?.data?.items || [];
       setNotifications(items);
       setNotifHasUnread(items.some((n: any) => !n.isRead));
@@ -161,9 +161,9 @@ export const Header = () => {
   };
 
   const handleReadAll = async () => {
-    if (account?.accountId) {
-      await markAllNotificationsRead(account.accountId);
-      const res = await getUserNotifications(account.accountId, 1, notifPage * 5);
+    if (account?.userId) {
+      await markAllNotificationsRead(account.userId);
+      const res = await getUserNotifications(account.userId, 1, notifPage * 5);
       const items = res.data?.data?.items || [];
       setNotifications(items);
       setNotifHasUnread(false);
@@ -172,10 +172,10 @@ export const Header = () => {
   };
 
   const handleLoadMore = async () => {
-    if (!account?.accountId || notifLoading || !notifHasMore) return;
+    if (!account?.userId || notifLoading || !notifHasMore) return;
     setNotifLoading(true);
     const nextPage = notifPage + 1;
-    const res = await getUserNotifications(account.accountId, nextPage, 5);
+    const res = await getUserNotifications(account.userId, nextPage, 5);
     const items = res.data?.data?.items || [];
     setNotifications((prev) => [...prev, ...items]);
     setNotifPage(nextPage);
@@ -239,12 +239,12 @@ export const Header = () => {
             />
           </div>
 
-          <div className="mr-14">
+          <div className="mr-14 flex items-center gap-4 relative">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent"
+                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent transition duration-300 hover:scale-110 hover:shadow"
                 >
                   EN
                   <IoIosArrowDown />

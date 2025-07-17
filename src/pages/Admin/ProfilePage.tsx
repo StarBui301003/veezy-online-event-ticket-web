@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
+import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -11,6 +11,8 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { NO_AVATAR } from '@/assets/img';
+import FaceCapture from '@/components/common/FaceCapture';
+import { toast } from 'react-toastify';
 
 const ProfilePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +23,8 @@ const ProfilePage = () => {
   const [form, setForm] = useState<any>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [showFaceModal, setShowFaceModal] = useState(false);
+  const [faceError, setFaceError] = useState('');
 
   useEffect(() => {
     // Lấy userId từ localStorage
@@ -120,13 +124,29 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <SpinnerOverlay show={true} />
+        <span className="mt-6 text-lg text-purple-200 animate-pulse">Vui lòng chờ trong giây lát...</span>
       </div>
     );
   }
 
-  if (!account) return null;
+  if (!account) {
+    return (
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="text-3xl font-bold text-red-600 mb-4">Không thể tải thông tin tài khoản</div>
+          <div className="text-gray-700 mb-6">Vui lòng thử lại hoặc liên hệ quản trị viên.</div>
+          <button
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+            onClick={() => window.location.href = '/'}
+          >
+            Về trang chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 flex justify-center">
@@ -141,6 +161,54 @@ const ProfilePage = () => {
                 <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
               )}
             </div>
+            <button
+              type="button"
+              className="mt-2 w-[160px] h-[45px] rounded-[8px] bg-gradient-to-r from-blue-600 to-green-500 text-white font-medium text-base transition duration-300 hover:from-blue-700 hover:to-green-600 shadow"
+              onClick={() => setShowFaceModal(true)}
+            >
+              Cập nhật khuôn mặt
+            </button>
+            {showFaceModal && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+                <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+                  <button
+                    className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
+                    onClick={() => setShowFaceModal(false)}
+                    aria-label="Đóng"
+                  >×</button>
+                  <h2 className="text-xl font-bold mb-4 text-center text-black">Cập nhật khuôn mặt</h2>
+                  {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
+                  <FaceCapture
+                    onCapture={async ({ image }) => {
+                      setFaceError('');
+                      try {
+                        const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
+                        await updateFaceAPI(account.userId, file, [0]);
+                        toast.success('Cập nhật khuôn mặt thành công!');
+                        setShowFaceModal(false);
+                      } catch (e: any) {
+                        let msg = 'Cập nhật khuôn mặt thất bại!';
+                        if (e?.response?.data?.message) {
+                          const m = e.response.data.message;
+                          if (
+                            m.includes('already been registered') ||
+                            m.includes('Liveness check failed') ||
+                            m.includes('No face could be detected') ||
+                            m.includes('Multiple faces detected')
+                          ) {
+                            msg = m;
+                          }
+                        }
+                        setFaceError(msg);
+                        toast.error(msg);
+                      }
+                    }}
+                    onError={(err) => setFaceError(err)}
+                    onCancel={() => setShowFaceModal(false)}
+                  />
+                </div>
+              </div>
+            )}
             {editMode && (
               <>
                 <input

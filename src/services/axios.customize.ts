@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'react-toastify';
+import { config } from '@/utils/config';
 
 // Mở rộng InternalAxiosRequestConfig cho phép thêm trường _retry
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -7,7 +8,7 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 }
 
 const instance: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5000',
+  baseURL: config.gatewayUrl,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
@@ -80,8 +81,7 @@ instance.interceptors.response.use(
         isRefreshing = true;
         try {
           const response = await axios.post(
-            `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5000'
-            }/api/Account/refresh-token`,
+            `${config.gatewayUrl}/api/Account/refresh-token`,
             { refreshToken },
             { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
           );

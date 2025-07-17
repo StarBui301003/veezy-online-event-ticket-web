@@ -329,8 +329,8 @@ export const RejectedEventList = () => {
                 </TableHead>
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
-                <TableHead style={{ width: '15%' }}>Approved By</TableHead>
-                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '15%' }}>Rejected By</TableHead>
+                <TableHead style={{ width: '20%' }}>Rejected At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
                 <TableHead style={{ width: '20%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>

@@ -64,6 +64,7 @@ export interface LoginResponse {
 
 export interface Account {
   accountId: string;
+  userId: string;
   username: string;
   avatar?: string;
   email: string;

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CreditCard } from "lucide-react";
@@ -25,12 +25,13 @@ interface CheckoutData {
 
 const ConfirmOrderPage = () => {
   const navigate = useNavigate();
+  const paymentWindowRef = useRef<Window | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [waitingPayment, setWaitingPayment] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
+  const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<any>(null);
 
   useEffect(() => {
@@ -101,8 +102,7 @@ const ConfirmOrderPage = () => {
         paymentUrl = payRes.data;
       if (!paymentUrl) throw new Error('Không lấy được link thanh toán từ server.');
       // Mở tab mới
-      window.open(paymentUrl, '_blank'); // Just open, don't setPaymentWindow
-      setWaitingPayment(true);
+      handleStartPayment(paymentUrl);
       // Lưu orderId vào localStorage để callback có thể lấy
       localStorage.setItem('lastOrderId', orderId);
     } catch (err: any) {
@@ -114,18 +114,45 @@ const ConfirmOrderPage = () => {
     }
   };
 
+  // Khi bắt đầu thanh toán, mở tab mới:
+  const handleStartPayment = (paymentUrl: string) => {
+    if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
+      paymentWindowRef.current.close();
+    }
+    paymentWindowRef.current = window.open(paymentUrl, "_blank");
+    setWaitingPayment(true);
+  };
+
+  // Lắng nghe message từ tab thanh toán
   useEffect(() => {
-    if (!waitingPayment) return;
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'PAYMENT_SUCCESS') {
+      if (event.data?.type === "PAYMENT_SUCCESS") {
         setWaitingPayment(false);
-        setPaymentStatus('success');
-        localStorage.removeItem('checkout');
+        navigate("/payment-success");
+      }
+      if (event.data?.type === "PAYMENT_FAILED") {
+        setWaitingPayment(false);
+        navigate("/payment-failed");
       }
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [waitingPayment]);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [navigate]);
+
+  // Kiểm tra tab thanh toán bị đóng mà không thành công
+  useEffect(() => {
+    let interval: NodeJS.Timeout | undefined;
+    if (waitingPayment && paymentWindowRef.current) {
+      interval = setInterval(() => {
+        if (paymentWindowRef.current && paymentWindowRef.current.closed) {
+          setWaitingPayment(false);
+          navigate("/payment-failed");
+          clearInterval(interval);
+        }
+      }, 500);
+    }
+    return () => interval && clearInterval(interval);
+  }, [waitingPayment, navigate]);
 
   if (loading) {
     return (
