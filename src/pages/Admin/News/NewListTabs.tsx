@@ -43,6 +43,8 @@ export function NewsListTabs() {
     onNews('OnNewsDeleted', reloadNews);
     onNews('OnNewsApproved', reloadNews);
     onNews('OnNewsRejected', reloadNews);
+    onNews('OnNewsHidden', reloadNews);
+    onNews('OnNewsUnhidden', reloadNews);
   }, []);
 
   // Khi đổi tab, update query param

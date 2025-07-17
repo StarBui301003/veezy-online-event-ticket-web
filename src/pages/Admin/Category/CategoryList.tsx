@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getAllCategory, deleteCategoryById } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -39,7 +40,14 @@ export const CategoryList = () => {
   const [editCategory, setEditCategory] = useState<Category | null>(null);
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     reloadList();
+
+    // Lắng nghe realtime SignalR cho category
+    const reload = () => reloadList();
+    onEvent('OnCategoryCreated', reload);
+    onEvent('OnCategoryUpdated', reload);
+    onEvent('OnCategoryDeleted', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

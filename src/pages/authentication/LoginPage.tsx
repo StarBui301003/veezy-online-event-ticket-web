@@ -1,4 +1,5 @@
 import { LOGO } from '@/assets/img';
+import wallpaperLogin from '@/assets/img/wallpaper_login.jpg';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Link, useNavigate } from 'react-router-dom';
@@ -8,6 +9,14 @@ import { loginAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { IoReturnUpBackOutline } from 'react-icons/io5';
+import {
+  validateUsername,
+  validatePassword,
+  parseBackendErrors,
+  getFieldError,
+  hasFieldError,
+  type FieldErrors,
+} from '@/utils/validation';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -15,6 +24,7 @@ export const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +64,27 @@ export const LoginPage = () => {
   }, [navigate]);
 
   const handleLogin = async () => {
+    // Clear previous errors
+    setFieldErrors({});
+
+    // Frontend validation
+    const newFieldErrors: FieldErrors = {};
+
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.isValid) {
+      newFieldErrors.username = [usernameValidation.errorMessage!];
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      newFieldErrors.password = [passwordValidation.errorMessage!];
+    }
+
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
+
     setLoading(true);
     try {
       const data = { username, password };
@@ -67,7 +98,10 @@ export const LoginPage = () => {
 
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
-      document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
+      // Set refresh token cookie (remove secure flag for development)
+      document.cookie = `refresh_token=${
+        apiResult.data.refreshToken
+      }; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
 
       const {
         userConfig,
@@ -116,32 +150,20 @@ export const LoginPage = () => {
       }
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      let errorMessage = 'Invalid username or password.';
-      // Nếu BE trả về lỗi dạng errors.{Field}: [msg]
-      if (
-        error &&
-        error.response &&
-        error.response.data &&
-        typeof error.response.data === 'object'
-      ) {
-        const data = error.response.data;
-        if (data.errors && typeof data.errors === 'object') {
-          // Lấy tất cả message trong errors
-          errorMessage = Object.values(data.errors).flat().join('\n');
-        } else if (typeof data.message === 'string') {
-          errorMessage = data.message;
-        }
-      } else if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof error.message === 'string'
-      ) {
-        errorMessage = error.message;
+    } catch (error: unknown) {
+      // Parse backend errors
+      const { fieldErrors: backendFieldErrors, generalErrors: backendGeneralErrors } =
+        parseBackendErrors(error);
+
+      // Set errors to display inline
+      setFieldErrors(backendFieldErrors);
+
+      // Show toast for general errors
+      if (backendGeneralErrors.length > 0) {
+        toast.error(backendGeneralErrors[0], { position: 'top-right' });
+      } else if (Object.keys(backendFieldErrors).length > 0) {
+        toast.error('Please check your input fields', { position: 'top-right' });
       }
-      toast.error(errorMessage, { position: 'top-right' });
     } finally {
       setLoading(false);
     }
@@ -160,56 +182,128 @@ export const LoginPage = () => {
         <span className="font-semibold text-[16px]">Back to Home</span>
       </div>
       <div className="min-h-screen text-white flex relative">
-        <div className="flex-1"></div>
+        {/* Left Side - Welcome Section */}
+        <div className="flex-1 relative overflow-hidden">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${wallpaperLogin})`,
+            }}
+          ></div>
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-black/60"></div>
+          {/* Blue Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-purple-900/40"></div>
+
+          {/* Content */}
+          <div className="relative h-full flex flex-col justify-center items-start px-16 py-20">
+            {/* Main Content */}
+            <div className="max-w-md">
+              <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+                Hello,
+                <br />
+                welcome!
+              </h1>
+
+              <p className="text-white/70 text-lg mb-8 leading-relaxed">
+                Join thousands of event organizers and attendees. Create unforgettable experiences
+                and discover amazing events near you.
+              </p>
+            </div>
+
+            {/* Decorative Elements */}
+            <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+            <div className="absolute bottom-40 right-40 w-20 h-20 bg-purple-500/10 rounded-full blur-lg"></div>
+            <div className="absolute top-1/2 right-10 w-16 h-16 bg-blue-500/10 rounded-full blur-md"></div>
+          </div>
+        </div>
         <div className="flex-1 flex justify-center items-center">
           <div className="text-center">
             <div className="w-[380px]">
               <img src={LOGO} alt="Logo" className="w-full h-auto invert brightness-0" />
             </div>
+
             <div className="mt-6 flex flex-col gap-4 items-center">
               <div className="w-[380px] text-[#A1A1AA] text-[24px]">
                 <Input
                   type="text"
                   placeholder="Username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3"
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    // Clear field error when user starts typing
+                    if (hasFieldError(fieldErrors, 'username')) {
+                      setFieldErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.username;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 ${
+                    hasFieldError(fieldErrors, 'username') ? 'border-red-500 border-2' : ''
+                  }`}
                   autoComplete="username"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleLogin();
                   }}
                 />
+                {getFieldError(fieldErrors, 'username') && (
+                  <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                    {getFieldError(fieldErrors, 'username')}
+                  </div>
+                )}
               </div>
-              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px] relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-[8px] border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-3 pr-12"
-                  autoComplete="current-password"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleLogin();
-                  }}
-                />
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-transparent outline-none focus:outline-none border-none z-10"
-                  style={{ isolation: 'isolate' }} // Thêm dòng này
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5 text-[#A1A1AA]" />
-                  ) : (
-                    <Eye className="w-5 h-5 text-[#A1A1AA]" />
-                  )}
-                </button>
+              <div className="mt-4 w-[380px] text-[#A1A1AA] text-[24px]">
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      // Clear field error when user starts typing
+                      if (hasFieldError(fieldErrors, 'password')) {
+                        setFieldErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.password;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 pr-12 ${
+                      hasFieldError(fieldErrors, 'password') ? 'border-red-500 border-2' : ''
+                    }`}
+                    autoComplete="current-password"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleLogin();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-transparent outline-none focus:outline-none border-none z-10"
+                    style={{ isolation: 'isolate' }}
+                    onClick={() => setShowPassword((v) => !v)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5 text-[#A1A1AA]" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-[#A1A1AA]" />
+                    )}
+                  </button>
+                </div>
+                {getFieldError(fieldErrors, 'password') && (
+                  <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                    {getFieldError(fieldErrors, 'password')}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-between items-center gap-4 mt-6 ">
-              <div className="flex gap-x-2 items-center ">
+              <div className="flex gap-x-2 items-center pl-3">
                 <Checkbox
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
@@ -223,7 +317,7 @@ export const LoginPage = () => {
             </div>
             <Button
               onClick={handleLogin}
-              className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-[380px] rounded-[8px] py-6 text-[20px] mt-[46px]"
+              className="bg-gradient-to-r from-[#2563EB] to-[#6366F1] text-white px-6 w-[380px] rounded-full py-6 text-[20px] mt-12 shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
               disabled={loading}
             >
               {loading ? (

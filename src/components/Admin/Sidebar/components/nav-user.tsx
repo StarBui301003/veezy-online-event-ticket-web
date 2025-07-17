@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { getUserAPI, LogoutAPI } from '@/services/auth.service';
+import { LogoutAPI } from '@/services/auth.service';
 import { useNavigate } from 'react-router-dom';
 
 export function NavUser() {
@@ -43,20 +43,13 @@ export function NavUser() {
       if (!accStr) return;
       try {
         const acc = JSON.parse(accStr);
-        getUserAPI(acc.userId).then((userData) => {
-          setUser({
-            name: userData.fullName || acc.fullName || acc.username,
-            username: userData.username || acc.username || '',
-            email: userData.email || acc.email,
-            // Nếu userData.avatar là null/undefined/empty string, fallback về acc.avatar
-            avatar:
-              (userData.avatar && userData.avatar.trim() !== '' ? userData.avatar : acc.avatar) ||
-              userData.avatarUrl ||
-              acc.avatar ||
-              '',
-          });
-          setAvatarLoaded(false);
+        setUser({
+          name: acc.fullName || acc.username || '',
+          username: acc.username || '',
+          email: acc.email || '',
+          avatar: acc.avatar || '',
         });
+        setAvatarLoaded(false);
       } catch {
         // ignore
       }

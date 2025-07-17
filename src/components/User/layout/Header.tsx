@@ -22,7 +22,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FiUser } from 'react-icons/fi';
 import { LogOut } from 'lucide-react';
 import { Bell } from 'lucide-react';
-import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notification.service';
+import {
+  getUserNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '@/services/notification.service';
 
 export const Header = () => {
   const [blur, setBlur] = useState(false);
@@ -79,7 +83,7 @@ export const Header = () => {
 
     // Fetch notifications if logged in
     if (account?.accountId) {
-      getUserNotifications(account.accountId, 1, 5).then(res => {
+      getUserNotifications(account.accountId, 1, 5).then((res) => {
         const items = res.data?.data?.items || [];
         setNotifications(items);
         setNotifHasUnread(items.some((n: any) => !n.isRead));
@@ -97,7 +101,7 @@ export const Header = () => {
     if (!notifDropdown || !account?.accountId) return;
     setNotifLoading(true);
     getUserNotifications(account.accountId, 1, 5)
-      .then(res => {
+      .then((res) => {
         const items = res.data?.data?.items || [];
         setNotifications(items);
         setNotifHasUnread(items.some((n: any) => !n.isRead));
@@ -127,6 +131,8 @@ export const Header = () => {
       await LogoutAPI();
       localStorage.removeItem('access_token');
       localStorage.removeItem('account');
+      localStorage.removeItem('customerId');
+      localStorage.removeItem('user_config');
       document.cookie = 'refresh_token=; Max-Age=0; path=/;';
       setAccount(null);
       navigate('/login');
@@ -171,7 +177,7 @@ export const Header = () => {
     const nextPage = notifPage + 1;
     const res = await getUserNotifications(account.accountId, nextPage, 5);
     const items = res.data?.data?.items || [];
-    setNotifications(prev => [...prev, ...items]);
+    setNotifications((prev) => [...prev, ...items]);
     setNotifPage(nextPage);
     setNotifHasMore(res.data?.data?.hasNextPage ?? false);
     setNotifLoading(false);
@@ -355,7 +361,7 @@ export const Header = () => {
               <div className="relative" ref={notifRef}>
                 <button
                   className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/30 transition-all relative"
-                  onClick={() => setNotifDropdown(v => !v)}
+                  onClick={() => setNotifDropdown((v) => !v)}
                   title="Thông báo"
                 >
                   <Bell className="text-purple-500 text-xl" />
@@ -366,11 +372,15 @@ export const Header = () => {
                 {notifDropdown && (
                   <div className="absolute right-0 z-30 mt-2 w-80 bg-white text-gray-900 rounded-xl shadow-2xl border border-purple-400/30 overflow-hidden animate-fadeIn">
                     <div className="flex items-center justify-between p-4 border-b font-bold text-purple-600 gap-2">
-                      <span className="flex items-center gap-2"><Bell className="text-purple-400" /> Thông báo mới</span>
+                      <span className="flex items-center gap-2">
+                        <Bell className="text-purple-400" /> Thông báo mới
+                      </span>
                       <button
                         className="text-xs text-purple-500 hover:underline font-semibold px-2 py-1 rounded hover:bg-purple-100 transition"
                         onClick={handleReadAll}
-                        disabled={notifications.length === 0 || notifications.every(n => n.isRead)}
+                        disabled={
+                          notifications.length === 0 || notifications.every((n) => n.isRead)
+                        }
                       >
                         Đánh dấu tất cả đã đọc
                       </button>
@@ -385,12 +395,20 @@ export const Header = () => {
                           {notifications.map((n) => (
                             <button
                               key={n.notificationId}
-                              className={`w-full text-left px-4 py-3 border-b last:border-b-0 ${n.isRead ? 'bg-white' : 'bg-purple-50 hover:bg-purple-100'} transition`}
+                              className={`w-full text-left px-4 py-3 border-b last:border-b-0 ${
+                                n.isRead ? 'bg-white' : 'bg-purple-50 hover:bg-purple-100'
+                              } transition`}
                               onClick={() => handleReadNotification(n)}
                             >
-                              <div className="font-semibold text-sm text-purple-700 truncate">{n.notificationTitle}</div>
-                              <div className="text-xs text-gray-600 truncate">{n.notificationMessage}</div>
-                              <div className="text-[10px] text-gray-400 mt-1">{n.createdAtVietnam || n.createdAt}</div>
+                              <div className="font-semibold text-sm text-purple-700 truncate">
+                                {n.notificationTitle}
+                              </div>
+                              <div className="text-xs text-gray-600 truncate">
+                                {n.notificationMessage}
+                              </div>
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                {n.createdAtVietnam || n.createdAt}
+                              </div>
                             </button>
                           ))}
                           {notifications.length > 0 && notifHasMore && (

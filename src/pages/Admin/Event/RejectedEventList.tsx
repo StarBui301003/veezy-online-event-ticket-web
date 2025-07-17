@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getRejectedEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -107,18 +107,17 @@ export const RejectedEventList = () => {
         );
         setCategories(categoryMap);
 
-        // Lấy tất cả accountId duy nhất từ approvedBy và createdBy
-        const allAccountIds = Array.from(
+        const allUserId = Array.from(
           new Set(
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
         const usernameMap: Record<string, string> = {};
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || 'Unknown';
             } catch {
               usernameMap[id] = id;
             }
@@ -131,7 +130,8 @@ export const RejectedEventList = () => {
         setTimeout(() => setLoading(false), 500);
       });
     // Lắng nghe realtime SignalR
-    const reload = () => getRejectedEvents({ page, pageSize }).then(res => setEvents(res.data.items));
+    const reload = () =>
+      getRejectedEvents({ page, pageSize }).then((res) => setEvents(res.data.items));
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);

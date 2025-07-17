@@ -1,32 +1,34 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   getEventById,
   updateEvent,
   uploadImage,
   deleteEventImage,
   getAllCategories,
-} from "@/services/Event Manager/event.service";
-import { CreateEventData, Category, Content } from "@/types/event";
-import { validateEventForm } from "@/utils/validation";
+} from '@/services/Event Manager/event.service';
+import { CreateEventData, Category, Content } from '@/types/event';
+import { validateEventForm } from '@/utils/validation';
 
 const MAX_SECTIONS = 5;
 const contentTypeOptions = [
-  { value: "description", label: "Description Only" },
-  { value: "image", label: "Image Only" },
-  { value: "both", label: "Both" },
+  { value: 'description', label: 'Description Only' },
+  { value: 'image', label: 'Image Only' },
+  { value: 'both', label: 'Both' },
 ];
 
-type ContentType = "description" | "image" | "both";
+type ContentType = 'description' | 'image' | 'both';
 interface EnhancedContent extends Content {
   contentType?: ContentType;
 }
 
 function getContentType(content: EnhancedContent): ContentType {
-  if (content.description && content.imageUrl) return "both";
-  if (content.description && !content.imageUrl) return "description";
-  if (!content.description && content.imageUrl) return "image";
-  return "both";
+  if (content.description && content.imageUrl) return 'both';
+  if (content.description && !content.imageUrl) return 'description';
+  if (!content.description && content.imageUrl) return 'image';
+  return 'both';
 }
 
 function validateSections(contents: EnhancedContent[]): string[] {
@@ -37,20 +39,20 @@ function validateSections(contents: EnhancedContent[]): string[] {
   const positions = contents.map((c) => c.position);
   const uniquePositions = new Set(positions);
   if (uniquePositions.size !== positions.length) {
-    errors.push("Các section phải có vị trí (position) không trùng nhau.");
+    errors.push('Các section phải có vị trí (position) không trùng nhau.');
   }
   if (positions.some((pos) => pos < 1 || pos > MAX_SECTIONS)) {
     errors.push(`Position của section phải từ 1 đến ${MAX_SECTIONS}.`);
   }
   contents.forEach((content, idx) => {
     const type = content.contentType || getContentType(content);
-    if (type === "description" && !content.description?.trim()) {
+    if (type === 'description' && !content.description?.trim()) {
       errors.push(`Section #${idx + 1}: Mô tả là bắt buộc.`);
     }
-    if (type === "image" && !content.imageUrl) {
+    if (type === 'image' && !content.imageUrl) {
       errors.push(`Section #${idx + 1}: Ảnh là bắt buộc.`);
     }
-    if (type === "both" && !content.description?.trim() && !content.imageUrl) {
+    if (type === 'both' && !content.description?.trim() && !content.imageUrl) {
       errors.push(`Section #${idx + 1}: Phải có mô tả hoặc ảnh.`);
     }
   });
@@ -62,16 +64,16 @@ const EditEvent = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState<CreateEventData>({
-    eventName: "",
-    eventDescription: "",
-    eventCoverImageUrl: "",
-    eventLocation: "",
-    startAt: "",
-    endAt: "",
+    eventName: '',
+    eventDescription: '',
+    eventCoverImageUrl: '',
+    eventLocation: '',
+    startAt: '',
+    endAt: '',
     tags: [],
     categoryIds: [],
     contents: [],
-    bankAccount: "",
+    bankAccount: '',
   });
   const [contents, setContents] = useState<EnhancedContent[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -79,7 +81,7 @@ const EditEvent = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
   const tagInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -91,16 +93,12 @@ const EditEvent = () => {
         setError(null);
         const event = await getEventById(eventId!);
         setFormData({
-          eventName: event.eventName || "",
-          eventDescription: event.eventDescription || "",
-          eventCoverImageUrl: event.eventCoverImageUrl || "",
-          eventLocation: event.eventLocation || "",
-          startAt: event.startAt
-            ? new Date(event.startAt).toISOString().slice(0, 16)
-            : "",
-          endAt: event.endAt
-            ? new Date(event.endAt).toISOString().slice(0, 16)
-            : "",
+          eventName: event.eventName || '',
+          eventDescription: event.eventDescription || '',
+          eventCoverImageUrl: event.eventCoverImageUrl || '',
+          eventLocation: event.eventLocation || '',
+          startAt: event.startAt ? new Date(event.startAt).toISOString().slice(0, 16) : '',
+          endAt: event.endAt ? new Date(event.endAt).toISOString().slice(0, 16) : '',
           tags: event.tags || [],
           categoryIds:
             event.categoryIds && event.categoryIds.length > 0
@@ -109,7 +107,7 @@ const EditEvent = () => {
               ? [event.categoryId]
               : [],
           contents: [],
-          bankAccount: event.bankAccount || "",
+          bankAccount: event.bankAccount || '',
         });
         // Convert contents to EnhancedContent with contentType
         setContents(
@@ -121,7 +119,7 @@ const EditEvent = () => {
         const categoryData = await getAllCategories();
         setCategories(categoryData);
       } catch (err) {
-        setError("Không thể tải dữ liệu sự kiện hoặc danh mục!");
+        setError('Không thể tải dữ liệu sự kiện hoặc danh mục!');
       } finally {
         setLoading(false);
       }
@@ -131,9 +129,7 @@ const EditEvent = () => {
   }, [eventId]);
 
   // Cover image handlers
-  const handleCoverImageChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setUploadingCover(true);
@@ -141,7 +137,7 @@ const EditEvent = () => {
         const url = await uploadImage(file);
         setFormData((prev) => ({ ...prev, eventCoverImageUrl: url }));
       } catch {
-        alert("Upload cover image failed!");
+        alert('Upload cover image failed!');
       } finally {
         setUploadingCover(false);
       }
@@ -152,15 +148,15 @@ const EditEvent = () => {
     if (!formData.eventCoverImageUrl) return;
     try {
       await deleteEventImage(formData.eventCoverImageUrl);
-      setFormData((prev) => ({ ...prev, eventCoverImageUrl: "" }));
+      setFormData((prev) => ({ ...prev, eventCoverImageUrl: '' }));
     } catch {
-      alert("Xóa ảnh thất bại!");
+      alert('Xóa ảnh thất bại!');
     }
   };
 
   // Tag handlers
   const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
       e.preventDefault();
       if (!formData.tags.includes(tagInput.trim())) {
         setFormData((prev) => ({
@@ -168,7 +164,7 @@ const EditEvent = () => {
           tags: [...prev.tags, tagInput.trim()],
         }));
       }
-      setTagInput("");
+      setTagInput('');
     }
   };
   const handleTagRemove = (idx: number) => {
@@ -179,11 +175,7 @@ const EditEvent = () => {
   };
 
   // Section (contents) handlers
-  const handleContentChange = (
-    idx: number,
-    field: keyof EnhancedContent,
-    value: any
-  ) => {
+  const handleContentChange = (idx: number, field: keyof EnhancedContent, value: any) => {
     setContents((prev) => {
       const newContents = [...prev];
       newContents[idx] = { ...newContents[idx], [field]: value };
@@ -197,8 +189,8 @@ const EditEvent = () => {
       newContents[idx] = {
         ...newContents[idx],
         contentType: type,
-        description: type === "image" ? "" : newContents[idx].description,
-        imageUrl: type === "description" ? "" : newContents[idx].imageUrl,
+        description: type === 'image' ? '' : newContents[idx].description,
+        imageUrl: type === 'description' ? '' : newContents[idx].imageUrl,
       };
       return newContents;
     });
@@ -224,7 +216,7 @@ const EditEvent = () => {
       await deleteEventImage(imageUrl);
       setContents((prev) => {
         const newContents = [...prev];
-        newContents[idx].imageUrl = "";
+        newContents[idx].imageUrl = '';
         return newContents;
       });
     }
@@ -236,23 +228,21 @@ const EditEvent = () => {
 
   const handleAddContent = () => {
     if (contents.length >= MAX_SECTIONS) {
-      setValidationErrors(["Tối đa 5 section."]);
+      setValidationErrors(['Tối đa 5 section.']);
       return;
     }
     setContents((prev) => [
       ...prev,
       {
         position: prev.length + 1,
-        contentType: "both",
-        description: "",
-        imageUrl: "",
+        contentType: 'both',
+        description: '',
+        imageUrl: '',
       },
     ]);
   };
 
-  const handleCategoryChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, categoryIds: [e.target.value] }));
   };
 
@@ -274,16 +264,16 @@ const EditEvent = () => {
     // Validate
     const errors = validateEventForm(formData) || [];
     if (!formData.categoryIds || !formData.categoryIds[0]) {
-      errors.push("Vui lòng chọn danh mục.");
+      errors.push('Vui lòng chọn danh mục.');
     }
     if (!formData.eventName.trim()) {
-      errors.push("Tên sự kiện không được để trống.");
+      errors.push('Tên sự kiện không được để trống.');
     }
     if (!formData.startAt || !formData.endAt) {
-      errors.push("Vui lòng nhập thời gian bắt đầu và kết thúc.");
+      errors.push('Vui lòng nhập thời gian bắt đầu và kết thúc.');
     }
     if (formData.startAt && formData.endAt && formData.startAt >= formData.endAt) {
-      errors.push("Thời gian kết thúc phải sau thời gian bắt đầu.");
+      errors.push('Thời gian kết thúc phải sau thời gian bắt đầu.');
     }
     errors.push(...validateSections(contents));
     if (errors.length > 0) {
@@ -294,7 +284,7 @@ const EditEvent = () => {
     setValidationErrors([]);
 
     if (!eventId) {
-      setError("Không tìm thấy sự kiện!");
+      setError('Không tìm thấy sự kiện!');
       setSubmitting(false);
       return;
     }
@@ -304,19 +294,19 @@ const EditEvent = () => {
         ...formData,
         contents: contents.map((c, idx) => ({
           position: Number(c.position) || idx + 1,
-          description: c.contentType === "image" ? "" : c.description,
-          imageUrl: c.contentType === "description" ? "" : c.imageUrl,
+          description: c.contentType === 'image' ? '' : c.description,
+          imageUrl: c.contentType === 'description' ? '' : c.imageUrl,
         })),
       };
       await updateEvent(eventId, updatedData);
-      alert("Cập nhật sự kiện thành công!");
+      alert('Cập nhật sự kiện thành công!');
       if (location.state?.from) {
         navigate(location.state.from);
       } else {
-        navigate("/event-manager/pending");
+        navigate('/event-manager/pending');
       }
     } catch (err) {
-      setError("Cập nhật sự kiện thất bại!");
+      setError('Cập nhật sự kiện thất bại!');
     } finally {
       setSubmitting(false);
     }
@@ -347,9 +337,7 @@ const EditEvent = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Tên sự kiện
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Tên sự kiện</label>
               <input
                 type="text"
                 name="eventName"
@@ -362,9 +350,7 @@ const EditEvent = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Ảnh bìa sự kiện
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Ảnh bìa sự kiện</label>
               <div className="flex items-center gap-3">
                 <input
                   type="file"
@@ -377,7 +363,7 @@ const EditEvent = () => {
                   htmlFor="cover-upload"
                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200"
                 >
-                  {uploadingCover ? "Đang tải..." : "Chọn ảnh"}
+                  {uploadingCover ? 'Đang tải...' : 'Chọn ảnh'}
                 </label>
                 {formData.eventCoverImageUrl && (
                   <>
@@ -399,9 +385,7 @@ const EditEvent = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Địa điểm tổ chức
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Địa điểm tổ chức</label>
               <input
                 type="text"
                 name="eventLocation"
@@ -427,9 +411,7 @@ const EditEvent = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Thời gian bắt đầu
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Thời gian bắt đầu</label>
               <input
                 type="datetime-local"
                 name="startAt"
@@ -441,9 +423,7 @@ const EditEvent = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Thời gian kết thúc
-              </label>
+              <label className="block text-sm font-medium text-slate-300">Thời gian kết thúc</label>
               <input
                 type="datetime-local"
                 name="endAt"
@@ -456,9 +436,7 @@ const EditEvent = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">
-              Tags
-            </label>
+            <label className="block text-sm font-medium text-slate-300">Tags</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.tags.map((tag, idx) => (
                 <span
@@ -488,13 +466,11 @@ const EditEvent = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">
-              Danh mục
-            </label>
+            <label className="block text-sm font-medium text-slate-300">Danh mục</label>
             <select
               id="categoryId"
               name="categoryIds"
-              value={formData.categoryIds[0] || ""}
+              value={formData.categoryIds[0] || ''}
               onChange={handleCategoryChange}
               required
               className="w-full p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
@@ -509,9 +485,7 @@ const EditEvent = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">
-              Mô tả sự kiện
-            </label>
+            <label className="block text-sm font-medium text-slate-300">Mô tả sự kiện</label>
             <textarea
               name="eventDescription"
               value={formData.eventDescription}
@@ -540,9 +514,7 @@ const EditEvent = () => {
                 className="p-6 border border-slate-600/50 rounded-xl space-y-4 bg-slate-700/30 backdrop-blur-sm"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-medium text-purple-300">
-                    Content #{idx + 1}
-                  </span>
+                  <span className="text-lg font-medium text-purple-300">Content #{idx + 1}</span>
                   <button
                     type="button"
                     onClick={() => handleContentRemove(idx)}
@@ -552,25 +524,17 @@ const EditEvent = () => {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-300">
-                    Content Type
-                  </label>
+                  <label className="block text-sm font-medium text-slate-300">Content Type</label>
                   <div className="flex gap-3 flex-wrap">
                     {contentTypeOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() =>
-                          handleContentTypeChange(
-                            idx,
-                            option.value as ContentType
-                          )
-                        }
+                        onClick={() => handleContentTypeChange(idx, option.value as ContentType)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          (content.contentType || getContentType(content)) ===
-                          option.value
-                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg"
-                            : "bg-slate-600/50 text-slate-300 hover:bg-slate-600"
+                          (content.contentType || getContentType(content)) === option.value
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                            : 'bg-slate-600/50 text-slate-300 hover:bg-slate-600'
                         }`}
                       >
                         {option.label}
@@ -584,56 +548,47 @@ const EditEvent = () => {
                     min={1}
                     max={MAX_SECTIONS}
                     value={content.position}
-                    onChange={(e) =>
-                      handleContentChange(idx, "position", Number(e.target.value))
-                    }
+                    onChange={(e) => handleContentChange(idx, 'position', Number(e.target.value))}
                     className="w-16 rounded bg-slate-700 border-slate-600 text-white"
                     placeholder="Vị trí"
                   />
                 </div>
-                {(content.contentType === "description" ||
-                  (!content.contentType &&
-                    getContentType(content) === "description") ||
-                  content.contentType === "both" ||
-                  (!content.contentType && getContentType(content) === "both")) && (
+                {(content.contentType === 'description' ||
+                  (!content.contentType && getContentType(content) === 'description') ||
+                  content.contentType === 'both' ||
+                  (!content.contentType && getContentType(content) === 'both')) && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Description{" "}
-                      {content.contentType === "description" ||
-                      (!content.contentType &&
-                        getContentType(content) === "description")
-                        ? "(required)"
-                        : "(optional)"}
+                      Description{' '}
+                      {content.contentType === 'description' ||
+                      (!content.contentType && getContentType(content) === 'description')
+                        ? '(required)'
+                        : '(optional)'}
                     </label>
                     <input
                       type="text"
                       value={content.description}
-                      onChange={(e) =>
-                        handleContentChange(idx, "description", e.target.value)
-                      }
+                      onChange={(e) => handleContentChange(idx, 'description', e.target.value)}
                       className="w-full p-4 rounded-xl bg-slate-600/50 border border-slate-500 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       placeholder="Enter content description"
                       required={
-                        content.contentType === "description" ||
-                        (!content.contentType &&
-                          getContentType(content) === "description")
+                        content.contentType === 'description' ||
+                        (!content.contentType && getContentType(content) === 'description')
                       }
                     />
                   </div>
                 )}
-                {(content.contentType === "image" ||
-                  (!content.contentType &&
-                    getContentType(content) === "image") ||
-                  content.contentType === "both" ||
-                  (!content.contentType && getContentType(content) === "both")) && (
+                {(content.contentType === 'image' ||
+                  (!content.contentType && getContentType(content) === 'image') ||
+                  content.contentType === 'both' ||
+                  (!content.contentType && getContentType(content) === 'both')) && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Upload Image{" "}
-                      {content.contentType === "image" ||
-                      (!content.contentType &&
-                        getContentType(content) === "image")
-                        ? "(required)"
-                        : "(optional)"}
+                      Upload Image{' '}
+                      {content.contentType === 'image' ||
+                      (!content.contentType && getContentType(content) === 'image')
+                        ? '(required)'
+                        : '(optional)'}
                     </label>
                     <div className="flex items-center gap-3">
                       <input
@@ -650,7 +605,7 @@ const EditEvent = () => {
                         htmlFor={`content-image-${idx}`}
                         className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200"
                       >
-                        {uploadingContentImage ? "Đang tải..." : "Chọn ảnh"}
+                        {uploadingContentImage ? 'Đang tải...' : 'Chọn ảnh'}
                       </label>
                       {content.imageUrl && (
                         <>
@@ -675,9 +630,7 @@ const EditEvent = () => {
             ))}
           </div>
 
-          {error && (
-            <div className="text-red-400 text-center font-semibold">{error}</div>
-          )}
+          {error && <div className="text-red-400 text-center font-semibold">{error}</div>}
 
           {validationErrors.length > 0 && (
             <div className="bg-red-100 text-red-700 rounded-lg px-4 py-3 mt-6">
@@ -701,7 +654,7 @@ const EditEvent = () => {
                   <span>Đang lưu...</span>
                 </div>
               ) : (
-                "💾 Lưu thay đổi"
+                '💾 Lưu thay đổi'
               )}
             </button>
           </div>

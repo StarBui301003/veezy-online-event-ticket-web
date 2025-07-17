@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -29,6 +30,7 @@ export const OrderListAdmin = () => {
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getOrdersAdmin()
       .then((res) => {
@@ -40,6 +42,24 @@ export const OrderListAdmin = () => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
+
+    // Lắng nghe realtime SignalR cho order
+    const reload = () => {
+      setLoading(true);
+      getOrdersAdmin()
+        .then((res) => {
+          setOrders(res.data?.items || []);
+        })
+        .catch(() => {
+          setOrders([]);
+        })
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    };
+    onEvent('OnOrderCreated', reload);
+    onEvent('OnOrderUpdated', reload);
+    onEvent('OnOrderDeleted', reload);
   }, []);
 
   // Nếu có filter/search, hãy filter ở đây (giống ApprovedEventList)

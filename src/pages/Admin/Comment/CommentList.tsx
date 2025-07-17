@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectCommentHub, onComment } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -41,6 +42,7 @@ export const CommentList = () => {
   const [viewComment, setViewComment] = useState<Comment | null>(null);
 
   useEffect(() => {
+    connectCommentHub('http://localhost:5004/commentHub');
     setLoading(true);
     getAllComment()
       .then((res) => {
@@ -52,6 +54,23 @@ export const CommentList = () => {
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Lắng nghe realtime SignalR cho comment
+    const reload = () => {
+      setLoading(true);
+      getAllComment()
+        .then((res) => {
+          if (res && Array.isArray(res.data)) {
+            setComments(res.data);
+          } else {
+            setComments([]);
+          }
+        })
+        .finally(() => setTimeout(() => setLoading(false), 500));
+    };
+    onComment('OnCommentCreated', reload);
+    onComment('OnCommentUpdated', reload);
+    onComment('OnCommentDeleted', reload);
   }, []);
 
   const handleDelete = async (commentId: string) => {

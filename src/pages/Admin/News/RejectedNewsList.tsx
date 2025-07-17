@@ -19,9 +19,10 @@ import {
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getRejectedNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News } from '@/types/Admin/news';
 import { FaEye } from 'react-icons/fa';
-import RejectedNewsDetailModal from '@/pages/Admin/News/RejectedNewsDetailModal';
+import RejectedNewsDetailModal from './RejectedNewsDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -45,7 +46,18 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   useEffect(() => {
     if (activeTab !== 'rejected') return;
+    connectNewsHub('http://localhost:5004/newsHub');
     fetchData();
+
+    // Lắng nghe realtime SignalR cho news
+    const reload = () => fetchData();
+    onNews('OnNewsCreated', reload);
+    onNews('OnNewsUpdated', reload);
+    onNews('OnNewsDeleted', reload);
+    onNews('OnNewsApproved', reload);
+    onNews('OnNewsRejected', reload);
+    onNews('OnNewsHidden', reload);
+    onNews('OnNewsUnhidden', reload);
   }, [activeTab]);
 
   useEffect(() => {

@@ -9,6 +9,16 @@ import {
 import { createCategory } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
+import {
+  validateRequired,
+  validateMinLength,
+  validateMaxLength,
+  parseBackendErrors,
+  getFieldError,
+  hasFieldError,
+  getAllFieldErrors,
+  type FieldErrors,
+} from '@/utils/validation';
 
 interface Props {
   open: boolean;
@@ -20,14 +30,44 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
   const [categoryName, setCategoryName] = useState('');
   const [categoryDescription, setCategoryDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [generalErrors, setGeneralErrors] = useState<string[]>([]);
 
   const handleCreate = async () => {
-    if (!categoryName.trim()) {
-      if (!toast.isActive('create-category-error')) {
-        toast.error('Category name is required!', { toastId: 'create-category-error' });
+    // Clear previous errors
+    setFieldErrors({});
+    setGeneralErrors([]);
+
+    // Frontend validation
+    const frontendErrors: string[] = [];
+
+    const nameValidation = validateRequired(categoryName, 'Category name');
+    if (!nameValidation.isValid) {
+      frontendErrors.push(nameValidation.errorMessage!);
+    }
+
+    const nameMinValidation = validateMinLength(categoryName, 2, 'Category name');
+    if (!nameMinValidation.isValid) {
+      frontendErrors.push(nameMinValidation.errorMessage!);
+    }
+
+    const nameMaxValidation = validateMaxLength(categoryName, 100, 'Category name');
+    if (!nameMaxValidation.isValid) {
+      frontendErrors.push(nameMaxValidation.errorMessage!);
+    }
+
+    if (categoryDescription.trim()) {
+      const descMaxValidation = validateMaxLength(categoryDescription, 500, 'Category description');
+      if (!descMaxValidation.isValid) {
+        frontendErrors.push(descMaxValidation.errorMessage!);
       }
+    }
+
+    if (frontendErrors.length > 0) {
+      setGeneralErrors(frontendErrors);
       return;
     }
+
     setLoading(true);
     try {
       await createCategory({
@@ -40,12 +80,20 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
       onClose();
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       onCreated && onCreated();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      if (!toast.isActive('create-category-error')) {
-        toast.error(err?.message || 'Failed to create category!', {
-          toastId: 'create-category-error',
-        });
+    } catch (error: unknown) {
+      // Parse backend errors
+      const { fieldErrors: backendFieldErrors, generalErrors: backendGeneralErrors } =
+        parseBackendErrors(error);
+
+      // Set errors to display inline
+      setFieldErrors(backendFieldErrors);
+      setGeneralErrors(backendGeneralErrors);
+
+      // Also show toast for critical errors
+      if (backendGeneralErrors.length > 0) {
+        toast.error(backendGeneralErrors[0]);
+      } else if (getAllFieldErrors(backendFieldErrors).length > 0) {
+        toast.error('Please check your input fields');
       }
     } finally {
       setLoading(false);
@@ -61,26 +109,71 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+          {/* General Errors */}
+          {generalErrors.length > 0 && (
+            <div className="mb-4">
+              {generalErrors.map((error, index) => (
+                <div key={index} className="text-red-500 text-sm mb-2">
+                  {error}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs text-gray-500 mb-1">Category Name</label>
             <input
-              className="border px-3 py-2 rounded w-full"
+              className={`border px-3 py-2 rounded w-full ${
+                hasFieldError(fieldErrors, 'categoryname') ? 'border-red-500' : ''
+              }`}
               value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
+              onChange={(e) => {
+                setCategoryName(e.target.value);
+                // Clear field error when user starts typing
+                if (hasFieldError(fieldErrors, 'categoryname')) {
+                  setFieldErrors((prev) => {
+                    const newErrors = { ...prev };
+                    delete newErrors.categoryname;
+                    return newErrors;
+                  });
+                }
+              }}
               disabled={loading}
               placeholder="Enter category name"
             />
+            {getFieldError(fieldErrors, 'categoryname') && (
+              <div className="text-red-500 text-sm mt-1">
+                {getFieldError(fieldErrors, 'categoryname')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Category Description</label>
             <textarea
-              className="border px-3 py-2 rounded w-full"
+              className={`border px-3 py-2 rounded w-full ${
+                hasFieldError(fieldErrors, 'categorydescription') ? 'border-red-500' : ''
+              }`}
               value={categoryDescription}
-              onChange={(e) => setCategoryDescription(e.target.value)}
+              onChange={(e) => {
+                setCategoryDescription(e.target.value);
+                // Clear field error when user starts typing
+                if (hasFieldError(fieldErrors, 'categorydescription')) {
+                  setFieldErrors((prev) => {
+                    const newErrors = { ...prev };
+                    delete newErrors.categorydescription;
+                    return newErrors;
+                  });
+                }
+              }}
               disabled={loading}
               placeholder="Enter description"
               rows={3}
             />
+            {getFieldError(fieldErrors, 'categorydescription') && (
+              <div className="text-red-500 text-sm mt-1">
+                {getFieldError(fieldErrors, 'categorydescription')}
+              </div>
+            )}
           </div>
         </div>
         <div className="p-4 flex justify-end gap-2">

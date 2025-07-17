@@ -4,12 +4,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 import { getPendingReport } from '@/services/Admin/report.service';
 import { cn } from '@/lib/utils';
+import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
 import { PendingReportList } from './PendingReportList';
 import { ResolvedReportList } from './ResolvedReportList';
 import { RejectedReportList } from './RejectedReportList';
 // import './EventTabs.css';
 
-export default function EventListTabs() {
+export default function ReportListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
@@ -31,7 +32,15 @@ export default function EventListTabs() {
   };
 
   useEffect(() => {
+    connectFeedbackHub('http://localhost:5008/notificationHub');
     fetchPendingCount();
+
+    // Lắng nghe realtime SignalR cho report
+    const reloadReport = () => fetchPendingCount();
+    onFeedback('OnReportCreated', reloadReport);
+    onFeedback('OnReportUpdated', reloadReport);
+    onFeedback('OnReportDeleted', reloadReport);
+    onFeedback('OnReportStatusUpdated', reloadReport);
   }, []);
 
   // Khi đổi tab, update query param

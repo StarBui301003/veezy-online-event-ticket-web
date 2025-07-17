@@ -16,7 +16,7 @@ import {
   deleteEvent,
 } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -115,18 +115,17 @@ export const ApprovedEventList = () => {
         );
         setCategories(categoryMap);
 
-        const allAccountIds = Array.from(
+        const allUserId = Array.from(
           new Set(
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
-        const usernameMap: Record<string, string> = { ...usernames };
-        const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
+        const usernameMap: Record<string, string> = {};
         await Promise.all(
-          idsToFetchUser.map(async (id) => {
+          allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || 'Unknown';
             } catch {
               usernameMap[id] = id;
             }
@@ -139,12 +138,15 @@ export const ApprovedEventList = () => {
         setTimeout(() => setLoading(false), 500);
       });
     // Lắng nghe realtime SignalR
-    const reload = () => getApprovedEvents().then(res => setEvents(res.data.items));
+    const reload = () => getApprovedEvents().then((res) => setEvents(res.data.items));
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
+    onEvent('OnEventHidden', reload);
+    onEvent('OnEventShown', reload);
+
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
@@ -176,61 +178,16 @@ export const ApprovedEventList = () => {
     try {
       if (event.isActive) {
         await hideEvent(event.eventId);
+        toast.success('Event hidden successfully!');
       } else {
         await showEvent(event.eventId);
+        toast.success('Event shown successfully!');
       }
-      // Reload list after toggle
-      setLoading(true);
-      getApprovedEvents()
-        .then(async (res) => {
-          setEvents(res.data.items);
 
-          const allCategoryIds = Array.from(
-            new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-          );
-          const categoryMap: Record<string, Category> = { ...categories };
-          const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
-          await Promise.all(
-            idsToFetch.map(async (id) => {
-              try {
-                const cat = await getCategoryById(id);
-                categoryMap[id] = cat;
-              } catch {
-                categoryMap[id] = {
-                  categoryId: id,
-                  categoryName: 'Unknown',
-                  categoryDescription: '',
-                };
-              }
-            })
-          );
-          setCategories(categoryMap);
-
-          const allAccountIds = Array.from(
-            new Set(
-              res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-            )
-          );
-          const usernameMap: Record<string, string> = { ...usernames };
-          const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
-          await Promise.all(
-            idsToFetchUser.map(async (id) => {
-              try {
-                const username = await getUsernameByAccountId(id);
-                usernameMap[id] = username;
-              } catch {
-                usernameMap[id] = id;
-              }
-            })
-          );
-          setUsernames(usernameMap);
-        })
-        .catch(() => setEvents([]))
-        .finally(() => {
-          setTimeout(() => setLoading(false), 500);
-        });
+      // Reload list immediately after toggle
+      getApprovedEvents().then((res) => setEvents(res.data.items));
     } catch {
-      // Optionally show error toast
+      toast.error('Failed to update event status!');
     }
   };
 
@@ -241,9 +198,13 @@ export const ApprovedEventList = () => {
       await deleteEvent(event.eventId);
       setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
       toast.success('Event deleted successfully!');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Cannot delete this event!');
+
+      // Reload data để đảm bảo consistency
+      setTimeout(() => {
+        getApprovedEvents().then((res) => setEvents(res.data.items));
+      }, 500);
+    } catch {
+      toast.error('Cannot delete this event!');
     }
   };
 

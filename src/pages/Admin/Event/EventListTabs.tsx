@@ -41,6 +41,8 @@ export default function EventListTabs() {
     onEvent('OnEventDeleted', reloadEvent);
     onEvent('OnEventApproved', reloadEvent);
     onEvent('OnEventCancelled', reloadEvent);
+    onEvent('OnEventHidden', reloadEvent);
+    onEvent('OnEventShown', reloadEvent);
   }, []);
 
   // Khi đổi tab, update query param

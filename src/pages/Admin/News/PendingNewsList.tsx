@@ -19,6 +19,7 @@ import {
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getPendingNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News } from '@/types/Admin/news';
 import { FaEye } from 'react-icons/fa';
 import PendingNewsDetailModal from './PendingNewsDetailModal';
@@ -51,7 +52,23 @@ export const PendingNewsList = ({
 
   useEffect(() => {
     if (activeTab !== 'pending') return;
+    connectNewsHub('http://localhost:5004/newsHub');
     fetchData();
+
+    // Lắng nghe realtime SignalR cho news
+    const reload = () => {
+      fetchData();
+      if (onChangePending) {
+        setTimeout(() => onChangePending(), 600);
+      }
+    };
+    onNews('OnNewsCreated', reload);
+    onNews('OnNewsUpdated', reload);
+    onNews('OnNewsDeleted', reload);
+    onNews('OnNewsApproved', reload);
+    onNews('OnNewsRejected', reload);
+    onNews('OnNewsHidden', reload);
+    onNews('OnNewsUnhidden', reload);
   }, [activeTab]);
 
   useEffect(() => {

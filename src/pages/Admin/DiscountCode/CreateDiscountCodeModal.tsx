@@ -18,6 +18,12 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { FaSpinner } from 'react-icons/fa';
+import {
+  validateRequired,
+  validateDiscountCode,
+  validatePositiveNumber,
+  validateFutureDate,
+} from '@/utils/validation';
 
 interface Props {
   open: boolean;
@@ -70,22 +76,58 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
     }));
   };
   const handleCreate = async () => {
-    if (!form.eventId) {
-      toast.error('Event is required!');
+    // Validation
+    const eventValidation = validateRequired(form.eventId, 'Event');
+    if (!eventValidation.isValid) {
+      toast.error(eventValidation.errorMessage!);
       return;
     }
-    if (!form.code.trim()) {
-      toast.error('Code is required!');
+
+    const codeValidation = validateDiscountCode(form.code);
+    if (!codeValidation.isValid) {
+      toast.error(codeValidation.errorMessage!);
       return;
     }
-    if (form.value <= 0) {
-      toast.error('Value must be greater than 0!');
+
+    const valueValidation = validatePositiveNumber(form.value, 'Value');
+    if (!valueValidation.isValid) {
+      toast.error(valueValidation.errorMessage!);
       return;
     }
-    if (!form.expiredAt) {
-      toast.error('Expired At is required!');
+
+    const expiredAtValidation = validateFutureDate(form.expiredAt, 'Expired At');
+    if (!expiredAtValidation.isValid) {
+      toast.error(expiredAtValidation.errorMessage!);
       return;
     }
+
+    if (form.minimum > 0) {
+      const minValidation = validatePositiveNumber(form.minimum, 'Minimum');
+      if (!minValidation.isValid) {
+        toast.error(minValidation.errorMessage!);
+        return;
+      }
+    }
+
+    if (form.maximum > 0) {
+      const maxValidation = validatePositiveNumber(form.maximum, 'Maximum');
+      if (!maxValidation.isValid) {
+        toast.error(maxValidation.errorMessage!);
+        return;
+      }
+
+      if (form.minimum > 0 && form.maximum <= form.minimum) {
+        toast.error('Maximum must be greater than minimum!');
+        return;
+      }
+    }
+
+    const maxUsageValidation = validatePositiveNumber(form.maxUsage, 'Max Usage');
+    if (!maxUsageValidation.isValid) {
+      toast.error(maxUsageValidation.errorMessage!);
+      return;
+    }
+
     setLoading(true);
     try {
       // Build payload, only include fields if > 0
@@ -173,7 +215,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">Percentage</SelectItem>
-                <SelectItem value="1">Fixed</SelectItem>
+                <SelectItem value="1">Amount</SelectItem>
                 <SelectItem value="3">Other</SelectItem>
               </SelectContent>
             </Select>

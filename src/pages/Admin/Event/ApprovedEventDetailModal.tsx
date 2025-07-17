@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, AdminTicket } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { getCategoryById, getTicketsByEventAdmin } from '@/services/Admin/event.service';
 import { NO_IMAGE } from '@/assets/img';
 
@@ -25,13 +25,13 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
 
   useEffect(() => {
     if (event.createdBy) {
-      getUsernameByAccountId(event.createdBy)
-        .then((name) => setCreatedByName(name || 'unknown'))
+      getUserByIdAPI(event.createdBy)
+        .then((user) => setCreatedByName(user.fullName || user.username || 'unknown'))
         .catch(() => setCreatedByName('unknown'));
     }
     if (event.approvedBy) {
-      getUsernameByAccountId(event.approvedBy)
-        .then((name) => setApprovedByName(name || 'unknown'))
+      getUserByIdAPI(event.approvedBy)
+        .then((user) => setApprovedByName(user.fullName || user.username || 'unknown'))
         .catch(() => setApprovedByName('unknown'));
     }
     if (event.categoryIds && event.categoryIds.length > 0) {

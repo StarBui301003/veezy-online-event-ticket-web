@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -115,18 +115,17 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         );
         setCategories(categoryMap);
 
-        // Lấy tất cả accountId duy nhất từ approvedBy và createdBy
-        const allAccountIds = Array.from(
+        const allUserId = Array.from(
           new Set(
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
         const usernameMap: Record<string, string> = {};
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || 'Unknown';
             } catch {
               usernameMap[id] = id;
             }
@@ -153,10 +152,14 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
       const res = await cancelEvent(event.eventId);
       if (res.flag) {
         toast.success('Event cancelled successfully!');
-        // Xóa event khỏi danh sách hiển thị
+        // Xóa event khỏi danh sách hiển thị và reload toàn bộ
         setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+        // Trigger reload để đảm bảo data consistency
+        setTimeout(() => {
+          reloadList();
+        }, 500);
       } else {
-        toast.error('Cannot cancel this event!');
+        toast.error(res.message || 'Cannot cancel this event!');
       }
     } catch {
       toast.error('Cannot cancel this event!');
@@ -202,17 +205,17 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         );
         setCategories(categoryMap);
 
-        const allAccountIds = Array.from(
+        const allUserId = Array.from(
           new Set(
             res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
           )
         );
         const usernameMap: Record<string, string> = {};
         await Promise.all(
-          allAccountIds.map(async (id) => {
+          allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || 'Unknown';
             } catch {
               usernameMap[id] = id;
             }

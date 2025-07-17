@@ -9,6 +9,8 @@ import {
 import { editCategory } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
 import { FaSpinner } from 'react-icons/fa';
+import { validateRequired, validateMinLength, validateMaxLength } from '@/utils/validation';
+import { toast } from 'react-toastify';
 
 interface Props {
   category: Category;
@@ -26,6 +28,37 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
   };
 
   const handleEdit = async () => {
+    // Validation
+    const nameValidation = validateRequired(form.categoryName, 'Category name');
+    if (!nameValidation.isValid) {
+      toast.error(nameValidation.errorMessage!);
+      return;
+    }
+
+    const nameMinValidation = validateMinLength(form.categoryName, 2, 'Category name');
+    if (!nameMinValidation.isValid) {
+      toast.error(nameMinValidation.errorMessage!);
+      return;
+    }
+
+    const nameMaxValidation = validateMaxLength(form.categoryName, 100, 'Category name');
+    if (!nameMaxValidation.isValid) {
+      toast.error(nameMaxValidation.errorMessage!);
+      return;
+    }
+
+    if (form.categoryDescription.trim()) {
+      const descMaxValidation = validateMaxLength(
+        form.categoryDescription,
+        500,
+        'Category description'
+      );
+      if (!descMaxValidation.isValid) {
+        toast.error(descMaxValidation.errorMessage!);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       await editCategory({

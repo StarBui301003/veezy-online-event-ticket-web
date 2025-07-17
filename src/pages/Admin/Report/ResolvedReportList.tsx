@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -47,6 +48,7 @@ export const ResolvedReportList = () => {
   const [viewReport, setViewReport] = useState<Report | null>(null);
 
   useEffect(() => {
+    connectFeedbackHub('http://localhost:5008/notificationHub');
     setLoading(true);
     getResolvedReport()
       .then((res) => {
@@ -57,6 +59,24 @@ export const ResolvedReportList = () => {
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Lắng nghe realtime SignalR cho report
+    const reload = () => {
+      setLoading(true);
+      getResolvedReport()
+        .then((res) => {
+          if (res && Array.isArray(res.data)) {
+            setReports(res.data);
+          } else {
+            setReports([]);
+          }
+        })
+        .finally(() => setTimeout(() => setLoading(false), 500));
+    };
+    onFeedback('OnReportCreated', reload);
+    onFeedback('OnReportUpdated', reload);
+    onFeedback('OnReportDeleted', reload);
+    onFeedback('OnReportStatusChanged', reload);
   }, []);
 
   useEffect(() => {

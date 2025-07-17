@@ -20,6 +20,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getApprovedNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { hideNews, showNews } from '@/services/Admin/news.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News } from '@/types/Admin/news';
 import { FaEye } from 'react-icons/fa';
 import ApprovedNewsDetailModal from './ApprovedNewsDetailModal';
@@ -48,7 +49,18 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   useEffect(() => {
     if (activeTab !== 'approved') return;
+    connectNewsHub('http://localhost:5004/newsHub');
     fetchData();
+
+    // Lắng nghe realtime SignalR cho news
+    const reload = () => fetchData();
+    onNews('OnNewsCreated', reload);
+    onNews('OnNewsUpdated', reload);
+    onNews('OnNewsDeleted', reload);
+    onNews('OnNewsApproved', reload);
+    onNews('OnNewsRejected', reload);
+    onNews('OnNewsHidden', reload);
+    onNews('OnNewsUnhidden', reload);
   }, [activeTab]);
 
   useEffect(() => {

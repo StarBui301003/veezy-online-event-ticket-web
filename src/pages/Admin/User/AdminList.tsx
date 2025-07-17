@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getUsers } from '@/services/Admin/user.service';
+import { getAdminUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
+// SignalR đã được setup ở UserListTabs.tsx
 import {
   Table,
   TableHeader,
@@ -46,13 +47,18 @@ export const AdminList = () => {
 
   const [adminSearch, setAdminSearch] = useState('');
 
-  useEffect(() => {
+  // Thêm hàm reload danh sách
+  const reloadUsers = () => {
     setLoading(true);
-    getUsers()
+    getAdminUsers()
       .then((data) => {
         setUsers(data);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadUsers();
   }, []);
 
   const adminUsers = users;
@@ -81,12 +87,7 @@ export const AdminList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            setLoading(true);
-            getUsers()
-              .then((data) => {
-                setUsers(data);
-              })
-              .finally(() => setLoading(false));
+            reloadUsers();
           }}
           title="Edit Admin"
           disableEmail
@@ -97,14 +98,7 @@ export const AdminList = () => {
         onClose={() => setShowCreateModal(false)}
         onCreated={() => {
           setShowCreateModal(false);
-          setLoading(true);
-          getUsers()
-            .then((data) => {
-              setUsers(data);
-            })
-            .finally(() => {
-              setTimeout(() => setLoading(false), 500);
-            });
+          reloadUsers();
         }}
       />
       <div className="overflow-x-auto mb-10">

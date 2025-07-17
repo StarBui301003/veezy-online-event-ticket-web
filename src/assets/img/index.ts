@@ -6,3 +6,6 @@ export { default as AVATAR } from '@/assets/img/avatar_default.png';
 export { default as NO_AVATAR } from '@/assets/img/no-picture-available.png';
 export { default as NO_IMAGE } from '@/assets/img/no_img.png';
 export { default as LOGIN_TEMPLATE } from '@/assets/img/login_template.jpg';
+export { default as LOGIN_WALLPAPER } from '@/assets/img/wallpaper_login.jpg';
+
+

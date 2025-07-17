@@ -7,15 +7,44 @@ import { CollaboratorList } from './CollaboratorList';
 import { EventManagerList } from './EventManagerList';
 import { FaUserShield, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
 import { cn } from '@/lib/utils';
+import { connectIdentityHub, onIdentity, disconnectIdentityHub } from '@/services/signalr.service';
 
 export default function UserListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Nếu chưa có param tab, set mặc định là admin
   useEffect(() => {
     if (!searchParams.get('tab')) {
       setSearchParams({ tab: 'admin' }, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Setup SignalR cho realtime user updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/hubs/notifications');
+
+    // Lắng nghe realtime SignalR cho user events
+    const handleUserUpdates = () => {
+      setRefreshKey((prev) => prev + 1); // Trigger refresh cho tất cả user lists
+    };
+
+    // Events từ AccountController
+    onIdentity('AdminCreated', handleUserUpdates);
+    onIdentity('CollaboratorCreated', handleUserUpdates);
+    onIdentity('UserProfileUpdated', handleUserUpdates);
+    onIdentity('UserPasswordChanged', handleUserUpdates);
+    onIdentity('UserVerifiedEmail', handleUserUpdates);
+
+    // Events từ UserController (EditUserModal)
+    onIdentity('UserUpdated', handleUserUpdates);
+    onIdentity('UserAvatarUpdated', handleUserUpdates);
+
+    // Cleanup function
+    return () => {
+      disconnectIdentityHub();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -109,15 +138,21 @@ export default function UserListTabs() {
         </TabsList>
 
         <div>
-          <TabsContent value="admin">{loadedTabs.includes('admin') && <AdminList />}</TabsContent>
+          <TabsContent value="admin">
+            {loadedTabs.includes('admin') && <AdminList key={`admin-${refreshKey}`} />}
+          </TabsContent>
           <TabsContent value="eventmanager">
-            {loadedTabs.includes('eventmanager') && <EventManagerList />}
+            {loadedTabs.includes('eventmanager') && (
+              <EventManagerList key={`eventmanager-${refreshKey}`} />
+            )}
           </TabsContent>
           <TabsContent value="collaborator">
-            {loadedTabs.includes('collaborator') && <CollaboratorList />}
+            {loadedTabs.includes('collaborator') && (
+              <CollaboratorList key={`collaborator-${refreshKey}`} />
+            )}
           </TabsContent>
           <TabsContent value="customer">
-            {loadedTabs.includes('customer') && <CustomerList />}
+            {loadedTabs.includes('customer') && <CustomerList key={`customer-${refreshKey}`} />}
           </TabsContent>
         </div>
       </Tabs>

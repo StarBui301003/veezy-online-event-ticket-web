@@ -80,8 +80,7 @@ instance.interceptors.response.use(
         isRefreshing = true;
         try {
           const response = await axios.post(
-            `${
-              import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5000'
+            `${import.meta.env.VITE_GATEWAY_URL || 'http://localhost:5000'
             }/api/Account/refresh-token`,
             { refreshToken },
             { headers: { 'Content-Type': 'application/json' }, withCredentials: true }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Dialog,
   DialogContent,
@@ -6,9 +7,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { Report } from '@/types/Admin/report';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
 import { toast } from 'react-toastify';
+import { onFeedback } from '@/services/signalr.service';
 
 interface Props {
   report: Report;
@@ -60,6 +62,21 @@ const ReportDetailModal = ({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleRealtime = (data: any) => {
+      if (data && (data.reportId === report.reportId || data === report.reportId)) {
+        onClose();
+      }
+    };
+    onFeedback('OnReportCreated', handleRealtime);
+
+    return () => {
+      onFeedback('OnReportUpdated', handleRealtime);
+      onFeedback('OnReportDeleted', handleRealtime);
+      onFeedback('OnReportStatusUpdated', handleRealtime);
+    };
+  }, [report.reportId, onClose]);
 
   return (
     <Dialog open={!!report} onOpenChange={onClose}>

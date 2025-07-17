@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -49,6 +50,7 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
   const [viewReport, setViewReport] = useState<Report | null>(null);
 
   useEffect(() => {
+    connectFeedbackHub('http://localhost:5008/notificationHub');
     setLoading(true);
     getPendingReport()
       .then((res) => {
@@ -62,6 +64,26 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Lắng nghe realtime SignalR cho report
+    const reload = () => {
+      setLoading(true);
+      getPendingReport()
+        .then((res) => {
+          if (res && Array.isArray(res.data)) {
+            setReports(res.data);
+            if (onChangePending) onChangePending();
+          } else {
+            setReports([]);
+            if (onChangePending) onChangePending();
+          }
+        })
+        .finally(() => setTimeout(() => setLoading(false), 500));
+    };
+    onFeedback('OnReportCreated', reload);
+    onFeedback('OnReportUpdated', reload);
+    onFeedback('OnReportDeleted', reload);
+    onFeedback('OnReportStatusChanged', reload);
   }, [onChangePending]);
 
   useEffect(() => {

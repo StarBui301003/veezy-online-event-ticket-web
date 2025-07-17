@@ -46,6 +46,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<{
+    newsContent?: string;
+    image?: string;
+  }>({});
 
   useEffect(() => {
     if (open) {
@@ -72,6 +76,9 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     if (!file) return;
     setImageFile(file);
 
+    // Clear image error when file is selected
+    setErrors((prev) => ({ ...prev, image: undefined }));
+
     // Nếu có API upload ảnh, upload tại đây và lấy url trả về
     // const url = await uploadImageAPI(file);
     // setForm((prev) => ({ ...prev, imageUrl: url }));
@@ -82,12 +89,32 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   };
 
   const handleCreate = async () => {
+    // Clear previous errors
+    setErrors({});
+
+    // Validate required fields
+    const newErrors: { newsContent?: string; image?: string } = {};
+
+    if (!form.newsContent.trim() || form.newsContent === initialLexicalValue) {
+      newErrors.newsContent = 'Content is required!';
+    }
+
+    if (!imageFile && !form.imageUrl) {
+      newErrors.image = 'Image is required!';
+    }
+
     if (!form.newsTitle.trim()) {
       toast.error('Title is required!');
       return;
     }
     if (!form.newsDescription.trim()) {
       toast.error('Description is required!');
+      return;
+    }
+
+    // If there are validation errors, show them and return
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -192,9 +219,18 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             <label className="block text-xs text-gray-500 mb-1">Content</label>
             <RichTextEditor
               value={form.newsContent}
-              onChange={(val: string) => setForm((prev) => ({ ...prev, newsContent: val }))}
+              onChange={(val: string) => {
+                setForm((prev) => ({ ...prev, newsContent: val }));
+                // Clear content error when user starts typing
+                if (errors.newsContent) {
+                  setErrors((prev) => ({ ...prev, newsContent: undefined }));
+                }
+              }}
               disabled={loading}
             />
+            {errors.newsContent && (
+              <p className="text-red-500 text-xs mt-1">{errors.newsContent}</p>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Image</label>
@@ -233,6 +269,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                 )}
               </div>
             </div>
+            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Status</label>

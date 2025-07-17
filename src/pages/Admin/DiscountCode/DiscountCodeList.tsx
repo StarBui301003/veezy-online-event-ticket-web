@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DiscountCodeResponse, DiscountCodeUpdateInput } from '@/types/Admin/discountCode';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -50,7 +51,14 @@ export const DiscountCodeList = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     reloadList();
+
+    // Lắng nghe realtime SignalR cho discount code
+    const reload = () => reloadList();
+    onEvent('OnDiscountCodeCreated', reload);
+    onEvent('OnDiscountCodeUpdated', reload);
+    onEvent('OnDiscountCodeDeleted', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

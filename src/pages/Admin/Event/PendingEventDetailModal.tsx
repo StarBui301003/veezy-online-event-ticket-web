@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, AdminTicket } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   getCategoryById,
   getTicketsByEventAdmin,
@@ -39,12 +39,12 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
 
   useEffect(() => {
     if (event.createdBy) {
-      getUsernameByAccountId(event.createdBy)
+      getUserByIdAPI(event.createdBy)
         .then((name) => setCreatedByName(name || 'unknown'))
         .catch(() => setCreatedByName('unknown'));
     }
     if (event.approvedBy) {
-      getUsernameByAccountId(event.approvedBy)
+      getUserByIdAPI(event.approvedBy)
         .then((name) => setApprovedByName(name || 'unknown'))
         .catch(() => setApprovedByName('unknown'));
     }
@@ -85,7 +85,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
     try {
       const res = await approvedRejectEvent(event.eventId, EventApproveStatus.Approved, '');
       if (res.flag) {
-        toast.success('Approve event successfully!');
+        toast.success('Event approved successfully!');
         onClose();
         onActionDone && onActionDone();
       } else {
@@ -113,7 +113,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
         rejectionReason
       );
       if (res.flag) {
-        toast.success('Reject event successfully!');
+        toast.success('Event rejected successfully!');
         onClose();
         onActionDone && onActionDone();
       } else {

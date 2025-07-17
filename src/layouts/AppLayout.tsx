@@ -9,7 +9,7 @@ import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
 
 import { getCategoryById } from '@/services/Admin/event.service';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { Category } from '@/types/Admin/category';
 
 interface Props {
@@ -24,12 +24,12 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
 
   useEffect(() => {
     if (event.createdBy) {
-      getUsernameByAccountId(event.createdBy)
+      getUserByIdAPI(event.createdBy)
         .then((name) => setCreatedByName(name || 'unknown'))
         .catch(() => setCreatedByName('unknown'));
     }
     if (event.approvedBy) {
-      getUsernameByAccountId(event.approvedBy)
+      getUserByIdAPI(event.approvedBy)
         .then((name) => setApprovedByName(name || 'unknown'))
         .catch(() => setApprovedByName('unknown'));
     }

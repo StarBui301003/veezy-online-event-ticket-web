@@ -6,6 +6,7 @@ import {
   showNews,
   deleteNewsImage,
 } from '@/services/Admin/news.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
 import CreateNewsModal from './CreateNewsModal';
@@ -47,6 +48,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
 
   useEffect(() => {
     if (activeTab !== 'own') return;
+    connectNewsHub('http://localhost:5004/newsHub');
     setLoading(true);
     getOwnNews(1, 100)
       .then((res) => {
@@ -55,6 +57,14 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
+
+    // Lắng nghe realtime SignalR cho news
+    const reload = () => reloadList();
+    onNews('OnNewsCreated', reload);
+    onNews('OnNewsUpdated', reload);
+    onNews('OnNewsDeleted', reload);
+    onNews('OnNewsHidden', reload);
+    onNews('OnNewsUnhidden', reload);
   }, [activeTab]);
 
   const reloadList = () => {

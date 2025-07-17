@@ -16,6 +16,12 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { FaSpinner } from 'react-icons/fa';
+import {
+  validateDiscountCode,
+  validatePositiveNumber,
+  validateFutureDate,
+} from '@/utils/validation';
+import { toast } from 'react-toastify';
 
 interface Props {
   discount: (DiscountCodeUpdateInput & { discountId: string }) | null;
@@ -44,6 +50,52 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
   };
 
   const handleEdit = async () => {
+    // Validation
+    const codeValidation = validateDiscountCode(form.code);
+    if (!codeValidation.isValid) {
+      toast.error(codeValidation.errorMessage!);
+      return;
+    }
+
+    const valueValidation = validatePositiveNumber(form.value, 'Value');
+    if (!valueValidation.isValid) {
+      toast.error(valueValidation.errorMessage!);
+      return;
+    }
+
+    const expiredAtValidation = validateFutureDate(form.expiredAt, 'Expired At');
+    if (!expiredAtValidation.isValid) {
+      toast.error(expiredAtValidation.errorMessage!);
+      return;
+    }
+
+    if (form.minimum > 0) {
+      const minValidation = validatePositiveNumber(form.minimum, 'Minimum');
+      if (!minValidation.isValid) {
+        toast.error(minValidation.errorMessage!);
+        return;
+      }
+    }
+
+    if (form.maximum > 0) {
+      const maxValidation = validatePositiveNumber(form.maximum, 'Maximum');
+      if (!maxValidation.isValid) {
+        toast.error(maxValidation.errorMessage!);
+        return;
+      }
+
+      if (form.minimum > 0 && form.maximum <= form.minimum) {
+        toast.error('Maximum must be greater than minimum!');
+        return;
+      }
+    }
+
+    const maxUsageValidation = validatePositiveNumber(form.maxUsage, 'Max Usage');
+    if (!maxUsageValidation.isValid) {
+      toast.error(maxUsageValidation.errorMessage!);
+      return;
+    }
+
     setLoading(true);
     try {
       // Gửi toàn bộ trường về BE

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { getPaymentsAdmin } from '@/services/Admin/order.service';
 import type { AdminPayment } from '@/types/Admin/order';
 import {
@@ -30,12 +31,26 @@ export const PaymentListAdmin = () => {
   const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getPaymentsAdmin()
       .then((res) => setPayments(res.data.items))
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
+
+    // Lắng nghe realtime SignalR cho payment
+    const reload = () => {
+      setLoading(true);
+      getPaymentsAdmin()
+        .then((res) => setPayments(res.data.items))
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    };
+    onEvent('OnPaymentCreated', reload);
+    onEvent('OnPaymentUpdated', reload);
+    onEvent('OnPaymentDeleted', reload);
   }, []);
 
   const pagedPayments = payments.slice((page - 1) * pageSize, page * pageSize);

@@ -11,6 +11,8 @@ export interface AdminDashboardData {
   systemOverview: SystemOverview;
   financialOverview: FinancialOverview;
   userStatistics: UserStatistics;
+  eventStatistics: EventStatistics;
+  newsStatistics: NewsStatistics;
   recentActivities: RecentActivity[];
   generatedAt: string;
 }
@@ -60,6 +62,11 @@ export interface TopEventByRevenue {
   ticketsSold: number;
   eventDate: string;
   status: number;
+  // Optional fields for platformFees.topContributingEvents
+  feeCollected?: number;
+  eventRevenue?: number;
+  totalTickets?: number;
+  soldPercentage?: number;
 }
 
 export interface WithdrawalStats {
@@ -155,6 +162,75 @@ export interface ApprovalTrendItem {
   period: string;
   approved: number;
   rejected: number;
+}
+
+export interface NewsStatistics {
+  overview: {
+    totalNews: number;
+    newsToday: number;
+    newsThisWeek: number;
+    newsThisMonth: number;
+    newsThisYear: number;
+    pendingNews: number;
+    approvedNews: number;
+    rejectedNews: number;
+    visibleNews: number;
+    hiddenNews: number;
+  };
+  newsByStatus: {
+    status: number;
+    count: number;
+    percentage: number;
+  }[];
+  newsByEvent: {
+    eventId: string;
+    eventName: string;
+    newsCount: number;
+    approvedCount: number;
+    pendingCount: number;
+    lastNewsDate: string;
+  }[];
+  newsByAuthor: {
+    authorId: string;
+    authorName: string;
+    totalNews: number;
+    approvedNews: number;
+    pendingNews: number;
+    rejectedNews: number;
+    approvalRate: number;
+    lastNewsDate: string;
+  }[];
+  recentNews: {
+    newsId: string;
+    newsTitle: string;
+    eventName: string;
+    authorName: string;
+    status: number;
+    createdAt: string;
+    approvedAt: string;
+  }[];
+  approvalMetrics: {
+    pendingApprovals: number;
+    approvedToday: number;
+    rejectedToday: number;
+    approvedThisWeek: number;
+    rejectedThisWeek: number;
+    averageApprovalTimeHours: number;
+    approvalRate: number;
+    approvalTrend: {
+      period: string;
+      approved: number;
+      rejected: number;
+      pending: number;
+      periodLabel: string;
+    }[];
+  };
+  growthTrend: {
+    period: string;
+    newNews: number;
+    totalNews: number;
+    periodLabel: string;
+  }[];
 }
 
 export interface RecentActivity {
