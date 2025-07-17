@@ -70,7 +70,6 @@ export function AdminLayout() {
 
   return (
     <>
-      <SpinnerOverlay show={loading} />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
@@ -121,7 +120,8 @@ export function AdminLayout() {
               </Breadcrumb>
             </div>
           </header>
-          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0">
+          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0 relative">
+            <SpinnerOverlay show={loading} />
             <Outlet />
           </div>
           {showGoTop && (

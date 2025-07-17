@@ -206,7 +206,7 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+    <div className="p-6 min-h-screen">
       <AnimatePresence>
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-center"
@@ -397,7 +397,7 @@ export const Dashboard = () => {
                 fill="#8884d8"
                 label
               >
-                {categoryData.map((entry, index) => (
+                {categoryData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

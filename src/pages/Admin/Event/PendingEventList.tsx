@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
 import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
-import { getUsernameByAccountId } from '@/services/Admin/user.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -124,8 +124,8 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || user.accountId || id;
             } catch {
               usernameMap[id] = id;
             }
@@ -214,8 +214,8 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         await Promise.all(
           allUserId.map(async (id) => {
             try {
-              const username = await getUsernameByAccountId(id);
-              usernameMap[id] = username;
+              const user = await getUserByIdAPI(id);
+              usernameMap[id] = user.fullName || user.username || user.accountId || id;
             } catch {
               usernameMap[id] = id;
             }
@@ -259,7 +259,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
 
   // UI for filter and search
   return (
-    <div className="p-3">
+    <div className="p-3 relative">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
