@@ -15,7 +15,11 @@ import {
   getAdminUnreadCount,
 } from '@/services/Admin/notification.service';
 import { AdminNotification, AdminNotificationType } from '@/types/Admin/notification';
-import { connectNotificationHub, onNotification } from '@/services/signalr.service';
+import {
+  connectNotificationHub,
+  onNotification,
+  disconnectNotificationHub,
+} from '@/services/signalr.service';
 
 interface AdminNotificationListProps {
   className?: string;
@@ -163,8 +167,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   };
 
   useEffect(() => {
-    // Connect to notification hub
-    connectNotificationHub('http://localhost:5000/hubs/notifications');
+    connectNotificationHub('http://localhost:5003/hubs/notifications');
 
     // Load initial data
     fetchNotifications();
@@ -182,6 +185,11 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
       // Reload notifications from server to get latest data
       reloadNotifications();
     });
+
+    // Cleanup on unmount
+    return () => {
+      disconnectNotificationHub();
+    };
   }, []);
 
   const handleMarkAsRead = async (notificationId: string) => {
