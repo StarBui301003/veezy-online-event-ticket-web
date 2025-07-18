@@ -15,6 +15,8 @@ export interface CreateEventData {
   categoryIds: string[];
   contents: Content[];
   bankAccount: string;
+  bankAccountName: string; 
+  bankName: string; 
 }
 
 export interface Category {

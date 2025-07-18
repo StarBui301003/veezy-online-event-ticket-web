@@ -39,3 +39,8 @@ export async function reportComment(commentId: string, reason: string, descripti
 export async function reportNews(newsId: string, reason: string, description: string) {
   return instance.post(`/api/Report/news/${newsId}`, { reason, description });
 }
+
+// Report Event Manager
+export async function reportEventManager(eventManagerId: string, reason: string, description: string) {
+  return instance.post(`/api/Report/event-manager/${eventManagerId}`, { reason, description });
+}

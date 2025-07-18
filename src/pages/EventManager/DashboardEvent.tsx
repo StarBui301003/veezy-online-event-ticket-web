@@ -190,11 +190,11 @@ export default function EventManagerDashboard() {
         {/* Biểu đồ doanh thu từng sự kiện */}
         <RevenueChartSection />
         {/* Biểu đồ vé đã bán từng sự kiện */}
-        <TicketStatsSection />
+        {/* <TicketStatsSection /> */}
         {/* Bảng sự kiện sắp tới */}
         <UpcomingEventsTable />
         {/* PerformanceCompareChart sẽ được thêm ở đây */}
-        <PerformanceCompareChart />
+        {/* <PerformanceCompareChart /> */}
       </div>
     </div>
   );

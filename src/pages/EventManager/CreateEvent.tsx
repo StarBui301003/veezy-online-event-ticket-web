@@ -62,6 +62,8 @@ export default function CreateEventForm() {
     categoryIds: [],
     contents: [{ position: 1, contentType: "description", description: "", imageUrl: "" }],
     bankAccount: "",
+    bankAccountName: "",
+    bankName: "",
   });
 
   const { quill, quillRef } = useQuill();
@@ -221,14 +223,23 @@ export default function CreateEventForm() {
 
     setLoading(true);
     try {
-      const apiData: CreateEventData = {
-        ...formData,
+      const apiData = {
+        eventName: formData.eventName,
         eventDescription: cleanHtml(formData.eventDescription),
+        eventCoverImageUrl: formData.eventCoverImageUrl,
+        eventLocation: formData.eventLocation,
+        startAt: formData.startAt,
+        endAt: formData.endAt,
+        tags: formData.tags,
+        categoryIds: formData.categoryIds,
         contents: formData.contents.map((content) => ({
           position: content.position,
           description: content.description,
           imageUrl: content.imageUrl,
         })),
+        bankAccount: formData.bankAccount,
+        bankAccountName: formData.bankAccountName,
+        bankName: formData.bankName,
       };
       await createEvent(apiData);
       alert('Event created successfully!');
@@ -410,6 +421,29 @@ export default function CreateEventForm() {
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                 placeholder="Enter bank account"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Bank Account Name</label>
+              <input
+                type="text"
+                name="bankAccountName"
+                value={formData.bankAccountName}
+                onChange={handleChange}
+                className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                placeholder="Enter bank account name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Bank Name</label>
+              <input
+                type="text"
+                name="bankName"
+                value={formData.bankName}
+                onChange={handleChange}
+                className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                placeholder="Enter bank name"
               />
             </div>
 

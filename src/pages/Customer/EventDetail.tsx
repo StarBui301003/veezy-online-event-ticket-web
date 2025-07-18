@@ -10,6 +10,8 @@ import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
 import { Camera } from 'lucide-react';
 import { connectCommentHub, onComment } from '@/services/signalr.service';
+import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
+import { followEvent, unfollowEvent } from '@/services/follow.service';
 
 interface EventDetailData {
   eventId: string;
@@ -24,6 +26,7 @@ interface EventDetailData {
   isApproved: number;
   isCancelled: boolean;
   contents: { imageUrl?: string; description?: string; position: number }[];
+  createdBy: string; // userId của event manager
 }
 
 interface TicketData {
@@ -61,6 +64,9 @@ const EventDetail = () => {
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceError, setFaceError] = useState('');
+  const [isFollowingEvent, setIsFollowingEvent] = useState(false);
+  const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
+  const [showAllTags, setShowAllTags] = useState(false);
 
   let customerId = '';
   try {
@@ -332,6 +338,22 @@ const EventDetail = () => {
     }
   };
 
+  const handleFollowEvent = async () => {
+    if (!event?.eventId) return;
+    setLoadingFollowEvent(true);
+    try {
+      if (isFollowingEvent) {
+        await unfollowEvent(event.eventId);
+        setIsFollowingEvent(false);
+      } else {
+        await followEvent(event.eventId);
+        setIsFollowingEvent(true);
+      }
+    } finally {
+      setLoadingFollowEvent(false);
+    }
+  };
+
   if (loadingEvent) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
@@ -438,9 +460,9 @@ const EventDetail = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.9 }}
-                className="flex flex-wrap gap-2 mt-1"
+                className="flex flex-wrap gap-2 mt-1 items-center"
               >
-                {event.tags.map((tag, index) => (
+                {(showAllTags ? event.tags : event.tags.slice(0, 3)).map((tag, index) => (
                   <motion.span
                     key={index}
                     whileHover={{ scale: 1.1, backgroundColor: '#a78bfa' }}
@@ -449,6 +471,38 @@ const EventDetail = () => {
                     {tag}
                   </motion.span>
                 ))}
+                {event.tags.length > 3 && !showAllTags && (
+                  <button
+                    className="px-3 py-1 bg-gray-200 text-xs text-gray-700 rounded-full shadow-md font-semibold hover:bg-gray-300 transition-colors"
+                    onClick={() => setShowAllTags(true)}
+                  >
+                    +{event.tags.length - 3} tag khác
+                  </button>
+                )}
+                {/* Nút theo dõi sự kiện */}
+                {event?.eventId && (
+                  <button
+                    onClick={handleFollowEvent}
+                    disabled={loadingFollowEvent}
+                    className={`ml-4 px-3 py-1.5 rounded-full font-semibold transition-all shadow flex items-center gap-1 whitespace-nowrap text-sm
+                      ${isFollowingEvent
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'}
+                    `}
+                  >
+                    {isFollowingEvent ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" /></svg>
+                        Bỏ theo dõi
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" /></svg>
+                        Theo dõi
+                      </>
+                    )}
+                  </button>
+                )}
               </motion.div>
             )}
           </div>
@@ -463,6 +517,10 @@ const EventDetail = () => {
             transition={{ duration: 0.7, delay: 0.4 }}
             className="lg:col-span-2 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-6 md:p-8 rounded-xl shadow-xl"
           >
+            {/* Thông tin Event Manager + nút Theo dõi */}
+            {event?.createdBy && (
+              <EventManagerInfoFollow eventManagerId={event.createdBy} />
+            )}
             <button
               onClick={() => setShowDetail(v => !v)}
               className="w-full flex justify-between items-center text-lg font-semibold text-purple-300 mb-4 focus:outline-none bg-slate-900/60 px-4 py-2 rounded-lg"

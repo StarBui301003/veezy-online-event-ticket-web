@@ -75,6 +75,7 @@ import {
   disconnectIdentityHub,
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
+import EventManagerProfile from './pages/Customer/EventManagerProfile';
 
 function App() {
   useEffect(() => {
@@ -232,6 +233,10 @@ function App() {
         {
           path: 'report/comment/:commentId',
           element: <ReportCommentPage />,
+        },
+        {
+          path: 'event-manager/:id',
+          element: <EventManagerProfile />,
         },
       ],
     },

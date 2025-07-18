@@ -26,6 +26,18 @@ import {
   type FieldErrors,
   validateDateOfBirth,
 } from '@/utils/validation';
+import { getOrderHistoryByCustomerId } from '@/services/order.service';
+import { getTicketsByOrderId, getMyAttendances } from '@/services/ticketIssued.service';
+import OrderHistory from '@/components/Customer/OrderHistory';
+import MyTickets from '@/components/Customer/MyTickets';
+import AttendanceHistory from '@/components/Customer/AttendanceHistory';
+
+const TABS = [
+  { key: 'info', label: 'Thông tin cá nhân' },
+  { key: 'orders', label: 'Lịch sử mua vé' },
+  { key: 'tickets', label: 'Vé của tôi' },
+  { key: 'attendances', label: 'Lịch sử tham dự' },
+];
 
 const ProfileCustomer = () => {
   const [account, setAccount] = useState<any>(null);
@@ -38,6 +50,25 @@ const ProfileCustomer = () => {
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [tab, setTab] = useState('info');
+
+  // Lịch sử mua vé
+  const [orders, setOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
+
+  // Vé của tôi
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState('');
+
+  // Lịch sử tham dự
+  const [attendances, setAttendances] = useState<any[]>([]);
+  const [attendancesLoading, setAttendancesLoading] = useState(false);
+  const [attendancesError, setAttendancesError] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -71,6 +102,46 @@ const ProfileCustomer = () => {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch order history when tab changes to 'orders'
+  useEffect(() => {
+    if (tab === 'orders' && account?.userId) {
+      setOrdersLoading(true);
+      setOrdersError('');
+      getOrderHistoryByCustomerId(account.userId, ordersPage, 10)
+        .then((res) => {
+          setOrders(res.data?.items || []);
+          setOrdersTotalPages(res.data?.totalPages || 1);
+        })
+        .catch(() => setOrdersError('Không thể tải lịch sử mua vé.'))
+        .finally(() => setOrdersLoading(false));
+    }
+    // eslint-disable-next-line
+  }, [tab, account?.userId, ordersPage]);
+
+  // Fetch tickets for selected order
+  useEffect(() => {
+    if (tab === 'tickets' && selectedOrder?.orderId) {
+      setTicketsLoading(true);
+      setTicketsError('');
+      getTicketsByOrderId(selectedOrder.orderId)
+        .then((res) => setTickets(res.data || []))
+        .catch(() => setTicketsError('Không thể tải vé.'))
+        .finally(() => setTicketsLoading(false));
+    }
+  }, [tab, selectedOrder]);
+
+  // Fetch attendances
+  useEffect(() => {
+    if (tab === 'attendances') {
+      setAttendancesLoading(true);
+      setAttendancesError('');
+      getMyAttendances()
+        .then((res) => setAttendances(res.data || []))
+        .catch(() => setAttendancesError('Không thể tải lịch sử tham dự.'))
+        .finally(() => setAttendancesLoading(false));
+    }
+  }, [tab]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -229,289 +300,328 @@ const ProfileCustomer = () => {
   return (
     <>
       <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
-
-      <div className="text-white flex items-center justify-center relative min-h-screen py-6 mt-8">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl mx-4 p-4 md:p-6 lg:p-8 w-full max-w-xl flex flex-col items-center justify-center">
-          {/* Avatar Section */}
-          <div className="w-full flex flex-col items-center mb-4">
-            <div className="w-24 h-24 rounded-full border-4 border-blue-400 bg-white/10 flex items-center justify-center overflow-hidden shadow-lg mb-3">
-              {previewUrl ? (
-                <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
-              ) : (
-                <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
-              )}
-            </div>
-
-            {editMode && (
-              <>
-                <input
-                  id="edit-avatar-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-                <Button
-                  type="button"
-                  className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                  onClick={() => document.getElementById('edit-avatar-input')?.click()}
-                >
-                  Change Avatar
-                </Button>
-              </>
-            )}
-          </div>
-
-          <div className="w-full flex flex-col items-center justify-center">
-            {/* Personal Information */}
-            <div className="w-full flex flex-col mb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                {/* Full Name */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Full Name</label>
-                  <Input
-                    name="fullName"
-                    value={form.fullName || ''}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    placeholder="Enter your full name"
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'fullname')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                  />
-                  {getFieldError(fieldErrors, 'fullname') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'fullname')}
-                    </div>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Email Address</label>
-                  <Input
-                    name="email"
-                    value={form.email || ''}
-                    disabled={true}
-                    placeholder="Your email address"
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'email')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                  />
-                  {getFieldError(fieldErrors, 'email') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'email')}
-                    </div>
-                  )}
-                </div>
-
-                {/* Phone */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Phone Number</label>
-                  <Input
-                    name="phone"
-                    value={form.phone || ''}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    placeholder="Enter your phone number"
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'phone')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                  />
-                  {getFieldError(fieldErrors, 'phone') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'phone')}
-                    </div>
-                  )}
-                </div>
-
-                {/* Gender */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Gender</label>
-                  <Select
-                    value={String(form.gender || '0')}
-                    onValueChange={(val) => {
-                      setForm((prev: any) => ({ ...prev, gender: Number(val) }));
-                      // Clear errors when user selects
-                      if (hasFieldError(fieldErrors, 'gender')) {
-                        setFieldErrors((prev) => {
-                          const newErrors = { ...prev };
-                          delete newErrors.gender;
-                          return newErrors;
-                        });
-                      }
-                    }}
-                    disabled={!editMode}
-                  >
-                    <SelectTrigger
-                      className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                        hasFieldError(fieldErrors, 'gender')
-                          ? '!border-red-500 !text-white'
-                          : '!border-purple-700 !text-white'
-                      }`}
-                    >
-                      <SelectValue
-                        placeholder="Select your gender"
-                        className="text-[#A1A1AA] placeholder:text-[#A1A1AA]"
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-start justify-center">
+        <div className="w-full max-w-7xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0">
+          {/* Sidebar inside card, flush left/top, no border radius left */}
+          <aside className="w-32 md:w-36 bg-gradient-to-b from-indigo-800/90 to-slate-800/90 flex flex-col gap-2 border-r border-indigo-700/30 justify-start py-6 px-4">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                className={`w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2
+                  ${tab === t.key
+                    ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
+                    : 'text-indigo-100 hover:bg-indigo-700/30'}
+                `}
+                onClick={() => setTab(t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </aside>
+          {/* Main content: only right side has padding, more top padding for header */}
+          <main className="flex-1 p-10 pt-12 flex flex-col justify-start min-h-[600px]">
+            {tab === 'info' && (
+              <div className="flex flex-col items-center justify-center w-full">
+                {/* Avatar Section */}
+                <div className="w-full flex flex-col items-center mb-4">
+                  <div className="w-28 h-28 rounded-full border-4 border-blue-400 bg-white/10 flex items-center justify-center overflow-hidden shadow-lg mb-3">
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
+                    ) : (
+                      <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
+                    )}
+                  </div>
+                  {editMode && (
+                    <>
+                      <input
+                        id="edit-avatar-input"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarChange}
                       />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
-                      <SelectItem
-                        value="0"
-                        className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
+                        onClick={() => document.getElementById('edit-avatar-input')?.click()}
                       >
-                        Male
-                      </SelectItem>
-                      <SelectItem
-                        value="1"
-                        className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
-                      >
-                        Female
-                      </SelectItem>
-                      <SelectItem
-                        value="2"
-                        className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
-                      >
-                        Other
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {getFieldError(fieldErrors, 'gender') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'gender')}
-                    </div>
+                        Change Avatar
+                      </Button>
+                    </>
                   )}
                 </div>
-
-                {/* Location */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Location</label>
-                  <Input
-                    name="location"
-                    value={form.location || ''}
-                    onChange={handleInputChange}
-                    disabled={!editMode}
-                    placeholder="Enter your location"
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'location')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                  />
-                  {getFieldError(fieldErrors, 'location') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'location')}
+                {/* Personal Information */}
+                <div className="w-full flex flex-col items-center justify-center">
+                  <div className="w-full flex flex-col mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                      {/* Full Name */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Full Name</label>
+                        <Input
+                          name="fullName"
+                          value={form.fullName || ''}
+                          onChange={handleInputChange}
+                          disabled={!editMode}
+                          placeholder="Enter your full name"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'fullname')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
+                        />
+                        {getFieldError(fieldErrors, 'fullname') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'fullname')}
+                          </div>
+                        )}
+                      </div>
+                      {/* Email */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Email Address</label>
+                        <Input
+                          name="email"
+                          value={form.email || ''}
+                          disabled={true}
+                          placeholder="Your email address"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'email')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
+                        />
+                        {getFieldError(fieldErrors, 'email') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'email')}
+                          </div>
+                        )}
+                      </div>
+                      {/* Phone */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Phone Number</label>
+                        <Input
+                          name="phone"
+                          value={form.phone || ''}
+                          onChange={handleInputChange}
+                          disabled={!editMode}
+                          placeholder="Enter your phone number"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'phone')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
+                        />
+                        {getFieldError(fieldErrors, 'phone') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'phone')}
+                          </div>
+                        )}
+                      </div>
+                      {/* Gender */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Gender</label>
+                        <Select
+                          value={String(form.gender || '0')}
+                          onValueChange={(val) => {
+                            setForm((prev: any) => ({ ...prev, gender: Number(val) }));
+                            // Clear errors when user selects
+                            if (hasFieldError(fieldErrors, 'gender')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.gender;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          disabled={!editMode}
+                        >
+                          <SelectTrigger
+                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'gender')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`}
+                          >
+                            <SelectValue
+                              placeholder="Select your gender"
+                              className="text-[#A1A1AA] placeholder:text-[#A1A1AA]"
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                            <SelectItem
+                              value="0"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              Male
+                            </SelectItem>
+                            <SelectItem
+                              value="1"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              Female
+                            </SelectItem>
+                            <SelectItem
+                              value="2"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              Other
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {getFieldError(fieldErrors, 'gender') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'gender')}
+                          </div>
+                        )}
+                      </div>
+                      {/* Location */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Location</label>
+                        <Input
+                          name="location"
+                          value={form.location || ''}
+                          onChange={handleInputChange}
+                          disabled={!editMode}
+                          placeholder="Enter your location"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'location')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
+                        />
+                        {getFieldError(fieldErrors, 'location') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'location')}
+                          </div>
+                        )}
+                      </div>
+                      {/* Date of Birth */}
+                      <div className="w-full">
+                        <label className="block text-xs text-white/50 ml-1 mb-1">Day of Birth</label>
+                        <input
+                          name="dob"
+                          type="date"
+                          value={form.dob ? form.dob.slice(0, 10) : ''}
+                          onChange={(e) => {
+                            setForm((f: any) => ({ ...f, dob: e.target.value }));
+                            // Clear errors when user changes date
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                            // Validate ngay khi user chọn ngày mới
+                            if (e.target.value) {
+                              const dobValidation = validateDateOfBirth(e.target.value);
+                              if (!dobValidation.isValid) {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  dob: [dobValidation.errorMessage!],
+                                }));
+                              }
+                            }
+                          }}
+                          disabled={!editMode}
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'dob')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
+                          style={{
+                            colorScheme: 'dark',
+                          }}
+                        />
+                        {getFieldError(fieldErrors, 'dob') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'dob')}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-
-                {/* Date of Birth */}
-                <div className="w-full">
-                  <label className="block text-xs text-white/50 ml-1 mb-1">Day of Birth</label>
-                  <input
-                    name="dob"
-                    type="date"
-                    value={form.dob ? form.dob.slice(0, 10) : ''}
-                    onChange={(e) => {
-                      setForm((f: any) => ({ ...f, dob: e.target.value }));
-                      // Clear errors when user changes date
-                      if (hasFieldError(fieldErrors, 'dob')) {
-                        setFieldErrors((prev) => {
-                          const newErrors = { ...prev };
-                          delete newErrors.dob;
-                          return newErrors;
-                        });
-                      }
-                      // Validate ngay khi user chọn ngày mới
-                      if (e.target.value) {
-                        const dobValidation = validateDateOfBirth(e.target.value);
-                        if (!dobValidation.isValid) {
-                          setFieldErrors((prev) => ({
-                            ...prev,
-                            dob: [dobValidation.errorMessage!],
-                          }));
-                        }
-                      }
-                    }}
-                    disabled={!editMode}
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'dob')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                    style={{
-                      colorScheme: 'dark',
-                    }}
-                  />
-                  {getFieldError(fieldErrors, 'dob') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'dob')}
+                {/* Action Buttons */}
+                <div className="w-full flex flex-col gap-3 mt-2">
+                  {editMode ? (
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-red-500 to-red-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                        onClick={() => {
+                          setEditMode(false);
+                          setForm(account);
+                          setAvatarFile(null);
+                          setPreviewUrl(account.avatar || account.avatarUrl || '');
+                          setFieldErrors({});
+                        }}
+                        disabled={loading}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                        onClick={handleSave}
+                        disabled={loading}
+                      >
+                        {loading ? 'Saving...' : 'Save Changes'}
+                      </Button>
                     </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      onClick={() => {
+                        setEditMode(true);
+                        setFieldErrors({});
+                      }}
+                    >
+                      Edit Profile
+                    </Button>
                   )}
+                  {/* Nút riêng Cập nhật khuôn mặt */}
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    onClick={() => setShowFaceModal(true)}
+                  >
+                    {account.faceImageUrl ? 'Update Face' : 'Register Face'}
+                  </Button>
                 </div>
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="w-full flex flex-col gap-3">
-              {editMode ? (
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                    onClick={() => {
-                      setEditMode(false);
-                      setForm(account);
-                      setAvatarFile(null);
-                      setPreviewUrl(account.avatar || account.avatarUrl || '');
-                      setFieldErrors({});
-                    }}
-                    disabled={loading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                    onClick={handleSave}
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                  onClick={() => {
-                    setEditMode(true);
-                    setFieldErrors({});
-                  }}
-                >
-                  Edit Profile
-                </Button>
-              )}
-
-              {/* Nút riêng Cập nhật khuôn mặt */}
-              <Button
-                type="button"
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                onClick={() => setShowFaceModal(true)}
-              >
-                {account.faceImageUrl ? 'Update Face' : 'Register Face'}
-              </Button>
-            </div>
-          </div>
+            )}
+            {tab === 'orders' && (
+              <OrderHistory
+                orders={orders}
+                loading={ordersLoading}
+                error={ordersError}
+                page={ordersPage}
+                totalPages={ordersTotalPages}
+                onPageChange={setOrdersPage}
+                onSelectOrder={setSelectedOrder}
+              />
+            )}
+            {tab === 'tickets' && (
+              <MyTickets
+                tickets={tickets}
+                loading={ticketsLoading}
+                error={ticketsError}
+                selectedOrder={selectedOrder}
+                onBack={() => { setTab('orders'); setSelectedOrder(null); }}
+              />
+            )}
+            {tab === 'attendances' && (
+              <AttendanceHistory
+                attendances={attendances}
+                loading={attendancesLoading}
+                error={attendancesError}
+              />
+            )}
+          </main>
         </div>
       </div>
-
-      {/* Face Modal */}
+      {/* Face Modal giữ nguyên như cũ */}
       {showFaceModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative mx-4">
@@ -525,7 +635,6 @@ const ProfileCustomer = () => {
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
               {account.faceImageUrl ? 'Update Face' : 'Register Face'}
             </h2>
-
             <input
               type="password"
               placeholder="Nhập mật khẩu tài khoản"
@@ -533,13 +642,11 @@ const ProfileCustomer = () => {
               onChange={(e) => setFacePassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-
             {faceError && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-center">
                 {faceError}
               </div>
             )}
-
             <FaceCapture
               onCapture={async ({ image }) => {
                 setFaceError('');
