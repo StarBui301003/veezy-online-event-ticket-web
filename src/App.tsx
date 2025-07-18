@@ -10,7 +10,7 @@ import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
 import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
 import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
-import { Dashboard } from '@/pages/Admin/Dashboard';
+import { Dashboard } from '@/pages/Admin/Dashboard/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
@@ -75,6 +75,7 @@ import {
   disconnectIdentityHub,
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
+
 function App() {
   useEffect(() => {
     // NotificationService
@@ -599,16 +600,16 @@ function App() {
       )} */}
       <RouterProvider router={router} />
       <ToastContainer
-        position="top-center"
+        position="top-right"
         autoClose={3000}
         hideProgressBar={false}
-        newestOnTop
+        newestOnTop={false}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme="colored"
       />
     </LoadingProvider>
   );

@@ -1,12 +1,9 @@
 'use client';
-
 import * as React from 'react';
-import { Frame, Map, PieChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MdEvent } from 'react-icons/md';
 import { FaRegCommentDots, FaShoppingCart } from 'react-icons/fa';
 import { NavMain } from '@/components/Admin/Sidebar/components/nav-main';
-import { NavProjects } from '@/components/Admin/Sidebar/components/nav-projects';
 import { NavUser } from '@/components/Admin/Sidebar/components/nav-user';
 import { FaUserFriends } from 'react-icons/fa';
 import { BiCategory } from 'react-icons/bi';
@@ -75,24 +72,6 @@ const data = {
       icon: MdReportGmailerrorred,
     },
   ],
-
-  projects: [
-    {
-      name: 'Design Engineering',
-      url: '#',
-      icon: Frame,
-    },
-    {
-      name: 'Sales & Marketing',
-      url: '#',
-      icon: PieChart,
-    },
-    {
-      name: 'Travel',
-      url: '#',
-      icon: Map,
-    },
-  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -117,7 +96,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

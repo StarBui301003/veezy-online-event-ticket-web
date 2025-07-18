@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAdminUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
-// SignalR đã được setup ở UserListTabs.tsx
 import {
   Table,
   TableHeader,

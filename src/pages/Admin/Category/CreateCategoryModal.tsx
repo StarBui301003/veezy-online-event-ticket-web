@@ -9,16 +9,8 @@ import {
 import { createCategory } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
-import {
-  validateRequired,
-  validateMinLength,
-  validateMaxLength,
-  parseBackendErrors,
-  getFieldError,
-  hasFieldError,
-  getAllFieldErrors,
-  type FieldErrors,
-} from '@/utils/validation';
+import { validateCategoryForm } from '@/utils/validation';
+import { useAdminValidation, createFieldChangeHandler } from '@/hooks/use-admin-validation';
 
 interface Props {
   open: boolean;
@@ -26,75 +18,65 @@ interface Props {
   onCreated?: () => void;
 }
 
+interface CategoryFormData {
+  categoryName: string;
+  description: string;
+}
+
 export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
-  const [categoryName, setCategoryName] = useState('');
-  const [categoryDescription, setCategoryDescription] = useState('');
+  const [form, setForm] = useState<CategoryFormData>({
+    categoryName: '',
+    description: '',
+  });
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [generalErrors, setGeneralErrors] = useState<string[]>([]);
+
+  // Use validation hook
+  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
+    useAdminValidation({
+      showToastOnValidation: false, // Only show inline errors, no toast for validation
+      showToastOnApiError: true, // Keep toast for API errors
+    });
+
+  // Field change handlers with error clearing
+  const handleCategoryNameChange = createFieldChangeHandler(
+    'categoryName',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, categoryName: value }));
+    },
+    clearFieldError
+  );
+
+  const handleDescriptionChange = createFieldChangeHandler(
+    'description',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, description: value }));
+    },
+    clearFieldError
+  );
 
   const handleCreate = async () => {
-    // Clear previous errors
-    setFieldErrors({});
-    setGeneralErrors([]);
+    // Validate form using comprehensive validation
+    const isValid = validateForm(form, validateCategoryForm);
 
-    // Frontend validation
-    const frontendErrors: string[] = [];
-
-    const nameValidation = validateRequired(categoryName, 'Category name');
-    if (!nameValidation.isValid) {
-      frontendErrors.push(nameValidation.errorMessage!);
-    }
-
-    const nameMinValidation = validateMinLength(categoryName, 2, 'Category name');
-    if (!nameMinValidation.isValid) {
-      frontendErrors.push(nameMinValidation.errorMessage!);
-    }
-
-    const nameMaxValidation = validateMaxLength(categoryName, 100, 'Category name');
-    if (!nameMaxValidation.isValid) {
-      frontendErrors.push(nameMaxValidation.errorMessage!);
-    }
-
-    if (categoryDescription.trim()) {
-      const descMaxValidation = validateMaxLength(categoryDescription, 500, 'Category description');
-      if (!descMaxValidation.isValid) {
-        frontendErrors.push(descMaxValidation.errorMessage!);
-      }
-    }
-
-    if (frontendErrors.length > 0) {
-      setGeneralErrors(frontendErrors);
+    if (!isValid) {
       return;
     }
 
     setLoading(true);
     try {
       await createCategory({
-        categoryName: categoryName.trim(),
-        categoryDescription: categoryDescription.trim(),
+        categoryName: form.categoryName.trim(),
+        categoryDescription: form.description.trim(),
       });
       toast.success('Category created successfully!');
-      setCategoryName('');
-      setCategoryDescription('');
+      setForm({
+        categoryName: '',
+        description: '',
+      });
       onClose();
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      onCreated && onCreated();
+      if (onCreated) onCreated();
     } catch (error: unknown) {
-      // Parse backend errors
-      const { fieldErrors: backendFieldErrors, generalErrors: backendGeneralErrors } =
-        parseBackendErrors(error);
-
-      // Set errors to display inline
-      setFieldErrors(backendFieldErrors);
-      setGeneralErrors(backendGeneralErrors);
-
-      // Also show toast for critical errors
-      if (backendGeneralErrors.length > 0) {
-        toast.error(backendGeneralErrors[0]);
-      } else if (getAllFieldErrors(backendFieldErrors).length > 0) {
-        toast.error('Please check your input fields');
-      }
+      handleApiError(error);
     } finally {
       setLoading(false);
     }
@@ -109,70 +91,34 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
-          {/* General Errors */}
-          {generalErrors.length > 0 && (
-            <div className="mb-4">
-              {generalErrors.map((error, index) => (
-                <div key={index} className="text-red-500 text-sm mb-2">
-                  {error}
-                </div>
-              ))}
-            </div>
-          )}
-
           <div>
             <label className="block text-xs text-gray-500 mb-1">Category Name</label>
             <input
-              className={`border px-3 py-2 rounded w-full ${
-                hasFieldError(fieldErrors, 'categoryname') ? 'border-red-500' : ''
-              }`}
-              value={categoryName}
-              onChange={(e) => {
-                setCategoryName(e.target.value);
-                // Clear field error when user starts typing
-                if (hasFieldError(fieldErrors, 'categoryname')) {
-                  setFieldErrors((prev) => {
-                    const newErrors = { ...prev };
-                    delete newErrors.categoryname;
-                    return newErrors;
-                  });
-                }
-              }}
+              className={getErrorClass('categoryName', 'border px-3 py-2 rounded w-full')}
+              value={form.categoryName}
+              onChange={handleCategoryNameChange}
               disabled={loading}
               placeholder="Enter category name"
             />
-            {getFieldError(fieldErrors, 'categoryname') && (
-              <div className="text-red-500 text-sm mt-1">
-                {getFieldError(fieldErrors, 'categoryname')}
-              </div>
+            {getFieldError('categoryName') && (
+              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('categoryName')}</div>
             )}
           </div>
+
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Category Description</label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Category Description <span className="text-gray-400">- Optional</span>
+            </label>
             <textarea
-              className={`border px-3 py-2 rounded w-full ${
-                hasFieldError(fieldErrors, 'categorydescription') ? 'border-red-500' : ''
-              }`}
-              value={categoryDescription}
-              onChange={(e) => {
-                setCategoryDescription(e.target.value);
-                // Clear field error when user starts typing
-                if (hasFieldError(fieldErrors, 'categorydescription')) {
-                  setFieldErrors((prev) => {
-                    const newErrors = { ...prev };
-                    delete newErrors.categorydescription;
-                    return newErrors;
-                  });
-                }
-              }}
+              className={getErrorClass('description', 'border px-3 py-2 rounded w-full')}
+              value={form.description}
+              onChange={handleDescriptionChange}
               disabled={loading}
-              placeholder="Enter description"
+              placeholder="Enter description (5-500 characters)"
               rows={3}
             />
-            {getFieldError(fieldErrors, 'categorydescription') && (
-              <div className="text-red-500 text-sm mt-1">
-                {getFieldError(fieldErrors, 'categorydescription')}
-              </div>
+            {getFieldError('description') && (
+              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('description')}</div>
             )}
           </div>
         </div>

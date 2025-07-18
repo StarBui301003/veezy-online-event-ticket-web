@@ -9,6 +9,7 @@ import { FiCheckCircle, FiClock, FiX, FiSlash } from 'react-icons/fi';
 import { getPendingEvents } from '@/services/Admin/event.service';
 import { cn } from '@/lib/utils';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
+
 // import './EventTabs.css';
 
 export default function EventListTabs() {
@@ -17,7 +18,8 @@ export default function EventListTabs() {
   // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
   const getInitialTab = () => {
     const tab = searchParams.get('tab');
-    if (tab === 'pending' || tab === 'approved' || tab === 'rejected' || tab === 'canceled') return tab;
+    if (tab === 'pending' || tab === 'approved' || tab === 'rejected' || tab === 'canceled')
+      return tab;
     return 'pending';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());

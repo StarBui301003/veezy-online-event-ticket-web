@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,8 @@ import {
 import { editCategory } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
 import { FaSpinner } from 'react-icons/fa';
-import { validateRequired, validateMinLength, validateMaxLength } from '@/utils/validation';
+import { validateEditCategoryForm } from '@/utils/validation';
+import { useAdminValidation, createFieldChangeHandler } from '@/hooks/use-admin-validation';
 import { toast } from 'react-toastify';
 
 interface Props {
@@ -18,56 +19,68 @@ interface Props {
   onUpdated?: (updatedCategory: Category) => void;
 }
 
+interface EditCategoryFormData {
+  categoryName: string;
+  categoryDescription: string;
+}
+
 export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
-  const [form, setForm] = useState<Category>({ ...category });
+  const [form, setForm] = useState<EditCategoryFormData>({
+    categoryName: category.categoryName,
+    categoryDescription: category.categoryDescription,
+  });
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  // Use validation hook
+  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
+    useAdminValidation({
+      showToastOnValidation: false, // Only show inline errors, no toast for validation
+      showToastOnApiError: true, // Keep toast for API errors
+    });
+
+  // Field change handlers with error clearing
+  const handleCategoryNameChange = createFieldChangeHandler(
+    'categoryName',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, categoryName: value }));
+    },
+    clearFieldError
+  );
+
+  const handleDescriptionChange = createFieldChangeHandler(
+    'categoryDescription',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, categoryDescription: value }));
+    },
+    clearFieldError
+  );
 
   const handleEdit = async () => {
-    // Validation
-    const nameValidation = validateRequired(form.categoryName, 'Category name');
-    if (!nameValidation.isValid) {
-      toast.error(nameValidation.errorMessage!);
-      return;
-    }
+    // Validate form using comprehensive validation
+    const isValid = validateForm(form, validateEditCategoryForm);
 
-    const nameMinValidation = validateMinLength(form.categoryName, 2, 'Category name');
-    if (!nameMinValidation.isValid) {
-      toast.error(nameMinValidation.errorMessage!);
+    if (!isValid) {
       return;
-    }
-
-    const nameMaxValidation = validateMaxLength(form.categoryName, 100, 'Category name');
-    if (!nameMaxValidation.isValid) {
-      toast.error(nameMaxValidation.errorMessage!);
-      return;
-    }
-
-    if (form.categoryDescription.trim()) {
-      const descMaxValidation = validateMaxLength(
-        form.categoryDescription,
-        500,
-        'Category description'
-      );
-      if (!descMaxValidation.isValid) {
-        toast.error(descMaxValidation.errorMessage!);
-        return;
-      }
     }
 
     setLoading(true);
     try {
       await editCategory({
-        categoryId: form.categoryId,
+        categoryId: category.categoryId,
         categoryName: form.categoryName,
         categoryDescription: form.categoryDescription,
       });
-      if (onUpdated) onUpdated(form);
+      toast.success('Category updated successfully!');
+      if (onUpdated) {
+        onUpdated({
+          ...category,
+          categoryName: form.categoryName,
+          categoryDescription: form.categoryDescription,
+        });
+      }
       onClose();
+    } catch (error: unknown) {
+      handleApiError(error);
     } finally {
       setLoading(false);
     }
@@ -85,21 +98,33 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Category Name</label>
             <input
-              name="categoryName"
-              className="border rounded px-2 py-1 w-full"
+              className={getErrorClass('categoryName', 'border rounded px-2 py-1 w-full')}
               value={form.categoryName}
-              onChange={handleInputChange}
+              onChange={handleCategoryNameChange}
+              disabled={loading}
+              placeholder="Enter category name"
             />
+            {getFieldError('categoryName') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('categoryName')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <textarea
-              name="categoryDescription"
-              className="border rounded px-2 py-1 w-full"
+              className={getErrorClass('categoryDescription', 'border rounded px-2 py-1 w-full')}
               value={form.categoryDescription}
-              onChange={handleInputChange}
+              onChange={(e) => handleDescriptionChange(e)}
+              disabled={loading}
               rows={3}
+              placeholder="Enter category description"
             />
+            {getFieldError('categoryDescription') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('categoryDescription')}
+              </div>
+            )}
           </div>
         </div>
         <div className="p-4">
@@ -113,18 +138,18 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
               Cancel
             </button>
             <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
               onClick={handleEdit}
               disabled={loading}
               type="button"
             >
               {loading ? (
-                <div className="flex items-center gap-2">
+                <>
                   <FaSpinner className="animate-spin" />
-                  Editing...
-                </div>
+                  Updating...
+                </>
               ) : (
-                'Edit'
+                'Update'
               )}
             </button>
           </DialogFooter>

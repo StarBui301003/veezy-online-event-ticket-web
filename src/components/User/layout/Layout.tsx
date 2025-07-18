@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
 import { useEffect, useState } from 'react';
+import ScrollToTop from '@/components/common/ScrollToTop';
 
 export function Layout() {
   const [show, setShow] = useState(false);
@@ -49,7 +50,8 @@ export function Layout() {
   };
 
   return (
-    <div>
+    <>
+      <ScrollToTop />
       <Header />
       <Outlet />
       <Footer />
@@ -62,6 +64,6 @@ export function Layout() {
           ↑
         </button>
       )}
-    </div>
+    </>
   );
 }

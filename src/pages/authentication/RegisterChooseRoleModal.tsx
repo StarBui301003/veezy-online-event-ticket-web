@@ -4,7 +4,6 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { IoArrowBack } from 'react-icons/io5';
@@ -27,9 +26,6 @@ export const RegisterChooseRoleModal: React.FC<RegisterChooseRoleModalProps> = (
   return (
     <AlertDialog open={open}>
       <AlertDialogContent className="max-w-2xl bg-white shadow-lg pb-8 ">
-        <AlertDialogDescription>
-          Please choose your role to continue registration. This dialog helps you select between Customer and Event Manager roles before proceeding.
-        </AlertDialogDescription>
         {/* Nút back ở góc trên bên trái */}
         <button
           type="button"

@@ -259,8 +259,9 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
 
   // UI for filter and search
   return (
-    <div className="p-3 relative">
+    <div className="p-3 ">
       <SpinnerOverlay show={loading} />
+
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           {/* Filter/Search UI */}

@@ -1,15 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
-import { AiOutlineCalendar } from 'react-icons/ai';
 import { Eye, EyeOff } from 'lucide-react';
 import { RegisterAPI } from '@/services/auth.service';
 import { toast } from 'react-toastify';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
 import RegisterChooseRoleModal from '@/pages/authentication/RegisterChooseRoleModal';
 import {
   parseBackendErrors,
@@ -306,7 +302,7 @@ export const Register = () => {
 
                 {/* Password */}
                 <div className="w-full">
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <Input
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Password"
@@ -331,11 +327,12 @@ export const Register = () => {
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] p-0 m-0"
                       onClick={() => setShowPassword((v) => !v)}
                       tabIndex={-1}
+                      style={{ lineHeight: 0 }}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                   {getFieldError(fieldErrors, 'password') && (
@@ -346,37 +343,40 @@ export const Register = () => {
                 </div>
 
                 {/* Confirm Password */}
-                <div className="w-full relative">
-                  <Input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (hasFieldError(fieldErrors, 'confirmpassword')) {
-                        setFieldErrors((prev) => {
-                          const newErrors = { ...prev };
-                          delete newErrors.confirmpassword;
-                          return newErrors;
-                        });
-                      }
-                    }}
-                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
-                      hasFieldError(fieldErrors, 'confirmpassword') ? 'border-red-500' : ''
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA]"
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
+                <div className="w-full">
+                  <div className="relative flex items-center">
+                    <Input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (hasFieldError(fieldErrors, 'confirmpassword')) {
+                          setFieldErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.confirmpassword;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                      className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
+                        hasFieldError(fieldErrors, 'confirmpassword') ? 'border-red-500' : ''
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] p-0 m-0"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      tabIndex={-1}
+                      style={{ lineHeight: 0 }}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
                   {getFieldError(fieldErrors, 'confirmpassword') && (
                     <div className="text-red-400 text-sm mt-1 ml-2">
                       {getFieldError(fieldErrors, 'confirmpassword')}
@@ -446,49 +446,33 @@ export const Register = () => {
 
                 {/* Date of Birth */}
                 <div className="w-full">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <div className="relative w-full">
-                        <Input
-                          readOnly
-                          value={date ? format(date, 'dd/MM/yyyy') : ''}
-                          placeholder="Date of Birth"
-                          className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full cursor-pointer ${
-                            hasFieldError(fieldErrors, 'dateofbirth') ? 'border-red-500' : ''
-                          }`}
-                        />
-                        <AiOutlineCalendar
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#A1A1AA]"
-                          size={20}
-                        />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      side="right"
-                      sideOffset={30}
-                      className="w-auto p-0 bg-white text-black rounded-full shadow-md"
-                    >
-                      <DayPicker
-                        mode="single"
-                        selected={date}
-                        onSelect={(selectedDate) => {
-                          setDate(selectedDate);
-                          if (hasFieldError(fieldErrors, 'dateofbirth')) {
-                            setFieldErrors((prev) => {
-                              const newErrors = { ...prev };
-                              delete newErrors.dateofbirth;
-                              return newErrors;
-                            });
-                          }
-                        }}
-                        captionLayout="dropdown"
-                        fromYear={1950}
-                        toYear={2025}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <label className="block text-xs text-white/50 ml-1 mb-1">Date of Birth</label>
+                  <input
+                    name="dateofbirth"
+                    type="date"
+                    value={date ? format(date, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDate(val ? new Date(val) : undefined);
+                      if (hasFieldError(fieldErrors, 'dateofbirth')) {
+                        setFieldErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.dateofbirth;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                      hasFieldError(fieldErrors, 'dateofbirth')
+                        ? '!border-red-500 !text-white'
+                        : '!border-purple-700 !text-white'
+                    }`}
+                    style={{
+                      colorScheme: 'dark',
+                    }}
+                  />
                   {getFieldError(fieldErrors, 'dateofbirth') && (
-                    <div className="text-red-400 text-sm mt-1 ml-2">
+                    <div className="text-red-400 text-xs mt-1 ml-2">
                       {getFieldError(fieldErrors, 'dateofbirth')}
                     </div>
                   )}
@@ -511,7 +495,7 @@ export const Register = () => {
                 disabled={loading}
                 className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-4"
               >
-                Đăng ký bằng khuôn mặt
+                Face Registration
               </Button>
 
               <div className="text-center text-sm mt-4">

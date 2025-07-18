@@ -115,7 +115,9 @@ export interface UserStatistics {
 
 export interface GrowthChartItem {
   period: string;
-  value: number;
+  newUsers: number;
+  totalUsers: number;
+  periodLabel: string;
 }
 
 export interface ActivityTrendItem {

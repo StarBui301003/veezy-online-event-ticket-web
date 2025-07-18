@@ -137,3 +137,14 @@ body:not(:has([data-state="open"].radix-dialog-overlay)) .radix-dialog-overlay {
   pointer-events: none !important;
   opacity: 0 !important;
 }
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #334155 inset !important; /* slate-700/60 */
+  box-shadow: 0 0 0 1000px #334155 inset !important;
+  -webkit-text-fill-color: #fff !important;
+  color: #fff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

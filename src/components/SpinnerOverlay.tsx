@@ -14,7 +14,7 @@ const Spinner = () => (
       backgroundColor: '#9b59b6',
       backgroundImage: 'linear-gradient(#9b59b6, #84cdfa, #5ad1cd)',
       transform: 'translate(-50%, -50%)',
-      zIndex: 10001,
+      zIndex: 1001,
     }}
     className="spinner-gradient"
   >
@@ -103,7 +103,7 @@ const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScr
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
         <Spinner />
         {children}
       </div>
@@ -111,7 +111,7 @@ const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScr
   }
 
   return (
-    <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/20">
+    <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/20">
       <Spinner />
       {children}
     </div>

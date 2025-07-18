@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import ScrollToTop from '@/components/common/ScrollToTop';
 
 const PAGE_TITLES: Record<string, string> = {
   users: 'Users',
@@ -70,6 +71,7 @@ export function AdminLayout() {
 
   return (
     <>
+      <ScrollToTop />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>

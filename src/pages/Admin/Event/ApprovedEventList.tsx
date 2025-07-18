@@ -42,7 +42,11 @@ import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const ApprovedEventList = () => {
+interface ApprovedEventListProps {
+  onLoadingChange?: (loading: boolean) => void;
+}
+
+export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [allCategories, setAllCategories] = useState<Category[]>([]);
@@ -91,6 +95,7 @@ export const ApprovedEventList = () => {
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
+    onLoadingChange?.(true);
     getApprovedEvents()
       .then(async (res) => {
         setEvents(res.data.items);

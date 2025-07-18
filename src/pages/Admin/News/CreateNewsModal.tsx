@@ -10,8 +10,13 @@ import {
 import { createNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
-import type { CreateNewsRequest } from '@/types/Admin/news';
 import { FaUpload, FaSpinner } from 'react-icons/fa';
+import { validateCreateNewsForm } from '@/utils/validation';
+import {
+  useAdminValidation,
+  createFieldChangeHandler,
+  createCustomChangeHandler,
+} from '@/hooks/use-admin-validation';
 
 import {
   Select,
@@ -31,10 +36,18 @@ interface Props {
   authorId: string;
 }
 
+interface CreateNewsFormData {
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+}
+
 export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) => {
-  const [form, setForm] = useState<
-    Omit<CreateNewsRequest, 'newsContent'> & { newsContent: string }
-  >({
+  const [form, setForm] = useState<CreateNewsFormData>({
     eventId: '',
     newsDescription: '',
     newsTitle: '',
@@ -46,10 +59,13 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState<{
-    newsContent?: string;
-    image?: string;
-  }>({});
+
+  // Use validation hook
+  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
+    useAdminValidation({
+      showToastOnValidation: false, // Only show inline errors, no toast for validation
+      showToastOnApiError: true, // Keep toast for API errors
+    });
 
   useEffect(() => {
     if (open) {
@@ -61,23 +77,50 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     }
   }, [open]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
+  // Field change handlers with error clearing
+  const handleEventChange = createCustomChangeHandler(
+    'eventId',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, eventId: value === '__no_event__' ? '' : value }));
+    },
+    clearFieldError
+  );
+
+  const handleTitleChange = createFieldChangeHandler(
+    'newsTitle',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, newsTitle: value }));
+    },
+    clearFieldError
+  );
+
+  const handleDescriptionChange = createFieldChangeHandler(
+    'newsDescription',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, newsDescription: value }));
+    },
+    clearFieldError
+  );
+
+  const handleContentChange = (val: string) => {
+    setForm((prev) => ({ ...prev, newsContent: val }));
+    clearFieldError('newsContent');
   };
+
+  const handleStatusChange = createCustomChangeHandler(
+    'status',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, status: value === 'true' }));
+    },
+    clearFieldError
+  );
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImageFile(file);
 
-    // Clear image error when file is selected
-    setErrors((prev) => ({ ...prev, image: undefined }));
+    setImageFile(file);
+    clearFieldError('imageUrl');
 
     // Nếu có API upload ảnh, upload tại đây và lấy url trả về
     // const url = await uploadImageAPI(file);
@@ -89,32 +132,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   };
 
   const handleCreate = async () => {
-    // Clear previous errors
-    setErrors({});
+    // Validate form using comprehensive validation
+    const isValid = validateForm(form, validateCreateNewsForm);
 
-    // Validate required fields
-    const newErrors: { newsContent?: string; image?: string } = {};
-
-    if (!form.newsContent.trim() || form.newsContent === initialLexicalValue) {
-      newErrors.newsContent = 'Content is required!';
-    }
-
-    if (!imageFile && !form.imageUrl) {
-      newErrors.image = 'Image is required!';
-    }
-
-    if (!form.newsTitle.trim()) {
-      toast.error('Title is required!');
-      return;
-    }
-    if (!form.newsDescription.trim()) {
-      toast.error('Description is required!');
-      return;
-    }
-
-    // If there are validation errors, show them and return
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!isValid) {
       return;
     }
 
@@ -137,10 +158,11 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
         imageUrl: '',
         status: true,
       });
+      setImageFile(null);
       onClose();
       if (onCreated) onCreated();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create news!');
+    } catch (error: unknown) {
+      handleApiError(error);
     } finally {
       setLoading(false);
     }
@@ -156,22 +178,24 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Event</label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Event <span className="text-gray-400">(optional)</span>
+            </label>
             <Select
               value={form.eventId || '__no_event__'}
-              onValueChange={(value) =>
-                setForm((prev) => ({
-                  ...prev,
-                  eventId: value === '__no_event__' ? '' : value, // "" là không chọn event
-                }))
-              }
+              onValueChange={handleEventChange}
               disabled={loading}
             >
-              <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
+              <SelectTrigger
+                className={getErrorClass(
+                  'eventId',
+                  'border-gray-200 border px-3 py-2 rounded w-full'
+                )}
+              >
                 <SelectValue placeholder="Select event">
                   {form.eventId
                     ? events.find((ev) => ev.eventId === form.eventId)?.eventName || ''
-                    : ''}
+                    : 'No event'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -191,45 +215,54 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                 )}
               </SelectContent>
             </Select>
+            {getFieldError('eventId') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('eventId')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Title</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="newsTitle"
+              className={getErrorClass('newsTitle', 'border px-3 py-2 rounded w-full')}
               value={form.newsTitle}
-              onChange={handleInputChange}
+              onChange={handleTitleChange}
               disabled={loading}
               placeholder="Enter news title"
             />
+            {getFieldError('newsTitle') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('newsTitle')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Description</label>
             <textarea
-              className="border px-3 py-2 rounded w-full"
-              name="newsDescription"
+              className={getErrorClass('newsDescription', 'border px-3 py-2 rounded w-full')}
               value={form.newsDescription}
-              onChange={handleInputChange}
+              onChange={(e) => handleDescriptionChange(e)}
               disabled={loading}
               placeholder="Enter description"
               rows={2}
             />
+            {getFieldError('newsDescription') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('newsDescription')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Content</label>
             <RichTextEditor
               value={form.newsContent}
-              onChange={(val: string) => {
-                setForm((prev) => ({ ...prev, newsContent: val }));
-                // Clear content error when user starts typing
-                if (errors.newsContent) {
-                  setErrors((prev) => ({ ...prev, newsContent: undefined }));
-                }
-              }}
+              onChange={handleContentChange}
               disabled={loading}
             />
-            {errors.newsContent && (
-              <p className="text-red-500 text-xs mt-1">{errors.newsContent}</p>
+            {getFieldError('newsContent') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('newsContent')}
+              </div>
             )}
           </div>
           <div>
@@ -237,7 +270,9 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <label
-                  className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500"
+                  className={`flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500 ${
+                    getFieldError('imageUrl') ? 'border-red-500 bg-red-500 hover:bg-red-600' : ''
+                  }`}
                   style={{ marginBottom: 0 }}
                 >
                   <FaUpload />
@@ -269,16 +304,25 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                 )}
               </div>
             </div>
-            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
+            {getFieldError('imageUrl') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('imageUrl')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Status</label>
             <Select
               value={form.status ? 'true' : 'false'}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, status: value === 'true' }))}
+              onValueChange={handleStatusChange}
               disabled={loading}
             >
-              <SelectTrigger className="border-gray-200 border px-3 py-2 rounded w-full">
+              <SelectTrigger
+                className={getErrorClass(
+                  'status',
+                  'border-gray-200 border px-3 py-2 rounded w-full'
+                )}
+              >
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -286,6 +330,11 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                 <SelectItem value="false">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {getFieldError('status') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('status')}
+              </div>
+            )}
           </div>
         </div>
 

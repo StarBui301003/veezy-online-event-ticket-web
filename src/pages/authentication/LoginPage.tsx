@@ -437,7 +437,7 @@ export const LoginPage = () => {
             </div>
             <Button
               onClick={() => setShowFaceCapture(true)}
-              className="w-[380px] flex items-center justify-center gap-3 py-6 rounded-[8px] font-semibold text-white text-lg bg-gradient-to-r from-[#7B8FFF] to-[#6A5ACD] shadow-md hover:from-[#6A5ACD] hover:to-[#7B8FFF] transition-all duration-200 border-0 mt-0"
+              className="w-[380px] flex items-center justify-center gap-3 py-6 rounded-full font-semibold text-white text-lg bg-gradient-to-r from-[#7B8FFF] to-[#6A5ACD] shadow-md hover:from-[#6A5ACD] hover:to-[#7B8FFF] transition-all duration-200 border-0 mt-0"
               style={{ boxShadow: '0 4px 16px 0 rgba(122, 144, 255, 0.15)' }}
             >
               <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center">

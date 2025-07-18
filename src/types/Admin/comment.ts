@@ -5,7 +5,8 @@ export interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string | null;
-  isActive: boolean;
+  avatarUrl: string | null;
+  fullName: string | null;
 }
 
 export interface CommentListResponse {

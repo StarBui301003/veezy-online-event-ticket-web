@@ -20,6 +20,7 @@ import {
 } from 'react-icons/fa';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import ScrollToTop from '@/components/common/ScrollToTop';
 
 export function EventManagerLayout() {
   const navigate = useNavigate();
@@ -40,21 +41,23 @@ export function EventManagerLayout() {
   const handleLogout = () => {
     // Xóa tất cả localStorage
     localStorage.clear();
-    
+
     // Hoặc xóa từng key cụ thể nếu muốn giữ lại một số dữ liệu khác
     // localStorage.removeItem("access_token");
     // localStorage.removeItem("refresh_token");
     // localStorage.removeItem("user_data");
     // localStorage.removeItem("user_preferences");
-    
+
     // Xóa tất cả sessionStorage (nếu có sử dụng)
     sessionStorage.clear();
-    
+
     // Xóa tất cả cookies
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    document.cookie.split(';').forEach(function (c) {
+      document.cookie = c
+        .replace(/^ +/, '')
+        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
     });
-    
+
     // Chuyển hướng về trang login
     navigate('/login');
   };
@@ -164,6 +167,7 @@ export function EventManagerLayout() {
 
   return (
     <>
+      <ScrollToTop />
       {loading && <SpinnerOverlay show={loading} />}
       <SidebarProvider>
         <div className="flex h-screen w-screen bg-gradient-to-br from-[#0f0c1a] to-[#1c1429] text-white overflow-hidden">
@@ -189,11 +193,7 @@ export function EventManagerLayout() {
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6">
               <div>
-                <NavItem
-                  to=""
-                  icon={FaHome}
-                  isActive={isActiveRoute('/event-manager')}
-                >
+                <NavItem to="" icon={FaHome} isActive={isActiveRoute('/event-manager')}>
                   Dashboard
                 </NavItem>
               </div>

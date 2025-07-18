@@ -19,15 +19,9 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { getAllComment } from '@/services/Admin/comment.service';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { getEventById } from '@/services/Admin/event.service';
 import type { Comment } from '@/types/Admin/comment';
-import { Badge } from '@/components/ui/badge';
-import { FaRegTrashAlt } from 'react-icons/fa';
 import { FaEye } from 'react-icons/fa';
-import { deleteComment } from '@/services/Admin/comment.service';
-import { toast } from 'react-toastify';
-// Thêm import cho Dialog UI
 import CommentDetailModal from './CommentDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -37,7 +31,6 @@ export const CommentList = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
   const [viewComment, setViewComment] = useState<Comment | null>(null);
 
@@ -73,41 +66,26 @@ export const CommentList = () => {
     onComment('OnCommentDeleted', reload);
   }, []);
 
-  const handleDelete = async (commentId: string) => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) return;
-    try {
-      const res = await deleteComment(commentId);
-      // Chỉ xóa khỏi state khi res.flag === true (thành công)
-      if (res?.flag) {
-        setComments((prev) => prev.filter((c) => c.commentId !== commentId));
-        toast.success('Comment deleted successfully!');
-      } else {
-        toast.error(res?.message || 'Cannot delete this comment!');
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || 'Cannot delete this comment!');
-      // Không xóa khỏi state nếu API trả lỗi
-    }
+  // Function to refresh comments after deletion
+  const refreshComments = () => {
+    setLoading(true);
+    getAllComment()
+      .then((res) => {
+        if (res && Array.isArray(res.data)) {
+          setComments(res.data);
+        } else {
+          setComments([]);
+        }
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
   };
 
   useEffect(() => {
-    const fetchUsersAndEvents = async () => {
-      const userIds = Array.from(new Set(comments.map((c) => c.userId).filter(Boolean)));
+    const fetchEvents = async () => {
       const eventIds = Array.from(new Set(comments.map((c) => c.eventId).filter(Boolean)));
-      const userMap: Record<string, string> = {};
       const eventMap: Record<string, string> = {};
 
       await Promise.all([
-        ...userIds.map(async (id) => {
-          try {
-            const res = await getUserByIdAPI(id);
-            userMap[id] = res.fullName ? res.fullName : 'unknown';
-          } catch {
-            // Không toast khi user not found, chỉ set 'unknown'
-            userMap[id] = 'unknown';
-          }
-        }),
         ...eventIds.map(async (id) => {
           try {
             const res = await getEventById(id);
@@ -117,10 +95,9 @@ export const CommentList = () => {
           }
         }),
       ]);
-      setUserNames(userMap);
       setEventNames(eventMap);
     };
-    if (comments.length > 0) fetchUsersAndEvents();
+    if (comments.length > 0) fetchEvents();
   }, [comments]);
 
   const filteredComments = comments; // add filter/search if needed
@@ -134,9 +111,9 @@ export const CommentList = () => {
       {viewComment && (
         <CommentDetailModal
           comment={viewComment}
-          userName={userNames[viewComment.userId]}
           eventName={eventNames[viewComment.eventId]}
           onClose={() => setViewComment(null)}
+          onDelete={refreshComments}
         />
       )}
       <SpinnerOverlay show={loading} />
@@ -148,25 +125,25 @@ export const CommentList = () => {
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center" style={{ width: '8%' }}>
+                  Avatar
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '12%' }}>
                   User Name
                 </TableHead>
                 <TableHead className="text-left" style={{ width: '15%' }}>
                   Event Name
                 </TableHead>
-                <TableHead className="text-left" style={{ width: '20%' }}>
+                <TableHead className="text-left" style={{ width: '25%' }}>
                   Content
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '5%' }}>
+                <TableHead className="text-center" style={{ width: '15%' }}>
                   Created At
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '5%' }}>
+                <TableHead className="text-center" style={{ width: '15%' }}>
                   Updated At
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
-                  Status
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center" style={{ width: '5%' }}>
                   Action
                 </TableHead>
               </TableRow>
@@ -183,10 +160,22 @@ export const CommentList = () => {
                   <TableRow key={comment.commentId} className="hover:bg-blue-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell className="text-center">
-                      {userNames[comment.userId] || comment.userId || 'unknown'}
+                      <div className="flex justify-center">
+                        <img
+                          src={comment.avatarUrl || '/src/assets/img/avatar_default.png'}
+                          alt="Avatar"
+                          className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '/src/assets/img/avatar_default.png';
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {comment.fullName || 'Unknown User'}
                     </TableCell>
                     <TableCell className="text-left">
-                      {eventNames[comment.eventId] || comment.eventId || 'unknown'}
+                      {eventNames[comment.eventId] || comment.eventId || 'Unknown Event'}
                     </TableCell>
                     <TableCell className="text-left max-w-[200px] truncate" title={comment.content}>
                       {comment.content.length > 50
@@ -199,17 +188,6 @@ export const CommentList = () => {
                     <TableCell className="text-center">
                       {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {comment.isActive ? (
-                        <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white hover:border-green-500">
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white hover:border-red-500">
-                          Inactive
-                        </Badge>
-                      )}
-                    </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       {/* Nút xem chi tiết */}
                       <button
@@ -218,14 +196,6 @@ export const CommentList = () => {
                         onClick={() => setViewComment(comment)}
                       >
                         <FaEye className="w-4 h-4" />
-                      </button>
-                      {/* Nút xóa */}
-                      <button
-                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                        title="Delete"
-                        onClick={() => handleDelete(comment.commentId)}
-                      >
-                        <FaRegTrashAlt className="w-4 h-4" />
                       </button>
                     </TableCell>
                   </TableRow>

@@ -11,6 +11,12 @@ import { createAdminAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
 import type { CreateAdminRequest } from '@/types/Admin/user';
 import { FaSpinner } from 'react-icons/fa';
+import { validateCreateAdminForm } from '@/utils/validation';
+import {
+  useAdminValidation,
+  createFieldChangeHandler,
+  createCustomChangeHandler,
+} from '@/hooks/use-admin-validation';
 
 interface Props {
   open: boolean;
@@ -35,35 +41,78 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
   });
   const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: name === 'gender' ? Number(value) : type === 'number' ? Number(value) : value,
-    }));
-  };
+  // Use validation hook
+  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
+    useAdminValidation({
+      showToastOnValidation: false, // Only show inline errors, no toast for validation
+      showToastOnApiError: true, // Keep toast for API errors
+    });
+
+  // Field change handlers with error clearing
+  const handleUsernameChange = createFieldChangeHandler(
+    'username',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, username: value }));
+    },
+    clearFieldError
+  );
+
+  const handleEmailChange = createFieldChangeHandler(
+    'email',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, email: value }));
+    },
+    clearFieldError
+  );
+
+  const handlePhoneChange = createFieldChangeHandler(
+    'phone',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, phone: value }));
+    },
+    clearFieldError
+  );
+
+  const handlePasswordChange = createFieldChangeHandler(
+    'password',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, password: value }));
+    },
+    clearFieldError
+  );
+
+  const handleFullNameChange = createFieldChangeHandler(
+    'fullName',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, fullName: value }));
+    },
+    clearFieldError
+  );
+
+  const handleGenderChange = createCustomChangeHandler(
+    'gender',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, gender: Number(value) as 0 | 1 }));
+    },
+    clearFieldError
+  );
+
+  const handleDateOfBirthChange = createFieldChangeHandler(
+    'dateOfBirth',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, dateOfBirth: value }));
+    },
+    clearFieldError
+  );
 
   const handleCreate = async () => {
-    if (!form.username.trim()) {
-      toast.error('Username is required!');
+    // Validate form using comprehensive validation
+    const isValid = validateForm(form, validateCreateAdminForm);
+
+    if (!isValid) {
       return;
     }
-    if (!form.email.trim()) {
-      toast.error('Email is required!');
-      return;
-    }
-    if (!form.password.trim()) {
-      toast.error('Password is required!');
-      return;
-    }
-    if (!form.fullName.trim()) {
-      toast.error('Full name is required!');
-      return;
-    }
-    if (!form.dateOfBirth) {
-      toast.error('Date of birth is required!');
-      return;
-    }
+
     setLoading(true);
     try {
       await createAdminAPI(form);
@@ -79,8 +128,8 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
       });
       onClose();
       if (onCreated) onCreated();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to create admin!');
+    } catch (error: unknown) {
+      handleApiError(error);
     } finally {
       setLoading(false);
     }
@@ -98,67 +147,86 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Username</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="username"
+              className={getErrorClass('username', 'border px-3 py-2 rounded w-full')}
               value={form.username}
-              onChange={handleInputChange}
+              onChange={handleUsernameChange}
               disabled={loading}
               placeholder="Enter username"
             />
+            {getFieldError('username') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('username')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Email</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="email"
+              className={getErrorClass('email', 'border px-3 py-2 rounded w-full')}
               type="email"
               value={form.email}
-              onChange={handleInputChange}
+              onChange={handleEmailChange}
               disabled={loading}
               placeholder="Enter email"
             />
+            {getFieldError('email') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('email')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Phone</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="phone"
+              className={getErrorClass('phone', 'border px-3 py-2 rounded w-full')}
               value={form.phone}
-              onChange={handleInputChange}
+              onChange={handlePhoneChange}
               disabled={loading}
               placeholder="Enter phone"
             />
+            {getFieldError('phone') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('phone')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Password</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="password"
+              className={getErrorClass('password', 'border px-3 py-2 rounded w-full')}
               type="password"
               value={form.password}
-              onChange={handleInputChange}
+              onChange={handlePasswordChange}
               disabled={loading}
               placeholder="Enter password"
             />
+            {getFieldError('password') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('password')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Full Name</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="fullName"
+              className={getErrorClass('fullName', 'border px-3 py-2 rounded w-full')}
               value={form.fullName}
-              onChange={handleInputChange}
+              onChange={handleFullNameChange}
               disabled={loading}
               placeholder="Enter full name"
             />
+            {getFieldError('fullName') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('fullName')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Gender</label>
             <select
-              className="border px-3 py-2 rounded w-full"
-              name="gender"
+              className={getErrorClass('gender', 'border px-3 py-2 rounded w-full')}
               value={form.gender}
-              onChange={handleInputChange}
+              onChange={(e) => handleGenderChange(e.target.value)}
               disabled={loading}
             >
               {GENDER_OPTIONS.map((g) => (
@@ -167,17 +235,26 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
                 </option>
               ))}
             </select>
+            {getFieldError('gender') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('gender')}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Date of Birth</label>
             <input
-              className="border px-3 py-2 rounded w-full"
-              name="dateOfBirth"
+              className={getErrorClass('dateOfBirth', 'border px-3 py-2 rounded w-full')}
               type="date"
               value={form.dateOfBirth}
-              onChange={handleInputChange}
+              onChange={handleDateOfBirthChange}
               disabled={loading}
             />
+            {getFieldError('dateOfBirth') && (
+              <div className="text-red-400 text-sm mt-1 ml-2 text-left">
+                {getFieldError('dateOfBirth')}
+              </div>
+            )}
           </div>
         </div>
         <div className="p-4 flex justify-end gap-2">
