@@ -242,38 +242,50 @@ export const Dashboard = () => {
   const adminManagementData = [
     {
       name: 'Event Approvals',
-      value: data.systemOverview.pendingEventApprovals,
-      total: data.systemOverview.totalEvents,
+      value: data.systemOverview.pendingEventApprovals || 0,
+      total: data.systemOverview.totalEvents || 0,
       fill: '#FF6B6B',
-      description: `${data.systemOverview.pendingEventApprovals} pending approvals`,
+      description: `${data.systemOverview.pendingEventApprovals || 0} pending approvals : ${
+        data.systemOverview.pendingEventApprovals || 0
+      }/${data.systemOverview.totalEvents || 0}`,
     },
     {
       name: 'Active Events',
-      value: data.systemOverview.activeEvents,
-      total: data.systemOverview.totalEvents,
+      value: data.systemOverview.activeEvents || 0,
+      total: data.systemOverview.totalEvents || 0,
       fill: '#4ECDC4',
-      description: `${data.systemOverview.activeEvents} events currently running`,
+      description: `${data.systemOverview.activeEvents || 0} events currently running : ${
+        data.systemOverview.activeEvents || 0
+      }/${data.systemOverview.totalEvents || 0}`,
     },
     {
       name: 'Monthly Active Users',
-      value: data.userStatistics.activity.monthlyActiveUsers,
-      total: data.systemOverview.totalUsers,
+      value: data.userStatistics.activity.monthlyActiveUsers || 0,
+      total: data.systemOverview.totalUsers || 0,
       fill: '#45B7D1',
-      description: `${data.userStatistics.activity.monthlyActiveUsers}/${data.systemOverview.totalUsers} users active`,
+      description: `${data.userStatistics.activity.monthlyActiveUsers || 0} users active : ${
+        data.userStatistics.activity.monthlyActiveUsers || 0
+      }/${data.systemOverview.totalUsers || 0}`,
     },
     {
       name: 'Withdrawal Requests',
-      value: data.financialOverview.withdrawalStats.pendingRequests,
-      total: data.financialOverview.withdrawalStats.totalRequests,
+      value: data.financialOverview.withdrawalStats.pendingRequests || 0,
+      total: data.financialOverview.withdrawalStats.totalRequests || 0,
       fill: '#FFA726',
-      description: `${data.financialOverview.withdrawalStats.pendingRequests} pending withdrawals`,
+      description: `${
+        data.financialOverview.withdrawalStats.pendingRequests || 0
+      } pending withdrawals : ${data.financialOverview.withdrawalStats.pendingRequests || 0}/${
+        data.financialOverview.withdrawalStats.totalRequests || 0
+      }`,
     },
     {
       name: 'News Pending',
-      value: data.newsStatistics.overview.pendingNews,
-      total: data.newsStatistics.overview.totalNews,
+      value: data.newsStatistics.overview.pendingNews || 0,
+      total: data.newsStatistics.overview.totalNews || 0,
       fill: '#AB47BC',
-      description: `${data.newsStatistics.overview.pendingNews} news awaiting approval`,
+      description: `${data.newsStatistics.overview.pendingNews || 0} news awaiting approval : ${
+        data.newsStatistics.overview.pendingNews || 0
+      }/${data.newsStatistics.overview.totalNews || 0}`,
     },
   ];
 
@@ -333,6 +345,35 @@ export const Dashboard = () => {
           <div className="font-semibold">{label}</div>
           <div>{`New Users: ${payload[0]?.value}`}</div>
           <div>{`Total Users: ${payload[1]?.value}`}</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom tooltip for Radial Chart
+  const CustomRadialTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const description = data.description || 'Unknown';
+      // Remove debug info, value at start, and format properly
+      const cleanDescription = description
+        .replace(/value\s*:\s*\d+\s*/, '')
+        .replace(/^\d+\s+/, '') // Remove value at the beginning
+        .replace(/\d+\/\d+\s*$/, '') // Remove ratio at the end
+        .trim();
+
+      return (
+        <div
+          style={{
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '8px',
+            fontSize: '12px',
+          }}
+        >
+          <p>{`${cleanDescription} ${data.value}/${data.total}`}</p>
         </div>
       );
     }
@@ -527,6 +568,8 @@ export const Dashboard = () => {
                     innerRadius="20%"
                     outerRadius="70%"
                     data={adminManagementData}
+                    startAngle={-90}
+                    endAngle={380}
                   >
                     <RadialBar
                       label={{
@@ -539,18 +582,7 @@ export const Dashboard = () => {
                       dataKey="value"
                       cornerRadius={4}
                     />
-                    <Tooltip
-                      formatter={(value: any, _: string, props: any) => [
-                        `${value}/${props.payload.total}`,
-                        props.payload.description,
-                      ]}
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                      }}
-                    />
+                    <Tooltip content={<CustomRadialTooltip />} />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div className="mt-6 space-y-3">
