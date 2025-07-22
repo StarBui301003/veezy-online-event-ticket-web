@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { getMyApprovedEvents, getEventFund } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { connectAnalyticsHub, onAnalytics, disconnectAnalyticsHub } from '@/services/signalr.service';
 
 interface AnalyticsData {
   totalEvents: number;
@@ -24,6 +25,21 @@ export default function AnalyticsOverview() {
 
   useEffect(() => {
     fetchAnalyticsData();
+    // Kết nối AnalyticsHub và lắng nghe realtime (Optional - AnalyticsService may not be running)
+    connectAnalyticsHub('http://localhost:5006/analyticsHub').then(() => {
+      console.log('Connected to AnalyticsHub for Event Manager dashboard');
+      onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+        if (data && typeof data === 'object') {
+          setAnalyticsData((prev) => ({ ...prev, ...data }));
+        }
+      });
+    }).catch(err => {
+      console.warn('AnalyticsHub not available for Event Manager dashboard:', err.message);
+      // Continue without real-time analytics updates
+    });
+    return () => {
+      disconnectAnalyticsHub();
+    };
   }, []);
 
   const fetchAnalyticsData = async () => {
