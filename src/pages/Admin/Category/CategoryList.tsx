@@ -20,16 +20,20 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+
 import { MdOutlineEdit } from 'react-icons/md';
 import { FaEye, FaPlus, FaRegTrashAlt } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import CreateCategoryModal from '@/pages/Admin/Category/CreateCategoryModal';
 import CategoryDetailModal from '@/pages/Admin/Category/CategoryDetailModal';
 import EditCategoryModal from '@/pages/Admin/Category/EditCategoryModal';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
+
 export const CategoryList = () => {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -64,13 +68,13 @@ export const CategoryList = () => {
   const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
 
   const handleDelete = async (cat: Category) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    if (!window.confirm(t('confirmDeleteCategory'))) return;
     try {
       await deleteCategoryById(cat.categoryId);
-      toast.success('Category deleted successfully!');
+      toast.success(t('categoryDeletedSuccessfully'));
       setCategories((prev) => prev.filter((c) => c.categoryId !== cat.categoryId));
     } catch {
-      toast.error('Cannot delete this category!');
+      toast.error(t('cannotDeleteCategory'));
     }
   };
 
@@ -127,7 +131,7 @@ export const CategoryList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by category name..."
+                  placeholder={t('searchByCategoryName')}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -168,7 +172,7 @@ export const CategoryList = () => {
                 onClick={() => setShowCreateModal(true)}
               >
                 <FaPlus />
-                Create
+                {t('create')}
               </button>
             </div>
           </div>
@@ -178,10 +182,10 @@ export const CategoryList = () => {
                 <TableHead className="pl-4" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>Category Name</TableHead>
-                <TableHead>Description</TableHead>
+                <TableHead style={{ width: '15%' }}>{t('categoryName')}</TableHead>
+                <TableHead>{t('description')}</TableHead>
                 <TableHead style={{ width: '20%' }} className="text-center">
-                  Action
+                  {t('action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -192,7 +196,7 @@ export const CategoryList = () => {
               ).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                    No categories found.
+                    {t('noCategoriesFound')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -212,21 +216,21 @@ export const CategoryList = () => {
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title="View details"
+                          title={t('viewDetails')}
                           onClick={() => setViewCategory(cat)}
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
                         <button
                           className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                          title="Edit"
+                          title={t('edit')}
                           onClick={() => setEditCategory(cat)}
                         >
                           <MdOutlineEdit className="w-4 h-4" />
                         </button>
                         <button
                           className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                          title="Delete"
+                          title={t('delete')}
                           onClick={() => handleDelete(cat)}
                         >
                           <FaRegTrashAlt className="w-4 h-4" />
@@ -282,13 +286,13 @@ export const CategoryList = () => {
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
                         {categories.length === 0
-                          ? '0-0 of 0'
+                          ? t('paginationEmpty')
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
                               categories.length
-                            )} of ${categories.length}`}
+                            )} ${t('of')} ${categories.length}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
                       <select
                         className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
                         value={pageSize}

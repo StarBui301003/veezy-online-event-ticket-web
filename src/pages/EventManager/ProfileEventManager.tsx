@@ -17,6 +17,7 @@ import { NO_AVATAR } from '@/assets/img';
 import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
+import { useTranslation } from 'react-i18next';
 
 const TABS = [
   { key: 'profile', label: 'Thông tin cá nhân' },
@@ -24,11 +25,12 @@ const TABS = [
   { key: 'managerFollowers', label: 'Người theo dõi bạn' },
 ];
 
-const ProfileEventManager = () => {
-  const [account, setAccount] = useState<any>(null);
+export default function ProfileEventManager() {
+  const { t } = useTranslation();
+  const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
@@ -60,7 +62,7 @@ const ProfileEventManager = () => {
       .then((user) => {
         setAccount(user);
         setForm({ ...user });
-        setPreviewUrl(user.avatar || user.avatarUrl || '');
+        setPreviewUrl(user.avatarUrl || '');
       })
       .catch(() => {
         setAccount(null);
@@ -91,7 +93,7 @@ const ProfileEventManager = () => {
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((prev: any) => ({
+    setForm((prev: Partial<User>) => ({
       ...prev,
       [name]: name === 'gender' ? Number(value) : value,
     }));
@@ -108,14 +110,14 @@ const ProfileEventManager = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      let avatarUrl = form.avatar || form.avatarUrl;
+      let avatarUrl = form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
         const accStr = localStorage.getItem('account');
         if (accStr) {
           const acc = JSON.parse(accStr);
-          acc.avatar = avatarUrl;
+          acc.avatarUrl = avatarUrl;
           localStorage.setItem('account', JSON.stringify(acc));
         }
       }
@@ -137,21 +139,32 @@ const ProfileEventManager = () => {
         const newAccount = {
           ...acc,
           ...updatedUser,
-          avatar: updatedUser.avatar,
+          avatarUrl: updatedUser.avatarUrl,
           fullName: updatedUser.fullName,
           email: updatedUser.email,
           username: updatedUser.username || acc.username,
         };
         localStorage.setItem('account', JSON.stringify(newAccount));
       }
-      setAccount({ ...form, avatar: avatarUrl });
+      setAccount({
+        userId: form.userId || '',
+        accountId: form.accountId || '',
+        fullName: form.fullName || '',
+        phone: form.phone || '',
+        email: form.email || '',
+        avatarUrl: avatarUrl || '',
+        gender: form.gender ?? 0,
+        dob: form.dob || '',
+        location: form.location || '',
+        createdAt: form.createdAt || '',
+      });
       setEditMode(false);
       setAvatarFile(null);
       window.dispatchEvent(new Event('user-updated'));
-    } catch (err: any) {
-      if (err?.response?.status === 403) {
+    } catch (err: unknown) {
+      if ((err as any)?.response?.status === 403) {
         alert('You do not have permission to update this profile.');
-      } else if (err?.response?.status === 404) {
+      } else if ((err as any)?.response?.status === 404) {
         alert('User not found.');
       } else {
         alert('Failed to update profile.');
@@ -223,7 +236,7 @@ const ProfileEventManager = () => {
                         className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
                         onClick={() => document.getElementById('edit-avatar-input')?.click()}
                       >
-                        Change Avatar
+                        {t('Change Avatar')}
                       </Button>
                     </>
                   )}
@@ -234,79 +247,79 @@ const ProfileEventManager = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                       {/* Full Name */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Full Name</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Full Name')}</label>
                         <Input
                           name="fullName"
                           value={form.fullName || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your full name"
+                          placeholder={t('Enter your full name')}
                           className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
                         />
                       </div>
                       {/* Email */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Email Address</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Email Address')}</label>
                         <Input
                           name="email"
                           value={form.email || ''}
                           disabled={true}
-                          placeholder="Your email address"
+                          placeholder={t('Your email address')}
                           className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm"
                         />
                       </div>
                       {/* Phone */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Phone Number</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Phone Number')}</label>
                         <Input
                           name="phone"
                           value={form.phone || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your phone number"
+                          placeholder={t('Enter your phone number')}
                           className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
                         />
                       </div>
                       {/* Gender */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Gender</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Gender')}</label>
                         <Select
                           value={String(form.gender || '0')}
-                          onValueChange={(val) => setForm((prev: any) => ({ ...prev, gender: Number(val) }))}
+                          onValueChange={(val) => setForm((prev: Partial<User>) => ({ ...prev, gender: Number(val) }))}
                           disabled={!editMode}
                         >
                           <SelectTrigger
                             className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
                           >
-                            <SelectValue placeholder="Select your gender" className="text-[#A1A1AA] placeholder:text-[#A1A1AA]" />
+                            <SelectValue placeholder={t('Select your gender')} className="text-[#A1A1AA] placeholder:text-[#A1A1AA]" />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
-                            <SelectItem value="0" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">Male</SelectItem>
-                            <SelectItem value="1" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">Female</SelectItem>
-                            <SelectItem value="2" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">Other</SelectItem>
+                            <SelectItem value="0" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Male')}</SelectItem>
+                            <SelectItem value="1" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Female')}</SelectItem>
+                            <SelectItem value="2" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Other')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       {/* Location */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Location</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Location')}</label>
                         <Input
                           name="location"
                           value={form.location || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your location"
+                          placeholder={t('Enter your location')}
                           className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
                         />
                       </div>
                       {/* Date of Birth */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Day of Birth</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Day of Birth')}</label>
                         <input
                           name="dob"
                           type="date"
                           value={form.dob ? form.dob.slice(0, 10) : ''}
-                          onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
+                          onChange={(e) => setForm((f: Partial<User>) => ({ ...f, dob: e.target.value }))}
                           disabled={!editMode}
                           className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
                           style={{ colorScheme: 'dark' }}
@@ -325,11 +338,11 @@ const ProfileEventManager = () => {
                         setEditMode(false);
                         setForm(account);
                         setAvatarFile(null);
-                        setPreviewUrl(account.avatar || account.avatarUrl || '');
+                        setPreviewUrl(account.avatarUrl || '');
                       }}
                       disabled={loading}
                     >
-                      Cancel
+                      {t('Cancel')}
                     </Button>
                     <Button
                       type="button"
@@ -337,7 +350,7 @@ const ProfileEventManager = () => {
                       onClick={handleSave}
                       disabled={loading}
                     >
-                      {loading ? 'Saving...' : 'Save Changes'}
+                      {loading ? t('Saving...') : t('Save Changes')}
                     </Button>
                   </div>
                 ) : (
@@ -347,14 +360,14 @@ const ProfileEventManager = () => {
                       className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2.5 text-base font-semibold shadow"
                       onClick={() => setEditMode(true)}
                     >
-                      Edit Profile
+                      {t('Edit Profile')}
                     </Button>
                     <Button
                       type="button"
                       className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2 text-base font-semibold shadow"
                       onClick={() => setShowFaceModal(true)}
                     >
-                      {account.faceImageUrl ? 'Update Face' : 'Register Face'}
+                      {account.avatarUrl ? t('Update Face') : t('Register Face')}
                     </Button>
                   </div>
                 )}
@@ -364,11 +377,11 @@ const ProfileEventManager = () => {
               <div>
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    👥 Người theo dõi sự kiện
+                    👥 {t('Người theo dõi sự kiện')}
                   </h2>
                   <div className="bg-purple-600/20 px-4 py-2 rounded-full border border-purple-500/30">
                     <span className="text-purple-300 text-sm font-medium">
-                      {followers.length} người
+                      {followers.length} {t('người')}
                     </span>
                   </div>
                 </div>
@@ -377,18 +390,18 @@ const ProfileEventManager = () => {
                 ) : followers.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
-                    <div className="text-gray-400 text-lg mb-2">Chưa có ai theo dõi sự kiện nào</div>
-                    <div className="text-gray-500 text-sm">Chưa có người dùng nào follow sự kiện của bạn</div>
+                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi sự kiện nào')}</div>
+                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow sự kiện của bạn')}</div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl shadow border border-slate-700/40 bg-slate-900/60">
                     <table className="min-w-full text-sm text-left">
                       <thead>
                         <tr className="bg-slate-800/80 text-purple-300">
-                          <th className="px-4 py-3 font-semibold">Avatar</th>
-                          <th className="px-4 py-3 font-semibold">Tên</th>
-                          <th className="px-4 py-3 font-semibold">Email</th>
-                          <th className="px-4 py-3 font-semibold">SĐT</th>
+                          <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Email')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('SĐT')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -412,11 +425,11 @@ const ProfileEventManager = () => {
               <div>
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    👤 Người theo dõi event manager
+                    👤 {t('Người theo dõi event manager')}
                   </h2>
                   <div className="bg-purple-600/20 px-4 py-2 rounded-full border border-purple-500/30">
                     <span className="text-purple-300 text-sm font-medium">
-                      {managerFollowers.length} người
+                      {managerFollowers.length} {t('người')}
                     </span>
                   </div>
                 </div>
@@ -425,18 +438,18 @@ const ProfileEventManager = () => {
                 ) : managerFollowers.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
-                    <div className="text-gray-400 text-lg mb-2">Chưa có ai theo dõi event manager này</div>
-                    <div className="text-gray-500 text-sm">Chưa có người dùng nào follow event manager này</div>
+                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi event manager này')}</div>
+                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow event manager này')}</div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl shadow border border-slate-700/40 bg-slate-900/60">
                     <table className="min-w-full text-sm text-left">
                       <thead>
                         <tr className="bg-slate-800/80 text-purple-300">
-                          <th className="px-4 py-3 font-semibold">Avatar</th>
-                          <th className="px-4 py-3 font-semibold">Tên</th>
-                          <th className="px-4 py-3 font-semibold">Email</th>
-                          <th className="px-4 py-3 font-semibold">SĐT</th>
+                          <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Email')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('SĐT')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -471,11 +484,11 @@ const ProfileEventManager = () => {
               ×
             </button>
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              {account.faceImageUrl ? 'Update Face' : 'Register Face'}
+              {account.avatarUrl ? t('Update Face') : t('Register Face')}
             </h2>
             <input
               type="password"
-              placeholder="Nhập mật khẩu tài khoản"
+              placeholder={t('Enter account password')}
               value={facePassword}
               onChange={(e) => setFacePassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -491,12 +504,12 @@ const ProfileEventManager = () => {
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
                   await updateFaceAPI(account.userId, file, [0]);
-                  toast.success('Face updated successfully!');
+                  toast.success(t('Face updated successfully!'));
                   setShowFaceModal(false);
-                } catch (e: any) {
-                  let msg = 'Face update failed!';
-                  if (e?.response?.data?.message) {
-                    const m = e.response.data.message;
+                } catch (e: unknown) {
+                  let msg = t('Face update failed!');
+                  if ((e as any)?.response?.data?.message) {
+                    const m = (e as any).response.data.message;
                     if (
                       m.includes('already been registered') ||
                       m.includes('Liveness check failed') ||
@@ -519,5 +532,3 @@ const ProfileEventManager = () => {
     </>
   );
 };
-
-export default ProfileEventManager;

@@ -10,6 +10,7 @@ import type { News } from '@/types/Admin/news';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { NO_IMAGE } from '@/assets/img';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   news: News | null;
@@ -19,6 +20,7 @@ interface Props {
 const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
   const [authorName, setAuthorName] = useState<string>('unknown');
   const [imgLoading, setImgLoading] = useState(!!news?.imageUrl);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (news?.authorId) {
@@ -47,7 +49,7 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Approved News Details</DialogTitle>
+            <DialogTitle>{t('approvedNewsDetails')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
@@ -72,7 +74,7 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
           {/* Info fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Title</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('title')}</label>
               <input
                 value={news.newsTitle ?? 'unknown'}
                 readOnly
@@ -80,7 +82,7 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Author Name</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('authorName')}</label>
               <input
                 value={authorName}
                 readOnly
@@ -88,15 +90,15 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
               <input
-                value="Approved"
+                value={t('approved')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
               <input
                 value={
                   news.createdAt
@@ -163,7 +165,7 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
               onClick={onClose}
               type="button"
             >
-              Close
+              {t('close')}
             </button>
           </DialogFooter>
         </div>

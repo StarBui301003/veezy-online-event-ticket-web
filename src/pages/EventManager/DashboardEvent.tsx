@@ -1,12 +1,13 @@
 import DashboardSummaryCards from './components/DashboardSummaryCards';
 import RevenueChartSection from './components/RevenueChartSection';
-import TicketStatsSection from './components/TicketStatsSection';
 import UpcomingEventsTable from './components/UpcomingEventsTable';
-import PerformanceCompareChart from './components/PerformanceCompareChart';
 import { Bell } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { getUserNotifications, markNotificationRead, markAllNotificationsRead } from '@/services/notification.service';
 import ExportButtons from './components/ExportButtons';
+import TicketStatsSection from './components/TicketStatsSection';
+import PerformanceCompareChart from './components/PerformanceCompareChart';
+import { useTranslation } from 'react-i18next';
 
 interface Notification {
   notificationId: string;
@@ -23,6 +24,7 @@ interface Notification {
 }
 
 export default function EventManagerDashboard() {
+  const { t } = useTranslation();
   const [notifDropdown, setNotifDropdown] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifHasUnread, setNotifHasUnread] = useState(false);
@@ -121,9 +123,9 @@ export default function EventManagerDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">DASHBOARD</h1>
+          <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">{t('dashboard')}</h1>
           <div className="flex items-center gap-4">
-            {/* Export Excel nút bên trái */}
+            {/* Export Excel button on the left */}
             <div>
               <ExportButtons />
             </div>
@@ -131,7 +133,7 @@ export default function EventManagerDashboard() {
               <button
                 className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-slate-200/30 transition-all relative"
                 onClick={() => setNotifDropdown(v => !v)}
-                title="Thông báo"
+                title={t('notification')}
               >
                 <Bell className="text-purple-400 text-2xl" />
                 {notifHasUnread && (
@@ -141,20 +143,20 @@ export default function EventManagerDashboard() {
               {notifDropdown && (
                 <div className="absolute right-0 z-30 mt-2 w-80 bg-white text-gray-900 rounded-xl shadow-2xl border border-purple-400/30 overflow-hidden animate-fadeIn">
                   <div className="flex items-center justify-between p-4 border-b font-bold text-purple-600 gap-2">
-                    <span className="flex items-center gap-2"><Bell className="text-purple-400" /> Thông báo mới</span>
+                    <span className="flex items-center gap-2"><Bell className="text-purple-400" /> {t('newNotifications')}</span>
                     <button
                       className="text-xs text-purple-500 hover:underline font-semibold px-2 py-1 rounded hover:bg-purple-100 transition"
                       onClick={handleReadAll}
                       disabled={notifications.length === 0 || notifications.every(n => n.isRead)}
                     >
-                      Đánh dấu tất cả đã đọc
+                      {t('markAllRead')}
                     </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifLoading && notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-400">Đang tải...</div>
+                      <div className="p-4 text-center text-gray-400">{t('loading')}</div>
                     ) : notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-400">Không có thông báo mới</div>
+                      <div className="p-4 text-center text-gray-400">{t('noNotifications')}</div>
                     ) : (
                       <>
                         {notifications.map((n) => (
@@ -174,7 +176,7 @@ export default function EventManagerDashboard() {
                             onClick={handleLoadMore}
                             disabled={notifLoading || !notifHasMore}
                           >
-                            {notifLoading ? 'Đang tải...' : 'Xem thêm'}
+                            {notifLoading ? t('loading') : t('loadMore')}
                           </button>
                         )}
                       </>
@@ -185,16 +187,16 @@ export default function EventManagerDashboard() {
             </div>
           </div>
         </div>
-        {/* Cards số liệu tổng quan */}
+        {/* Summary cards */}
         <DashboardSummaryCards />
-        {/* Biểu đồ doanh thu từng sự kiện */}
+        {/* Revenue chart by event */}
         <RevenueChartSection />
-        {/* Biểu đồ vé đã bán từng sự kiện */}
-        {/* <TicketStatsSection /> */}
-        {/* Bảng sự kiện sắp tới */}
+        {/* Ticket sales by event */}
+        <TicketStatsSection />
+        {/* Upcoming events table */}
         <UpcomingEventsTable />
-        {/* PerformanceCompareChart sẽ được thêm ở đây */}
-        {/* <PerformanceCompareChart /> */}
+        {/* PerformanceCompareChart will be added here */}
+        <PerformanceCompareChart />
       </div>
     </div>
   );

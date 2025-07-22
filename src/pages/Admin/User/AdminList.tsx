@@ -30,10 +30,12 @@ import { FaEye, FaPlus } from 'react-icons/fa';
 import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
 import EditUserModal from '@/pages/Admin/User/EditUserModal';
 import CreateAdminModal from '@/pages/Admin/User/CreateAdminModal';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const AdminList = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -137,7 +139,7 @@ export const AdminList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search admin by name, email, or phone..."
+                  placeholder={t('search')}
                   value={adminSearch}
                   onChange={(e) => {
                     setAdminSearch(e.target.value);
@@ -177,7 +179,7 @@ export const AdminList = () => {
                 onClick={() => setShowCreateModal(true)}
               >
                 <FaPlus />
-                Create
+                {t('create')}
               </button>
             </div>
           </div>
@@ -187,18 +189,18 @@ export const AdminList = () => {
                 <TableHead className="pl-4" style={{ width: '10%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>Full Name</TableHead>
-                <TableHead style={{ width: '15%' }}>Phone</TableHead>
-                <TableHead style={{ width: '25%' }}>Email</TableHead>
+                <TableHead style={{ width: '25%' }}>{t('fullName')}</TableHead>
+                <TableHead style={{ width: '15%' }}>{t('phone')}</TableHead>
+                <TableHead style={{ width: '25%' }}>{t('email')}</TableHead>
                 {/* <TableHead>Role</TableHead> */}
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="text-center">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pagedAdmins.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    No admins found.
+                    {t('noUsersFound')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -216,14 +218,14 @@ export const AdminList = () => {
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
                         className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                        title="Edit"
+                        title={t('edit')}
                         onClick={() => setEditUser(user)}
                       >
                         <MdOutlineEdit className="w-4 h-4" />
                       </button>
                       <button
                         className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
+                        title={t('view')}
                         onClick={() => setViewUser(user)}
                       >
                         <FaEye className="w-4 h-4" />
@@ -245,7 +247,9 @@ export const AdminList = () => {
                               onClick={() => setAdminPage((p) => Math.max(1, p - 1))}
                               aria-disabled={adminPage === 1}
                               className={adminPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                            />
+                            >
+                              {t('previous')}
+                            </PaginationPrevious>
                           </PaginationItem>
                           {Array.from({ length: adminTotalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
@@ -273,7 +277,9 @@ export const AdminList = () => {
                                   ? 'pointer-events-none opacity-50'
                                   : ''
                               }
-                            />
+                            >
+                              {t('next')}
+                            </PaginationNext>
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
@@ -287,7 +293,7 @@ export const AdminList = () => {
                               filteredAdmins.length
                             )} of ${filteredAdmins.length}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-600">{t('rowsPerPage')}</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">

@@ -1,29 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { createOrder, createVnPayPayment, useDiscountCode, getOrderById } from '@/services/Event Manager/event.service';
+import type { CheckoutData, OrderInfo, CheckoutItem } from '@/types/checkout';
+import { useTranslation } from 'react-i18next';
 
-
-interface CheckoutItem {
-  ticketId: string;
-  ticketName: string;
-  ticketPrice: number;
-  quantity: number;
-}
-
-interface CheckoutData {
-  eventId: string;
-  eventName: string;
-  eventTime: string;
-  customerId: string;
-  items: CheckoutItem[];
-  discountCode?: string;
-  discountAmount?: number;
-}
 
 const ConfirmOrderPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const paymentWindowRef = useRef<Window | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
@@ -32,13 +17,13 @@ const ConfirmOrderPage = () => {
   const [confirming, setConfirming] = useState(false);
   const [waitingPayment, setWaitingPayment] = useState(false);
   const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
-  const [orderInfo, setOrderInfo] = useState<any>(null);
+  const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
 
   useEffect(() => {
     try {
       const data = localStorage.getItem('checkout');
       if (!data) {
-        setError('Không tìm thấy thông tin đơn hàng để xác nhận.');
+        setError(t('orderNotFound'));
         setLoading(false);
         return;
       }
@@ -53,11 +38,11 @@ const ConfirmOrderPage = () => {
       } catch {/* ignore parse error */}
       setCheckout(checkoutObj);
     } catch {
-      setError('Dữ liệu đơn hàng không hợp lệ.');
+      setError(t('invalidOrderData'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const total = checkout
     ? checkout.items.reduce((sum, item) => sum + item.ticketPrice * item.quantity, 0)
@@ -158,8 +143,8 @@ const ConfirmOrderPage = () => {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-8 text-center">
         <Loader2 className="w-20 h-20 text-blue-600 animate-spin mb-6" />
-        <h2 className="text-3xl font-semibold text-blue-700 mb-4">Đang tải đơn hàng...</h2>
-        <p className="text-blue-600 text-lg">Vui lòng đợi trong giây lát.</p>
+        <h2 className="text-3xl font-semibold text-blue-700 mb-4">{t('loadingOrder')}</h2>
+        <p className="text-blue-600 text-lg">{t('pleaseWait')}</p>
       </div>
     );
   }
@@ -172,13 +157,13 @@ const ConfirmOrderPage = () => {
         className="flex flex-col justify-center items-center min-h-screen bg-red-50 p-8 text-center"
       >
         <AlertCircle className="w-20 h-20 text-red-500 mb-6" />
-        <h2 className="text-3xl font-semibold text-red-700 mb-4">Lỗi</h2>
-        <p className="text-red-600 text-lg mb-8">{error || 'Không tìm thấy đơn hàng.'}</p>
+        <h2 className="text-3xl font-semibold text-red-700 mb-4">{t('error')}</h2>
+        <p className="text-red-600 text-lg mb-8">{error || t('orderNotFound')}</p>
         <button
           onClick={() => navigate('/')}
           className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300"
         >
-          Về trang chủ
+          {t('backToHome')}
         </button>
       </motion.div>
     );
@@ -192,14 +177,13 @@ const ConfirmOrderPage = () => {
         className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-100 p-8 text-center"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-          <h2 className="text-2xl font-bold text-emerald-700 mb-4">Đang chờ thanh toán...</h2>
+          <h2 className="text-2xl font-bold text-emerald-700 mb-4">{t('waitingPayment')}</h2>
           <div className="mb-4 text-slate-700">
-            Vui lòng hoàn tất thanh toán ở tab mới. Sau khi thanh toán xong, bạn sẽ được chuyển về
-            trang này.
+            {t('completePaymentInNewTab')}
           </div>
           <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mx-auto my-6" />
           <div className="text-sm text-gray-400">
-            Nếu bạn đã thanh toán xong mà không được chuyển trang, hãy tải lại trang này.
+            {t('ifPaymentNotCompletedReloadPage')}
           </div>
         </div>
       </motion.div>
@@ -215,7 +199,7 @@ const ConfirmOrderPage = () => {
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
           <h2 className="text-2xl font-bold text-green-700 mb-4">
-            Thanh toán thành công! Cảm ơn bạn đã đặt hàng.
+            {t('paymentSuccessful')} {t('thankYouForOrder')}
           </h2>
           <div className="mb-4 text-left">
             <div className="font-semibold text-lg text-purple-800 mb-1">
@@ -228,21 +212,21 @@ const ConfirmOrderPage = () => {
             </div>
             {orderInfo.discountCode && (
               <div className="text-sm text-amber-600 mb-2">
-                Mã giảm giá: <b>{orderInfo.discountCode}</b>
+                {t('discountCode')}: <b>{orderInfo.discountCode}</b>
               </div>
             )}
           </div>
           <div className="mb-4">
-            <div className="font-semibold text-slate-700 mb-2">Danh sách vé:</div>
+            <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
             <div className="divide-y divide-gray-200">
-              {(orderInfo.items || checkout?.items || []).map((item: any) => (
+              {(orderInfo.items || checkout?.items || []).map((item: CheckoutItem) => (
                 <div key={item.ticketId} className="flex justify-between py-2 text-sm">
                   <span>
                     {item.ticketName} (x{item.quantity})
                   </span>
                   <span>
-                    {(item.pricePerTicket
-                      ? item.pricePerTicket * item.quantity
+                    {(item.ticketPrice
+                      ? item.ticketPrice * item.quantity
                       : item.ticketPrice * item.quantity
                     ).toLocaleString('vi-VN')}{' '}
                     VNĐ
@@ -252,27 +236,27 @@ const ConfirmOrderPage = () => {
             </div>
           </div>
           <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-6">
-            <span>Tổng cộng:</span>
+            <span>{t('total')}:</span>
             <span>{total.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           {discountAmount > 0 && (
             <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
-              <span>Giảm giá:</span>
+              <span>{t('discount')}:</span>
               <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
             </div>
           )}
           <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
-            <span>Thành tiền:</span>
+            <span>{t('finalTotal')}:</span>
             <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           <div className="mb-4 text-sm text-gray-500">
-            Mã đơn hàng: <b>{orderInfo.orderId}</b>
+            {t('orderCode')}: <b>{orderInfo.orderId}</b>
           </div>
           <button
             onClick={() => navigate('/')}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center"
           >
-            Về trang chủ
+            {t('backToHome')}
           </button>
         </div>
       </motion.div>
@@ -287,21 +271,21 @@ const ConfirmOrderPage = () => {
         className="flex flex-col justify-center items-center min-h-screen bg-red-50 p-8 text-center"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-          <h2 className="text-2xl font-bold text-red-700 mb-4">Thanh toán thất bại</h2>
+          <h2 className="text-2xl font-bold text-red-700 mb-4">{t('paymentFailed')}</h2>
           <div className="mb-4 text-red-600">
-            Có lỗi xảy ra khi thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.
+            {t('paymentErrorMessage')}
           </div>
           <button
             onClick={() => window.location.reload()}
             className="w-full bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-red-600 hover:to-pink-700 transition-all duration-300 flex items-center justify-center mb-2"
           >
-            Thử lại
+            {t('tryAgain')}
           </button>
           <a
             href="mailto:support@yourdomain.com"
             className="w-full block bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg shadow-lg hover:bg-gray-300 transition-all duration-300 text-center"
           >
-            Liên hệ hỗ trợ
+            {t('contactSupport')}
           </a>
         </div>
       </motion.div>
@@ -315,18 +299,18 @@ const ConfirmOrderPage = () => {
       className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-green-50 via-emerald-100 to-teal-100 p-8 text-center"
     >
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-        <h2 className="text-2xl font-bold text-emerald-700 mb-4">Xác nhận đơn hàng</h2>
+        <h2 className="text-2xl font-bold text-emerald-700 mb-4">{t('confirmOrder')}</h2>
         <div className="mb-4 text-left">
           <div className="font-semibold text-lg text-purple-800 mb-1">{checkout.eventName}</div>
           <div className="text-xs text-gray-500 mb-2">{checkout.eventTime}</div>
           {checkout.discountCode && (
             <div className="text-sm text-amber-600 mb-2">
-              Mã giảm giá: <b>{checkout.discountCode}</b>
+              {t('discountCode')}: <b>{checkout.discountCode}</b>
             </div>
           )}
         </div>
         <div className="mb-4">
-          <div className="font-semibold text-slate-700 mb-2">Danh sách vé:</div>
+          <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
           <div className="divide-y divide-gray-200">
             {checkout.items.map((item) => (
               <div key={item.ticketId} className="flex justify-between py-2 text-sm">
@@ -339,17 +323,17 @@ const ConfirmOrderPage = () => {
           </div>
         </div>
         <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-2">
-          <span>Tổng cộng:</span>
+          <span>{t('total')}:</span>
           <span>{total.toLocaleString('vi-VN')} VNĐ</span>
         </div>
         {discountAmount > 0 && (
           <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
-            <span>Giảm giá:</span>
+            <span>{t('discount')}:</span>
             <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
           </div>
         )}
         <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
-          <span>Thành tiền:</span>
+          <span>{t('finalTotal')}:</span>
           <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
         </div>
         <button
@@ -362,7 +346,7 @@ const ConfirmOrderPage = () => {
           ) : (
             <CreditCard className="w-6 h-6 mr-2" />
           )}
-          {confirming ? 'Đang xử lý...' : 'Thanh toán'}
+          {confirming ? t('processing') : t('pay')}
         </button>
       </div>
     </motion.div>

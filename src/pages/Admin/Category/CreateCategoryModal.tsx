@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
 import { validateCategoryForm } from '@/utils/validation';
 import { useAdminValidation, createFieldChangeHandler } from '@/hooks/use-admin-validation';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
     description: '',
   });
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -68,7 +70,7 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
         categoryName: form.categoryName.trim(),
         categoryDescription: form.description.trim(),
       });
-      toast.success('Category created successfully!');
+      toast.success(t('categoryCreatedSuccessfully'));
       setForm({
         categoryName: '',
         description: '',
@@ -87,18 +89,18 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Create Category</DialogTitle>
+            <DialogTitle>{t('createCategory')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Category Name</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('categoryName')}</label>
             <input
               className={getErrorClass('categoryName', 'border px-3 py-2 rounded w-full')}
               value={form.categoryName}
               onChange={handleCategoryNameChange}
               disabled={loading}
-              placeholder="Enter category name"
+              placeholder={t('enterCategoryName')}
             />
             {getFieldError('categoryName') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('categoryName')}</div>
@@ -106,15 +108,13 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Category Description <span className="text-gray-400">- Optional</span>
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">{t('categoryDescription')} <span className="text-gray-400">- {t('optional')}</span></label>
             <textarea
               className={getErrorClass('description', 'border px-3 py-2 rounded w-full')}
               value={form.description}
               onChange={handleDescriptionChange}
               disabled={loading}
-              placeholder="Enter description (5-500 characters)"
+              placeholder={t('enterCategoryDescription')}
               rows={3}
             />
             {getFieldError('description') && (
@@ -130,7 +130,7 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
               disabled={loading}
               type="button"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
@@ -141,10 +141,10 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <FaSpinner className="animate-spin" />
-                  Creating...
+                  {t('creating')}
                 </div>
               ) : (
-                'Create'
+                t('create')
               )}
             </button>
           </DialogFooter>

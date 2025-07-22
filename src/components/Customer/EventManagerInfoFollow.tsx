@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { NO_AVATAR } from '@/assets/img';
 import type { User } from '@/types/auth';
+import { useTranslation } from 'react-i18next';
 
 interface EventManagerInfoFollowProps {
   eventManagerId: string; // Có thể là userId hoặc accountId truyền vào, nhưng sẽ fetch info để lấy accountId
@@ -16,6 +17,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followLoading, setFollowLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!eventManagerId) return;
@@ -63,7 +65,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
         <div className="flex items-center gap-2 mb-4">
           <div className="w-2 h-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full animate-pulse"></div>
           <span className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 uppercase tracking-wider">
-            Người tổ chức
+            {t('eventManager')}
           </span>
           <div className="flex-1 h-px bg-gradient-to-r from-purple-400/30 to-transparent"></div>
         </div>
@@ -99,7 +101,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               {info.fullName || 'Event Manager'}
             </div>
             <div className="text-sm text-slate-400 mt-1 opacity-0 animate-fade-in-up">
-              Nhấn để xem thông tin chi tiết
+              {t('clickToViewDetails')}
             </div>
           </div>
           {/* Follow Button */}
@@ -124,10 +126,10 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
                 {followLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Đang xử lý...</span>
+                    <span>{t('processing')}</span>
                   </div>
                 ) : (
-                  isFollowing ? 'Bỏ theo dõi' : 'Theo dõi'
+                  isFollowing ? t('unfollow') : t('follow')
                 )}
               </span>
             </Button>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import FaceCapture from './FaceCapture';
 import { loginByFaceAPI } from '@/services/auth.service';
+import { useTranslation } from 'react-i18next';
 
 interface FaceLoginModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ function isFaceLoginResponse(obj: unknown): obj is FaceLoginResponse {
 }
 
 const FaceLoginModal: React.FC<FaceLoginModalProps> = ({ open, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,10 +55,10 @@ const FaceLoginModal: React.FC<FaceLoginModalProps> = ({ open, onClose, onSucces
         onSuccess(res);
         onClose();
       } else {
-        setError((isFaceLoginResponse(res) && res.message) || 'Đăng nhập bằng khuôn mặt thất bại.');
+        setError((isFaceLoginResponse(res) && res.message) || t('loginFailed'));
       }
     } catch {
-      setError('Không thể đăng nhập bằng khuôn mặt. Vui lòng thử lại.');
+      setError(t('cannotLoginFace'));
     } finally {
       setLoading(false);
     }
@@ -68,16 +70,16 @@ const FaceLoginModal: React.FC<FaceLoginModalProps> = ({ open, onClose, onSucces
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
           onClick={onClose}
-          aria-label="Đóng"
+          aria-label={t('close')}
         >
           ×
         </button>
-        <h2 className="text-xl font-bold mb-4 text-center">Đăng nhập bằng khuôn mặt</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">{t('faceLogin')}</h2>
         <FaceCapture onCapture={handleCapture} onError={setError} />
         {loading && (
           <div className="flex items-center justify-center mt-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-            <span className="ml-2 text-blue-600">Đang xác thực...</span>
+            <span className="ml-2 text-blue-600">{t('verifying')}</span>
           </div>
         )}
         {error && <div className="text-red-500 text-center mt-2">{error}</div>}

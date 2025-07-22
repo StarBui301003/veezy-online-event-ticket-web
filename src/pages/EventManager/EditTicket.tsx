@@ -13,12 +13,19 @@ import {
   FaExchangeAlt,
   FaSave,
 } from 'react-icons/fa';
+import type { TicketForm as BaseTicketForm } from '@/types/ticket';
+import { useTranslation } from 'react-i18next';
+
+export interface TicketFormWithId extends BaseTicketForm {
+  ticketId: string;
+}
 
 export default function EditTicket() {
+  const { t } = useTranslation();
   const { eventId, ticketId } = useParams<{ eventId: string; ticketId: string }>();
   const navigate = useNavigate();
-  const [form, setForm] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<TicketFormWithId | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -29,11 +36,12 @@ export default function EditTicket() {
         setLoading(true);
         try {
           const tickets = await getTicketsByEvent(eventId);
-          const ticket = tickets.find((t: any) => t.ticketId === ticketId);
+          const ticket = tickets.find((t: TicketFormWithId) => t.ticketId === ticketId);
           if (ticket) {
             const toInputDate = (d: string) =>
               d ? new Date(d).toISOString().slice(0, 16) : "";
             setForm({
+              ticketId: ticket.ticketId,
               name: ticket.ticketName,
               description: ticket.ticketDescription,
               price: ticket.ticketPrice,
@@ -43,7 +51,6 @@ export default function EditTicket() {
               maxTicketsPerOrder: ticket.maxTicketsPerOrder ?? 1, // đảm bảo luôn có giá trị
               isTransferable: ticket.isTransferable,
               imageUrl: "",
-              oldImageUrl: ticket.imageUrl || "",
             });
           }
         } finally {
@@ -54,10 +61,13 @@ export default function EditTicket() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setForm((prev: any) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    }));
+    setForm((prev: TicketFormWithId | null) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+      };
+    });
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,24 +76,28 @@ export default function EditTicket() {
     // Nếu có uploadImage thì dùng, còn không thì dùng URL.createObjectURL
     // const url = await uploadImage(file);
     const url = URL.createObjectURL(file);
-    setForm((prev: any) => ({ ...prev, imageUrl: url }));
+    setForm((prev: TicketFormWithId | null) => {
+      if (!prev) return null;
+      return { ...prev, imageUrl: url };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Chặn double submit
     setError(null);
     setSuccess(null);
 
     // Validate
-    if (!form.name?.trim()) return setError('Tên vé không được để trống!');
-    if (!form.description?.trim()) return setError('Mô tả vé không được để trống!');
-    if (!form.price || form.price < 0) return setError('Giá vé phải >= 0!');
-    if (!form.quantity || form.quantity < 1) return setError('Số lượng vé phải >= 1!');
-    if (!form.saleStartTime || !form.saleEndTime)
-      return setError('Chọn thời gian mở bán và kết thúc!');
+    if (!form?.name?.trim()) return setError(t('ticketNameEmpty'));
+    if (!form?.description?.trim()) return setError(t('ticketDescriptionEmpty'));
+    if (!form?.price || form.price < 0) return setError(t('ticketPriceInvalid'));
+    if (!form?.quantity || form.quantity < 1) return setError(t('ticketQuantityInvalid'));
+    if (!form?.saleStartTime || !form.saleEndTime)
+      return setError(t('ticketSaleTimeInvalid'));
     if (form.saleStartTime >= form.saleEndTime)
-      return setError('Thời gian kết thúc phải sau thời gian mở bán!');
-    if (!eventId || !ticketId) return setError('Không tìm thấy sự kiện hoặc vé!');
+      return setError(t('ticketSaleEndTimeInvalid'));
+    if (!eventId || !ticketId) return setError(t('ticketEventNotFound'));
 
     try {
            // ...existing code...
@@ -97,19 +111,21 @@ export default function EditTicket() {
         saleEndTime: form.saleEndTime,
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
         isTransferable: form.isTransferable,
-        imageUrl: form.imageUrl || form.oldImageUrl, // giữ ảnh cũ nếu chưa chọn ảnh mới
+        imageUrl: form.imageUrl, // giữ ảnh cũ nếu chưa chọn ảnh mới
       });
-      setSuccess('Cập nhật vé thành công!');
+      setSuccess(t('ticketUpdateSuccess'));
       setTimeout(() => navigate(-1), 1200);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Cập nhật vé thất bại!');
+      setError(err?.response?.data?.message || t('ticketUpdateFailed'));
+    } finally {
+      setLoading(false);
     }
   };
 
   if (loading || !form) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]">
-        <div className="text-pink-400 text-lg">Đang tải dữ liệu vé...</div>
+        <div className="text-pink-400 text-lg">{t('ticketLoadingData')}</div>
       </div>
     );
   }
@@ -125,39 +141,39 @@ export default function EditTicket() {
           <div className="flex items-center gap-3 mb-8">
             <FaTicketAlt className="text-4xl text-pink-400 drop-shadow-glow" />
             <h2 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent tracking-wide uppercase">
-              Chỉnh sửa vé
+              {t('editTicket')}
             </h2>
           </div>
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaHashtag /> Tên vé
+              <FaHashtag /> {t('ticketName')}
             </label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập tên vé"
+              placeholder={t('enterTicketName')}
               required
             />
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaTicketAlt /> Mô tả vé
+              <FaTicketAlt /> {t('ticketDescription')}
             </label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập mô tả vé"
+              placeholder={t('enterTicketDescription')}
               required
             />
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaMoneyBill /> Giá vé (VNĐ)
+              <FaMoneyBill /> {t('ticketPrice')} (VNĐ)
             </label>
             <input
               name="price"
@@ -166,13 +182,13 @@ export default function EditTicket() {
               value={form.price}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập giá vé"
+              placeholder={t('enterTicketPrice')}
               required
             />
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaSortNumericUp /> Số lượng vé
+              <FaSortNumericUp /> {t('ticketQuantity')}
             </label>
             <input
               name="quantity"
@@ -181,13 +197,13 @@ export default function EditTicket() {
               value={form.quantity}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập số lượng vé"
+              placeholder={t('enterTicketQuantity')}
               required
             />
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaCalendarAlt /> Thời gian mở bán
+              <FaCalendarAlt /> {t('ticketSaleStartTime')}
             </label>
             <input
               name="saleStartTime"
@@ -200,7 +216,7 @@ export default function EditTicket() {
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaCalendarAlt /> Thời gian kết thúc bán
+              <FaCalendarAlt /> {t('ticketSaleEndTime')}
             </label>
             <input
               name="saleEndTime"
@@ -213,7 +229,7 @@ export default function EditTicket() {
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaExchangeAlt /> Số vé tối đa mỗi đơn
+              <FaExchangeAlt /> {t('ticketMaxTicketsPerOrder')}
             </label>
                        <input
               name="maxTicketsPerOrder"
@@ -222,7 +238,7 @@ export default function EditTicket() {
               value={form.maxTicketsPerOrder}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Số vé tối đa mỗi đơn"
+              placeholder={t('enterTicketMaxTicketsPerOrder')}
               required
             />
           </div>
@@ -239,12 +255,12 @@ export default function EditTicket() {
               htmlFor="isTransferable"
               className="font-bold text-pink-300 flex items-center gap-2"
             >
-              Vé có thể chuyển nhượng
+              {t('ticketTransferable')}
             </label>
           </div>
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaImage /> Ảnh minh họa (tùy chọn)
+              <FaImage /> {t('ticketImage')} (tùy chọn)
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -258,12 +274,12 @@ export default function EditTicket() {
                 htmlFor="ticket-image"
                 className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 font-bold shadow-lg"
               >
-                Chọn ảnh
+                {t('chooseImage')}
               </label>
                             
-                            {(form.imageUrl || form.oldImageUrl) && (
+                            {form.imageUrl && (
                 <img
-                  src={form.imageUrl || form.oldImageUrl}
+                  src={form.imageUrl}
                   alt="ticket"
                   className="h-16 w-24 object-cover rounded-xl border-2 border-pink-400 shadow-lg"
                 />
@@ -283,9 +299,10 @@ export default function EditTicket() {
           <button
             type="submit"
             className="w-full py-4 mt-4 text-xl font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-2xl shadow-xl transition-all duration-200 tracking-widest uppercase drop-shadow-glow"
+            disabled={loading}
           >
             <FaSave className="inline mr-2" />
-            Lưu thay đổi
+            {t('saveChanges')}
           </button>
         </form>
       </div>

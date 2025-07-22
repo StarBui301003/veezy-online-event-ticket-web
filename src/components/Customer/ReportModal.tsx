@@ -3,6 +3,7 @@ import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
 import { reportComment, reportEvent, reportNews } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 const REASONS = [
   'Nội dung không phù hợp',
@@ -22,6 +23,7 @@ interface ReportModalProps {
 }
 
 export default function ReportModal({ open, onClose, targetType, targetId }: ReportModalProps) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState(REASONS[0]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,14 +75,14 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
     <SimpleModal open={open} onClose={onClose}>
       <div className="text-white max-w-md w-full rounded-2xl">
         <h2 className="text-2xl font-bold text-white mb-2">
-          {targetType === 'event' ? 'Báo cáo sự kiện' : targetType === 'news' ? 'Báo cáo tin tức' : 'Báo cáo bình luận'}
+          {targetType === 'event' ? t('reportEvent') : targetType === 'news' ? t('reportNews') : t('reportComment')}
         </h2>
         <div className="text-slate-200 mb-4">
           Vui lòng chọn lý do và mô tả chi tiết nếu cần để gửi báo cáo này tới quản trị viên.
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block mb-1 font-semibold text-purple-200">Lý do</label>
+            <label className="block mb-1 font-semibold text-purple-200">{t('reportReason')}</label>
             <select
               className="w-full rounded-lg px-3 py-2 bg-slate-800 text-white border border-purple-700 focus:ring-2 focus:ring-purple-400 outline-none transition"
               value={reason}
@@ -91,19 +93,17 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
             </select>
           </div>
           <div>
-            <label className="block mb-1 font-semibold text-purple-200">Mô tả chi tiết</label>
+            <label className="block mb-1 font-semibold text-purple-200">{t('reportDescription')}</label>
             <textarea
               className="w-full rounded-lg px-3 py-2 min-h-[80px] bg-slate-800 text-white border border-purple-700 focus:ring-2 focus:ring-purple-400 outline-none transition"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Nhập mô tả chi tiết (tuỳ chọn)"
+              placeholder={t('reportDescriptionPlaceholder')}
             />
           </div>
           <div className="flex gap-2 justify-end pt-2">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={loading} className="bg-slate-700 text-white hover:bg-slate-600 border border-slate-600">Huỷ</Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-700 hover:to-indigo-700 shadow-lg">
-              {loading ? 'Đang gửi...' : 'Gửi báo cáo'}
-            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={loading} className="bg-slate-700 text-white hover:bg-slate-600 border border-slate-600">{t('reportCancel')}</Button>
+            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-700 hover:to-indigo-700 shadow-lg">{loading ? t('reportSending') : t('reportSend')}</Button>
           </div>
         </form>
       </div>

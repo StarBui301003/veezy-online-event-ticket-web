@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,11 @@ import { getTicketsByOrderId, getMyAttendances } from '@/services/ticketIssued.s
 import OrderHistory from '@/components/Customer/OrderHistory';
 import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
+import type { User } from '@/types/auth';
+import type { AdminOrder } from '@/types/Admin/order';
+import type { TicketPayload } from '@/types/event';
+import type { Attendance } from '@/types/attendance';
+import { useTranslation } from 'react-i18next';
 
 const TABS = [
   { key: 'info', label: 'Thông tin cá nhân' },
@@ -40,10 +44,11 @@ const TABS = [
 ];
 
 const ProfileCustomer = () => {
-  const [account, setAccount] = useState<any>(null);
+  const { t } = useTranslation();
+  const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
@@ -53,20 +58,20 @@ const ProfileCustomer = () => {
   const [tab, setTab] = useState('info');
 
   // Lịch sử mua vé
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState('');
   const [ordersPage, setOrdersPage] = useState(1);
   const [ordersTotalPages, setOrdersTotalPages] = useState(1);
 
   // Vé của tôi
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [tickets, setTickets] = useState<TicketPayload[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState('');
 
   // Lịch sử tham dự
-  const [attendances, setAttendances] = useState<any[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [attendancesLoading, setAttendancesLoading] = useState(false);
   const [attendancesError, setAttendancesError] = useState('');
 
@@ -94,7 +99,7 @@ const ProfileCustomer = () => {
       .then((user) => {
         setAccount(user);
         setForm({ ...user });
-        setPreviewUrl(user.avatar || user.avatarUrl || '');
+        setPreviewUrl(user.avatarUrl || '');
       })
       .catch(() => {
         setAccount(null);
@@ -145,8 +150,8 @@ const ProfileCustomer = () => {
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm((prev: any) => ({
-      ...prev,
+    setForm((prev: Partial<User> | null) => ({
+      ...(prev || {}),
       [name]: name === 'gender' ? Number(value) : value,
     }));
 
@@ -203,14 +208,14 @@ const ProfileCustomer = () => {
 
     setLoading(true);
     try {
-      let avatarUrl = form.avatar || form.avatarUrl;
+      let avatarUrl = form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
         const accStr = localStorage.getItem('account');
         if (accStr) {
           const acc = JSON.parse(accStr);
-          acc.avatar = avatarUrl;
+          acc.avatarUrl = avatarUrl;
           localStorage.setItem('account', JSON.stringify(acc));
         }
       }
@@ -225,21 +230,31 @@ const ProfileCustomer = () => {
       const updatedUser = await getUserByIdAPI(form.userId);
       if (updatedUser) {
         const accStr = localStorage.getItem('account');
-        let acc: any = {};
+        let acc: Partial<User> = {};
         if (accStr) {
           acc = JSON.parse(accStr);
         }
         const newAccount = {
           ...acc,
           ...updatedUser,
-          avatar: updatedUser.avatar,
+          avatarUrl: updatedUser.avatarUrl,
           fullName: updatedUser.fullName,
           email: updatedUser.email,
-          username: updatedUser.username || acc.username,
         };
         localStorage.setItem('account', JSON.stringify(newAccount));
       }
-      setAccount({ ...form, avatar: avatarUrl });
+      setAccount({
+        userId: form.userId,
+        accountId: form.accountId,
+        fullName: form.fullName,
+        phone: form.phone,
+        email: form.email,
+        avatarUrl: avatarUrl,
+        gender: form.gender,
+        dob: form.dob,
+        location: form.location,
+        createdAt: form.createdAt,
+      });
       setEditMode(false);
       setAvatarFile(null);
       setFieldErrors({});
@@ -345,7 +360,7 @@ const ProfileCustomer = () => {
                         className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
                         onClick={() => document.getElementById('edit-avatar-input')?.click()}
                       >
-                        Change Avatar
+                        {t('changeAvatar')}
                       </Button>
                     </>
                   )}
@@ -356,13 +371,13 @@ const ProfileCustomer = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                       {/* Full Name */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Full Name</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('fullName')}</label>
                         <Input
                           name="fullName"
                           value={form.fullName || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your full name"
+                          placeholder={t('enterFullName')}
                           className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
                             hasFieldError(fieldErrors, 'fullname')
                               ? '!border-red-500 !text-white'
@@ -377,12 +392,12 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Email */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Email Address</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('emailAddress')}</label>
                         <Input
                           name="email"
                           value={form.email || ''}
                           disabled={true}
-                          placeholder="Your email address"
+                          placeholder={t('yourEmailAddress')}
                           className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
                             hasFieldError(fieldErrors, 'email')
                               ? '!border-red-500 !text-white'
@@ -397,13 +412,13 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Phone */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Phone Number</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('phoneNumber')}</label>
                         <Input
                           name="phone"
                           value={form.phone || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your phone number"
+                          placeholder={t('enterPhoneNumber')}
                           className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
                             hasFieldError(fieldErrors, 'phone')
                               ? '!border-red-500 !text-white'
@@ -418,11 +433,11 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Gender */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Gender</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('gender')}</label>
                         <Select
                           value={String(form.gender || '0')}
                           onValueChange={(val) => {
-                            setForm((prev: any) => ({ ...prev, gender: Number(val) }));
+                            setForm((prev: Partial<User> | null) => ({ ...(prev || {}), gender: Number(val) }));
                             // Clear errors when user selects
                             if (hasFieldError(fieldErrors, 'gender')) {
                               setFieldErrors((prev) => {
@@ -442,7 +457,7 @@ const ProfileCustomer = () => {
                             }`}
                           >
                             <SelectValue
-                              placeholder="Select your gender"
+                              placeholder={t('selectGender')}
                               className="text-[#A1A1AA] placeholder:text-[#A1A1AA]"
                             />
                           </SelectTrigger>
@@ -451,19 +466,19 @@ const ProfileCustomer = () => {
                               value="0"
                               className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
                             >
-                              Male
+                              {t('male')}
                             </SelectItem>
                             <SelectItem
                               value="1"
                               className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
                             >
-                              Female
+                              {t('female')}
                             </SelectItem>
                             <SelectItem
                               value="2"
                               className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
                             >
-                              Other
+                              {t('other')}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -475,13 +490,13 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Location */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Location</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('location')}</label>
                         <Input
                           name="location"
                           value={form.location || ''}
                           onChange={handleInputChange}
                           disabled={!editMode}
-                          placeholder="Enter your location"
+                          placeholder={t('enterLocation')}
                           className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
                             hasFieldError(fieldErrors, 'location')
                               ? '!border-red-500 !text-white'
@@ -496,13 +511,13 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Date of Birth */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">Day of Birth</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('dayOfBirth')}</label>
                         <input
                           name="dob"
                           type="date"
                           value={form.dob ? form.dob.slice(0, 10) : ''}
                           onChange={(e) => {
-                            setForm((f: any) => ({ ...f, dob: e.target.value }));
+                            setForm((f: Partial<User> | null) => ({ ...(f || {}), dob: e.target.value }));
                             // Clear errors when user changes date
                             if (hasFieldError(fieldErrors, 'dob')) {
                               setFieldErrors((prev) => {
@@ -552,12 +567,12 @@ const ProfileCustomer = () => {
                           setEditMode(false);
                           setForm(account);
                           setAvatarFile(null);
-                          setPreviewUrl(account.avatar || account.avatarUrl || '');
+                          setPreviewUrl(account.avatarUrl || '');
                           setFieldErrors({});
                         }}
                         disabled={loading}
                       >
-                        Cancel
+                        {t('cancel')}
                       </Button>
                       <Button
                         type="button"
@@ -565,7 +580,7 @@ const ProfileCustomer = () => {
                         onClick={handleSave}
                         disabled={loading}
                       >
-                        {loading ? 'Saving...' : 'Save Changes'}
+                        {loading ? t('saving') : t('saveChanges')}
                       </Button>
                     </div>
                   ) : (
@@ -577,7 +592,7 @@ const ProfileCustomer = () => {
                         setFieldErrors({});
                       }}
                     >
-                      Edit Profile
+                      {t('editProfile')}
                     </Button>
                   )}
                   {/* Nút riêng Cập nhật khuôn mặt */}
@@ -586,7 +601,7 @@ const ProfileCustomer = () => {
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                     onClick={() => setShowFaceModal(true)}
                   >
-                    {account.faceImageUrl ? 'Update Face' : 'Register Face'}
+                    {account.avatarUrl ? t('updateFace') : t('registerFace')}
                   </Button>
                 </div>
               </div>
@@ -604,7 +619,10 @@ const ProfileCustomer = () => {
             )}
             {tab === 'tickets' && (
               <MyTickets
-                tickets={tickets}
+                tickets={tickets.map((t, idx) => ({
+                  ticketName: t.ticketName,
+                  key: `${t.eventId}-${t.ticketName}-${idx}`,
+                }))}
                 loading={ticketsLoading}
                 error={ticketsError}
                 selectedOrder={selectedOrder}
@@ -633,11 +651,11 @@ const ProfileCustomer = () => {
               ×
             </button>
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              {account.faceImageUrl ? 'Update Face' : 'Register Face'}
+              {account.avatarUrl ? t('updateFace') : t('registerFace')}
             </h2>
             <input
               type="password"
-              placeholder="Nhập mật khẩu tài khoản"
+              placeholder={t('enterAccountPassword')}
               value={facePassword}
               onChange={(e) => setFacePassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -655,10 +673,10 @@ const ProfileCustomer = () => {
                   await updateFaceAPI(account.userId, file, [0]);
                   toast.success('Face updated successfully!');
                   setShowFaceModal(false);
-                } catch (e: any) {
+                } catch (e: unknown) {
                   let msg = 'Face update failed!';
-                  if (e?.response?.data?.message) {
-                    const m = e.response.data.message;
+                  if (typeof e === 'object' && e && 'response' in e && typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === 'string') {
+                    const m = (e as { response: { data: { message: string } } }).response.data.message;
                     if (
                       m.includes('already been registered') ||
                       m.includes('Liveness check failed') ||

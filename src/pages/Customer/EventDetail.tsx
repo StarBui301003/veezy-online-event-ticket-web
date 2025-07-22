@@ -12,6 +12,7 @@ import { Camera } from 'lucide-react';
 import { connectCommentHub, onComment } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent } from '@/services/follow.service';
+import { useTranslation } from 'react-i18next';
 
 interface EventDetailData {
   eventId: string;
@@ -45,6 +46,7 @@ interface SelectedTicket {
 }
 
 const EventDetail = () => {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<EventDetailData | null>(null);
@@ -91,7 +93,7 @@ const EventDetail = () => {
 
   useEffect(() => {
     if (!eventId) {
-      setError("Không tìm thấy ID sự kiện.");
+      setError(t("eventIdNotFound"));
       setLoadingEvent(false);
       setLoadingTickets(false);
       return;
@@ -105,11 +107,11 @@ const EventDetail = () => {
         if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
           setEvent(eventData);
         } else {
-          setError("Sự kiện không tồn tại, chưa được duyệt hoặc đã bị hủy.");
+          setError(t("eventNotFoundOrCancelled"));
           setEvent(null);
         }
       } catch {
-        setError("Không thể tải thông tin sự kiện. Vui lòng thử lại.");
+        setError(t("failedToLoadEventInfo"));
         setEvent(null);
       } finally {
         setLoadingEvent(false);
@@ -175,11 +177,11 @@ const EventDetail = () => {
 
   const handleCreateOrder = async () => {
     if (!eventId || Object.keys(selectedTickets).length === 0) {
-      toast.warn("Vui lòng chọn ít nhất một vé.");
+      toast.warn(t("pleaseSelectAtLeastOneTicket"));
       return;
     }
     if (!customerId) {
-      toast.error("Không tìm thấy thông tin khách hàng. Vui lòng đăng nhập lại.");
+      toast.error(t("customerInfoNotFound"));
       return;
     }
 
@@ -189,7 +191,7 @@ const EventDetail = () => {
       if (selected) {
         const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
         if (selected.quantity > maxPerOrder) {
-          toast.error(`Bạn chỉ được mua tối đa ${maxPerOrder} vé cho loại "${ticket.ticketName}".`);
+          toast.error(t("maxTicketsPerOrderError", { maxPerOrder }));
           return;
         }
       }
@@ -219,7 +221,7 @@ const EventDetail = () => {
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) {
-      setDiscountValidation({ success: false, message: "Vui lòng nhập mã giảm giá." });
+      setDiscountValidation({ success: false, message: t("pleaseEnterDiscountCode") });
       setAppliedDiscount(0);
       return;
     }
@@ -230,14 +232,14 @@ const EventDetail = () => {
       const orderAmount = calculateTotalAmount();
       const res = await validateDiscountCode(String(eventId), discountCode.trim(), orderAmount);
       if (res && res.flag && res.data) {
-        setDiscountValidation({ success: true, message: res.message || "Mã giảm giá hợp lệ!", discountAmount: res.data.discountAmount });
+        setDiscountValidation({ success: true, message: res.message || t("discountCodeValid"), discountAmount: res.data.discountAmount });
         setAppliedDiscount(res.data.discountAmount || 0);
       } else {
-        setDiscountValidation({ success: false, message: res.message || "Mã giảm giá không hợp lệ." });
+        setDiscountValidation({ success: false, message: res.message || t("discountCodeInvalid") });
         setAppliedDiscount(0);
       }
     } catch (err) {
-      setDiscountValidation({ success: false, message: err?.response?.data?.message || "Mã giảm giá không hợp lệ." });
+      setDiscountValidation({ success: false, message: err?.response?.data?.message || t("discountCodeInvalid") });
       setAppliedDiscount(0);
     } finally {
       setValidatingDiscount(false);
@@ -254,17 +256,17 @@ const EventDetail = () => {
       // Validate GUID
       const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       if (!eventId || !guidRegex.test(eventId)) {
-        toast.error('eventId không hợp lệ!');
+        toast.error(t("invalidEventId"));
         setFaceLoading(false);
         return;
       }
       if (!customerId || !guidRegex.test(customerId)) {
-        toast.error('customerId không hợp lệ!');
+        toast.error(t("invalidCustomerId"));
         setFaceLoading(false);
         return;
       }
       if (Object.keys(selectedTickets).length === 0) {
-        toast.warn('Vui lòng chọn ít nhất một vé.');
+        toast.warn(t("pleaseSelectAtLeastOneTicket"));
         setFaceLoading(false);
         return;
       }
@@ -275,7 +277,7 @@ const EventDetail = () => {
       // Kiểm tra tất cả ticketId phải là GUID hợp lệ
       for (const item of items) {
         if (!guidRegex.test(item.ticketId)) {
-          toast.error(`ticketId không hợp lệ: ${item.ticketId}`);
+          toast.error(t("invalidTicketId", { ticketId: item.ticketId }));
           setFaceLoading(false);
           return;
         }
@@ -323,16 +325,16 @@ const EventDetail = () => {
           faceOrder: true,
         };
         localStorage.setItem('checkout', JSON.stringify(checkoutData));
-        toast.success('Đặt vé bằng khuôn mặt thành công!');
+        toast.success(t("faceOrderSuccess"));
         setShowFaceModal(false);
         navigate('/confirm-order');
       } else {
-        throw new Error(res?.message || 'Đặt vé bằng khuôn mặt thất bại!');
+        throw new Error(res?.message || t("faceOrderFailed"));
       }
     } catch (e: unknown) {
       const msg = (typeof e === 'object' && e && 'message' in e) ? (e as { message?: string }).message : undefined;
-      setFaceError(msg || 'Đặt vé bằng khuôn mặt thất bại!');
-      toast.error(msg || 'Đặt vé bằng khuôn mặt thất bại!');
+      setFaceError(msg || t("faceOrderFailed"));
+      toast.error(msg || t("faceOrderFailed"));
     } finally {
       setFaceLoading(false);
     }
@@ -370,13 +372,13 @@ const EventDetail = () => {
         className="flex flex-col justify-center items-center min-h-screen bg-red-50 p-8 text-center"
       >
         <AlertCircle className="w-20 h-20 text-red-500 mb-6" />
-        <h2 className="text-3xl font-semibold text-red-700 mb-4">Đã xảy ra lỗi</h2>
+        <h2 className="text-3xl font-semibold text-red-700 mb-4">{t("errorOccurred")}</h2>
         <p className="text-red-600 text-lg">{error}</p>
         <button
           onClick={() => navigate("/")}
           className="mt-8 px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-all duration-300"
         >
-          Về trang chủ
+          {t("backToHome")}
         </button>
       </motion.div>
     );
@@ -385,7 +387,7 @@ const EventDetail = () => {
   if (!event) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <p className="text-xl text-gray-500">Không tìm thấy thông tin sự kiện.</p>
+        <p className="text-xl text-gray-500">{t("eventInfoNotFound")}</p>
       </div>
     );
   }
@@ -424,7 +426,7 @@ const EventDetail = () => {
                   }}
                   className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
                 >
-                  <Flag className="w-4 h-4" /> Báo cáo sự kiện
+                  <Flag className="w-4 h-4" /> {t("reportEvent")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -476,7 +478,7 @@ const EventDetail = () => {
                     className="px-3 py-1 bg-gray-200 text-xs text-gray-700 rounded-full shadow-md font-semibold hover:bg-gray-300 transition-colors"
                     onClick={() => setShowAllTags(true)}
                   >
-                    +{event.tags.length - 3} tag khác
+                    +{event.tags.length - 3} {t("otherTags")}
                   </button>
                 )}
                 {/* Nút theo dõi sự kiện */}
@@ -493,12 +495,12 @@ const EventDetail = () => {
                     {isFollowingEvent ? (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" /></svg>
-                        Bỏ theo dõi
+                        {t("unfollowEvent")}
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" /></svg>
-                        Theo dõi
+                        {t("followEvent")}
                       </>
                     )}
                   </button>
@@ -525,7 +527,7 @@ const EventDetail = () => {
               onClick={() => setShowDetail(v => !v)}
               className="w-full flex justify-between items-center text-lg font-semibold text-purple-300 mb-4 focus:outline-none bg-slate-900/60 px-4 py-2 rounded-lg"
             >
-              Chi tiết sự kiện
+              {t("eventDetails")}
               <span>{showDetail ? "▲" : "▼"}</span>
             </button>
             {showDetail && (
@@ -550,7 +552,7 @@ const EventDetail = () => {
                 </div>
               ) : (
                 <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed">
-                  <p>Không có mô tả cho sự kiện này.</p>
+                  <p>{t("noEventDescription")}</p>
                 </div>
               )
             )}
@@ -570,7 +572,7 @@ const EventDetail = () => {
           >
             {isEventEnded && (
               <div className="text-center text-red-500 font-bold text-lg my-4">
-                Sự kiện đã kết thúc, không thể mua vé.
+                {t("eventEndedCannotBuyTickets")}
               </div>
             )}
             <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-6 md:p-8 rounded-xl shadow-xl">
@@ -578,18 +580,22 @@ const EventDetail = () => {
                 onClick={() => setShowTickets(v => !v)}
                 className="w-full flex justify-between items-center text-2xl font-semibold text-teal-300 mb-6 border-b-2 border-teal-700 pb-3 focus:outline-none bg-slate-900/60 px-4 py-2 rounded-lg"
               >
-                <span className="flex items-center"><Ticket className="w-7 h-7 mr-3" /> Mua vé</span>
+                <span className="flex items-center"><Ticket className="w-7 h-7 mr-3" /> {t("buyTickets")}</span>
                 <span>{showTickets ? "▲" : "▼"}</span>
               </button>
               {showTickets && (
                 isEventEnded ? (
-                  <div className="text-center text-red-400 py-8 font-semibold">Không thể mua vé vì sự kiện đã kết thúc.</div>
+                  <div className="text-center text-red-400 py-8 font-semibold">
+                    {t("cannotBuyTicketsEventEnded")}
+                  </div>
                 ) : loadingTickets ? (
                   <div className="flex justify-center items-center py-8">
                     <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
                   </div>
                 ) : tickets.length === 0 ? (
-                  <p className="text-slate-400 text-center py-4">Hiện chưa có vé nào cho sự kiện này.</p>
+                  <p className="text-slate-400 text-center py-4">
+                    {t("noTicketsAvailableForThisEvent")}
+                  </p>
                 ) : (
                   <div className="space-y-5">
                     {tickets.map((ticket, index) => {
@@ -613,7 +619,7 @@ const EventDetail = () => {
                             </p>
                           </div>
                           <p className="text-xs text-slate-400 mb-3">
-                            Còn lại: {ticket.quantityAvailable - quantity} vé
+                            {t("remainingTickets", { remaining: ticket.quantityAvailable - quantity })}
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center space-x-3">
@@ -655,7 +661,7 @@ const EventDetail = () => {
                           </div>
                           {!canIncrease && (
                             <div className="text-xs text-red-400 mt-1">
-                              Đã đạt giới hạn số vé mua tối đa ({maxPerOrder} vé/lần)
+                              {t("maxTicketsPerOrderError", { maxPerOrder })}
                             </div>
                           )}
                         </motion.div>
@@ -676,7 +682,9 @@ const EventDetail = () => {
                   transition={{ duration: 0.4 }}
                   className="bg-slate-800 p-6 rounded-xl shadow-xl overflow-hidden"
                 >
-                  <h3 className="text-xl font-semibold text-amber-400 mb-4 border-b border-amber-700 pb-2">Tóm tắt đơn hàng</h3>
+                  <h3 className="text-xl font-semibold text-amber-400 mb-4 border-b border-amber-700 pb-2">
+                    {t("orderSummary")}
+                  </h3>
                   <div className="space-y-2 mb-4">
                     {Object.values(selectedTickets).map(item => {
                       const price = typeof item.ticketPrice === "number" ? item.ticketPrice : Number(item.ticketPrice) || 0;
@@ -696,10 +704,12 @@ const EventDetail = () => {
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                       className="flex justify-between items-center text-lg font-bold"
                     >
-                      <span className="text-slate-200">Tổng cộng:</span>
-                      <span className="text-amber-400 text-2xl">{typeof totalAmount === "number"
-                        ? totalAmount.toLocaleString('vi-VN')
-                        : Number(totalAmount || 0).toLocaleString('vi-VN')} VNĐ</span>
+                      <span className="text-slate-200">{t("total")}:</span>
+                      <span className="text-amber-400 text-2xl">
+                        {typeof totalAmount === "number"
+                          ? totalAmount.toLocaleString('vi-VN')
+                          : Number(totalAmount || 0).toLocaleString('vi-VN')} VNĐ
+                      </span>
                     </motion.div>
                   </div>
                   <div className="mb-4">
@@ -707,7 +717,7 @@ const EventDetail = () => {
                       <input
                         type="text"
                         className="border border-purple-300 rounded px-3 py-2 text-sm w-56 max-w-xs text-black"
-                        placeholder="Nhập mã giảm giá (nếu có)"
+                        placeholder={t("enterDiscountCode")}
                         value={discountCode}
                         onChange={e => { setDiscountCode(e.target.value); setDiscountValidation(null); setAppliedDiscount(0); }}
                         disabled={validatingDiscount}
@@ -718,7 +728,7 @@ const EventDetail = () => {
                         onClick={handleValidateDiscount}
                         disabled={validatingDiscount || !discountCode.trim()}
                       >
-                        {validatingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : "Áp dụng"}
+                        {validatingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t("applyDiscount")}
                       </button>
                     </div>
                     {discountValidation && (
@@ -742,7 +752,7 @@ const EventDetail = () => {
                     ) : (
                       <ShoppingCart className="w-6 h-6 mr-2" />
                     )}
-                    {isCreatingOrder ? "Đang xử lý..." : `Đặt vé (${selectedItemsCount} vé)`}
+                    {isCreatingOrder ? t("processingOrder") : `${t("bookTickets", { count: selectedItemsCount })}`}
                   </motion.button>
                   {/* Nút đặt vé bằng khuôn mặt */}
                   <motion.button
@@ -757,7 +767,7 @@ const EventDetail = () => {
                     ) : (
                       <Camera className="w-6 h-6 mr-2" />
                     )}
-                    {faceLoading ? "Đang xử lý..." : "Đặt vé bằng khuôn mặt"}
+                    {faceLoading ? t("processingFaceOrder") : t("bookTicketsWithFace")}
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
@@ -783,7 +793,9 @@ const EventDetail = () => {
               onClick={() => setShowFaceModal(false)}
               aria-label="Đóng"
             >×</button>
-            <h2 className="text-xl font-bold mb-4 text-center text-black">Đặt vé bằng khuôn mặt</h2>
+            <h2 className="text-xl font-bold mb-4 text-center text-black">
+              {t("bookTicketsWithFace")}
+            </h2>
             {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
             <FaceCapture
               onCapture={handleOrderWithFace}

@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   user: User;
@@ -14,15 +15,15 @@ interface Props {
 }
 
 export const UserDetailModal = ({ user, onClose }: Props) => {
-  const genderLabel = (gender: number) =>
-    gender === 0 ? 'Male' : gender === 1 ? 'Female' : 'Other';
+  const { t } = useTranslation();
+  const genderLabel = (gender: number) => gender === 0 ? t('male') : gender === 1 ? t('female') : t('other');
 
   return (
     <Dialog open={!!user} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
+            <DialogTitle>{t('userDetails')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4 pt-0 flex flex-col items-center">
@@ -35,7 +36,7 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
               )}
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">Full Name</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('fullName')}</label>
               <input
                 className="text-lg text-gray-800 bg-gray-200 border rounded px-2 py-1 w-full mb-1 text-left"
                 value={user.fullName}
@@ -43,7 +44,7 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
               />
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">Email</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('email')}</label>
               <input
                 className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full mb-1 text-left"
                 value={user.email}
@@ -51,18 +52,18 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
               />
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">Phone</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('phone')}</label>
               <input
                 className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
                 value={user.phone || ''}
                 readOnly
-                placeholder="N/A"
+                placeholder={t('nA')}
               />
             </div>
             {/* Gender and Date of Birth on the same row */}
             <div className="flex flex-row gap-4 w-full mb-0">
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Gender</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('gender')}</label>
                 <input
                   className="bg-gray-200 border rounded px-2 py-1 w-full text-left"
                   value={genderLabel(user.gender)}
@@ -70,12 +71,12 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Date of Birth</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('dateOfBirth')}</label>
                 <input
                   className="bg-gray-200 border rounded px-2 py-1 w-full text-left"
                   value={user.dob ? new Date(user.dob).toLocaleDateString() : ''}
                   readOnly
-                  placeholder="N/A"
+                  placeholder={t('nA')}
                 />
               </div>
             </div>
@@ -88,7 +89,7 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
               onClick={onClose}
               type="button"
             >
-              Close
+              {t('close')}
             </button>
           </DialogFooter>
         </div>

@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Clock, ExternalLink, MoreVertical, Flag, Calendar, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Clock, ExternalLink, MoreVertical, Calendar, ArrowLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import { connectNewsHub } from '@/services/signalr.service';
+import { News } from '@/types/event';
 
 const NewsDetail: React.FC = () => {
   const { newsId } = useParams<{ newsId: string }>();
   const navigate = useNavigate();
-  const [news, setNews] = useState<any>(null);
+  const [news, setNews] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
-  const [relatedNews, setRelatedNews] = useState<any[]>([]);
+  const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const [showCount, setShowCount] = useState(3);
   const [reportModal, setReportModal] = useState<{type: 'news' | 'comment', id: string} | null>(null);
   const location = useLocation();
@@ -27,7 +27,7 @@ const NewsDetail: React.FC = () => {
         if (data && data.newsId) {
           setNews(data);
           getAllNewsHome(1, 6).then((res) =>
-            setRelatedNews(res.data?.data?.items?.filter((n: any) => n.newsId !== newsId) || [])
+            setRelatedNews(res.data?.data?.items?.filter((n: News) => n.newsId !== newsId) || [])
           );
         } else {
           toast.error('Không tìm thấy tin tức!');

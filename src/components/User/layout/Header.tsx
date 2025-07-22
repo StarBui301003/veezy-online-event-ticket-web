@@ -27,8 +27,11 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/services/notification.service';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 
 export const Header = () => {
+  const { t, i18n: i18nInstance } = useTranslation();
   const [blur, setBlur] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -198,35 +201,20 @@ export const Header = () => {
           </Link>
           {/* Navigation */}
           <div className="sm:flex sm:gap-x-12 hidden">
-            <Link
-              to="/"
-              className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              Home
+            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('home')}
             </Link>
-            <Link
-              to="/"
-              className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              Category
+            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('category')}
             </Link>
-            <Link
-              to="/"
-              className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              Shows
+            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('shows')}
             </Link>
-            <Link
-              to="/"
-              className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              About
+            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('about')}
             </Link>
-            <Link
-              to="/"
-              className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              Contact
+            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('contact')}
             </Link>
           </div>
           {/* desktop search bar */}
@@ -234,7 +222,7 @@ export const Header = () => {
             <CiSearch className="size-5 text-neutral-60 ml-[17px]" strokeWidth={1.2} />
             <Input
               type="text"
-              placeholder="Search something here!"
+              placeholder={t('search_placeholder')}
               className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-neutral-40 shadow-none"
             />
           </div>
@@ -246,12 +234,17 @@ export const Header = () => {
                   variant="ghost"
                   className="body-medium-16 px-[6px] hidden sm:flex bg-transparent transition duration-300 hover:scale-110 hover:shadow"
                 >
-                  EN
+                  {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
                   <IoIosArrowDown />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuSeparator />
+              <DropdownMenuContent className="w-32">
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('vi')}>
+                  VN
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => i18n.changeLanguage('en')}>
+                  EN
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -262,7 +255,7 @@ export const Header = () => {
                 className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-lg shadow hover:scale-105 transition-transform duration-200 mr-2"
                 onClick={() => navigate('/event-manager')}
               >
-                Quản lý sự kiện
+                {t('eventManager')}
               </Button>
             )}
             {!account ? (
@@ -271,13 +264,13 @@ export const Header = () => {
                   to="/login"
                   className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
-                  Login
+                  {t('login')}
                 </Link>
                 <Link
                   to="/register"
                   className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
-                  Sign Up
+                  {t('signUp')}
                 </Link>
               </>
             ) : (
@@ -334,7 +327,7 @@ export const Header = () => {
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
-                    Profile
+                    {t('profile')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -346,10 +339,10 @@ export const Header = () => {
                     {loadingLogout ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Logging out...
+                        {t('logging_out')}
                       </>
                     ) : (
-                      'Logout'
+                      t('logout')
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -362,7 +355,7 @@ export const Header = () => {
                 <button
                   className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/30 transition-all relative"
                   onClick={() => setNotifDropdown((v) => !v)}
-                  title="Thông báo"
+                  title={t('notification')}
                 >
                   <Bell className="text-purple-500 text-xl" />
                   {notifHasUnread && (
@@ -373,7 +366,7 @@ export const Header = () => {
                   <div className="absolute right-0 z-30 mt-2 w-80 bg-white text-gray-900 rounded-xl shadow-2xl border border-purple-400/30 overflow-hidden animate-fadeIn">
                     <div className="flex items-center justify-between p-4 border-b font-bold text-purple-600 gap-2">
                       <span className="flex items-center gap-2">
-                        <Bell className="text-purple-400" /> Thông báo mới
+                        <Bell className="text-purple-400" /> {t('new_notifications')}
                       </span>
                       <button
                         className="text-xs text-purple-500 hover:underline font-semibold px-2 py-1 rounded hover:bg-purple-100 transition"
@@ -382,14 +375,14 @@ export const Header = () => {
                           notifications.length === 0 || notifications.every((n) => n.isRead)
                         }
                       >
-                        Đánh dấu tất cả đã đọc
+                        {t('mark_all_as_read')}
                       </button>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifLoading && notifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400">Đang tải...</div>
+                        <div className="p-4 text-center text-gray-400">{t('loading')}</div>
                       ) : notifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400">Không có thông báo mới</div>
+                        <div className="p-4 text-center text-gray-400">{t('no_new_notifications')}</div>
                       ) : (
                         <>
                           {notifications.map((n) => (
@@ -417,7 +410,7 @@ export const Header = () => {
                               onClick={handleLoadMore}
                               disabled={notifLoading || !notifHasMore}
                             >
-                              {notifLoading ? 'Đang tải...' : 'Xem thêm'}
+                              {notifLoading ? t('loading') : t('see_more')}
                             </button>
                           )}
                         </>

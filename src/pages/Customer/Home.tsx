@@ -13,6 +13,7 @@ import 'slick-carousel/slick/slick-theme.css';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { NO_IMAGE } from '@/assets/img';
 import { connectNewsHub, onNews, connectEventHub, onEvent } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface EventData {
   eventId: string;
@@ -38,6 +39,7 @@ interface News {
 }
 
 export const HomePage = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<EventData[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -136,7 +138,7 @@ export const HomePage = () => {
             </div>
           ) : events.length === 0 ? (
             <div className="text-center text-lg text-gray-400">
-              Không có sự kiện nào được phê duyệt.
+              {t('noApprovedEvents')}
             </div>
           ) : (
             <Slider {...sliderSettings}>
@@ -163,12 +165,12 @@ export const HomePage = () => {
           {/* Sự kiện nổi bật (2/3 bên trái) */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-gray-800">Sự kiện nổi bật</h2>
+              <h2 className="text-xl font-bold text-gray-800">{t('featuredEvents')}</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
                 onClick={() => navigate('/events')}
               >
-                Xem thêm
+                {t('viewMore')}
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -195,7 +197,7 @@ export const HomePage = () => {
                       </h3>
                       <div className="flex flex-col gap-0.5 text-xs text-gray-400">
                         <span>
-                          <b>Bắt đầu:</b>{' '}
+                          <b>{t('startAt')}:</b>{' '}
                           {new Date(event.startAt).toLocaleString('vi-VN', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -214,12 +216,12 @@ export const HomePage = () => {
           {/* Tin tức (1/3 bên phải) */}
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-gray-800">Tin tức</h2>
+              <h2 className="text-xl font-bold text-gray-800">{t('news')}</h2>
               <button
                 className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
                 onClick={() => navigate('/news/all')}
               >
-                Xem thêm
+                {t('viewMore')}
               </button>
             </div>
             {loadingNews ? (
@@ -227,7 +229,7 @@ export const HomePage = () => {
                 <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
               </div>
             ) : news.length === 0 ? (
-              <div className="text-center text-lg text-gray-400">Không có tin tức nào.</div>
+              <div className="text-center text-lg text-gray-400">{t('noNews')}</div>
             ) : (
               news.slice(0, 3).map((item) => (
                 <div

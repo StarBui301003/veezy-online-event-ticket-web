@@ -21,10 +21,12 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const PaymentListAdmin = () => {
+  const { t } = useTranslation();
   const [payments, setPayments] = useState<AdminPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -59,15 +61,15 @@ export const PaymentListAdmin = () => {
   const paymentMethodLabel = (method: number) => {
     switch (method) {
       case 0:
-        return 'VietQR';
+        return t('vietQR');
       case 1:
-        return 'Momo';
+        return t('momo');
       case 2:
-        return 'VnPay';
+        return t('vnPay');
       case 3:
-        return 'Other';
+        return t('other');
       default:
-        return 'Unknown';
+        return t('unknown');
     }
   };
 
@@ -83,19 +85,19 @@ export const PaymentListAdmin = () => {
                   #
                 </TableHead>
                 {/* <TableHead style={{ width: '25%' }}>PaymentId</TableHead> */}
-                <TableHead style={{ width: '10%' }}>OrderId</TableHead>
+                <TableHead style={{ width: '10%' }}>{t('orderId')}</TableHead>
                 <TableHead style={{ width: '5%' }} className="text-center">
-                  Amount
+                  {t('amount')}
                 </TableHead>
                 <TableHead style={{ width: '5%' }} className="text-center">
-                  Method
+                  {t('method')}
                 </TableHead>
                 <TableHead style={{ width: '5%' }} className="text-center">
-                  Status
+                  {t('status')}
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>Transaction Code</TableHead>
+                <TableHead style={{ width: '10%' }}>{t('transactionCode')}</TableHead>
                 <TableHead style={{ width: '5%' }} className="text-center">
-                  Paid At
+                  {t('paidAt')}
                 </TableHead>
               </TableRow>
             </TableHeader>

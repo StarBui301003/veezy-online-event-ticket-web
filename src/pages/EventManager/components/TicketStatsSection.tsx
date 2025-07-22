@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, TooltipItem } from 'chart.js';
 import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function TicketStatsSection() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; ticketsSold: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,14 +26,14 @@ export default function TicketStatsSection() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="mb-10">Đang tải biểu đồ vé...</div>;
-  if (events.length === 0) return <div className="mb-10">Không có sự kiện để hiển thị vé.</div>;
+  if (loading) return <div className="mb-10">{t('loadingTicketChart')}</div>;
+  if (events.length === 0) return <div className="mb-10">{t('noTicketEvent')}</div>;
 
   const data = {
     labels: events.map(e => e.eventName),
     datasets: [
       {
-        label: 'Vé đã bán',
+        label: t('ticketsSold'),
         data: events.map(e => e.ticketsSold),
         backgroundColor: 'rgba(255, 99, 132, 0.7)',
         borderColor: 'rgba(255, 99, 132, 1)',
@@ -44,7 +46,7 @@ export default function TicketStatsSection() {
     responsive: true,
     plugins: {
       legend: { display: false },
-      title: { display: true, text: 'Vé đã bán từng sự kiện', color: '#fff', font: { size: 18 } },
+      title: { display: true, text: t('ticketsSoldByEvent'), color: '#fff', font: { size: 18 } },
       tooltip: { callbacks: { label: (tooltipItem: TooltipItem<'bar'>) => `${tooltipItem.dataset.label}: ${tooltipItem.parsed.y}` } }
     },
     scales: {

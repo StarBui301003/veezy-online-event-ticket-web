@@ -12,6 +12,7 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
+import AttendanceListPage from './pages/EventManager/AttendanceListPage';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
 import PendingEventsManager from './pages/EventManager/PendingEventsManager';
@@ -509,6 +510,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <TicketSalesDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'check-ins',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <AttendanceListPage />
             </ProtectedRoute>
           ),
         },

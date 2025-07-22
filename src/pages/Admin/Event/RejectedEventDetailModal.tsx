@@ -11,6 +11,7 @@ import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { getCategoryById } from '@/services/Admin/event.service';
 import { Category } from '@/types/Admin/category';
 import { NO_IMAGE } from '@/assets/img';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   event: ApprovedEvent;
@@ -21,6 +22,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
   const [createdByName, setCreatedByName] = useState<string>('unknown');
   const [approvedByName, setApprovedByName] = useState<string>('unknown');
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (event.createdBy) {
@@ -61,7 +63,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Event Details</DialogTitle>
+            <DialogTitle>{t('eventDetails')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
@@ -79,7 +81,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Hiển thị từng content riêng biệt nếu có */}
           {event.contents && event.contents.length > 0 && (
             <div className="mb-4">
-              <label className="block text-xs text-gray-500 mb-1">Contents</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('contents')}</label>
               <div className="flex flex-col gap-6">
                 {event.contents.map((c, idx) => (
                   <div
@@ -98,7 +100,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                       <div className="font-semibold text-gray-700 mb-1">#{idx + 1}</div>
                       <div className="text-gray-700 text-sm whitespace-pre-line">
                         {c.description || (
-                          <span className="italic text-gray-400">No description</span>
+                          <span className="italic text-gray-400">{t('noDescription')}</span>
                         )}
                       </div>
                     </div>
@@ -110,39 +112,39 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Event ID</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('eventId')}</label>
               <input
-                value={event.eventId ?? 'unknown'}
+                value={event.eventId ?? t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('name')}</label>
               <input
-                value={event.eventName ?? 'unknown'}
+                value={event.eventName ?? t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Location</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('location')}</label>
               <input
-                value={event.eventLocation ?? 'unknown'}
+                value={event.eventLocation ?? t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Category</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('category')}</label>
               <input
-                value={categoryNames.length > 0 ? categoryNames.join(', ') : 'unknown'}
+                value={categoryNames.length > 0 ? categoryNames.join(', ') : t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Start At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('startAt')}</label>
               <input
                 value={
                   event.startAt
@@ -153,14 +155,14 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : t('unknown')
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">End At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('endAt')}</label>
               <input
                 value={
                   event.endAt
@@ -171,33 +173,33 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : t('unknown')
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Tags</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('tags')}</label>
               <input
-                value={event.tags && event.tags.length > 0 ? event.tags.join(', ') : 'unknown'}
+                value={event.tags && event.tags.length > 0 ? event.tags.join(', ') : t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bank Account</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('bankAccount')}</label>
               <input
-                value={event.bankAccount ?? 'unknown'}
+                value={event.bankAccount ?? t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('description')}</label>
             <textarea
-              value={event.eventDescription ?? 'unknown'}
+              value={event.eventDescription ?? t('unknown')}
               readOnly
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               rows={2}
@@ -205,15 +207,15 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Approved By</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('approvedBy')}</label>
               <input
-                value={event.approvedBy ? approvedByName : 'unknown'}
+                value={event.approvedBy ? approvedByName : t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Approved At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('approvedAt')}</label>
               <input
                 value={
                   event.approvedAt
@@ -224,22 +226,22 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : t('unknown')
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created By</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('createdBy')}</label>
               <input
-                value={event.createdBy ? createdByName : 'unknown'}
+                value={event.createdBy ? createdByName : t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
               <input
                 value={
                   event.createdAt
@@ -250,7 +252,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : t('unknown')
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
@@ -258,9 +260,9 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Rejection Reason</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('rejectionReason')}</label>
             <textarea
-              value={event.rejectionReason ?? 'unknown'}
+              value={event.rejectionReason ?? t('unknown')}
               readOnly
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               rows={2}
@@ -274,7 +276,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
               onClick={onClose}
               type="button"
             >
-              Close
+              {t('close')}
             </button>
           </DialogFooter>
         </div>

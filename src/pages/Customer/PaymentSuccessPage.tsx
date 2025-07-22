@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CheckoutData {
   eventName?: string;
@@ -9,6 +10,7 @@ interface CheckoutData {
 }
 
 const PaymentSuccessPage = () => {
+  const { t } = useTranslation();
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
 
   useEffect(() => {
@@ -43,17 +45,17 @@ const PaymentSuccessPage = () => {
           </span>
         </span>
       </div>
-      <h2 className="text-3xl font-bold text-green-700 mb-2">Thanh toán thành công!</h2>
-      <p className="text-green-600 text-lg mb-6">Bạn đã nhận vé thành công cho sự kiện:</p>
+      <h2 className="text-3xl font-bold text-green-700 mb-2">{t('paymentSuccessTitle')}</h2>
+      <p className="text-green-600 text-lg mb-6">{t('paymentSuccessMessage')}</p>
       {checkout?.eventName && (
         <div className="text-xl font-semibold text-green-900 mb-2">🎫 {checkout.eventName}</div>
       )}
       {checkout?.orderId && (
-        <div className="text-green-700 text-base mb-2">Mã đơn hàng: <span className="font-bold">{checkout.orderId}</span></div>
+        <div className="text-green-700 text-base mb-2">{t('orderIdLabel')}: <span className="font-bold">{checkout.orderId}</span></div>
       )}
       {checkout?.items && checkout.items.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
-          <div className="font-semibold text-green-800 mb-2">Chi tiết vé:</div>
+          <div className="font-semibold text-green-800 mb-2">{t('ticketDetail')}</div>
           <ul className="text-left space-y-2">
             {checkout.items.map((item, idx) => (
               <li key={idx} className="flex justify-between text-green-900">
@@ -63,7 +65,7 @@ const PaymentSuccessPage = () => {
             ))}
           </ul>
           <div className="border-t border-green-100 mt-4 pt-3 flex justify-between font-bold text-green-700">
-            <span>Tổng cộng:</span>
+            <span>{t('totalLabel')}:</span>
             <span>{total.toLocaleString('vi-VN')} VNĐ</span>
           </div>
         </div>
@@ -72,7 +74,7 @@ const PaymentSuccessPage = () => {
         onClick={() => window.location.href = '/'}
         className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold rounded-lg shadow-md hover:from-green-600 hover:to-green-800 transition-all duration-300 btn-shine"
       >
-        Về trang chủ
+        {t('backToHome')}
       </button>
     </div>
   );

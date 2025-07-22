@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 // import ReportModal from './ReportModal';
 
 import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface Comment {
   commentId: string;
@@ -43,6 +44,7 @@ const getLoggedInUser = (): UserData | null => {
 
 
 export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
+  const { t } = useTranslation();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -87,7 +89,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         }
       })
       .catch(() => {
-        toast.error("Không thể tải bình luận.");
+        toast.error(t('cannotLoadComments'));
         setComments([])
       })
       .finally(() => setLoading(false));
@@ -125,11 +127,11 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         content: newComment.trim(),
       });
       setNewComment("");
-      toast.success("Đã gửi bình luận!");
+      toast.success(t('commentSent'));
       fetchComments(); 
     } catch (err) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || "Gửi bình luận thất bại.");
+      toast.error(error?.response?.data?.message || t('postCommentFailed'));
     } finally {
       setPosting(false);
     }
@@ -138,7 +140,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   return (
     <div className="mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl">
       <h3 className="text-xl font-semibold text-purple-300 mb-6 border-b border-purple-700 pb-3">
-        Bình luận & Thảo luận
+        {t('commentDiscussion')}
       </h3>
       {loggedInUser ? (
         <form onSubmit={handlePost} className="flex items-start gap-4 mb-8">
@@ -151,7 +153,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
           <div className="flex-1">
             <textarea
               className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
-              placeholder={`Bình luận với tư cách ${loggedInUser.fullName}...`}
+              placeholder={`${t('sendComment')} ${loggedInUser.fullName}...`}
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               disabled={posting}
@@ -164,14 +166,14 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                 disabled={posting || !newComment.trim()}
               >
                 {posting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
-                <span>{posting ? "Đang gửi..." : "Gửi"}</span>
+                <span>{posting ? t('sending') : t('send')}</span>
               </button>
             </div>
           </div>
         </form>
       ) : (
         <div className="text-center text-slate-400 mb-8 p-4 bg-slate-700/50 rounded-lg">
-          Vui lòng <a href="/login" className="text-purple-400 hover:underline font-semibold">đăng nhập</a> để bình luận.
+          {t('loginToComment')} <a href="/login" className="text-purple-400 hover:underline font-semibold">{t('login')}</a> {t('comment')}
         </div>
       )}
       {loading ? (
@@ -181,7 +183,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       ) : (
         <div className="space-y-6">
           {comments.length === 0 ? (
-            <div className="text-slate-400 text-center py-4">Chưa có bình luận nào. Hãy là người đầu tiên!</div>
+            <div className="text-slate-400 text-center py-4">{t('noCommentsYet')}</div>
           ) : (
             [...comments]
               .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -212,7 +214,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                               }}
                               className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
                             >
-                              <Flag className="w-4 h-4" /> Báo cáo bình luận
+                              <Flag className="w-4 h-4" /> {t('reportComment')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

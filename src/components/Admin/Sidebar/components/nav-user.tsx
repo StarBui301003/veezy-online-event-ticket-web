@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/sidebar';
 import { LogoutAPI } from '@/services/auth.service';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -36,6 +37,7 @@ export function NavUser() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_avatarLoaded, setAvatarLoaded] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchUser = () => {
@@ -168,7 +170,7 @@ export function NavUser() {
                 onClick={() => navigate('/admin/profile')}
               >
                 <FiUser className="mr-2 text-blue-500" />
-                <span className="font-medium">Profile</span>
+                <span className="font-medium">{t('profile')}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -178,7 +180,7 @@ export function NavUser() {
               className="focus:bg-red-100 focus:text-red-700 hover:bg-red-50 transition rounded-md"
             >
               <LogOut className="mr-2 text-red-500" />
-              <span className="font-medium">{loadingLogout ? 'Logging out...' : 'Log out'}</span>
+              <span className="font-medium">{loadingLogout ? t('loggingOut') : t('logOut')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

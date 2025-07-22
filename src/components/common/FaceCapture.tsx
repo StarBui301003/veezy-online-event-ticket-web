@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, RotateCcw, Check, X, AlertCircle, Scan, Shield, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FaceCaptureProps {
   onCapture: (result: { image: Blob }) => void;
@@ -8,6 +9,7 @@ interface FaceCaptureProps {
 }
 
 const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel }) => {
+  const { t } = useTranslation();
   const [captureStep, setCaptureStep] = useState<'permission' | 'capture' | 'processing' | 'success' | 'error'>('permission');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -202,32 +204,32 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         <Shield className="w-12 h-12 text-white" />
       </div>
       <div>
-        <h2 className="text-3xl font-bold text-white mb-4">Xác thực khuôn mặt</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">{t('faceVerification')}</h2>
         <p className="text-gray-300 text-lg max-w-md mx-auto">
-          Chúng tôi sẽ chụp ảnh khuôn mặt của bạn để xác thực danh tính và bảo mật tài khoản
+          {t('faceVerificationDescription')}
         </p>
       </div>
       <div className="bg-gray-800/50 rounded-2xl p-6 max-w-md mx-auto mt-2">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-blue-400" />
-          Hướng dẫn
+          {t('instructions')}
         </h3>
         <ul className="text-gray-300 space-y-2 text-left">
           <li className="flex items-start gap-2">
             <span className="text-blue-400">•</span>
-            <span>Đảm bảo khuôn mặt được chiếu sáng tốt</span>
+            <span>{t('ensureGoodLighting')}</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-400">•</span>
-            <span>Nhìn thẳng vào camera</span>
+            <span>{t('lookStraightAtCamera')}</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-400">•</span>
-            <span>Tháo kính hoặc khẩu trang nếu có</span>
+            <span>{t('removeGlassesOrMask')}</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-400">•</span>
-            <span>Giữ đầu thẳng và không di chuyển</span>
+            <span>{t('keepHeadStraight')}</span>
           </li>
         </ul>
       </div>
@@ -236,7 +238,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-3 mx-auto"
       >
         <Camera className="w-6 h-6" />
-        Bắt đầu xác thực
+        {t('startVerification')}
       </button>
     </div>
   );
@@ -255,15 +257,15 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white font-semibold">Đang xử lý...</p>
+            <p className="text-white font-semibold">{t('processing')}</p>
           </div>
         </div>
       </div>
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold text-white">Đang xác thực</h2>
+        <h2 className="text-2xl font-bold text-white">{t('verifying')}</h2>
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between text-sm text-gray-300 mb-2">
-            <span>Tiến trình xác thực</span>
+            <span>{t('verificationProgress')}</span>
             <span>85%</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
@@ -273,15 +275,15 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         <div className="space-y-2 text-gray-300">
           <div className="flex items-center justify-center gap-2">
             <Check className="w-4 h-4 text-green-400" />
-            <span>Phát hiện khuôn mặt</span>
+            <span>{t('faceDetected')}</span>
           </div>
           <div className="flex items-center justify-center gap-2">
             <Check className="w-4 h-4 text-green-400" />
-            <span>Phân tích đặc điểm</span>
+            <span>{t('analyzeFeatures')}</span>
           </div>
           <div className="flex items-center justify-center gap-2">
             <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-            <span>Xác thực danh tính</span>
+            <span>{t('identityVerification')}</span>
           </div>
         </div>
       </div>
@@ -305,16 +307,16 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto">
           <Check className="w-10 h-10 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-white">Xác thực thành công!</h2>
+        <h2 className="text-3xl font-bold text-white">{t('verificationSuccess')}</h2>
         <p className="text-gray-300 text-lg max-w-md mx-auto">
-          Khuôn mặt của bạn đã được xác thực thành công !
+          {t('faceVerified')}
         </p>
         <div className="bg-green-900/20 border border-green-500/30 rounded-2xl p-4 max-w-md mx-auto">
           <div className="flex items-center gap-3">
             <User className="w-6 h-6 text-green-400" />
             <div className="text-left">
-              <p className="text-white font-semibold">Danh tính đã xác thực</p>
-              <p className="text-green-400 text-sm">ID: #{successId}</p>
+              <p className="text-white font-semibold">{t('identityVerified')}</p>
+              <p className="text-green-400 text-sm">{t('identityId')}: #{successId}</p>
             </div>
           </div>
         </div>
@@ -334,18 +336,18 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
             }}
             className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg"
           >
-            Xác nhận
+            {t('confirm')}
           </button>
           <button 
             onClick={resetCapture}
             className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3"
           >
             <RotateCcw className="w-5 h-5" />
-            Chụp lại
+            {t('retake')}
           </button>
         </div>
       ) : (
-        <div className="text-lg text-blue-500 font-semibold mt-6">Vui lòng đợi trong giây lát...</div>
+        <div className="text-lg text-blue-500 font-semibold mt-6">{t('pleaseWait')}</div>
       )}
     </div>
   );
@@ -356,24 +358,24 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         <X className="w-12 h-12 text-white" />
       </div>
       <div>
-        <h2 className="text-3xl font-bold text-white mb-4">Không thể truy cập camera</h2>
+        <h2 className="text-3xl font-bold text-white mb-4">{t('cannotAccessCamera')}</h2>
         <p className="text-gray-300 text-lg max-w-md mx-auto">
-          Vui lòng cho phép truy cập camera và thử lại. Đảm bảo camera hoạt động bình thường.
+          {t('pleaseAllowCameraAccess')}
         </p>
       </div>
       <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-4 max-w-md mx-auto">
-        <h3 className="text-red-400 font-semibold mb-2">Khắc phục sự cố:</h3>
+        <h3 className="text-red-400 font-semibold mb-2">{t('fixCamera')}</h3>
         <ul className="text-gray-300 space-y-1 text-left text-sm">
-          <li>• Kiểm tra quyền truy cập camera</li>
-          <li>• Đảm bảo camera không bị ứng dụng khác sử dụng</li>
-          <li>• Thử refresh trang và thử lại</li>
+          <li>• {t('checkCameraPermission')}</li>
+          <li>• {t('ensureCameraIsNotUsedByOtherApps')}</li>
+          <li>• {t('refreshPageAndTryAgain')}</li>
         </ul>
       </div>
       <button 
         onClick={resetCapture}
         className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105"
       >
-        Thử lại
+        {t('retry')}
       </button>
     </div>
   );
@@ -447,7 +449,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
                   faceDetected ? 'bg-green-400' : 'bg-blue-400'
                 } animate-pulse`}></div>
                 <span className="text-white text-sm font-medium">
-                  {faceDetected ? 'Đã phát hiện khuôn mặt' : 'Đang tìm khuôn mặt...'}
+                  {faceDetected ? t('faceDetected') : t('detectingFace')}
                 </span>
               </div>
               {/* Countdown overlay */}
@@ -455,7 +457,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-8xl font-bold text-white mb-4">{countdown}</div>
-                    <p className="text-white text-xl">Đang chụp...</p>
+                    <p className="text-white text-xl">{t('capturing')}</p>
                   </div>
                 </div>
               )}
@@ -475,14 +477,14 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
               }`}
             >
               <Scan className="w-6 h-6" />
-              Chụp ảnh
+              {t('capturePhoto')}
             </button>
             <button 
               onClick={resetCapture}
               className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3"
             >
               <X className="w-6 h-6" />
-              Hủy
+              {t('cancel')}
             </button>
           </div>
         )}

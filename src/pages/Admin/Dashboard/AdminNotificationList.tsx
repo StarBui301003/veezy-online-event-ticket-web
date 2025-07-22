@@ -20,38 +20,39 @@ import {
   onNotification,
   disconnectNotificationHub,
 } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface AdminNotificationListProps {
   className?: string;
   onUnreadCountChange?: (count: number) => void;
 }
 
-const getNotificationTypeName = (type: AdminNotificationType) => {
+const getNotificationTypeName = (type: AdminNotificationType, t: (key: string, options?: Record<string, unknown>) => string) => {
   switch (type) {
     case AdminNotificationType.NewEvent:
-      return 'New Event';
+      return t('newEvent');
     case AdminNotificationType.NewPost:
-      return 'New Post';
+      return t('newPost');
     case AdminNotificationType.NewReport:
-      return 'New Report';
+      return t('newReport');
     case AdminNotificationType.PaymentIssue:
-      return 'Payment Issue';
+      return t('paymentIssue');
     case AdminNotificationType.SystemAlert:
-      return 'System Alert';
+      return t('systemAlert');
     case AdminNotificationType.NewUser:
-      return 'New User';
+      return t('newUser');
     case AdminNotificationType.EventApproval:
-      return 'Event Approval';
+      return t('eventApproval');
     case AdminNotificationType.EventRejection:
-      return 'Event Rejection';
+      return t('eventRejection');
     case AdminNotificationType.UserReport:
-      return 'User Report';
+      return t('userReport');
     case AdminNotificationType.ContentReport:
-      return 'Content Report';
+      return t('contentReport');
     case AdminNotificationType.Other:
-      return 'Other';
+      return t('other');
     default:
-      return 'Unknown';
+      return t('unknown');
   }
 };
 
@@ -113,15 +114,15 @@ const getNotificationBadgeColor = (type: AdminNotificationType) => {
   }
 };
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string, t: (key: string, options?: Record<string, unknown>) => string) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
 
   if (diffInHours < 1) {
-    return 'Just now';
+    return t('justNow');
   } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
+    return t('hAgo', { count: diffInHours });
   } else {
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -136,6 +137,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   className,
   onUnreadCountChange,
 }) => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -258,7 +260,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Admin Notifications
+            {t('adminNotifications')}
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {unreadCount}
@@ -268,7 +270,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32">
-            <div className="text-gray-500">Loading notifications...</div>
+            <div className="text-gray-500">{t('loadingNotifications')}</div>
           </div>
         </CardContent>
       </Card>
@@ -281,7 +283,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Admin Notifications
+            {t('adminNotifications')}
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
@@ -300,12 +302,12 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                     onClick={handleMarkAllAsRead}
                     className="flex justify-center gap-2 items-center text-sm bg-gray-50 backdrop-blur-md font-medium isolation-auto border-1 border-gray-300 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group"
                   >
-                    Mark all read
+                    {t('markAllRead')}
                     <CheckCircle className="w-4 h-4" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Mark all notifications as read</p>
+                  <p>{t('markAllNotificationsAsRead')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -316,7 +318,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         {notifications.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>No notifications</p>
+            <p>{t('noNotifications')}</p>
           </div>
         ) : (
           <ScrollArea className="h-[600px]">
@@ -351,7 +353,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                   notification.type
                                 )}`}
                               >
-                                {getNotificationTypeName(notification.type)}
+                                {getNotificationTypeName(notification.type, t)}
                               </Badge>
                             </div>
                             <p
@@ -364,12 +366,12 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                             <div className="flex items-center gap-4 mt-2">
                               <div className="flex items-center gap-1 text-xs text-gray-400">
                                 <Clock className="h-3 w-3" />
-                                {formatDate(notification.createdAt)}
+                                {formatDate(notification.createdAt, t)}
                               </div>
                               {notification.isRead && notification.readAt && (
                                 <div className="flex items-center gap-1 text-xs text-green-600">
                                   <CheckCircle className="h-3 w-3" />
-                                  Read
+                                  {t('read')}
                                 </div>
                               )}
                             </div>
@@ -389,7 +391,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Mark this notification as read</p>
+                                    <p>{t('markThisNotificationAsRead')}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -409,7 +411,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Delete this notification</p>
+                                  <p>{t('deleteThisNotification')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { createCollaboratorAccount, addCollaborator, getEventById } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { FaUsers, FaSave } from "react-icons/fa";
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -20,7 +21,8 @@ interface CollaboratorFormData {
   dateOfBirth: string;
 }
 
-const CreateCollaborator = () => {
+export default function CreateCollaborator() {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId?: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
@@ -59,7 +61,7 @@ const CreateCollaborator = () => {
         })
         .catch((error) => {
           console.error("Failed to fetch event:", error);
-          toast.error("Không thể tải thông tin sự kiện!");
+          toast.error(t("event_manager.create_collaborator.errorLoadingEvent"));
         })
         .finally(() => {
           setLoading(false);
@@ -73,13 +75,13 @@ const CreateCollaborator = () => {
     e.preventDefault();
     
     if (!currentUserAccountId) {
-      toast.warn('Không thể xác định người quản lý sự kiện. Vui lòng đăng nhập lại.');
+      toast.warn(t("event_manager.create_collaborator.errorNoEventManager"));
       return;
     }
 
     // Validate form data
     if (!formData.username || !formData.email || !formData.phone || !formData.password || !formData.fullName || !formData.dateOfBirth) {
-      toast.warn('Vui lòng điền đầy đủ thông tin.');
+      toast.warn(t("event_manager.create_collaborator.errorFillAllFields"));
       return;
     }
 
@@ -98,23 +100,23 @@ const CreateCollaborator = () => {
         if (eventId) {
           const addResult = await addCollaborator(eventId, accountResult.data.accountId);
           if (addResult.flag) {
-            toast.success('Tạo và thêm cộng tác viên vào sự kiện thành công!');
+            toast.success(t("event_manager.create_collaborator.successCreateAndAddCollaborator"));
             navigate('/event-manager/collaborators');
           } else {
-            toast.warn(`Tài khoản đã được tạo, nhưng không thể thêm vào sự kiện: ${addResult.message}`);
+            toast.warn(`${t("event_manager.create_collaborator.accountCreated")}, ${t("event_manager.create_collaborator.errorAddingToEvent")}: ${addResult.message}`);
             navigate('/event-manager/collaborators');
           }
         } else {
           // If no eventId, the job is done
-          toast.success('Tạo tài khoản cộng tác viên thành công!');
+          toast.success(t("event_manager.create_collaborator.successCreateCollaborator"));
           navigate('/event-manager/collaborators');
         }
       } else {
-        toast.error(accountResult.message || 'Tạo tài khoản cộng tác viên thất bại.');
+        toast.error(accountResult.message || t("event_manager.create_collaborator.errorCreateCollaborator"));
       }
     } catch (err) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra.');
+      toast.error(error?.response?.data?.message || t("event_manager.create_collaborator.errorOccurred"));
     } finally {
       setIsSubmitting(false);
     }
@@ -127,7 +129,7 @@ const CreateCollaborator = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] flex items-center justify-center">
-        <div className="text-white text-xl">Đang tải...</div>
+        <div className="text-white text-xl">{t("event_manager.create_collaborator.loading")}</div>
       </div>
     );
   }
@@ -141,11 +143,11 @@ const CreateCollaborator = () => {
             <FaUsers className="text-4xl text-pink-400" />
             <div>
               <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-yellow-400">
-                Tạo Cộng Tác Viên Mới
+                {t("event_manager.create_collaborator.createNewCollaborator")}
               </h1>
               {event && (
                 <p className="text-slate-300 mt-2">
-                  Tạo tài khoản và thêm vào sự kiện: <span className="text-yellow-300 font-semibold">{event.eventName}</span>
+                  {t("event_manager.create_collaborator.createAccountAndAddToEvent")}: <span className="text-yellow-300 font-semibold">{event.eventName}</span>
                 </p>
               )}
             </div>
@@ -159,14 +161,14 @@ const CreateCollaborator = () => {
               {/* Username */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Tên đăng nhập *
+                  {t("event_manager.create_collaborator.username")} *
                 </label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Nhập tên đăng nhập"
+                  placeholder={t("event_manager.create_collaborator.enterUsername")}
                   required
                 />
               </div>
@@ -174,14 +176,14 @@ const CreateCollaborator = () => {
               {/* Email */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Email *
+                  {t("event_manager.create_collaborator.email")} *
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                  placeholder="email@example.com"
+                  placeholder={t("event_manager.create_collaborator.emailPlaceholder")}
                   required
                 />
               </div>
@@ -189,14 +191,14 @@ const CreateCollaborator = () => {
               {/* Phone */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Số điện thoại *
+                  {t("event_manager.create_collaborator.phone")} *
                 </label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                  placeholder="0123456789"
+                  placeholder={t("event_manager.create_collaborator.phonePlaceholder")}
                   required
                 />
               </div>
@@ -204,14 +206,14 @@ const CreateCollaborator = () => {
               {/* Password */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Mật khẩu *
+                  {t("event_manager.create_collaborator.password")} *
                 </label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Nhập mật khẩu"
+                  placeholder={t("event_manager.create_collaborator.enterPassword")}
                   required
                 />
               </div>
@@ -219,14 +221,14 @@ const CreateCollaborator = () => {
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Họ và tên *
+                  {t("event_manager.create_collaborator.fullName")} *
                 </label>
                 <input
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Họ và tên đầy đủ"
+                  placeholder={t("event_manager.create_collaborator.fullNamePlaceholder")}
                   required
                 />
               </div>
@@ -234,7 +236,7 @@ const CreateCollaborator = () => {
               {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  Ngày sinh *
+                  {t("event_manager.create_collaborator.dateOfBirth")} *
                 </label>
                 <input
                   type="date"
@@ -253,7 +255,7 @@ const CreateCollaborator = () => {
                 onClick={() => navigate('/event-manager/collaborators')}
                 className="px-8 py-4 bg-gray-600 text-white rounded-xl hover:bg-gray-500 transition-all duration-200 font-bold"
               >
-                Hủy bỏ
+                {t("event_manager.create_collaborator.cancel")}
               </button>
               <button
                 type="submit"
@@ -261,7 +263,7 @@ const CreateCollaborator = () => {
                 className="px-8 py-4 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-xl font-bold transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
               >
                 <FaSave />
-                {isSubmitting ? "Đang tạo..." : "Tạo cộng tác viên"}
+                {isSubmitting ? t("event_manager.create_collaborator.creating") : t("event_manager.create_collaborator.createCollaborator")}
               </button>
             </div>
           </form>
@@ -269,6 +271,4 @@ const CreateCollaborator = () => {
       </div>
     </div>
   );
-};
-
-export default CreateCollaborator; 
+}; 

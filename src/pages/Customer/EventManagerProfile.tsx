@@ -9,12 +9,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { MoreVertical, Flag } from 'lucide-react';
 import type { User } from '@/types/auth';
 import instance from '@/services/axios.customize';
+import { useTranslation } from 'react-i18next';
 
-const TABS = [
-  { key: 'info', label: 'Thông tin cá nhân' },
-  { key: 'events', label: 'Sự kiện đang tổ chức' },
-  { key: 'news', label: 'Tin tức' },
-];
 const EVENTS_PER_PAGE = 6;
 
 // Define a type for event items (minimal, based on usage)
@@ -57,6 +53,13 @@ const EventManagerProfile = () => {
   const [news, setNews] = useState<News[]>([]);
   const [loadingNews, setLoadingNews] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const TABS = [
+    { key: 'info', label: t('personalInfo') },
+    { key: 'events', label: t('ongoingEvents') },
+    { key: 'news', label: t('news') },
+  ];
 
   useEffect(() => {
     if (!id) return;
@@ -91,7 +94,7 @@ const EventManagerProfile = () => {
   const pagedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
 
   if (loading) return <SpinnerOverlay show={true} />;
-  if (!info) return <div className="text-center text-red-500 py-20">Không tìm thấy thông tin Event Manager.</div>;
+  if (!info) return <div className="text-center text-red-500 py-20">{t('eventManagerNotFound')}</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white pt-24 pb-12">
@@ -113,7 +116,7 @@ const EventManagerProfile = () => {
           {tab === 'info' && (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Thông tin cá nhân</h2>
+                <h2 className="text-2xl font-bold">{t('personalInfo')}</h2>
                 {/* Nút ... báo cáo */}
                 <div className="relative z-10">
                   <DropdownMenu>
@@ -130,7 +133,7 @@ const EventManagerProfile = () => {
                         }}
                         className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
                       >
-                        <Flag className="w-4 h-4" /> Báo cáo Event Manager
+                        <Flag className="w-4 h-4" /> {t('reportEventManager')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -151,15 +154,15 @@ const EventManagerProfile = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="text-purple-300">📧 Email:</span>
+                      <span className="text-purple-300">📧 {t('email')}:</span>
                       <span className="text-white truncate">{info.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-purple-300">📱 SĐT:</span>
+                      <span className="text-purple-300">📱 {t('phone')}:</span>
                       <span className="text-white">{info.phone}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-purple-300">📍 Địa chỉ:</span>
+                      <span className="text-purple-300">📍 {t('location')}:</span>
                       <span className="text-white truncate">{info.location}</span>
                     </div>
                   </div>
@@ -172,11 +175,11 @@ const EventManagerProfile = () => {
             <div>
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  🎉 Sự kiện đang tổ chức
+                  🎉 {t('ongoingEvents')}
                 </h2>
                 <div className="bg-purple-600/20 px-4 py-2 rounded-full border border-purple-500/30">
                   <span className="text-purple-300 text-sm font-medium">
-                    {events.length} sự kiện
+                    {events.length} {t('eventCount')}
                   </span>
                 </div>
               </div>
@@ -185,8 +188,8 @@ const EventManagerProfile = () => {
               ) : events.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="text-6xl mb-4">🎪</div>
-                  <div className="text-gray-400 text-lg mb-2">Chưa có sự kiện nào</div>
-                  <div className="text-gray-500 text-sm">Event Manager này chưa tổ chức sự kiện nào</div>
+                  <div className="text-gray-400 text-lg mb-2">{t('noEventsYet')}</div>
+                  <div className="text-gray-500 text-sm">{t('eventManagerNoEvents')}</div>
                 </div>
               ) : (
                 <>
@@ -211,21 +214,21 @@ const EventManagerProfile = () => {
                           <div className="flex items-start gap-3">
                             <div className="text-purple-400 text-sm mt-1">📅</div>
                             <div className="text-sm text-gray-300">
-                              <div className="font-medium">Bắt đầu:</div>
+                              <div className="font-medium">{t('startAt')}:</div>
                               <div className="text-purple-300">{new Date(event.startAt).toLocaleString('vi-VN')}</div>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <div className="text-pink-400 text-sm mt-1">🏁</div>
                             <div className="text-sm text-gray-300">
-                              <div className="font-medium">Kết thúc:</div>
+                              <div className="font-medium">{t('endAt')}:</div>
                               <div className="text-pink-300">{new Date(event.endAt).toLocaleString('vi-VN')}</div>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <div className="text-yellow-400 text-sm mt-1">📍</div>
                             <div className="text-sm text-gray-300">
-                              <div className="font-medium">Địa điểm:</div>
+                              <div className="font-medium">{t('eventLocation')}:</div>
                               <div className="text-yellow-300 line-clamp-2">{event.eventLocation}</div>
                             </div>
                           </div>
@@ -234,7 +237,7 @@ const EventManagerProfile = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-green-400 text-xs font-medium">Đang diễn ra</span>
+                            <span className="text-green-400 text-xs font-medium">{t('ongoing')}</span>
                           </div>
                           <div className="text-purple-400 group-hover:text-purple-300 transition-colors">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +258,7 @@ const EventManagerProfile = () => {
                         onClick={() => setPage(page - 1)}
                         disabled={page === 1}
                       >
-                        &lt; Trước
+                        &lt; {t('previous')}
                       </button>
                       <span className="px-4 py-2 text-purple-300 font-bold">{page} / {totalPages}</span>
                       <button
@@ -263,7 +266,7 @@ const EventManagerProfile = () => {
                         onClick={() => setPage(page + 1)}
                         disabled={page === totalPages}
                       >
-                        Tiếp &gt;
+                        {t('next')} &gt;
                       </button>
                     </div>
                   )}
@@ -275,11 +278,11 @@ const EventManagerProfile = () => {
             <div>
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  📰 Tin tức từ Event Manager
+                  📰 {t('newsFromEventManager')}
                 </h2>
                 <div className="bg-purple-600/20 px-4 py-2 rounded-full border border-purple-500/30">
                   <span className="text-purple-300 text-sm font-medium">
-                    {news.length} tin
+                    {news.length} {t('newsCount')}
                   </span>
                 </div>
               </div>
@@ -288,18 +291,18 @@ const EventManagerProfile = () => {
               ) : news.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="text-6xl mb-4">📰</div>
-                  <div className="text-gray-400 text-lg mb-2">Chưa có tin tức nào</div>
-                  <div className="text-gray-500 text-sm">Event Manager này chưa đăng tin tức nào</div>
+                  <div className="text-gray-400 text-lg mb-2">{t('noNewsYet')}</div>
+                  <div className="text-gray-500 text-sm">{t('eventManagerNoNews')}</div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {news.map((n, idx) => (
                     <div key={n.newsId || idx} className="bg-slate-800/80 rounded-xl p-6 shadow border border-purple-700/30">
                       {n.imageUrl && <img src={n.imageUrl} alt={n.newsTitle} className="w-full h-40 object-cover rounded mb-3" />}
-                      <div className="font-bold text-lg text-white mb-2 line-clamp-2">{n.newsTitle || 'Không có tiêu đề'}</div>
-                      <div className="text-slate-300 text-sm mb-2 line-clamp-3">{n.newsDescription || n.newsContent?.slice(0, 100) + '...' || 'Không có mô tả'}</div>
+                      <div className="font-bold text-lg text-white mb-2 line-clamp-2">{n.newsTitle || t('noTitle')}</div>
+                      <div className="text-slate-300 text-sm mb-2 line-clamp-3">{n.newsDescription || n.newsContent?.slice(0, 100) + '...' || t('noDescription')}</div>
                       <div className="text-xs text-purple-400 mb-1">{n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : ''}</div>
-                      <a href={`/news/${n.newsId}`} className="text-blue-400 hover:underline text-sm">Xem chi tiết</a>
+                      <a href={`/news/${n.newsId}`} className="text-blue-400 hover:underline text-sm">{t('viewDetails')}</a>
                     </div>
                   ))}
                 </div>

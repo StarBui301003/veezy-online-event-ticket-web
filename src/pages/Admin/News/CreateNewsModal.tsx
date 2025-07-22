@@ -17,6 +17,7 @@ import {
   createFieldChangeHandler,
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
+import { useTranslation } from 'react-i18next';
 
 import {
   Select,
@@ -59,6 +60,8 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const { t } = useTranslation();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -173,14 +176,12 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
       <DialogContent className="max-w-3xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Create News</DialogTitle>
+            <DialogTitle>{t('createNews')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Event <span className="text-gray-400">(optional)</span>
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">{t('event')}</label>
             <Select
               value={form.eventId || '__no_event__'}
               onValueChange={handleEventChange}
@@ -192,20 +193,16 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                   'border-gray-200 border px-3 py-2 rounded w-full'
                 )}
               >
-                <SelectValue placeholder="Select event">
-                  {form.eventId
-                    ? events.find((ev) => ev.eventId === form.eventId)?.eventName || ''
-                    : 'No event'}
-                </SelectValue>
+                <SelectValue placeholder={t('selectEvent')} />
               </SelectTrigger>
               <SelectContent>
                 {events.length === 0 ? (
                   <SelectItem value="__no_event__" disabled>
-                    No event found
+                    {t('noEventFound')}
                   </SelectItem>
                 ) : (
                   <>
-                    <SelectItem value="__no_event__">No event</SelectItem>
+                    <SelectItem value="__no_event__">{t('noEvent')}</SelectItem>
                     {events.map((ev) => (
                       <SelectItem key={ev.eventId} value={ev.eventId}>
                         {ev.eventName}
@@ -222,13 +219,13 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Title</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('newsTitle')}</label>
             <input
               className={getErrorClass('newsTitle', 'border px-3 py-2 rounded w-full')}
               value={form.newsTitle}
               onChange={handleTitleChange}
               disabled={loading}
-              placeholder="Enter news title"
+              placeholder={t('enterNewsTitle')}
             />
             {getFieldError('newsTitle') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -237,14 +234,14 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('newsDescription')}</label>
             <textarea
               className={getErrorClass('newsDescription', 'border px-3 py-2 rounded w-full')}
               value={form.newsDescription}
               onChange={(e) => handleDescriptionChange(e)}
               disabled={loading}
-              placeholder="Enter description"
-              rows={2}
+              placeholder={t('enterNewsDescription')}
+              rows={3}
             />
             {getFieldError('newsDescription') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -346,7 +343,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               disabled={loading}
               type="button"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
@@ -357,10 +354,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               {loading ? (
                 <>
                   <FaSpinner className="animate-spin" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
-                'Create'
+                t('create')
               )}
             </button>
           </DialogFooter>
