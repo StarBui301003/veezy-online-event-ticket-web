@@ -180,9 +180,16 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     };
 
     // Listen for admin notifications
-    onNotification('ReceiveAdminNotification', (newNotification: AdminNotification) => {
-      console.log('Received admin notification:', newNotification);
-      // Reload notifications from server to get latest data
+    onNotification('ReceiveAdminNotification', () => {
+      reloadNotifications();
+    });
+    onNotification('AdminNotificationRead', () => {
+      reloadNotifications();
+    });
+    onNotification('AdminAllNotificationsRead', () => {
+      reloadNotifications();
+    });
+    onNotification('AdminNotificationDeleted', () => {
       reloadNotifications();
     });
 
@@ -312,7 +319,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
             <p>No notifications</p>
           </div>
         ) : (
-          <ScrollArea className="h-[700px]">
+          <ScrollArea className="h-[600px]">
             <div className="space-y-2">
               {notifications.map((notification, index) => (
                 <div key={notification.notificationId}>

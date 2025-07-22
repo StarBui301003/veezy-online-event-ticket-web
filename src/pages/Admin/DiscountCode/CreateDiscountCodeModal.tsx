@@ -18,12 +18,12 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { FaSpinner } from 'react-icons/fa';
-import { validateDiscountCodeForm } from '@/utils/validation';
 import {
-  useAdminValidation,
-  createFieldChangeHandler,
-  createCustomChangeHandler,
-} from '@/hooks/use-admin-validation';
+  validateRequired,
+  validateDiscountCode,
+  validatePositiveNumber,
+  validateFutureDate,
+} from '@/utils/validation';
 
 interface Props {
   open: boolean;
@@ -45,13 +45,6 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
 
-  // Use validation hook
-  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
-    useAdminValidation({
-      showToastOnValidation: false, // Only show inline errors, no toast for validation
-      showToastOnApiError: true, // Keep toast for API errors
-    });
-
   useEffect(() => {
     // Gọi API lấy danh sách event khi mở modal
     if (open) {
@@ -69,80 +62,69 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
     }
   }, [open]);
 
-  // Field change handlers with error clearing
-  const handleEventChange = createCustomChangeHandler(
-    'eventId',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, eventId: value }));
-    },
-    clearFieldError
-  );
-
-  const handleCodeChange = createFieldChangeHandler(
-    'code',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, code: value }));
-    },
-    clearFieldError
-  );
-
-  const handleDiscountTypeChange = createCustomChangeHandler(
-    'discountType',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, discountType: Number(value) }));
-    },
-    clearFieldError
-  );
-
-  const handleValueChange = createFieldChangeHandler(
-    'value',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, value: Number(value) }));
-    },
-    clearFieldError
-  );
-
-  const handleMinimumChange = createFieldChangeHandler(
-    'minimum',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, minimum: Number(value) }));
-      // Clear maximum error as well since they're related
-      clearFieldError('maximum');
-    },
-    clearFieldError
-  );
-
-  const handleMaximumChange = createFieldChangeHandler(
-    'maximum',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, maximum: Number(value) }));
-      // Clear minimum error as well since they're related
-      clearFieldError('minimum');
-    },
-    clearFieldError
-  );
-
-  const handleMaxUsageChange = createFieldChangeHandler(
-    'maxUsage',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, maxUsage: Number(value) }));
-    },
-    clearFieldError
-  );
-
-  const handleExpiredAtChange = createFieldChangeHandler(
-    'expiredAt',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, expiredAt: value }));
-    },
-    clearFieldError
-  );
-
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? Number(value) : value,
+    }));
+  };
+  const handleCustomChange = (name: string, value: string | number) => {
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
   const handleCreate = async () => {
-    // Validate form using comprehensive validation
-    const isValid = validateForm(form, validateDiscountCodeForm);
+    // Validation
+    const eventValidation = validateRequired(form.eventId, 'Event');
+    if (!eventValidation.isValid) {
+      toast.error(eventValidation.errorMessage!);
+      return;
+    }
 
-    if (!isValid) {
+    const codeValidation = validateDiscountCode(form.code);
+    if (!codeValidation.isValid) {
+      toast.error(codeValidation.errorMessage!);
+      return;
+    }
+
+    const valueValidation = validatePositiveNumber(form.value, 'Value');
+    if (!valueValidation.isValid) {
+      toast.error(valueValidation.errorMessage!);
+      return;
+    }
+
+    const expiredAtValidation = validateFutureDate(form.expiredAt, 'Expired At');
+    if (!expiredAtValidation.isValid) {
+      toast.error(expiredAtValidation.errorMessage!);
+      return;
+    }
+
+    if (form.minimum > 0) {
+      const minValidation = validatePositiveNumber(form.minimum, 'Minimum');
+      if (!minValidation.isValid) {
+        toast.error(minValidation.errorMessage!);
+        return;
+      }
+    }
+
+    if (form.maximum > 0) {
+      const maxValidation = validatePositiveNumber(form.maximum, 'Maximum');
+      if (!maxValidation.isValid) {
+        toast.error(maxValidation.errorMessage!);
+        return;
+      }
+
+      if (form.minimum > 0 && form.maximum <= form.minimum) {
+        toast.error('Maximum must be greater than minimum!');
+        return;
+      }
+    }
+
+    const maxUsageValidation = validatePositiveNumber(form.maxUsage, 'Max Usage');
+    if (!maxUsageValidation.isValid) {
+      toast.error(maxUsageValidation.errorMessage!);
       return;
     }
 
@@ -177,7 +159,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
       if (onCreated) onCreated(); // Only call after success
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      handleApiError(err, 'Failed to create discount code!');
+      toast.error(err?.message || 'Failed to create discount code!');
     } finally {
       setLoading(false);
     }
@@ -194,13 +176,12 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
-            <Select onValueChange={handleEventChange} disabled={loading} value={form.eventId}>
-              <SelectTrigger
-                className={getErrorClass(
-                  'eventId',
-                  'border-gray-200 w-full border px-3 py-2 rounded'
-                )}
-              >
+            <Select
+              onValueChange={(value) => handleCustomChange('eventId', value)}
+              disabled={loading}
+              defaultValue={form.eventId}
+            >
+              <SelectTrigger className=" border-gray-200 w-full border px-3 py-2 rounded">
                 <SelectValue placeholder="Select event" />
               </SelectTrigger>
               <SelectContent>
@@ -211,39 +192,25 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
                 ))}
               </SelectContent>
             </Select>
-            {getFieldError('eventId') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('eventId')}</div>
-            )}
           </div>
-
           <div>
             <label className="block text-xs text-gray-500 mb-1">Code</label>
             <input
-              className={getErrorClass('code', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="code"
               value={form.code}
-              onChange={handleCodeChange}
+              onChange={handleInputChange}
               disabled={loading}
-              placeholder="Enter code (e.g., SAVE20)"
+              placeholder="Enter code"
             />
-            {getFieldError('code') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('code')}</div>
-            )}
           </div>
-
           <div>
             <label className="block text-xs text-gray-500 mb-1">Discount Type</label>
             <Select
               value={String(form.discountType)}
-              onValueChange={handleDiscountTypeChange}
-              disabled={loading}
+              onValueChange={(val) => setForm((prev) => ({ ...prev, discountType: Number(val) }))}
             >
-              <SelectTrigger
-                className={getErrorClass(
-                  'discountType',
-                  'border-gray-200 border px-3 py-2 rounded w-full'
-                )}
-              >
+              <SelectTrigger className=" border-gray-200 border px-3 py-2 rounded w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -252,105 +219,69 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
                 <SelectItem value="3">Other</SelectItem>
               </SelectContent>
             </Select>
-            {getFieldError('discountType') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('discountType')}</div>
-            )}
           </div>
-
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Value {form.discountType === 0 ? '(%)' : '(VND)'}
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">Value</label>
             <input
-              className={getErrorClass('value', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="value"
               type="number"
               value={form.value}
-              onChange={handleValueChange}
+              onChange={handleInputChange}
               disabled={loading}
               min={0}
-              max={form.discountType === 0 ? 100 : undefined}
-              step={form.discountType === 0 ? 1 : 1000}
-              placeholder={
-                form.discountType === 0 ? 'Enter percentage (1-100)' : 'Enter amount (VND)'
-              }
+              step={0.01}
             />
-            {getFieldError('value') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('value')}</div>
-            )}
           </div>
-
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Minimum Amount (VND) <span className="text-gray-400">- Optional</span>
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">Minimum</label>
             <input
-              className={getErrorClass('minimum', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="minimum"
               type="number"
               value={form.minimum}
-              onChange={handleMinimumChange}
+              onChange={handleInputChange}
               disabled={loading}
               min={0}
-              step={1000}
-              placeholder="Minimum order amount to apply discount"
+              step={0.01}
             />
-            {getFieldError('minimum') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('minimum')}</div>
-            )}
           </div>
-
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Maximum Discount (VND) <span className="text-gray-400">- Optional</span>
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">Maximum</label>
             <input
-              className={getErrorClass('maximum', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="maximum"
               type="number"
               value={form.maximum}
-              onChange={handleMaximumChange}
+              onChange={handleInputChange}
               disabled={loading}
               min={0}
-              step={1000}
-              placeholder="Maximum discount amount"
+              step={0.01}
             />
-            {getFieldError('maximum') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
-            )}
           </div>
-
           <div>
             <label className="block text-xs text-gray-500 mb-1">Max Usage</label>
             <input
-              className={getErrorClass('maxUsage', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="maxUsage"
               type="number"
               value={form.maxUsage}
-              onChange={handleMaxUsageChange}
+              onChange={handleInputChange}
               disabled={loading}
               min={1}
               step={1}
-              placeholder="Maximum number of uses"
             />
-            {getFieldError('maxUsage') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maxUsage')}</div>
-            )}
           </div>
-
           <div>
             <label className="block text-xs text-gray-500 mb-1">Expired At</label>
             <input
-              className={getErrorClass('expiredAt', 'border px-3 py-2 rounded w-full')}
+              className="border px-3 py-2 rounded w-full"
               name="expiredAt"
               type="datetime-local"
               value={form.expiredAt}
-              onChange={handleExpiredAtChange}
+              onChange={handleInputChange}
               disabled={loading}
             />
-            {getFieldError('expiredAt') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('expiredAt')}</div>
-            )}
           </div>
         </div>
         <div className="p-4 flex justify-end gap-2">

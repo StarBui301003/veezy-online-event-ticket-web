@@ -10,7 +10,6 @@ import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
 import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
 import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
-import { Dashboard } from '@/pages/Admin/Dashboard/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
@@ -76,6 +75,7 @@ import {
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
+import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
 
 function App() {
   useEffect(() => {
@@ -264,7 +264,7 @@ function App() {
           index: true,
           element: (
             <ProtectedRoute allowedRoles={[0]}>
-              <Dashboard />
+              <DashboardTabs />
             </ProtectedRoute>
           ), // /admin
         },
@@ -597,12 +597,6 @@ function App() {
   ]);
   return (
     <LoadingProvider>
-      {/* Nếu muốn giữ loading context, chỉ show loading nhỏ hoặc bỏ luôn */}
-      {/* {loading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
-      )} */}
       <RouterProvider router={router} />
       <ToastContainer
         position="top-right"

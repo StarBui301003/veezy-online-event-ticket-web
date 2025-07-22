@@ -15,6 +15,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ScrollToTop from '@/components/common/ScrollToTop';
 
 const PAGE_TITLES: Record<string, string> = {
+  dashboard: 'Dashboard',
   users: 'Users',
   events: 'Events',
   'approved-events-list': 'Approved Events List',

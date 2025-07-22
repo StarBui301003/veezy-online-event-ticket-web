@@ -1,32 +1,28 @@
-export interface AdminDashboardResponse {
+// New type for realtime overview response
+export interface AdminOverviewRealtimeResponse {
   isSuccess: boolean;
   statusCode: number;
   message: string;
-  data: AdminDashboardData;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errors: any;
+  data: AdminOverviewRealtimeData;
+  errors: unknown;
 }
 
-export interface AdminDashboardData {
-  systemOverview: SystemOverview;
-  financialOverview: FinancialOverview;
-  userStatistics: UserStatistics;
-  eventStatistics: EventStatistics;
-  newsStatistics: NewsStatistics;
-  recentActivities: RecentActivity[];
-  generatedAt: string;
-}
-
-export interface SystemOverview {
+export interface AdminOverviewRealtimeData {
   totalUsers: number;
   totalEvents: number;
+  totalNews: number;
   totalTicketsSold: number;
+  totalTickets: number;
   totalRevenue: number;
   platformRevenue: number;
   pendingWithdrawals: number;
   pendingEventApprovals: number;
+  pendingNewsApprovals: number;
   activeEvents: number;
+  activeNews: number;
+  activeUsers: number;
   completedEvents: number;
+  pendingReports: number;
   growth: {
     usersGrowth: number;
     eventsGrowth: number;
@@ -35,18 +31,31 @@ export interface SystemOverview {
   };
 }
 
-export interface FinancialOverview {
-  todayRevenue: number;
-  weekRevenue: number;
-  monthRevenue: number;
-  yearRevenue: number;
-  revenueTimeline: RevenueTimelineItem[];
-  topEventsByRevenue: TopEventByRevenue[];
-  withdrawalStats: WithdrawalStats;
-  platformFees: PlatformFees;
+// --- NEW ANALYTICS API RESPONSE TYPES ---
+
+// Financial Analytics
+export interface AdminFinancialAnalyticsResponse {
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  data: AdminFinancialAnalyticsData;
+  errors: unknown;
 }
 
-export interface RevenueTimelineItem {
+export interface AdminFinancialAnalyticsData {
+  todayRevenue: number | null;
+  weekRevenue: number | null;
+  monthRevenue: number | null;
+  yearRevenue: number | null;
+  totalRevenue: number;
+  revenueFilter: number;
+  revenueTimeline: FinancialRevenueTimelineItem[];
+  topEventsByRevenue: FinancialTopEventByRevenue[];
+  withdrawalStats: FinancialWithdrawalStats;
+  platformFees: FinancialPlatformFees;
+}
+
+export interface FinancialRevenueTimelineItem {
   period: string;
   revenue: number;
   platformFee: number;
@@ -54,7 +63,7 @@ export interface RevenueTimelineItem {
   periodLabel: string;
 }
 
-export interface TopEventByRevenue {
+export interface FinancialTopEventByRevenue {
   eventId: string;
   eventName: string;
   eventManagerName: string;
@@ -62,14 +71,12 @@ export interface TopEventByRevenue {
   ticketsSold: number;
   eventDate: string;
   status: number;
-  // Optional fields for platformFees.topContributingEvents
+  // For platformFees.topContributingEvents
   feeCollected?: number;
   eventRevenue?: number;
-  totalTickets?: number;
-  soldPercentage?: number;
 }
 
-export interface WithdrawalStats {
+export interface FinancialWithdrawalStats {
   totalRequests: number;
   pendingRequests: number;
   approvedRequests: number;
@@ -80,166 +87,220 @@ export interface WithdrawalStats {
   averageProcessingTimeHours: number;
 }
 
-export interface PlatformFees {
+export interface FinancialPlatformFees {
   totalCollected: number;
-  thisMonth: number;
-  thisYear: number;
+  totalCollectFilter: number;
+  averagePerEventFilter: number;
   averagePerEvent: number;
-  topContributingEvents: TopEventByRevenue[];
+  topContributingEvents: Array<{
+    eventId: string;
+    eventName: string;
+    feeCollected: number;
+    eventRevenue: number;
+  }>;
 }
 
-export interface UserStatistics {
-  growth: {
-    newUsersToday: number;
-    newUsersThisWeek: number;
-    newUsersThisMonth: number;
-    newUsersThisYear: number;
-    growthChart: GrowthChartItem[];
-    usersByRole: Record<string, number>;
-    activeUsers: number;
-    inactiveUsers: number;
-  };
-  demographics: {
-    usersByGender: Record<string, number>;
-    usersByLocation: Record<string, number>;
-    usersByAgeGroup: Record<string, number>;
-    averageAge: number;
-  };
-  activity: {
-    dailyActiveUsers: number;
-    weeklyActiveUsers: number;
-    monthlyActiveUsers: number;
-    activityTrend: ActivityTrendItem[];
-  };
+// Event Analytics
+export interface AdminEventAnalyticsResponse {
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  data: AdminEventAnalyticsData;
+  errors: unknown;
 }
 
-export interface GrowthChartItem {
+export interface AdminEventAnalyticsData {
+  overview: EventOverview;
+  eventsByStatus: unknown[];
+  eventsByCategory: EventByCategory[];
+  topPerformingEvents: EventTopPerformingEvent[];
+  approvalMetrics: EventApprovalMetrics;
+}
+
+export interface EventOverview {
+  totalEvents: number;
+  totalActiveEvents: number;
+  totalEventsFilter: number;
+  totalActiveEventsFilter: number;
+  eventsThisMonth: number | null;
+  eventsThisYear: number | null;
+  upcomingEvents: number;
+  ongoingEvents: number;
+  completedEvents: number;
+  pendingEvents: number;
+  rejectedEvents: number;
+  cancelledEvents: number;
+  averageTicketPrice: number;
+  averageEventDuration: number;
+}
+
+export interface EventByCategory {
+  categoryId: string;
+  categoryName: string;
+  count: number;
+  revenue: number;
+  ticketsSold: number;
+}
+
+export interface EventTopPerformingEvent {
+  eventId: string;
+  eventName: string;
+  eventManagerName: string;
+  revenue: number;
+  ticketsSold: number;
+  totalTickets: number;
+  soldPercentage: number;
+  eventDate: string;
+  status: number;
+}
+
+export interface EventApprovalMetrics {
+  totalEvents: number;
+  pendingApprovals: number;
+  approvedToday: number | null;
+  rejectedToday: number | null;
+  approvedThisWeek: number | null;
+  rejectedThisWeek: number | null;
+  approvedEvents: number;
+  rejectedEvents: number;
+  cancelledEvents: number;
+  averageApprovalTimeHours: number;
+  approvalTrend: EventApprovalTrendItem[];
+}
+
+export interface EventApprovalTrendItem {
+  period: string;
+  approved: number;
+  rejected: number;
+  pending: number;
+  periodLabel: string;
+}
+
+// User Analytics
+export interface AdminUserAnalyticsResponse {
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  data: AdminUserAnalyticsData;
+  errors: unknown;
+}
+
+export interface AdminUserAnalyticsData {
+  growth: UserGrowth;
+  demographics: UserDemographics;
+  activity: UserActivity;
+}
+
+export interface UserGrowth {
+  newUsersToday: number | null;
+  newUsersThisWeek: number | null;
+  newUsersThisMonth: number | null;
+  newUsersThisYear: number | null;
+  totalUsers: number;
+  newUsers: number;
+  activeNewUsers: number;
+  inactiveNewUsers: number;
+  onlineUsers: number;
+  growthChart: UserGrowthChartItem[];
+  usersByRole: Record<string, number>;
+  activeUsers: number;
+  inactiveUsers: number;
+}
+
+export interface UserGrowthChartItem {
   period: string;
   newUsers: number;
   totalUsers: number;
   periodLabel: string;
 }
 
-export interface ActivityTrendItem {
-  period: string;
-  value: number;
+export interface UserDemographics {
+  usersByGender: Record<string, number>;
+  usersByLocation: Record<string, number>;
+  usersByAgeGroup: Record<string, number>;
+  averageAge: number;
 }
 
-export interface EventStatistics {
-  overview: {
-    totalEvents: number;
-    eventsThisMonth: number;
-    eventsThisYear: number;
-    upcomingEvents: number;
-    ongoingEvents: number;
-    completedEvents: number;
-    averageTicketPrice: number;
-    averageEventDuration: number;
-  };
-  eventsByStatus: {
-    status: number;
-    count: number;
-    percentage: number;
-  }[];
-  eventsByCategory: {
-    categoryId: string;
-    categoryName: string;
-    count: number;
-    revenue: number;
-    ticketsSold: number;
-  }[];
-  topPerformingEvents: TopEventByRevenue[];
-  approvalMetrics: {
-    pendingApprovals: number;
-    approvedToday: number;
-    rejectedToday: number;
-    approvedThisWeek: number;
-    rejectedThisWeek: number;
-    averageApprovalTimeHours: number;
-    approvalTrend: ApprovalTrendItem[];
-  };
+export interface UserActivity {
+  dailyActiveUsers: number;
+  weeklyActiveUsers: number;
+  monthlyActiveUsers: number;
+  activityTrend: unknown[];
 }
 
-export interface ApprovalTrendItem {
+// News Analytics
+export interface AdminNewsAnalyticsResponse {
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  data: AdminNewsAnalyticsData;
+  errors: unknown;
+}
+
+export interface AdminNewsAnalyticsData {
+  overview: NewsOverview;
+  newsByStatus: unknown[];
+  newsByEvent: NewsByEvent[];
+  newsByAuthor: NewsByAuthor[];
+  recentNews: unknown[];
+  approvalMetrics: NewsApprovalMetrics;
+  growthTrend: unknown[];
+}
+
+export interface NewsOverview {
+  totalNews: number;
+  totalNewsActive: number;
+  newsToday: number | null;
+  newsThisWeek: number | null;
+  newsThisMonth: number | null;
+  newsThisYear: number | null;
+  pendingNews: number;
+  approvedNews: number;
+  rejectedNews: number;
+  visibleNews: number;
+  hiddenNews: number;
+}
+
+export interface NewsByEvent {
+  eventId: string;
+  eventName: string;
+  newsCount: number;
+  approvedCount: number;
+  pendingCount: number | null;
+  lastNewsDate: string;
+}
+
+export interface NewsByAuthor {
+  authorId: string;
+  authorName: string;
+  totalNews: number;
+  approvedNews: number;
+  pendingNews: number | null;
+  rejectedNews: number | null;
+  approvalRate: number;
+  lastNewsDate: string;
+}
+
+export interface NewsApprovalMetrics {
+  totalNews: number;
+  pendingApprovals: number;
+  approvedNews: number;
+  rejectedNews: number;
+  visibleNews: number;
+  hiddenNews: number;
+  approvedToday: number | null;
+  rejectedToday: number | null;
+  approvedThisWeek: number | null;
+  rejectedThisWeek: number | null;
+  averageApprovalTimeHours: number;
+  approvalRate: number;
+  approvalTrend: NewsApprovalTrendItem[];
+}
+
+export interface NewsApprovalTrendItem {
   period: string;
   approved: number;
   rejected: number;
-}
-
-export interface NewsStatistics {
-  overview: {
-    totalNews: number;
-    newsToday: number;
-    newsThisWeek: number;
-    newsThisMonth: number;
-    newsThisYear: number;
-    pendingNews: number;
-    approvedNews: number;
-    rejectedNews: number;
-    visibleNews: number;
-    hiddenNews: number;
-  };
-  newsByStatus: {
-    status: number;
-    count: number;
-    percentage: number;
-  }[];
-  newsByEvent: {
-    eventId: string;
-    eventName: string;
-    newsCount: number;
-    approvedCount: number;
-    pendingCount: number;
-    lastNewsDate: string;
-  }[];
-  newsByAuthor: {
-    authorId: string;
-    authorName: string;
-    totalNews: number;
-    approvedNews: number;
-    pendingNews: number;
-    rejectedNews: number;
-    approvalRate: number;
-    lastNewsDate: string;
-  }[];
-  recentNews: {
-    newsId: string;
-    newsTitle: string;
-    eventName: string;
-    authorName: string;
-    status: number;
-    createdAt: string;
-    approvedAt: string;
-  }[];
-  approvalMetrics: {
-    pendingApprovals: number;
-    approvedToday: number;
-    rejectedToday: number;
-    approvedThisWeek: number;
-    rejectedThisWeek: number;
-    averageApprovalTimeHours: number;
-    approvalRate: number;
-    approvalTrend: {
-      period: string;
-      approved: number;
-      rejected: number;
-      pending: number;
-      periodLabel: string;
-    }[];
-  };
-  growthTrend: {
-    period: string;
-    newNews: number;
-    totalNews: number;
-    periodLabel: string;
-  }[];
-}
-
-export interface RecentActivity {
-  activityType: string;
-  description: string;
-  userName: string;
-  timestamp: string;
-  relatedEntityId: string;
-  relatedEntityType: string;
+  pending: number;
+  periodLabel: string;
 }
