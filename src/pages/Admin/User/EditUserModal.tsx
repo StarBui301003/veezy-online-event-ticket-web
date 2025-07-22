@@ -24,6 +24,7 @@ interface Props {
   onClose: () => void;
   onUpdated?: (user: User) => void;
   disableEmail?: boolean; // Cho phép disable email input nếu cần
+  title?: string;
 }
 
 export const EditUserModal = ({

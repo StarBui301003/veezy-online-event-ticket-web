@@ -11,7 +11,6 @@ import {
 } from '@/services/Event Manager/event.service';
 import { CreateEventData, Category, Content } from '@/types/event';
 import { validateEventForm } from '@/utils/validation';
-import { useTranslation } from 'react-i18next';
 
 const MAX_SECTIONS = 5;
 const contentTypeOptions = [
@@ -61,7 +60,6 @@ function validateSections(contents: EnhancedContent[]): string[] {
 }
 
 export default function EditEvent() {
-  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const location = useLocation();

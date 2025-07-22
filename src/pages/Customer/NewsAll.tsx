@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getAllNewsHome } from '@/services/Event Manager/event.service';
 import { News } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ function getGradient(idx: number) {
 }
 
 const NewsAll: React.FC = () => {
+  const { t } = useTranslation();
   const [newsList, setNewsList] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

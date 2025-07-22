@@ -77,10 +77,8 @@ import {
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
-import { useTranslation } from 'react-i18next';
 
 function App() {
-  const { t } = useTranslation();
   useEffect(() => {
     // NotificationService
     connectNotificationHub('http://localhost:5003/hubs/notifications').then(() => {
