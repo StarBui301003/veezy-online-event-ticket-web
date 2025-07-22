@@ -1,5 +1,6 @@
 import React from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { useTranslation } from 'react-i18next';
 
 interface AnimatedCardProps {
   title?: string;
@@ -20,6 +21,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
   onRetry,
   children,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 p-6 mb-8 animate-fade-in">
       {(title || icon) && (
@@ -40,13 +42,13 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
               className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold mt-2 hover:from-purple-600 hover:to-pink-600 transition"
               onClick={onRetry}
             >
-              Thử lại
+              {t('retry')}
             </button>
           )}
         </div>
       ) : empty ? (
         <div className="flex flex-col items-center py-12">
-          <div className="text-gray-400">Không có dữ liệu.</div>
+          <div className="text-gray-400">{t('noData')}</div>
         </div>
       ) : (
         <div className="animate-slide-in">{children}</div>

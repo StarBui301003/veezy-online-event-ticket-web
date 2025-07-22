@@ -17,6 +17,7 @@ import {
   createFieldChangeHandler,
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -24,12 +25,12 @@ interface Props {
   onCreated?: () => void;
 }
 
-const GENDER_OPTIONS = [
-  { value: 0, label: 'Male' },
-  { value: 1, label: 'Female' },
-];
-
 export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
+  const { t } = useTranslation();
+  const GENDER_OPTIONS = [
+    { value: 0, label: t('male') },
+    { value: 1, label: t('female') },
+  ];
   const [form, setForm] = useState<CreateAdminRequest>({
     username: '',
     email: '',
@@ -97,14 +98,6 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
     clearFieldError
   );
 
-  const handleDateOfBirthChange = createFieldChangeHandler(
-    'dateOfBirth',
-    (value: string) => {
-      setForm((prev) => ({ ...prev, dateOfBirth: value }));
-    },
-    clearFieldError
-  );
-
   const handleCreate = async () => {
     // Validate form using comprehensive validation
     const isValid = validateForm(form, validateCreateAdminForm);
@@ -116,7 +109,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
     setLoading(true);
     try {
       await createAdminAPI(form);
-      toast.success('Admin account created successfully!');
+      toast.success(t('adminAccountCreatedSuccessfully'));
       setForm({
         username: '',
         email: '',
@@ -140,18 +133,18 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Create Admin</DialogTitle>
+            <DialogTitle>{t('createAdmin')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Username</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('username')}</label>
             <input
               className={getErrorClass('username', 'border px-3 py-2 rounded w-full')}
               value={form.username}
               onChange={handleUsernameChange}
               disabled={loading}
-              placeholder="Enter username"
+              placeholder={t('enterUsername')}
             />
             {getFieldError('username') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -160,14 +153,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Email</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('email')}</label>
             <input
               className={getErrorClass('email', 'border px-3 py-2 rounded w-full')}
               type="email"
               value={form.email}
               onChange={handleEmailChange}
               disabled={loading}
-              placeholder="Enter email"
+              placeholder={t('enterEmail')}
             />
             {getFieldError('email') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -176,13 +169,13 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Phone</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('phone')}</label>
             <input
               className={getErrorClass('phone', 'border px-3 py-2 rounded w-full')}
               value={form.phone}
               onChange={handlePhoneChange}
               disabled={loading}
-              placeholder="Enter phone"
+              placeholder={t('enterPhone')}
             />
             {getFieldError('phone') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -191,14 +184,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Password</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('password')}</label>
             <input
               className={getErrorClass('password', 'border px-3 py-2 rounded w-full')}
               type="password"
               value={form.password}
               onChange={handlePasswordChange}
               disabled={loading}
-              placeholder="Enter password"
+              placeholder={t('enterPassword')}
             />
             {getFieldError('password') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -207,13 +200,13 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Full Name</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('fullName')}</label>
             <input
               className={getErrorClass('fullName', 'border px-3 py-2 rounded w-full')}
               value={form.fullName}
               onChange={handleFullNameChange}
               disabled={loading}
-              placeholder="Enter full name"
+              placeholder={t('enterFullName')}
             />
             {getFieldError('fullName') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -222,17 +215,15 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Gender</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('gender')}</label>
             <select
               className={getErrorClass('gender', 'border px-3 py-2 rounded w-full')}
               value={form.gender}
-              onChange={(e) => handleGenderChange(e.target.value)}
+              onChange={e => handleGenderChange(e.target.value)}
               disabled={loading}
             >
-              {GENDER_OPTIONS.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
+              {GENDER_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
             {getFieldError('gender') && (
@@ -242,13 +233,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Date of Birth</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('dateOfBirth')}</label>
             <input
               className={getErrorClass('dateOfBirth', 'border px-3 py-2 rounded w-full')}
               type="date"
               value={form.dateOfBirth}
-              onChange={handleDateOfBirthChange}
+              onChange={e => setForm(prev => ({ ...prev, dateOfBirth: e.target.value }))}
               disabled={loading}
+              placeholder={t('enterDateOfBirth')}
             />
             {getFieldError('dateOfBirth') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -265,7 +257,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
               disabled={loading}
               type="button"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
@@ -276,10 +268,10 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
               {loading ? (
                 <>
                   <FaSpinner className="animate-spin" />
-                  Creating...
+                  {t('creating')}
                 </>
               ) : (
-                'Create'
+                t('create')
               )}
             </button>
           </DialogFooter>

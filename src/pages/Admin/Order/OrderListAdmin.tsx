@@ -20,10 +20,12 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { getOrdersAdmin } from '@/services/Admin/order.service';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const OrderListAdmin = () => {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -77,25 +79,26 @@ export const OrderListAdmin = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="text-center sticky left-0 bg-blue-200 z-10">#</TableHead>
-                <TableHead className="text-center sticky left-0 bg-blue-200 z-10">
-                  Customer Name
+                <TableHead className="pl-4" style={{ width: '5%' }}>
+                  #
                 </TableHead>
-                <TableHead>Event Name</TableHead>
-                <TableHead>Ticket Name(s)</TableHead>
-                <TableHead className="text-center">Price Per Ticket</TableHead>
-                <TableHead className="text-center">Quantity</TableHead>
-                <TableHead className="text-center">Subtotal</TableHead>
-                <TableHead className="text-center">Discount Code</TableHead>
-                <TableHead className="text-center">Created At</TableHead>
-                <TableHead className="text-center">Total Amount</TableHead>
+                <TableHead style={{ width: '25%' }}>{t('orderId')}</TableHead>
+                <TableHead style={{ width: '25%' }}>{t('customer')}</TableHead>
+                <TableHead style={{ width: '15%' }} className="text-center">
+                  {t('totalAmount')}
+                </TableHead>
+                <TableHead style={{ width: '10%' }} className="text-center">
+                  {t('status')}
+                </TableHead>
+                <TableHead style={{ width: '15%' }}>{t('createdAt')}</TableHead>
+                <TableHead className="text-center">{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pagedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-4 text-gray-500">
-                    No orders found.
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                    {t('noOrdersFound')}
                   </TableCell>
                 </TableRow>
               ) : (

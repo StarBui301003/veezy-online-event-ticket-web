@@ -23,6 +23,7 @@ import { getEventById } from '@/services/Admin/event.service';
 import type { Comment } from '@/types/Admin/comment';
 import { FaEye } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -33,6 +34,7 @@ export const CommentList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
   const [viewComment, setViewComment] = useState<Comment | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     connectCommentHub('http://localhost:5004/commentHub');
@@ -125,34 +127,20 @@ export const CommentList = () => {
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '8%' }}>
-                  Avatar
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '12%' }}>
-                  User Name
-                </TableHead>
-                <TableHead className="text-left" style={{ width: '15%' }}>
-                  Event Name
-                </TableHead>
-                <TableHead className="text-left" style={{ width: '25%' }}>
-                  Content
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Created At
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Updated At
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '5%' }}>
-                  Action
-                </TableHead>
+                <TableHead className="text-center" style={{ width: '8%' }}>{t('avatar')}</TableHead>
+                <TableHead className="text-center" style={{ width: '12%' }}>{t('userName')}</TableHead>
+                <TableHead className="text-left" style={{ width: '15%' }}>{t('eventName')}</TableHead>
+                <TableHead className="text-left" style={{ width: '25%' }}>{t('content')}</TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>{t('createdAt')}</TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>{t('updatedAt')}</TableHead>
+                <TableHead className="text-center" style={{ width: '5%' }}>{t('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pagedComments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No comments found.
+                    {t('noCommentsFound')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -192,7 +180,7 @@ export const CommentList = () => {
                       {/* Nút xem chi tiết */}
                       <button
                         className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
+                        title={t('view')}
                         onClick={() => setViewComment(comment)}
                       >
                         <FaEye className="w-4 h-4" />
@@ -214,7 +202,9 @@ export const CommentList = () => {
                               onClick={() => setPage((p) => Math.max(1, p - 1))}
                               aria-disabled={page === 1}
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
-                            />
+                            >
+                              {t('previous')}
+                            </PaginationPrevious>
                           </PaginationItem>
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
@@ -246,7 +236,9 @@ export const CommentList = () => {
                               className={
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
-                            />
+                            >
+                              {t('next')}
+                            </PaginationNext>
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
@@ -260,7 +252,7 @@ export const CommentList = () => {
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
                       <select
                         className="border rounded px-2 py-1 text-sm bg-white"
                         value={pageSize}

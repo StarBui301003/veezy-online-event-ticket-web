@@ -12,6 +12,7 @@ import { ApprovedNews, RejectedNews } from '@/services/Admin/news.service';
 import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
 import { NO_IMAGE } from '@/assets/img';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   news: News | null;
@@ -26,6 +27,7 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
   const [rejectLoading, setRejectLoading] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const { t } = useTranslation();
 
   if (!news) return null;
 
@@ -93,31 +95,31 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
           {/* Info fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Title</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('title')}</label>
               <input
-                value={news.newsTitle ?? 'unknown'}
+                value={news.newsTitle ?? t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Author Name</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('authorName')}</label>
               <input
-                value={authorName || 'unknown'}
+                value={authorName || t('unknown')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
               <input
-                value={news.status ? 'Active' : 'Inactive'}
+                value={news.status ? t('active') : t('inactive')}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
               <input
                 value={
                   news.createdAt
@@ -128,7 +130,7 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : t('unknown')
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"

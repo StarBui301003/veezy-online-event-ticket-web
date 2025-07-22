@@ -11,6 +11,7 @@ import {
 } from '@/services/Event Manager/event.service';
 import { CreateEventData, Category, Content } from '@/types/event';
 import { validateEventForm } from '@/utils/validation';
+import { useTranslation } from 'react-i18next';
 
 const MAX_SECTIONS = 5;
 const contentTypeOptions = [
@@ -59,7 +60,8 @@ function validateSections(contents: EnhancedContent[]): string[] {
   return errors;
 }
 
-const EditEvent = () => {
+export default function EditEvent() {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,6 +76,8 @@ const EditEvent = () => {
     categoryIds: [],
     contents: [],
     bankAccount: '',
+    bankAccountName: '',
+    bankName: '',
   });
   const [contents, setContents] = useState<EnhancedContent[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -97,17 +101,14 @@ const EditEvent = () => {
           eventDescription: event.eventDescription || '',
           eventCoverImageUrl: event.eventCoverImageUrl || '',
           eventLocation: event.eventLocation || '',
-          startAt: event.startAt ? new Date(event.startAt).toISOString().slice(0, 16) : '',
-          endAt: event.endAt ? new Date(event.endAt).toISOString().slice(0, 16) : '',
+          startAt: event.startAt || '',
+          endAt: event.endAt || '',
           tags: event.tags || [],
-          categoryIds:
-            event.categoryIds && event.categoryIds.length > 0
-              ? event.categoryIds
-              : event.categoryId
-              ? [event.categoryId]
-              : [],
-          contents: [],
+          categoryIds: event.categoryIds || [],
+          contents: event.contents || [],
           bankAccount: event.bankAccount || '',
+          bankAccountName: event.bankAccountName || '',
+          bankName: event.bankName || '',
         });
         // Convert contents to EnhancedContent with contentType
         setContents(
@@ -258,6 +259,7 @@ const EditEvent = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Chặn double submit
     setSubmitting(true);
     setError(null);
 
@@ -663,5 +665,3 @@ const EditEvent = () => {
     </div>
   );
 };
-
-export default EditEvent;

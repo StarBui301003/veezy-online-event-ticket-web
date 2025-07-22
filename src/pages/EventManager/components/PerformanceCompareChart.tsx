@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { comparePerformance } from '@/services/Event Manager/event.service';
+import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -12,6 +13,7 @@ interface CompareDataPoint {
 }
 
 export default function PerformanceCompareChart() {
+  const { t } = useTranslation();
   const [dataPoints, setDataPoints] = useState<CompareDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,21 +30,21 @@ export default function PerformanceCompareChart() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="mb-10">Đang tải biểu đồ so sánh hiệu suất...</div>;
-  if (dataPoints.length === 0) return <div className="mb-10">Không có dữ liệu so sánh hiệu suất.</div>;
+  if (loading) return <div className="mb-10">{t('loadingPerformanceChart')}</div>;
+  if (dataPoints.length === 0) return <div className="mb-10">{t('noPerformanceData')}</div>;
 
   const chartData = {
     labels: dataPoints.map(p => p.label),
     datasets: [
       {
-        label: 'Kỳ hiện tại',
+        label: t('currentPeriod'),
         data: dataPoints.map(p => p.current),
         borderColor: 'rgba(54, 162, 235, 1)',
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
         tension: 0.4,
       },
       {
-        label: 'Kỳ trước',
+        label: t('previousPeriod'),
         data: dataPoints.map(p => p.previous),
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
@@ -55,7 +57,7 @@ export default function PerformanceCompareChart() {
     responsive: true,
     plugins: {
       legend: { labels: { color: '#fff' } },
-      title: { display: true, text: 'So sánh hiệu suất', color: '#fff', font: { size: 18 } },
+      title: { display: true, text: t('performanceCompareChart'), color: '#fff', font: { size: 18 } },
       tooltip: { callbacks: { label: (ctx: import('chart.js').TooltipItem<'line'>) => `${ctx.dataset.label}: ${ctx.parsed.y}` } }
     },
     scales: {

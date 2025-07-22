@@ -12,18 +12,21 @@ interface Props {
   onClose: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export const CategoryDetailModal = ({ cate, onClose }: Props) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={!!cate} onOpenChange={onClose}>
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Category Details</DialogTitle>
+            <DialogTitle>{t('categoryDetails')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-4 max-h-[70vh] overflow-y-auto p-4 pt-0">
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Category Name</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('categoryName')}</label>
             <input
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               value={cate.categoryName}
@@ -31,10 +34,10 @@ export const CategoryDetailModal = ({ cate, onClose }: Props) => {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('description')}</label>
             <textarea
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              value={cate.categoryDescription || 'No description'}
+              value={cate.categoryDescription || t('noDescription')}
               readOnly
             />
           </div>
@@ -46,7 +49,7 @@ export const CategoryDetailModal = ({ cate, onClose }: Props) => {
               onClick={onClose}
               type="button"
             >
-              Close
+              {t('close')}
             </button>
           </DialogFooter>
         </div>

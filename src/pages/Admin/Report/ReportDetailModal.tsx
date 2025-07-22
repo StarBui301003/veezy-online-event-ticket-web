@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   report: Report;
@@ -34,6 +35,7 @@ const ReportDetailModal = ({
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const isPending = report.status === 0;
 
@@ -47,17 +49,17 @@ const ReportDetailModal = ({
     try {
       if (actionType === 'approve') {
         await resolveReport(report.reportId, note.trim());
-        toast.success('Approved successfully!');
+        toast.success(t('approvedSuccessfully'));
       } else {
         await rejectReport(report.reportId, note.trim());
-        toast.success('Rejected successfully!');
+        toast.success(t('rejectedSuccessfully'));
       }
       setActionType(null);
       setNote('');
       if (onActionDone) onActionDone();
       onClose();
     } catch {
-      toast.error('Action failed!');
+      toast.error(t('actionFailed'));
     } finally {
       setLoading(false);
     }
@@ -83,13 +85,13 @@ const ReportDetailModal = ({
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Report Details</DialogTitle>
+            <DialogTitle>{t('reportDetail')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Report ID</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('reportId')}</label>
               <input
                 value={report.reportId}
                 readOnly
@@ -97,7 +99,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Target ID</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('targetId')}</label>
               <input
                 value={report.targetId}
                 readOnly
@@ -105,7 +107,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Target Type</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('targetType')}</label>
               <input
                 value={targetTypeMap?.[report.targetType] ?? report.targetType}
                 readOnly
@@ -113,7 +115,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Reporter</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('reporter')}</label>
               <input
                 value={reporterName || report.reporterId}
                 readOnly
@@ -121,7 +123,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
               <input
                 value={statusMap?.[report.status] ?? report.status}
                 readOnly
@@ -129,7 +131,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Reason</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('reason')}</label>
               <input
                 value={report.reason}
                 readOnly
@@ -137,30 +139,30 @@ const ReportDetailModal = ({
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Description</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('description')}</label>
               <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto">
                 {report.description ? (
                   <span>{report.description}</span>
                 ) : (
-                  <span className="text-gray-400">No description</span>
+                  <span className="text-gray-400">{t('noDescription')}</span>
                 )}
               </div>
             </div>
             {/* Hiện Note nếu showNote=true */}
             {showNote && (
               <div className="md:col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">Note</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('note')}</label>
                 <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px]">
                   {report.note ? (
                     <span>{report.note}</span>
                   ) : (
-                    <span className="text-gray-400">No note</span>
+                    <span className="text-gray-400">{t('noNote')}</span>
                   )}
                 </div>
               </div>
             )}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
               <input
                 value={
                   report.createdAt
@@ -178,7 +180,7 @@ const ReportDetailModal = ({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Updated At</label>
+              <label className="block text-xs text-gray-500 mb-1">{t('updatedAt')}</label>
               <input
                 value={
                   report.updatedAt
@@ -207,21 +209,21 @@ const ReportDetailModal = ({
                   onClick={() => handleAction('approve')}
                   type="button"
                 >
-                  Approve
+                  {t('approve')}
                 </button>
                 <button
                   className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
                   onClick={() => handleAction('reject')}
                   type="button"
                 >
-                  Reject
+                  {t('reject')}
                 </button>
                 <button
                   className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-400"
                   onClick={onClose}
                   type="button"
                 >
-                  Close
+                  {t('close')}
                 </button>
               </div>
             )}
@@ -236,15 +238,15 @@ const ReportDetailModal = ({
               >
                 <label className="text-sm font-medium">
                   {actionType === 'approve'
-                    ? 'Enter reason for approval:'
-                    : 'Enter reason for rejection:'}
+                    ? t('enterApprovalReason')
+                    : t('enterRejectionReason')}
                 </label>
                 <input
                   className="border rounded px-2 py-1"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder={
-                    actionType === 'approve' ? 'Approval reason...' : 'Rejection reason...'
+                    actionType === 'approve' ? t('approvalReasonPlaceholder') : t('rejectionReasonPlaceholder')
                   }
                   required
                   disabled={loading}
@@ -260,10 +262,10 @@ const ReportDetailModal = ({
                     disabled={loading}
                   >
                     {loading
-                      ? 'Processing...'
+                      ? t('processing')
                       : actionType === 'approve'
-                      ? 'Confirm Approve'
-                      : 'Confirm Reject'}
+                      ? t('confirmApprove')
+                      : t('confirmReject')}
                   </button>
                   <button
                     className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-400"
@@ -274,7 +276,7 @@ const ReportDetailModal = ({
                     }}
                     disabled={loading}
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                 </div>
               </form>
@@ -286,7 +288,7 @@ const ReportDetailModal = ({
                 onClick={onClose}
                 type="button"
               >
-                Close
+                {t('close')}
               </button>
             )}
           </DialogFooter>

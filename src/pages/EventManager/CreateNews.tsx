@@ -6,12 +6,15 @@ import { NewsPayload } from "@/types/event";
 import { toast } from "react-toastify";
 import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
+import { useTranslation } from 'react-i18next';
 
 const CreateNews: React.FC = () => {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [newsPayload, setNewsPayload] = useState<NewsPayload>({
     eventId: eventId || "",
@@ -45,7 +48,7 @@ const CreateNews: React.FC = () => {
     if (authorId) {
       setNewsPayload((prev) => ({ ...prev, authorId }));
     } else {
-      toast.error("Bạn cần đăng nhập để tạo tin tức!");
+      toast.error(t('loginRequiredCreateNews'));
       navigate("/login");
     }
   }, [navigate]);
@@ -96,30 +99,38 @@ const CreateNews: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Chặn double submit
+    setLoading(true);
 
     // Validate các trường bắt buộc
     if (!newsPayload.newsTitle.trim()) {
       toast.error("Vui lòng nhập tiêu đề tin tức!");
+      setLoading(false);
       return;
     }
     if (!newsPayload.newsDescription.trim()) {
       toast.error("Vui lòng nhập mô tả tin tức!");
+      setLoading(false);
       return;
     }
     if (!newsContent || !newsContent.trim() || newsContent === '<p><br></p>') {
       toast.error("Vui lòng nhập nội dung tin tức!");
+      setLoading(false);
       return;
     }
     if (!newsPayload.authorId) {
       toast.error("Thông tin tác giả bị thiếu. Vui lòng đăng nhập lại!");
+      setLoading(false);
       return;
     }
     if (!newsPayload.imageUrl) {
       toast.error("Vui lòng tải lên ảnh tin tức!");
+      setLoading(false);
       return;
     }
     if (!newsPayload.eventId) {
       toast.error("Thiếu ID sự kiện!");
+      setLoading(false);
       return;
     }
 
@@ -127,10 +138,12 @@ const CreateNews: React.FC = () => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(newsPayload.eventId)) {
       toast.error("ID sự kiện không hợp lệ!");
+      setLoading(false);
       return;
     }
     if (!uuidRegex.test(newsPayload.authorId)) {
       toast.error("ID tác giả không hợp lệ!");
+      setLoading(false);
       return;
     }
 
@@ -138,12 +151,12 @@ const CreateNews: React.FC = () => {
       const payloadToSend = { ...newsPayload, newsContent };
       const response = await createNews(payloadToSend);
       if (response && response.data && response.data.flag) {
-        toast.success("Tạo tin tức thành công!");
+        toast.success(t('createNewsSuccess'));
         setTimeout(() => {
           navigate(`/event-manager/news`);
         }, 1000);
       } else {
-        toast.error(response?.data?.message || "Tạo tin tức thất bại!");
+        toast.error(response?.data?.message || t('createNewsFailed'));
       }
     } catch (error: unknown) {
       if (
@@ -154,8 +167,10 @@ const CreateNews: React.FC = () => {
       ) {
         toast.error((error as { response?: { data?: { message?: string } } }).response!.data!.message!);
       } else {
-        toast.error("Tạo tin tức thất bại!");
+        toast.error(t('createNewsFailed'));
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,7 +203,7 @@ const CreateNews: React.FC = () => {
               </div>
               <div className="flex-1 w-full">
                 {/* News Description */}
-                <label htmlFor="newsDescription" className="block text-sm font-bold text-pink-300 mb-2 text-left">Mô tả ngắn</label>
+                <label htmlFor="newsDescription" className="block text-sm font-bold text-pink-300 mb-2 text-left">{t('newsDescription')}</label>
                 <textarea
                   id="newsDescription"
                   name="newsDescription"
@@ -196,7 +211,7 @@ const CreateNews: React.FC = () => {
                   onChange={handleChange}
                   rows={4}
                   className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-left resize-none"
-                  placeholder="Nhập mô tả ngắn về tin tức"
+                  placeholder={t('enterNewsDescription')}
                   required
                   style={{ textAlign: 'left' }}
                 />
@@ -204,7 +219,7 @@ const CreateNews: React.FC = () => {
             </div>
             {/* News Title */}
             <div>
-              <label htmlFor="newsTitle" className="block text-sm font-bold text-pink-300">Tiêu đề tin tức</label>
+              <label htmlFor="newsTitle" className="block text-sm font-bold text-pink-300">{t('newsTitle')}</label>
               <input
                 type="text"
                 id="newsTitle"
@@ -212,7 +227,7 @@ const CreateNews: React.FC = () => {
                 value={newsPayload.newsTitle}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                placeholder="Nhập tiêu đề tin tức"
+                placeholder={t('enterNewsTitle')}
                 required
               />
             </div>
@@ -248,9 +263,9 @@ const CreateNews: React.FC = () => {
               <button 
                 type="submit" 
                 className="px-6 py-3 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-xl font-bold transition-all duration-200" 
-                disabled={isUploading}
+                disabled={loading}
               >
-                {isUploading ? "Đang tải..." : "Tạo tin tức"}
+                {loading ? "Đang tải..." : "Tạo tin tức"}
               </button>
             </div>
           </form>

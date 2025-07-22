@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { FaCalendarAlt } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import noPicture from '@/assets/img/no-picture-available.png';
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -21,7 +22,8 @@ interface Collaborator {
   avatar: string;
 }
 
-const CollaboratorManager = () => {
+export default function CollaboratorManager() {
+  const { t } = useTranslation();
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loadingCollabs, setLoadingCollabs] = useState(true);
   const [searchCollaborator, setSearchCollaborator] = useState("");
@@ -41,7 +43,7 @@ const CollaboratorManager = () => {
     setLoadingCollabs(true);
     getCollaboratorsByEventManager()
       .then((data) => setCollaborators(Array.isArray(data) ? data : []))
-      .catch(() => toast.error('Không thể tải danh sách cộng tác viên!'))
+      .catch(() => toast.error(t('errorLoadingCollaborators')))
       .finally(() => setLoadingCollabs(false));
   }, []);
 
@@ -49,7 +51,7 @@ const CollaboratorManager = () => {
     setLoadingEvents(true);
     getMyApprovedEvents(1, 100)
       .then((data) => setEvents(Array.isArray(data) ? data : []))
-      .catch(() => toast.error('Không thể tải danh sách sự kiện!'))
+      .catch(() => toast.error(t('errorLoadingEvents')))
       .finally(() => setLoadingEvents(false));
   }, []);
 
@@ -78,36 +80,36 @@ const CollaboratorManager = () => {
 
   const handleAssign = async (collaborator: Collaborator) => {
     if (!selectedEvent) {
-      toast.warn('Vui lòng chọn sự kiện trước!');
+      toast.warn(t('warningSelectEventBeforeAdd'));
       return;
     }
     try {
       const result = await addCollaborator(selectedEvent.eventId, collaborator.accountId);
       if (result.flag) {
-        toast.success('Thêm cộng tác viên vào sự kiện thành công!');
+        toast.success(t('successAddCollaboratorToEvent'));
         // Reload lại danh sách assigned ngay
         const data = await getCollaboratorsForEvent(selectedEvent.eventId);
         setAssignedCollaborators(Array.isArray(data) ? data : []);
       } else {
-        toast.error(result.message || 'Thêm cộng tác viên thất bại.');
+        toast.error(result.message || t('errorAddCollaboratorFailed'));
       }
     } catch (err) {
       const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi thêm.');
+      toast.error(error?.response?.data?.message || t('errorAddCollaboratorFailed'));
     }
   };
 
   const handleRemove = async (collaborator: Collaborator) => {
     if (!selectedEvent) return;
-    if (!window.confirm('Bạn có chắc chắn muốn xoá cộng tác viên này khỏi sự kiện?')) return;
+    if (!window.confirm(t('confirm.remove_collaborator'))) return;
     try {
       await removeCollaborator(selectedEvent.eventId, collaborator.accountId);
-      toast.success('Đã xoá cộng tác viên khỏi sự kiện!');
+      toast.success(t('success.remove_collaborator_from_event'));
       // Reload lại danh sách assigned
       const data = await getCollaboratorsForEvent(selectedEvent.eventId);
       setAssignedCollaborators(Array.isArray(data) ? data : []);
     } catch {
-      toast.error('Xoá thất bại!');
+      toast.error(t('error.remove_collaborator_failed'));
     }
   };
 
@@ -122,21 +124,21 @@ const CollaboratorManager = () => {
         <div className="w-full md:w-1/2 bg-[#2d0036]/80 rounded-l-2xl rounded-r-none shadow-2xl p-8">
           <div className="flex items-center gap-2 mb-6">
             <FaCalendarAlt className="text-yellow-400" />
-            <h2 className="text-2xl font-bold text-yellow-300">Danh sách sự kiện</h2>
+            <h2 className="text-2xl font-bold text-yellow-300">{t('eventListTitle')}</h2>
           </div>
           {/* Hướng dẫn chọn sự kiện */}
-          <div className="mb-2 text-pink-200 text-sm italic">Hãy chọn sự kiện để thêm cộng tác viên vào sự kiện đó.</div>
+          <div className="mb-2 text-pink-200 text-sm italic">{t('eventListSelectEventHint')}</div>
           <input
             type="text"
-            placeholder="Tìm kiếm sự kiện..."
+            placeholder={t('eventListSearchEventPlaceholder')}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-yellow-500/30 text-white placeholder-yellow-400 text-base focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-200 mb-4"
             value={searchEvent}
             onChange={e => setSearchEvent(e.target.value)}
           />
           {loadingEvents ? (
-            <div className="text-yellow-400 text-base text-center">Đang tải...</div>
+            <div className="text-yellow-400 text-base text-center">{t('loading.loading_events')}</div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-slate-300 text-center text-base">Không có sự kiện nào.</div>
+            <div className="text-slate-300 text-center text-base">{t('eventList.no_events')}</div>
           ) : (
             <div className="space-y-4">
               {filteredEvents.map(event => (
@@ -150,7 +152,7 @@ const CollaboratorManager = () => {
                     <p className="text-slate-300 text-sm">{event.startAt?.slice(0, 10)} - {event.endAt?.slice(0, 10)}</p>
                   </div>
                   {selectedEvent?.eventId === event.eventId && (
-                    <span className="text-xs px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full font-bold">Đang chọn</span>
+                    <span className="text-xs px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full font-bold">{t('eventList.selected_event')}</span>
                   )}
                 </div>
               ))}
@@ -162,7 +164,7 @@ const CollaboratorManager = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
               <FaCalendarAlt className="text-yellow-400" />
-              <span className="text-lg font-bold text-yellow-300">Danh sách cộng tác viên</span>
+              <span className="text-lg font-bold text-yellow-300">{t('collaboratorListTitle')}</span>
             </div>
             {/* Nút tạo cộng tác viên mới */}
             <button
@@ -176,29 +178,29 @@ const CollaboratorManager = () => {
               }}
               type="button"
             >
-              + Tạo cộng tác viên mới
+              {t('collaboratorListCreateNewCollaborator')}
             </button>
           </div>
           <input
             type="text"
-            placeholder="Tìm kiếm cộng tác viên..."
+            placeholder={t('collaboratorListSearchCollaboratorPlaceholder')}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
             value={searchCollaborator}
             onChange={e => setSearchCollaborator(e.target.value)}
           />
           {loadingCollabs ? (
-            <div className="text-pink-400 text-base text-center">Đang tải...</div>
+            <div className="text-pink-400 text-base text-center">{t('loading.loading_collaborators')}</div>
           ) : filteredCollaborators.length === 0 ? (
-            <div className="text-slate-300 text-center text-base">Không có cộng tác viên nào.</div>
+            <div className="text-slate-300 text-center text-base">{t('collaboratorListNoCollaborators')}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-transparent">
                 <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left text-pink-300">Ảnh</th>
-                    <th className="px-4 py-2 text-left text-pink-300">Họ tên</th>
-                    <th className="px-4 py-2 text-left text-pink-300">Email</th>
-                    <th className="px-4 py-2 text-center text-pink-300">{selectedEvent ? 'Thao tác' : ''}</th>
+                    <th className="px-4 py-2 text-left text-pink-300">{t('collaboratorList.image')}</th>
+                    <th className="px-4 py-2 text-left text-pink-300">{t('collaboratorList.full_name')}</th>
+                    <th className="px-4 py-2 text-left text-pink-300">{t('collaboratorList.email')}</th>
+                    <th className="px-4 py-2 text-center text-pink-300">{selectedEvent ? t('collaboratorList.actions') : ''}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -222,14 +224,14 @@ const CollaboratorManager = () => {
                               disabled={isSelected || !selectedEvent}
                               className={`px-4 py-2 rounded-lg font-bold text-sm shadow transition-all ${isSelected ? 'bg-green-500/80 text-white cursor-default' : 'bg-gradient-to-r from-yellow-400 to-pink-500 hover:from-yellow-500 hover:to-pink-600 text-white'} ${!selectedEvent ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                              {isSelected ? 'Đã thêm' : 'Thêm'}
+                              {isSelected ? t('collaboratorList.added') : t('collaboratorList.add')}
                             </button>
                             <button
                               onClick={() => selectedEvent && handleRemove(collab)}
                               disabled={!selectedEvent}
                               className={`px-4 py-2 rounded-lg font-bold text-sm shadow transition-all bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white ${!selectedEvent ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                              Xoá
+                              {t('collaboratorList.remove')}
                             </button>
                           </div>
                         </td>
@@ -248,7 +250,7 @@ const CollaboratorManager = () => {
                     &lt;
                   </button>
                   <span className="text-white font-bold">
-                    Trang {currentPage}/{totalPages}
+                    {t('collaboratorList.page_info', { current: currentPage, total: totalPages })}
                   </span>
                   <button
                     className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50"
@@ -265,6 +267,4 @@ const CollaboratorManager = () => {
       </div>
     </div>
   );
-};
-
-export default CollaboratorManager; 
+}; 

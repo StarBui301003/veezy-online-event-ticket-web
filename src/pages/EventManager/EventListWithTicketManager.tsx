@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getMyEvents, getTicketsByEvent, deleteTicket } from "@/services/Event Manager/event.service";
 import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -29,6 +30,7 @@ interface Ticket {
 const EVENTS_PER_PAGE = 3;
 
 export default function EventListWithTicketManager() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -117,7 +119,7 @@ export default function EventListWithTicketManager() {
 
   // Delete ticket
   const handleDelete = async (ticketId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa vé này?")) return;
+    if (!window.confirm(t("confirm_delete_ticket"))) return;
     await deleteTicket(ticketId);
     if (selectedEvent) {
       const data = await getTicketsByEvent(selectedEvent.eventId);
@@ -137,21 +139,21 @@ export default function EventListWithTicketManager() {
         {/* Cột trái: Danh sách sự kiện */}
         <div className="w-full md:w-1/3">
           <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent mb-6 uppercase tracking-wide text-center">
-            Sự kiện của bạn
+            {t("yourEvents")}
           </h2>
           <input
             type="text"
             value={searchEvent}
             onChange={e => setSearchEvent(e.target.value)}
-            placeholder="Tìm kiếm sự kiện..."
+            placeholder={t("searchEvents")}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
           />
           {loadingEvents ? (
-            <div className="text-pink-400 text-base text-center">Đang tải...</div>
+            <div className="text-pink-400 text-base text-center">{t("loadingEvents")}</div>
           ) : (
             <div className="space-y-4">
               {pagedEvents.length === 0 && (
-                <div className="text-slate-300 text-center text-base">Không tìm thấy sự kiện nào.</div>
+                <div className="text-slate-300 text-center text-base">{t("noEventsFound")}</div>
               )}
               {pagedEvents.map((event) => (
                 <div
@@ -176,7 +178,7 @@ export default function EventListWithTicketManager() {
                       setSearchTicket("");
                     }}
                   >
-                    <FaSearch className="inline mr-2" /> Xem vé
+                    <FaSearch className="inline mr-2" /> {t("viewTickets")}
                   </button>
                   <button
                     className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-pink-500 hover:from-yellow-500 hover:to-pink-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg uppercase tracking-wider transition-all duration-200 text-base"
@@ -185,7 +187,7 @@ export default function EventListWithTicketManager() {
                       navigate(`/event-manager/tickets/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> Tạo vé mới
+                    <FaPlus className="inline mr-2" /> {t("createNewTicket")}
                   </button>
                 </div>
               ))}
@@ -200,7 +202,7 @@ export default function EventListWithTicketManager() {
                     <FaChevronLeft />
                   </button>
                   <span className="text-white font-bold">
-                    Trang {eventPage}/{totalEventPages}
+                    {t("page")} {eventPage}/{totalEventPages}
                   </span>
                   <button
                     className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50"
@@ -220,18 +222,18 @@ export default function EventListWithTicketManager() {
           {selectedEvent ? (
             <>
               <h3 className="text-2xl font-bold text-yellow-300 mb-5 text-center md:text-left">
-                Vé của sự kiện: <span className="text-pink-200">{selectedEvent.eventName}</span>
+                {t("ticketsForEvent")}: <span className="text-pink-200">{selectedEvent.eventName}</span>
               </h3>
               {/* Tìm kiếm vé */}
               <input
                 type="text"
                 value={searchTicket}
                 onChange={e => setSearchTicket(e.target.value)}
-                placeholder="Tìm kiếm vé theo tên hoặc mô tả..."
+                placeholder={t("searchTicketsByNameOrDescription")}
                 className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-5"
               />
               {loadingTickets ? (
-                <div className="text-pink-400 text-base text-center">Đang tải vé...</div>
+                <div className="text-pink-400 text-base text-center">{t("loadingTickets")}</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                        {filteredTickets.map((ticket) => (
@@ -243,16 +245,16 @@ export default function EventListWithTicketManager() {
                                           <div className="text-lg font-bold text-yellow-200 mb-2">{ticket.ticketName}</div>
                                           <div className="flex flex-wrap items-center gap-3 mb-2">
                                             <span className="text-slate-200 text-base">
-                                              <span className="font-semibold">Giá:</span>{" "}
+                                              <span className="font-semibold">{t("price")}:</span>{" "}
                                               <span className="font-bold text-pink-200">{ticket.ticketPrice?.toLocaleString()}₫</span>
                                             </span>
                                             <span className="text-slate-200 text-base">
-                                              <span className="font-semibold">Còn lại:</span>{" "}
+                                              <span className="font-semibold">{t("available")}:</span>{" "}
                                               <span className="font-bold text-yellow-300">{ticket.quantityAvailable}</span>
                                             </span>
                                           </div>
                                                                                     <div className="text-slate-200 text-sm mb-2">
-                                            <span className="font-semibold block">Thời gian bán:</span>
+                                            <span className="font-semibold block">{t("sale_time")}:</span>
                                             <span className="font-bold text-white block">
                                               {new Date(ticket.startSellAt).toLocaleString("vi-VN", {
                                                 hour: "2-digit",
@@ -274,34 +276,34 @@ export default function EventListWithTicketManager() {
                                             </span>
                                           </div>
                                           <div className="mb-2">
-                                            <span className="font-semibold text-slate-200">Trạng thái:</span>{" "}
+                                            <span className="font-semibold text-slate-200">{t("status")}:</span>{" "}
                                             {ticket.quantityAvailable > 0 ? (
-                                              <span className="text-green-400 font-bold">Còn vé</span>
+                                              <span className="text-green-400 font-bold">{t("availableTickets")}</span>
                                             ) : (
-                                              <span className="text-red-400 font-bold">Hết vé</span>
+                                              <span className="text-red-400 font-bold">{t("soldOutTickets")}</span>
                                             )}
                                           </div>
-                                          <div className="text-slate-400 text-xs mb-1 italic">Mô tả: {ticket.ticketDescription}</div>
+                                          <div className="text-slate-400 text-xs mb-1 italic">{t("description")}: {ticket.ticketDescription}</div>
                                         </div>
                                         <div className="flex gap-2 mt-4">
                                           <button
                                             className="bg-gradient-to-r from-yellow-400 to-pink-400 hover:from-yellow-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg shadow transition-all text-base flex items-center gap-1"
                                             onClick={() => navigate(`/event-manager/tickets/edit/${selectedEvent.eventId}/${ticket.ticketId}`)}
                                           >
-                                            <FaEdit /> Sửa
+                                            <FaEdit /> {t("edit")}
                                           </button>
                                           <button
                                             className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-4 py-2 rounded-lg shadow transition-all text-base flex items-center gap-1"
                                             onClick={() => handleDelete(ticket.ticketId)}
                                           >
-                                            <FaTrash /> Xóa
+                                            <FaTrash /> {t("delete")}
                                           </button>
                                         </div>
                                       </div>
                                     ))}
                   {filteredTickets.length === 0 && (
                     <div className="col-span-2 text-center text-slate-300 py-8 text-base">
-                      Không có vé nào cho sự kiện này.
+                      {t("no_tickets_for_this_event")}
                     </div>
                   )}
                 </div>
@@ -309,7 +311,7 @@ export default function EventListWithTicketManager() {
             </>
           ) : (
             <div className="text-slate-300 text-center text-lg mt-10">
-              Hãy chọn một sự kiện để xem vé!
+              {t("please_select_an_event_to_view_tickets")}
             </div>
           )}
         </div>

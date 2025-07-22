@@ -22,6 +22,7 @@ import {
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -66,6 +67,7 @@ interface Transaction {
 }
 
 export default function FundManagement() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [fundData, setFundData] = useState<FundData | null>(null);
@@ -127,7 +129,7 @@ export default function FundManagement() {
         setSelectedEvent(data[0]);
       }
     } catch {
-      toast.error('Không thể tải danh sách sự kiện!');
+      toast.error(t('errorLoadingEvents'));
     } finally {
       setLoading(false);
     }
@@ -148,31 +150,31 @@ export default function FundManagement() {
       setTransactions(transactionsRes.data || []);
     } catch (error) {
       console.error('Error fetching fund data:', error);
-      toast.error('Không thể tải dữ liệu quỹ!');
+      toast.error(t('errorLoadingFundData'));
     }
   };
 
   const handleRequestWithdrawal = async () => {
     if (!selectedEvent || !withdrawalAmount) {
-      toast.error('Vui lòng nhập số tiền!');
+      toast.error(t('pleaseEnterAmount'));
       return;
     }
 
     const amount = parseFloat(withdrawalAmount);
     if (amount <= 0 || amount > balance) {
-      toast.error('Số tiền không hợp lệ!');
+      toast.error(t('invalidAmount'));
       return;
     }
 
     try {
       await requestWithdrawal(selectedEvent.eventId, amount);
-      toast.success('Đã gửi yêu cầu rút tiền!');
+      toast.success(t('withdrawalRequestSent'));
       setShowWithdrawalModal(false);
       setWithdrawalAmount('');
       setWithdrawalNotes('');
       fetchFundData(selectedEvent.eventId);
     } catch {
-      toast.error('Không thể gửi yêu cầu rút tiền!');
+      toast.error(t('errorSendingWithdrawalRequest'));
     }
   };
 
@@ -192,8 +194,8 @@ export default function FundManagement() {
   };
 
   const getTransactionStatusText = (status: number) => {
-    if (status === 0) return 'Thành công';
-    if (status === 1) return 'Thất bại';
+    if (status === 0) return t('transactionSuccess');
+    if (status === 1) return t('transactionFailed');
     return '';
   };
 
@@ -236,7 +238,7 @@ export default function FundManagement() {
       <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-400 mx-auto mb-4"></div>
-          <p className="text-xl text-green-300">Đang tải dữ liệu quỹ...</p>
+          <p className="text-xl text-green-300">{t('loadingFundData')}</p>
         </div>
       </div>
     );
@@ -261,9 +263,9 @@ export default function FundManagement() {
             </motion.div>
             <div>
               <h1 className="text-4xl lg:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
-                QUẢN LÝ QUỸ
+                {t('fundManagement')}
               </h1>
-              <p className="text-lg text-gray-300">Theo dõi doanh thu và quản lý rút tiền</p>
+              <p className="text-lg text-gray-300">{t('trackRevenueAndManageWithdrawals')}</p>
             </div>
           </div>
           
@@ -273,11 +275,11 @@ export default function FundManagement() {
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl"
             >
               <RefreshCw className="mr-2" size={20} />
-              Làm Mới
+              {t('refresh')}
             </Button>
             <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
-              Xuất Báo Cáo
+              {t('exportReport')}
             </Button>
           </div>
         </div>
@@ -290,10 +292,10 @@ export default function FundManagement() {
           className="mb-8"
         >
           <div className="mb-4 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
-            <label className="text-lg font-semibold text-green-300">Chọn Sự Kiện:</label>
+            <label className="text-lg font-semibold text-green-300">{t('selectEvent')}:</label>
             <input
               type="text"
-              placeholder="Tìm kiếm sự kiện..."
+              placeholder={t('searchEvents')}
               value={searchEvent}
               onChange={e => setSearchEvent(e.target.value)}
               className="flex-1 min-w-[200px] p-3 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 placeholder:text-green-200"
@@ -305,7 +307,7 @@ export default function FundManagement() {
                 className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={() => setCarouselIndex((prev) => (prev - 1 + total) % total)}
                 disabled={total <= visibleCount}
-                aria-label="Trước"
+                aria-label={t('previous')}
               >
                 <ChevronLeft size={28} />
               </button>
@@ -342,7 +344,7 @@ export default function FundManagement() {
                 className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={() => setCarouselIndex((prev) => (prev + 1) % total)}
                 disabled={total <= visibleCount}
-                aria-label="Sau"
+                aria-label={t('next')}
               >
                 <ChevronRight size={28} />
               </button>
@@ -354,7 +356,7 @@ export default function FundManagement() {
                   key={idx}
                   className={`w-3 h-3 rounded-full ${carouselIndex === idx ? 'bg-green-400' : 'bg-gray-400'}`}
                   onClick={() => setCarouselIndex(idx)}
-                  aria-label={`Chọn card ${idx+1}`}
+                  aria-label={t('selectCard', { card: idx + 1 })}
                 />
               ))}
             </div>
@@ -373,7 +375,7 @@ export default function FundManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-300 text-sm font-semibold">Tổng Doanh Thu</p>
+                    <p className="text-green-300 text-sm font-semibold">{t('totalRevenue')}</p>
                     <p className="text-3xl font-bold text-green-400">{formatCurrency(revenue)}</p>
                   </div>
                 </div>
@@ -384,7 +386,7 @@ export default function FundManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-300 text-sm font-semibold">Số Dư Khả Dụng</p>
+                    <p className="text-blue-300 text-sm font-semibold">{t('availableBalance')}</p>
                     <p className="text-3xl font-bold text-blue-400">{formatCurrency(balance)}</p>
                   </div>
                 </div>
@@ -395,7 +397,7 @@ export default function FundManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-yellow-300 text-sm font-semibold">Đã Rút</p>
+                    <p className="text-yellow-300 text-sm font-semibold">{t('withdrawnAmount')}</p>
                     <p className="text-3xl font-bold text-yellow-400">
                       {formatCurrency(fundData?.totalWithdrawn || 0)}
                     </p>
@@ -408,7 +410,7 @@ export default function FundManagement() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-300 text-sm font-semibold">Phí Platform</p>
+                    <p className="text-purple-300 text-sm font-semibold">{t('platformFee')}</p>
                     <p className="text-3xl font-bold text-purple-400">
                       {formatCurrency(fundData?.platformFeePaid || 0)}
                     </p>
@@ -428,14 +430,14 @@ export default function FundManagement() {
             className="mb-8"
           >
             <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-green-500/30 shadow-2xl">
-              <h2 className="text-2xl font-bold text-green-300 mb-6">Yêu Cầu Rút Tiền</h2>
+              <h2 className="text-2xl font-bold text-green-300 mb-6">{t('withdrawalRequest')}</h2>
               <Button
                 onClick={() => setShowWithdrawalModal(true)}
                 disabled={balance <= 0}
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl disabled:opacity-50"
               >
                 <Download className="mr-2" size={20} />
-                Yêu Cầu Rút Tiền
+                {t('requestWithdrawal')}
               </Button>
             </div>
           </motion.div>
@@ -450,14 +452,14 @@ export default function FundManagement() {
             className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl"
           >
             <div className="flex flex-col lg:flex-row items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-blue-300 mb-4 lg:mb-0">Lịch Sử Giao Dịch</h2>
+              <h2 className="text-2xl font-bold text-blue-300 mb-4 lg:mb-0">{t('transactionHistory')}</h2>
               
               <div className="flex gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                   <Input
                     type="text"
-                    placeholder="Tìm kiếm giao dịch..."
+                    placeholder={t('searchTransactions')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 bg-[#1a0022]/60 border-blue-500/30 text-white placeholder-gray-400"
@@ -469,9 +471,9 @@ export default function FundManagement() {
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="px-4 py-2 rounded-lg bg-[#1a0022]/60 border border-blue-500/30 text-white"
                 >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="0">Thành công</option>
-                  <option value="1">Thất bại</option>
+                  <option value="all">{t('allStatus')}</option>
+                  <option value="0">{t('success')}</option>
+                  <option value="1">{t('failed')}</option>
                 </select>
               </div>
             </div>
@@ -479,19 +481,19 @@ export default function FundManagement() {
             {filteredTransactions.length === 0 ? (
               <div className="text-center py-12">
                 <CreditCard className="text-gray-400 mx-auto mb-4" size={64} />
-                <p className="text-gray-400 text-lg">Không có giao dịch nào</p>
+                <p className="text-gray-400 text-lg">{t('noTransactions')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-blue-500/30">
-                      <th className="text-left p-4 text-blue-300 font-semibold">Transaction ID</th>
-                      <th className="text-left p-4 text-blue-300 font-semibold">Order ID</th>
-                      <th className="text-left p-4 text-blue-300 font-semibold">Mô Tả</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">Số Tiền</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">Trạng Thái</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">Ngày Tạo</th>
+                      <th className="text-left p-4 text-blue-300 font-semibold">{t('transactionId')}</th>
+                      <th className="text-left p-4 text-blue-300 font-semibold">{t('orderId')}</th>
+                      <th className="text-left p-4 text-blue-300 font-semibold">{t('description')}</th>
+                      <th className="text-center p-4 text-blue-300 font-semibold">{t('amount')}</th>
+                      <th className="text-center p-4 text-blue-300 font-semibold">{t('status')}</th>
+                      <th className="text-center p-4 text-blue-300 font-semibold">{t('createdAt')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -542,33 +544,29 @@ export default function FundManagement() {
               className="bg-gradient-to-br from-[#2d0036] to-[#3a0ca3] rounded-2xl p-8 border-2 border-green-500/30 shadow-2xl max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-2xl font-bold text-green-300 mb-6">Yêu Cầu Rút Tiền</h3>
+              <h3 className="text-2xl font-bold text-green-300 mb-6">{t('withdrawalRequest')}</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-green-300 text-sm font-semibold mb-2">
-                    Số Tiền (VND)
-                  </label>
+                  <label className="block text-green-300 text-sm font-semibold mb-2">{t('withdrawalAmount')}:</label>
                   <Input
                     type="number"
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
-                    placeholder="Nhập số tiền muốn rút"
+                    placeholder={t('enterWithdrawalAmount')}
                     className="bg-[#1a0022]/60 border-green-500/30 text-white"
                   />
                   <p className="text-sm text-gray-400 mt-1">
-                    Số dư khả dụng: {formatCurrency(balance)}
+                    {t('availableBalance')}: {formatCurrency(balance)}
                   </p>
                 </div>
                 
                 <div>
-                  <label className="block text-green-300 text-sm font-semibold mb-2">
-                    Ghi Chú (Tùy chọn)
-                  </label>
+                  <label className="block text-green-300 text-sm font-semibold mb-2">{t('withdrawalNotes')}:</label>
                   <textarea
                     value={withdrawalNotes}
                     onChange={(e) => setWithdrawalNotes(e.target.value)}
-                    placeholder="Ghi chú về yêu cầu rút tiền"
+                    placeholder={t('withdrawalNotesPlaceholder')}
                     className="w-full p-3 rounded-lg bg-[#1a0022]/60 border border-green-500/30 text-white placeholder-gray-400 resize-none"
                     rows={3}
                   />
@@ -580,13 +578,13 @@ export default function FundManagement() {
                   onClick={handleRequestWithdrawal}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white"
                 >
-                  Gửi Yêu Cầu
+                  {t('sendRequest')}
                 </Button>
                 <Button
                   onClick={() => setShowWithdrawalModal(false)}
                   className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white"
                 >
-                  Hủy
+                  {t('cancel')}
                 </Button>
               </div>
             </motion.div>

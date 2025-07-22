@@ -17,12 +17,12 @@ import {
 } from '@/components/ui/select';
 import { FaSpinner } from 'react-icons/fa';
 import { NO_AVATAR } from '@/assets/img';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   user: User;
   onClose: () => void;
   onUpdated?: (user: User) => void;
-  title?: string; // Thêm prop để tuỳ chỉnh tiêu đề modal
   disableEmail?: boolean; // Cho phép disable email input nếu cần
 }
 
@@ -30,13 +30,13 @@ export const EditUserModal = ({
   user,
   onClose,
   onUpdated,
-  title = 'Edit User',
   disableEmail = false,
 }: Props) => {
   const [form, setForm] = useState<User>({ ...user });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(user.avatarUrl || '');
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,7 +78,7 @@ export const EditUserModal = ({
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle>{t('editUser')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
@@ -103,12 +103,12 @@ export const EditUserModal = ({
               onClick={() => document.getElementById('edit-avatar-input')?.click()}
               tabIndex={-1}
             >
-              Edit Avatar
+              {t('editAvatar')}
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('fullName')}</label>
               <input
                 name="fullName"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
@@ -117,7 +117,7 @@ export const EditUserModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('email')}</label>
               <input
                 name="email"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
@@ -127,7 +127,7 @@ export const EditUserModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('phone')}</label>
               <input
                 name="phone"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
@@ -136,7 +136,7 @@ export const EditUserModal = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Gender</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('gender')}</label>
               <Select
                 value={String(form.gender)}
                 onValueChange={(val) => setForm((prev) => ({ ...prev, gender: Number(val) }))}
@@ -145,14 +145,14 @@ export const EditUserModal = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Male</SelectItem>
-                  <SelectItem value="1">Female</SelectItem>
-                  <SelectItem value="2">Other</SelectItem>
+                  <SelectItem value="0">{t('male')}</SelectItem>
+                  <SelectItem value="1">{t('female')}</SelectItem>
+                  <SelectItem value="2">{t('other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Date of Birth</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">{t('dateOfBirth')}</label>
               <input
                 name="dob"
                 type="date"
@@ -172,7 +172,7 @@ export const EditUserModal = ({
               disabled={loading}
               type="button"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
@@ -183,10 +183,10 @@ export const EditUserModal = ({
               {loading ? (
                 <div className="flex items-center gap-2">
                   <FaSpinner className="animate-spin" />
-                  Editing...
+                  {t('editing')}
                 </div>
               ) : (
-                'Edit'
+                t('edit')
               )}
             </button>
           </DialogFooter>

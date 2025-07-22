@@ -13,6 +13,7 @@ import {
 import { NO_AVATAR } from '@/assets/img';
 import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 const ProfilePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +26,7 @@ const ProfilePage = () => {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceError, setFaceError] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Lấy userId từ localStorage
@@ -126,7 +128,7 @@ const ProfilePage = () => {
     return (
       <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <SpinnerOverlay show={true} />
-        <span className="mt-6 text-lg text-purple-200 animate-pulse">Vui lòng chờ trong giây lát...</span>
+        <span className="mt-6 text-lg text-purple-200 animate-pulse">{t('pleaseWait')}</span>
       </div>
     );
   }
@@ -135,13 +137,13 @@ const ProfilePage = () => {
     return (
       <div className="w-full min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-          <div className="text-3xl font-bold text-red-600 mb-4">Không thể tải thông tin tài khoản</div>
-          <div className="text-gray-700 mb-6">Vui lòng thử lại hoặc liên hệ quản trị viên.</div>
+          <div className="text-3xl font-bold text-red-600 mb-4">{t('cannotLoadAccountInfo')}</div>
+          <div className="text-gray-700 mb-6">{t('pleaseTryAgainOrContactAdmin')}</div>
           <button
             className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
             onClick={() => window.location.href = '/'}
           >
-            Về trang chủ
+            {t('backToHome')}
           </button>
         </div>
       </div>
@@ -166,7 +168,7 @@ const ProfilePage = () => {
               className="mt-2 w-[160px] h-[45px] rounded-[8px] bg-gradient-to-r from-blue-600 to-green-500 text-white font-medium text-base transition duration-300 hover:from-blue-700 hover:to-green-600 shadow"
               onClick={() => setShowFaceModal(true)}
             >
-              Cập nhật khuôn mặt
+              {t('updateFace')}
             </button>
             {showFaceModal && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
@@ -174,9 +176,9 @@ const ProfilePage = () => {
                   <button
                     className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
                     onClick={() => setShowFaceModal(false)}
-                    aria-label="Đóng"
+                    aria-label={t('close')}
                   >×</button>
-                  <h2 className="text-xl font-bold mb-4 text-center text-black">Cập nhật khuôn mặt</h2>
+                  <h2 className="text-xl font-bold mb-4 text-center text-black">{t('updateFace')}</h2>
                   {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
                   <FaceCapture
                     onCapture={async ({ image }) => {
@@ -184,10 +186,10 @@ const ProfilePage = () => {
                       try {
                         const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
                         await updateFaceAPI(account.userId, file, [0]);
-                        toast.success('Cập nhật khuôn mặt thành công!');
+                        toast.success(t('updateFaceSuccess'));
                         setShowFaceModal(false);
                       } catch (e: any) {
-                        let msg = 'Cập nhật khuôn mặt thất bại!';
+                        let msg = t('updateFaceFailed');
                         if (e?.response?.data?.message) {
                           const m = e.response.data.message;
                           if (
@@ -237,7 +239,7 @@ const ProfilePage = () => {
             {/* Responsive 2 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('fullName')}</label>
                 {editMode ? (
                   <Input
                     name="fullName"
@@ -252,7 +254,7 @@ const ProfilePage = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('email')}</label>
                 {editMode ? (
                   <Input
                     name="email"
@@ -265,7 +267,7 @@ const ProfilePage = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('phone')}</label>
                 {editMode ? (
                   <Input
                     name="phone"
@@ -278,7 +280,7 @@ const ProfilePage = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Gender</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">{t('gender')}</label>
                 {editMode ? (
                   <Select
                     value={String(form.gender)}
@@ -287,17 +289,17 @@ const ProfilePage = () => {
                     }
                   >
                     <SelectTrigger className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 bg-white">
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder={t('selectGender')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Male</SelectItem>
-                      <SelectItem value="1">Female</SelectItem>
-                      <SelectItem value="2">Other</SelectItem>
+                      <SelectItem value="0">{t('male')}</SelectItem>
+                      <SelectItem value="1">{t('female')}</SelectItem>
+                      <SelectItem value="2">{t('other')}</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
                   <div className="border rounded px-2 py-1 w-full bg-gray-50">
-                    {account.gender === 0 ? 'Male' : account.gender === 1 ? 'Female' : 'Other'}
+                    {account.gender === 0 ? t('male') : account.gender === 1 ? t('female') : t('other')}
                   </div>
                 )}
               </div>
@@ -317,7 +319,7 @@ const ProfilePage = () => {
                   disabled={loading}
                   type="button"
                 >
-                  <span>Cancel</span>
+                  <span>{t('cancel')}</span>
                 </button>
                 <button
                   className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
@@ -325,7 +327,7 @@ const ProfilePage = () => {
                   disabled={loading}
                   type="button"
                 >
-                  <span>Save</span>
+                  <span>{t('save')}</span>
                 </button>
               </>
             ) : (
@@ -334,7 +336,7 @@ const ProfilePage = () => {
                 onClick={() => setEditMode(true)}
                 type="button"
               >
-                <span>Edit</span>
+                <span>{t('edit')}</span>
               </button>
             )}
           </div>

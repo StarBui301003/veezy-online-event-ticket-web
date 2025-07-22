@@ -9,6 +9,7 @@ import {
   FaExchangeAlt,
 } from 'react-icons/fa';
 import { createTicket } from '@/services/Event Manager/event.service';
+import { useTranslation } from 'react-i18next';
 
 const defaultTicket = {
   name: '',
@@ -21,11 +22,13 @@ const defaultTicket = {
 };
 
 export default function CreateTicket() {
+  const { t } = useTranslation();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [form, setForm] = useState({ ...defaultTicket });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -37,19 +40,21 @@ export default function CreateTicket() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Chặn double submit
+    setLoading(true);
     setError(null);
     setSuccess(null);
   
     // Validate
-    if (!form.name.trim()) return setError('Tên vé không được để trống!');
-    if (!form.price || form.price < 0) return setError('Giá vé phải >= 0!');
-    if (!form.quantity || form.quantity < 1) return setError('Số lượng vé phải >= 1!');
+    if (!form.name.trim()) return setError(t('ticketNameEmpty'));
+    if (!form.price || form.price < 0) return setError(t('ticketPriceInvalid'));
+    if (!form.quantity || form.quantity < 1) return setError(t('ticketQuantityInvalid'));
     if (!form.saleStartTime || !form.saleEndTime)
-      return setError('Chọn thời gian mở bán và kết thúc!');
+      return setError(t('ticketSaleTimeInvalid'));
     if (form.saleStartTime >= form.saleEndTime)
-      return setError('Thời gian kết thúc phải sau thời gian mở bán!');
-    if (!eventId) return setError('Không tìm thấy sự kiện!');
-    if (!form.description.trim()) return setError('Mô tả vé không được để trống!');
+      return setError(t('ticketSaleEndTimeInvalid'));
+    if (!eventId) return setError(t('eventNotFound'));
+    if (!form.description.trim()) return setError(t('ticketDescriptionEmpty'));
   
     try {
       const ticketPayload = {
@@ -67,12 +72,12 @@ export default function CreateTicket() {
       const ticket = await createTicket(ticketPayload); // Gọi API tạo vé
   
       if (ticket) {
-        setSuccess('Tạo vé thành công!');
+        setSuccess(t('ticketCreatedSuccess'));
         setTimeout(() => {
           navigate('/event-manager/tickets/manage');
         }, 1000);
       } else {
-        setError('Tạo vé thất bại! Hệ thống không trả về ID.');
+        setError(t('ticketCreationFailed'));
       }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'errors' in err.response.data) {
@@ -83,10 +88,12 @@ export default function CreateTicket() {
             .join(' | ')
         );
       } else if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
-        setError(err.response.data.message as string || 'Tạo vé thất bại!');
+        setError(err.response.data.message as string || t('ticketCreationFailed'));
       } else {
-        setError('Tạo vé thất bại!');
+        setError(t('ticketCreationFailed'));
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,42 +108,42 @@ export default function CreateTicket() {
           <div className="flex items-center gap-3 mb-8">
             <FaTicketAlt className="text-4xl text-pink-400 drop-shadow-glow" />
             <h2 className="text-4xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent tracking-wide uppercase">
-              Tạo loại vé mới
+              {t('createNewTicketType')}
             </h2>
           </div>
 
           {/* Các trường nhập liệu */}
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaHashtag /> Tên vé
+              <FaHashtag /> {t('ticketName')}
             </label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập tên vé (VD: Vé VIP, Vé thường...)"
+              placeholder={t('enterTicketNameExample')}
               required
             />
           </div>
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaTicketAlt /> Mô tả vé
+              <FaTicketAlt /> {t('ticketDescription')}
             </label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập mô tả vé"
+              placeholder={t('enterTicketDescription')}
               required
             />
           </div>
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaMoneyBill /> Giá vé (VNĐ)
+              <FaMoneyBill /> {t('ticketPrice')} (VNĐ)
             </label>
             <input
               name="price"
@@ -145,14 +152,14 @@ export default function CreateTicket() {
               value={form.price}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập giá vé"
+              placeholder={t('enterTicketPrice')}
               required
             />
           </div>
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaSortNumericUp /> Số lượng vé
+              <FaSortNumericUp /> {t('ticketQuantity')}
             </label>
             <input
               name="quantity"
@@ -161,14 +168,14 @@ export default function CreateTicket() {
               value={form.quantity}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Nhập số lượng vé"
+              placeholder={t('enterTicketQuantity')}
               required
             />
           </div>
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaCalendarAlt /> Thời gian mở bán
+              <FaCalendarAlt /> {t('ticketSaleStartTime')}
             </label>
             <input
               name="saleStartTime"
@@ -182,7 +189,7 @@ export default function CreateTicket() {
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaCalendarAlt /> Thời gian kết thúc bán
+              <FaCalendarAlt /> {t('ticketSaleEndTime')}
             </label>
             <input
               name="saleEndTime"
@@ -196,7 +203,7 @@ export default function CreateTicket() {
 
           <div className="space-y-2">
             <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaExchangeAlt /> Số vé tối đa mỗi đơn
+              <FaExchangeAlt /> {t('ticketMaxPerOrder')}
             </label>
             <input
               name="maxTicketsPerOrder"
@@ -205,7 +212,7 @@ export default function CreateTicket() {
               value={form.maxTicketsPerOrder}
               onChange={handleChange}
               className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-              placeholder="Số vé tối đa mỗi đơn"
+              placeholder={t('enterTicketMaxPerOrder')}
               required
             />
           </div>
@@ -224,9 +231,10 @@ export default function CreateTicket() {
           <button
             type="submit"
             className="w-full py-4 mt-4 text-xl font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-2xl shadow-xl transition-all duration-200 tracking-widest uppercase drop-shadow-glow"
+            disabled={loading}
           >
             <FaTicketAlt className="inline mr-2" />
-            Tạo vé ngay!
+            {loading ? t('creatingTicket') : t('createTicketNow')}
           </button>
         </form>
       </div>

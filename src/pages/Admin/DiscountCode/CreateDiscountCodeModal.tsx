@@ -24,6 +24,7 @@ import {
   createFieldChangeHandler,
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -44,6 +45,8 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   });
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
+
+  const { t } = useTranslation();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -188,12 +191,12 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>Create Discount Code</DialogTitle>
+            <DialogTitle>{t('createDiscountCode')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Event</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('event')}</label>
             <Select onValueChange={handleEventChange} disabled={loading} value={form.eventId}>
               <SelectTrigger
                 className={getErrorClass(
@@ -201,7 +204,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
                   'border-gray-200 w-full border px-3 py-2 rounded'
                 )}
               >
-                <SelectValue placeholder="Select event" />
+                <SelectValue placeholder={t('selectEvent')} />
               </SelectTrigger>
               <SelectContent>
                 {events.map((event) => (
@@ -217,14 +220,14 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Code</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('code')}</label>
             <input
               className={getErrorClass('code', 'border px-3 py-2 rounded w-full')}
               name="code"
               value={form.code}
               onChange={handleCodeChange}
               disabled={loading}
-              placeholder="Enter code (e.g., SAVE20)"
+              placeholder={t('enterCode')}
             />
             {getFieldError('code') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('code')}</div>
@@ -232,7 +235,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Discount Type</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('discountType')}</label>
             <Select
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
@@ -247,9 +250,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">Percentage</SelectItem>
-                <SelectItem value="1">Amount</SelectItem>
-                <SelectItem value="3">Other</SelectItem>
+                <SelectItem value="0">{t('percentage')}</SelectItem>
+                <SelectItem value="1">{t('amount')}</SelectItem>
+                <SelectItem value="3">{t('other')}</SelectItem>
               </SelectContent>
             </Select>
             {getFieldError('discountType') && (
@@ -258,9 +261,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Value {form.discountType === 0 ? '(%)' : '(VND)'}
-            </label>
+            <label className="block text-xs text-gray-500 mb-1">{t('value')} {form.discountType === 0 ? '(%)' : '(VND)'}</label>
             <input
               className={getErrorClass('value', 'border px-3 py-2 rounded w-full')}
               name="value"
@@ -271,9 +272,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               min={0}
               max={form.discountType === 0 ? 100 : undefined}
               step={form.discountType === 0 ? 1 : 1000}
-              placeholder={
-                form.discountType === 0 ? 'Enter percentage (1-100)' : 'Enter amount (VND)'
-              }
+              placeholder={form.discountType === 0 ? t('enterPercentage') : t('enterAmount')}
             />
             {getFieldError('value') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('value')}</div>
@@ -282,7 +281,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">
-              Minimum Amount (VND) <span className="text-gray-400">- Optional</span>
+              {t('minimumAmount')} (VND) <span className="text-gray-400">{t('optional')}</span>
             </label>
             <input
               className={getErrorClass('minimum', 'border px-3 py-2 rounded w-full')}
@@ -293,7 +292,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               disabled={loading}
               min={0}
               step={1000}
-              placeholder="Minimum order amount to apply discount"
+              placeholder={t('minimumOrderAmount')}
             />
             {getFieldError('minimum') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('minimum')}</div>
@@ -302,7 +301,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">
-              Maximum Discount (VND) <span className="text-gray-400">- Optional</span>
+              {t('maximumDiscount')} (VND) <span className="text-gray-400">{t('optional')}</span>
             </label>
             <input
               className={getErrorClass('maximum', 'border px-3 py-2 rounded w-full')}
@@ -313,7 +312,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               disabled={loading}
               min={0}
               step={1000}
-              placeholder="Maximum discount amount"
+              placeholder={t('maximumDiscountAmount')}
             />
             {getFieldError('maximum') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
@@ -321,7 +320,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Max Usage</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('maxUsage')}</label>
             <input
               className={getErrorClass('maxUsage', 'border px-3 py-2 rounded w-full')}
               name="maxUsage"
@@ -331,7 +330,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               disabled={loading}
               min={1}
               step={1}
-              placeholder="Maximum number of uses"
+              placeholder={t('maximumNumberOfUses')}
             />
             {getFieldError('maxUsage') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maxUsage')}</div>
@@ -339,7 +338,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Expired At</label>
+            <label className="block text-xs text-gray-500 mb-1">{t('expiredAt')}</label>
             <input
               className={getErrorClass('expiredAt', 'border px-3 py-2 rounded w-full')}
               name="expiredAt"
@@ -361,7 +360,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               disabled={loading}
               type="button"
             >
-              Cancel
+              {t('cancel')}
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
@@ -372,10 +371,10 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               {loading ? (
                 <div className="flex items-center gap-2">
                   <FaSpinner className="animate-spin" />
-                  Creating...
+                  {t('creating')}
                 </div>
               ) : (
-                'Create'
+                t('create')
               )}
             </button>
           </DialogFooter>

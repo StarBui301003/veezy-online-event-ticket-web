@@ -21,60 +21,59 @@ import { MdOutlinePayment } from 'react-icons/md';
 import { RiCoupon2Line } from 'react-icons/ri';
 import { MdReportGmailerrorred } from 'react-icons/md';
 import { FaRegNewspaper } from 'react-icons/fa6';
-
-const data = {
-  navMain: [
-    {
-      title: 'Users',
-      url: '/admin/user-list',
-      icon: FaUserFriends,
-    },
-    {
-      title: 'Events',
-      url: '/admin/event-list',
-      icon: MdEvent,
-    },
-    {
-      title: 'News',
-      url: '/admin/news-list',
-      icon: FaRegNewspaper,
-    },
-    {
-      title: 'Orders',
-      url: '/admin/order-list',
-      icon: FaShoppingCart,
-    },
-
-    {
-      title: 'Payments',
-      url: '/admin/payment-list',
-      icon: MdOutlinePayment,
-    },
-    {
-      title: 'Categories',
-      url: '/admin/category-list',
-      icon: BiCategory,
-    },
-    {
-      title: 'Discount Codes',
-      url: '/admin/discountCode-list',
-      icon: RiCoupon2Line,
-    },
-
-    {
-      title: 'Comments',
-      url: '/admin/comment-list',
-      icon: FaRegCommentDots,
-    },
-    {
-      title: 'Reports',
-      url: '/admin/report-list',
-      icon: MdReportGmailerrorred,
-    },
-  ],
-};
+import { useTranslation } from 'react-i18next';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { t } = useTranslation();
+  const data = {
+    navMain: [
+      {
+        title: t('users'),
+        url: '/admin/user-list',
+        icon: FaUserFriends,
+      },
+      {
+        title: t('events'),
+        url: '/admin/event-list',
+        icon: MdEvent,
+      },
+      {
+        title: t('news'),
+        url: '/admin/news-list',
+        icon: FaRegNewspaper,
+      },
+      {
+        title: t('orders'),
+        url: '/admin/order-list',
+        icon: FaShoppingCart,
+      },
+      {
+        title: t('payments'),
+        url: '/admin/payment-list',
+        icon: MdOutlinePayment,
+      },
+      {
+        title: t('categories'),
+        url: '/admin/category-list',
+        icon: BiCategory,
+      },
+      {
+        title: t('discountCodes'),
+        url: '/admin/discountCode-list',
+        icon: RiCoupon2Line,
+      },
+      {
+        title: t('comments'),
+        url: '/admin/comment-list',
+        icon: FaRegCommentDots,
+      },
+      {
+        title: t('reports'),
+        url: '/admin/report-list',
+        icon: MdReportGmailerrorred,
+      },
+    ],
+  };
   return (
     <Sidebar variant="sidebar" {...props}>
       <SidebarHeader>
@@ -86,8 +85,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <img src={LOGO_RECTANGLE} alt="Logo" className="h-8 w-8 object-contain" />
                 </div>
                 <div className="grid flex-1 text-left text-base leading-tight ml-2">
-                  <span className="truncate font-bold text-lg">Vezzy</span>
-                  <span className="truncate text-xs">Admin</span>
+                  <span className="truncate font-bold text-lg">{t('vezzy')}</span>
+                  <span className="truncate text-xs">{t('admin')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement } from 'chart.js';
 import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement);
 
 export default function RevenueChartSection() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; revenue: number }[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,15 +26,15 @@ export default function RevenueChartSection() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="mb-10">Đang tải biểu đồ doanh thu...</div>;
-  if (events.length === 0 && timeline.length === 0) return <div className="mb-10">Không có dữ liệu doanh thu.</div>;
+  if (loading) return <div className="mb-10">{t('loadingRevenueChart')}</div>;
+  if (events.length === 0 && timeline.length === 0) return <div className="mb-10">{t('noRevenueData')}</div>;
 
   // Biểu đồ doanh thu từng sự kiện
   const data = {
     labels: events.map(e => e.eventName),
     datasets: [
       {
-        label: 'Doanh thu',
+        label: t('revenue'),
         data: events.map(e => e.revenue),
         backgroundColor: 'rgba(54, 162, 235, 0.7)',
         borderColor: 'rgba(54, 162, 235, 1)',
@@ -45,7 +47,7 @@ export default function RevenueChartSection() {
     responsive: true,
     plugins: {
       legend: { display: false },
-      title: { display: true, text: 'Doanh thu từng sự kiện', color: '#fff', font: { size: 18 } },
+      title: { display: true, text: t('revenueByEvent'), color: '#fff', font: { size: 18 } },
       tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('vi-VN')}₫` } }
     },
     scales: {
@@ -54,48 +56,56 @@ export default function RevenueChartSection() {
     }
   };
 
-  // Biểu đồ doanh thu theo thời gian
-  // const timelineData = {
-  //   labels: timeline.map(item => item.periodLabel),
-  //   datasets: [
-  //     {
-  //       label: 'Doanh thu',
-  //       data: timeline.map(item => item.revenue),
-  //       borderColor: 'rgba(255, 206, 86, 1)',
-  //       backgroundColor: 'rgba(255, 206, 86, 0.2)',
-  //       fill: true,
-  //       tension: 0.4,
-  //     },
-  //     {
-  //       label: 'Số giao dịch',
-  //       data: timeline.map(item => item.transactionCount),
-  //       borderColor: 'rgba(75, 192, 192, 1)',
-  //       backgroundColor: 'rgba(75, 192, 192, 0.2)',
-  //       fill: false,
-  //       tension: 0.4,
-  //       yAxisID: 'y1',
-  //     }
-  //   ]
-  // };
 
-  // const timelineOptions = {
-  //   responsive: true,
-  //   plugins: {
-  //     legend: { labels: { color: '#fff' } },
-  //     title: { display: true, text: 'Doanh thu theo thời gian', color: '#fff', font: { size: 18 } },
-  //     tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('vi-VN')}` } }
-  //   },
-  //   scales: {
-  //     x: { ticks: { color: '#fff' } },
-  //     y: { ticks: { color: '#fff' }, beginAtZero: true },
-  //     y1: {
-  //       type: 'linear',
-  //       position: 'right',
-  //       grid: { drawOnChartArea: false },
-  //       ticks: { color: '#fff' }
-  //     }
-  //   }
-  // };
+  const timelineData = {
+    labels: timeline.map(item => item.periodLabel),
+    datasets: [
+      {
+        label: t('revenue'),
+        data: timeline.map(item => item.revenue),
+        borderColor: 'rgba(255, 206, 86, 1)',
+        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: t('transactionCount'),
+        data: timeline.map(item => item.transactionCount),
+        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        fill: false,
+        tension: 0.4,
+        yAxisID: 'y1',
+      }
+    ]
+  };
+
+  const timelineOptions = {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: "#fff" } },
+      title: {
+        display: true,
+        text: t('revenueTimeline'),
+        color: "#fff",
+        font: { size: 18 },
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => `${ctx.dataset.label}: ${ctx.formattedValue} VNĐ`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#fff" },
+      },
+      y: {
+        ticks: { color: "#fff" },
+        beginAtZero: true,
+      },
+    },
+  };
 
   return (
     <div className="mb-10">
@@ -106,7 +116,7 @@ export default function RevenueChartSection() {
       )}
       {timeline.length > 0 && (
         <div className="mb-10 bg-gradient-to-br from-yellow-400/30 to-blue-200/30 rounded-2xl p-6 border-2 border-yellow-400/30 shadow-2xl">
-          {/* <Line data={timelineData} options={timelineOptions} /> */}
+          <Line data={timelineData} options={timelineOptions} />
         </div>
       )}
     </div>

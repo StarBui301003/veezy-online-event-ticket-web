@@ -57,7 +57,7 @@ const NewsAll: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            TẤT CẢ TIN TỨC
+            {t('allNewsTitle')}
           </motion.h1>
           <motion.p
             className="text-xl text-cyan-200 mb-8 animate-fadeInUp"
@@ -65,15 +65,19 @@ const NewsAll: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
           >
-            Khám phá những tin tức mới nhất, nổi bật và hấp dẫn nhất!
+            {t('discoverLatestNews')}
           </motion.p>
         </div>
         {/* News Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 px-4 pb-20 max-w-7xl mx-auto">
           {loading ? (
-            <div className="col-span-full text-center text-2xl text-pink-400 py-20 animate-pulse">Đang tải tin tức...</div>
+            <div className="col-span-full text-center text-2xl text-pink-400 py-20 animate-pulse">
+              {t('loadingNews')}
+            </div>
           ) : newsList.length === 0 ? (
-            <div className="col-span-full text-center text-lg text-gray-400 py-20">Không có tin tức nào.</div>
+            <div className="col-span-full text-center text-lg text-gray-400 py-20">
+              {t('noNewsFound')}
+            </div>
           ) : (
             newsList.map((news, idx) => (
               <motion.div
@@ -109,7 +113,7 @@ const NewsAll: React.FC = () => {
                         className="genre-badge bg-gradient-to-r from-pink-400 to-cyan-400 text-white px-3 py-1 rounded-full text-xs font-bold shadow hover:scale-105 transition-all cursor-pointer"
                         onClick={e => { e.stopPropagation(); navigate(`/event/${news.eventId}`); }}
                       >
-                        Sự kiện
+                        {t('eventBadge')}
                       </span>
                     )}
                   </div>
@@ -119,7 +123,7 @@ const NewsAll: React.FC = () => {
                   {/* Author */}
                   {news.authorId ? (
                     <div className="text-xs text-cyan-200 mb-2 italic">
-                      Tác giả: {news.authorId}
+                      {t('author')} {news.authorId}
                     </div>
                   ) : null}
                   <p className="text-gray-200 text-base flex-1 mb-2 line-clamp-3">{news.newsDescription}</p>
@@ -144,7 +148,7 @@ const NewsAll: React.FC = () => {
               &lt;
             </button>
             <span className="text-cyan-200 font-bold text-xl">
-              Trang {page}/{totalPages}
+              {t('page')} {page}/{totalPages}
             </span>
             <button
               className="p-4 rounded-full bg-gradient-to-r from-pink-400 to-cyan-400 text-white text-xl font-bold disabled:opacity-50 hover:brightness-110 transition-colors shadow-lg"

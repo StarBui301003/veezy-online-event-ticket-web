@@ -9,6 +9,7 @@ import { Dialog } from '@/components/ui/dialog';
 import TicketStatsSection from './components/TicketStatsSection';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface TicketSalesData {
   eventId: string;
@@ -41,6 +42,7 @@ const PERIOD_MAP: Record<string, number> = {
 };
 
 export default function TicketSalesDashboard() {
+  const { t } = useTranslation();
   const [salesData, setSalesData] = useState<TicketSalesData[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [loading, setLoading] = useState(false);
@@ -83,7 +85,7 @@ export default function TicketSalesDashboard() {
       }));
       setSalesData(mapped);
     } catch {
-      toast.error('Không thể tải dữ liệu bán vé!');
+      toast.error(t('ticketSalesDashboard.errorLoadingData'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +104,7 @@ export default function TicketSalesDashboard() {
       // Add more advanced filters if needed
       const dash = await getEventManagerDashboard({ period });
       if (!dash.data) {
-        toast.error('Không có dữ liệu để xuất file!');
+        toast.error(t('ticketSalesDashboard.noDataToExport'));
         return;
       }
       if (type === 'pdf') {
@@ -130,7 +132,7 @@ export default function TicketSalesDashboard() {
         link.parentNode?.removeChild(link);
       }
     } catch {
-      toast.error('Xuất báo cáo thất bại!');
+      toast.error(t('ticketSalesDashboard.exportReportFailed'));
     } finally {
       setLoading(false);
     }
@@ -171,29 +173,29 @@ export default function TicketSalesDashboard() {
         <div className="flex flex-col lg:flex-row items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl lg:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400 mb-4">
-              THEO DÕI BÁN VÉ
+              {t('ticketSalesDashboard.trackingTicketSales')}
             </h1>
-            <p className="text-lg text-gray-300">Phân tích hiệu suất bán vé và doanh thu</p>
+            <p className="text-lg text-gray-300">{t('ticketSalesDashboard.analyzingTicketPerformance')}</p>
           </div>
           <div className="flex gap-4">
             <Button onClick={() => handleExport('pdf')} disabled={loading} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
-              Xuất PDF
+              {t('ticketSalesDashboard.exportPDF')}
             </Button>
             <Button onClick={() => handleExport('excel')} disabled={loading} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
-              Xuất Excel
+              {t('ticketSalesDashboard.exportExcel')}
             </Button>
             <Button onClick={() => fetchSalesData(selectedPeriod)} disabled={loading} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-xl">
               <Filter className="mr-2" size={20} />
-              Lọc Dữ Liệu
+              {t('ticketSalesDashboard.filterData')}
             </Button>
           </div>
         </div>
 
         {/* Persuasive summary */}
         <div className="mb-8 text-xl font-semibold text-center text-emerald-200">
-          Theo dõi hiệu suất bán vé và doanh thu của bạn một cách trực quan và dễ hiểu.
+          {t('ticketSalesDashboard.trackingTicketPerformance')}
         </div>
 
         {/* Quick Stats */}
@@ -207,7 +209,7 @@ export default function TicketSalesDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-300 text-sm font-semibold">Tổng Doanh Thu</p>
+                  <p className="text-green-300 text-sm font-semibold">{t('ticketSalesDashboard.totalRevenue')}</p>
                   <p className="text-3xl font-bold text-green-400">{formatCurrency(totalRevenue)}</p>
                 </div>
                 <motion.div
@@ -224,7 +226,7 @@ export default function TicketSalesDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-300 text-sm font-semibold">Vé Đã Bán</p>
+                  <p className="text-blue-300 text-sm font-semibold">{t('ticketSalesDashboard.ticketsSold')}</p>
                   <p className="text-3xl font-bold text-blue-400">{totalTickets.toLocaleString()}</p>
                 </div>
                 <motion.div
@@ -246,7 +248,7 @@ export default function TicketSalesDashboard() {
           className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-green-500/30 shadow-2xl"
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h2 className="text-2xl font-bold text-green-300">Chi Tiết Bán Vé Theo Sự Kiện</h2>
+            <h2 className="text-2xl font-bold text-green-300">{t('ticketSalesDashboard.ticketSalesDetailsByEvent')}</h2>
             <div className="flex flex-1 flex-col md:flex-row md:items-center md:justify-end gap-2">
               <div className="flex gap-2 mb-2 md:mb-0">
                 {['week', 'month', 'quarter', 'year'].map((period) => (
@@ -259,23 +261,23 @@ export default function TicketSalesDashboard() {
                         : 'bg-[#1a0022]/60 text-gray-300 hover:bg-green-600/20'
                     }`}
                   >
-                    {period === 'week' && 'Tuần'}
-                    {period === 'month' && 'Tháng'}
-                    {period === 'quarter' && 'Quý'}
-                    {period === 'year' && 'Năm'}
+                    {period === 'week' && t('ticketSalesDashboard.week')}
+                    {period === 'month' && t('ticketSalesDashboard.month')}
+                    {period === 'quarter' && t('ticketSalesDashboard.quarter')}
+                    {period === 'year' && t('ticketSalesDashboard.year')}
                   </Button>
                 ))}
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Tìm kiếm sự kiện..."
+                  placeholder={t('ticketSalesDashboard.searchEvent')}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="px-4 py-2 rounded-lg border border-green-400 bg-[#1a0022] text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full max-w-xs"
                 />
                 <Button variant="outline" onClick={() => setAdvancedOpen(true)} className="border-green-400 text-green-300 flex items-center gap-1">
-                  <Search size={16} /> Tìm kiếm nâng cao
+                  <Search size={16} /> {t('ticketSalesDashboard.advancedSearch')}
                 </Button>
               </div>
             </div>
@@ -284,44 +286,44 @@ export default function TicketSalesDashboard() {
           {/* Advanced Search Modal */}
           <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
             <DialogContent className="bg-[#1a0022] text-white max-w-lg w-full rounded-xl p-6">
-              <DialogTitle className="text-lg font-bold mb-4">Tìm kiếm nâng cao</DialogTitle>
+              <DialogTitle className="text-lg font-bold mb-4">{t('ticketSalesDashboard.advancedSearch')}</DialogTitle>
               <div className="flex flex-col gap-4">
                 <div>
-                  <label className="block mb-1">Trạng thái</label>
+                  <label className="block mb-1">{t('ticketSalesDashboard.status')}</label>
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white">
-                    <option value="">Tất cả</option>
-                    <option value="1">Đang diễn ra</option>
-                    <option value="2">Đã kết thúc</option>
-                    <option value="3">Đã hủy</option>
+                    <option value="">{t('ticketSalesDashboard.all')}</option>
+                    <option value="1">{t('ticketSalesDashboard.ongoing')}</option>
+                    <option value="2">{t('ticketSalesDashboard.ended')}</option>
+                    <option value="3">{t('ticketSalesDashboard.cancelled')}</option>
                   </select>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="block mb-1">Từ ngày</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.fromDate')}</label>
                     <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                   <div className="flex-1">
-                    <label className="block mb-1">Đến ngày</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.toDate')}</label>
                     <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="block mb-1">Doanh thu tối thiểu</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.minRevenue')}</label>
                     <input type="number" min="0" value={filterRevenueMin} onChange={e => setFilterRevenueMin(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                   <div className="flex-1">
-                    <label className="block mb-1">Doanh thu tối đa</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.maxRevenue')}</label>
                     <input type="number" min="0" value={filterRevenueMax} onChange={e => setFilterRevenueMax(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="block mb-1">Vé bán tối thiểu</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.minTicketsSold')}</label>
                     <input type="number" min="0" value={filterTicketsMin} onChange={e => setFilterTicketsMin(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                   <div className="flex-1">
-                    <label className="block mb-1">Vé bán tối đa</label>
+                    <label className="block mb-1">{t('ticketSalesDashboard.maxTicketsSold')}</label>
                     <input type="number" min="0" value={filterTicketsMax} onChange={e => setFilterTicketsMax(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
                   </div>
                 </div>
@@ -329,8 +331,8 @@ export default function TicketSalesDashboard() {
               <div className="flex justify-end gap-2 mt-6">
                 <Button variant="outline" onClick={() => {
                   setFilterStatus(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterRevenueMin(''); setFilterRevenueMax(''); setFilterTicketsMin(''); setFilterTicketsMax(''); setAdvancedOpen(false);
-                }} className="border-green-400 text-green-300">Đặt lại</Button>
-                <Button onClick={() => setAdvancedOpen(false)} className="bg-green-600 text-white">Áp dụng</Button>
+                }} className="border-green-400 text-green-300">{t('ticketSalesDashboard.reset')}</Button>
+                <Button onClick={() => setAdvancedOpen(false)} className="bg-green-600 text-white">{t('ticketSalesDashboard.apply')}</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -339,19 +341,19 @@ export default function TicketSalesDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-green-500/30">
-                  <th className="text-left p-4 text-green-300 font-semibold">Sự Kiện</th>
-                  <th className="text-center p-4 text-green-300 font-semibold">Đã Bán</th>
-                  <th className="text-center p-4 text-green-300 font-semibold">Doanh Thu</th>
-                  <th className="text-center p-4 text-green-300 font-semibold">Doanh Thu Thực</th>
-                  <th className="text-center p-4 text-green-300 font-semibold">Ngày</th>
-                  <th className="text-center p-4 text-green-300 font-semibold">Trạng Thái</th>
+                  <th className="text-left p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.event')}</th>
+                  <th className="text-center p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.sold')}</th>
+                  <th className="text-center p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.revenue')}</th>
+                  <th className="text-center p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.netRevenue')}</th>
+                  <th className="text-center p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.date')}</th>
+                  <th className="text-center p-4 text-green-300 font-semibold">{t('ticketSalesDashboard.status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-gray-400">Đang tải dữ liệu...</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8 text-gray-400">{t('ticketSalesDashboard.loadingData')}</td></tr>
                 ) : filteredSalesData.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-gray-400">Không có dữ liệu</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8 text-gray-400">{t('ticketSalesDashboard.noData')}</td></tr>
                 ) : filteredSalesData.map((item, index) => (
                   <motion.tr
                     key={item.eventId}
@@ -363,7 +365,7 @@ export default function TicketSalesDashboard() {
                     <td className="p-4">
                       <div>
                         <p className="font-semibold text-white">{item.eventName}</p>
-                        <p className="text-sm text-gray-400">ID: {item.eventId}</p>
+                        <p className="text-sm text-gray-400">{t('ticketSalesDashboard.eventId')}: {item.eventId}</p>
                       </div>
                     </td>
                     <td className="p-4 text-center">

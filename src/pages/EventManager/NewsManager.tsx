@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -20,6 +21,7 @@ interface Event {
 const EVENTS_PER_PAGE = 3;
 
 const NewsManager: React.FC = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -150,22 +152,22 @@ const NewsManager: React.FC = () => {
           <div className="flex items-center gap-3 mb-6">
             <FaNewspaper className="text-3xl text-pink-400" />
             <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent uppercase tracking-wide">
-              Sự kiện của bạn
+              {t('yourEvents')}
             </h2>
           </div>
           <input
             type="text"
             value={searchEvent}
             onChange={e => setSearchEvent(e.target.value)}
-            placeholder="Tìm kiếm sự kiện..."
+            placeholder={t('searchEvent')}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
           />
           {loadingEvents ? (
-            <div className="text-pink-400 text-base text-center">Đang tải...</div>
+            <div className="text-pink-400 text-base text-center">{t('loading')}</div>
           ) : (
             <div className="space-y-4">
               {pagedEvents.length === 0 && (
-                <div className="text-slate-300 text-center text-base">Không tìm thấy sự kiện nào.</div>
+                <div className="text-slate-300 text-center text-base">{t('noEventsFound')}</div>
               )}
               {pagedEvents.map((event) => (
                 <div
@@ -188,7 +190,7 @@ const NewsManager: React.FC = () => {
                     }}
                     disabled={!event}
                   >
-                    <FaPlus className="inline mr-2" /> Tạo tin tức
+                    <FaPlus className="inline mr-2" /> {t('createNews')}
                   </button>
                 </div>
               ))}
@@ -203,7 +205,7 @@ const NewsManager: React.FC = () => {
                     <FaChevronLeft />
                   </button>
                   <span className="text-white font-bold">
-                    Trang {eventPage}/{totalEventPages}
+                    {t('page')} {eventPage}/{totalEventPages}
                   </span>
                   <button
                     className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50 hover:bg-pink-600 transition-colors"
@@ -221,12 +223,12 @@ const NewsManager: React.FC = () => {
         <div className="w-full md:w-2/3">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-yellow-300 mb-2">
-              {selectedEvent ? `Tin tức cho "${selectedEvent.eventName}"` : "Chọn một sự kiện"}
+              {selectedEvent ? `${t('newsFor')} "${selectedEvent.eventName}"` : t('selectEventToViewNews')}
             </h2>
             {selectedEvent && (
               <input
                 type="text"
-                placeholder="Tìm kiếm tin tức..."
+                placeholder={t('searchNews')}
                 className="w-full md:w-72 p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
                 value={searchNews}
                 onChange={e => setSearchNews(e.target.value)}
@@ -235,20 +237,20 @@ const NewsManager: React.FC = () => {
           </div>
           {!selectedEvent ? (
             <div className="text-slate-300 text-center text-lg mt-10">
-              Vui lòng chọn một sự kiện để xem và quản lý tin tức!
+              {t('pleaseSelectAnEventToViewAndManageNews')}
             </div>
           ) : (
             <>
               {loadingNews ? (
-                <div className="text-pink-400 text-base text-center">Đang tải tin tức...</div>
+                <div className="text-pink-400 text-base text-center">{t('loadingNews')}</div>
               ) : (
                 <div className="space-y-6">
                   {newsList.length === 0 ? (
                     <div className="text-slate-300 text-center text-lg bg-[#1a0022]/40 rounded-xl p-8">
                       <FaNewspaper className="mx-auto text-4xl text-pink-400 mb-4" />
                       <p className="mb-4">
-                        {loadingNews ? "Đang tải tin tức..." : 
-                         "Không có tin tức nào cho sự kiện này hoặc bạn không có quyền truy cập."}
+                        {loadingNews ? t('loadingNews') : 
+                         t('noNewsFoundForThisEventOrYouDoNotHavePermission')}
                       </p>
                     </div>
                   ) : (
@@ -260,24 +262,24 @@ const NewsManager: React.FC = () => {
                               <h3 className="text-lg font-bold text-pink-200 mb-1">{news.newsTitle}</h3>
                               <p className="text-slate-300 text-sm mb-1 line-clamp-2">{news.newsDescription}</p>
                               <div className="text-xs text-slate-400">
-                                Tạo lúc: {news.createdAt ? new Date(news.createdAt).toLocaleString('vi-VN') : 'N/A'}
+                                {t('createdAt')}: {news.createdAt ? new Date(news.createdAt).toLocaleString('vi-VN') : t('na')}
                               </div>
                             </div>
                             <div className="flex gap-2 mt-2 md:mt-0">
                               <button
                                 className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
                                 onClick={() => navigate(`/event-manager/news/edit/${news.newsId}`)}
-                                title="Chỉnh sửa tin tức"
+                                title={t('editNews')}
                               >
-                                <span className="hidden md:inline">Sửa</span>
+                                <span className="hidden md:inline">{t('edit')}</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6" /></svg>
                               </button>
                               <button
                                 className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-1"
                                 onClick={() => handleDelete(news.newsId)}
-                                title="Xóa tin tức"
+                                title={t('deleteNews')}
                               >
-                                <span className="hidden md:inline">Xóa</span>
+                                <span className="hidden md:inline">{t('delete')}</span>
                                 <FaTrash className="w-4 h-4" />
                               </button>
                             </div>

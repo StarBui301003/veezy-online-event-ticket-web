@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { getMyApprovedEvents, cancelEvent } from '@/services/Event Manager/event.service';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 const EVENTS_PER_PAGE = 5;
 
 const ApprovedEventsManager = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
-  const location = useLocation();
+  // Xóa dòng khai báo hoặc gán giá trị cho location nếu không sử dụng
 
   const fetchEvents = async () => {
     try {
@@ -51,10 +53,6 @@ const ApprovedEventsManager = () => {
     setPage(1);
   }, [events.length]);
 
-  const handleEditEvent = (eventId) => {
-    navigate(`/event-manager/edit/${eventId}`, { state: { from: location.pathname } });
-  };
-
   const handleCancelEvent = async (eventId) => {
     setActionLoading((prev) => ({ ...prev, [eventId]: 'canceling' }));
     try {
@@ -72,12 +70,24 @@ const ApprovedEventsManager = () => {
     return new Date(date).toLocaleDateString('vi-VN');
   };
 
-  const getStatusColor = () => {
-    return 'bg-green-50 text-green-800 border border-green-300';
+  const getStatusColor = (isApproved) => {
+    if (isApproved === 1) {
+      return 'bg-green-50 text-green-800 border border-green-300';
+    } else if (isApproved === 2) {
+      return 'bg-red-50 text-red-800 border border-red-300';
+    } else {
+      return 'bg-yellow-50 text-yellow-800 border border-yellow-300';
+    }
   };
 
-  const getStatusIcon = () => {
-    return <CheckCircle className="w-4 h-4 mr-1" />;
+  const getStatusIcon = (isApproved) => {
+    if (isApproved === 1) {
+      return <CheckCircle className="w-4 h-4 mr-1" />;
+    } else if (isApproved === 2) {
+      return <AlertCircle className="w-4 h-4 mr-1" />;
+    } else {
+      return null;
+    }
   };
 
   if (loading) {
@@ -131,13 +141,13 @@ const ApprovedEventsManager = () => {
     <div className="w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749] py-8 px-2">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-green-400">Sự kiện đã được phê duyệt</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-green-400">{t('approvedEventsTitle')}</h1>
           <button
             onClick={fetchEvents}
-            className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors flex items-center font-semibold shadow"
+            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors flex items-center font-semibold shadow"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Làm mới
+            {t('refresh')}
           </button>
         </div>
 
@@ -145,49 +155,59 @@ const ApprovedEventsManager = () => {
           {pagedEvents.map((event) => (
             <div key={event.eventId} className="bg-[#20143a] shadow-sm rounded-lg p-6 border-l-4 border-green-400">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-green-300">{event.eventName || 'Không có tiêu đề'}</h3>
-                <div className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor()}`}>
-                  {getStatusIcon()}
-                  <span className="ml-1 font-bold uppercase tracking-wide">Approved</span>
+                <h3 className="text-lg font-semibold text-green-500">{event.eventName || t('noTitle')}</h3>
+                <div className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(event.isApproved)}`}>
+                  {getStatusIcon(event.isApproved)}
+                  <span className="ml-1 font-bold uppercase tracking-wide">
+                    {event.isApproved === 0 ? t('pending') : event.isApproved === 1 ? t('approved') : event.isApproved === 2 ? t('rejected') : t('unknown')}
+                  </span>
                 </div>
               </div>
-              <p className="text-gray-300 mb-4">{event.eventDescription || 'Không có mô tả'}</p>
+              <p className="text-gray-300 mb-4">{event.eventDescription || t('noDescription')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Ngày bắt đầu</p>
+                  <p className="text-sm text-gray-400">{t('startDate')}</p>
                   <p className="font-medium text-white">{formatDate(event.startAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Ngày kết thúc</p>
+                  <p className="text-sm text-gray-400">{t('endDate')}</p>
                   <p className="font-medium text-white">{formatDate(event.endAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Trạng thái</p>
-                  <p className="font-medium text-white">Đã duyệt</p>
+                  <p className="text-sm text-gray-400">{t('status')}</p>
+                  <p className="font-medium text-white">
+                    {event.isApproved === 0
+                      ? t('pendingApproval')
+                      : event.isApproved === 1
+                      ? t('approved')
+                      : event.isApproved === 2
+                      ? t('rejected')
+                      : t('unknownStatus')}
+                  </p>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2 mt-4">
+              <div className="flex gap-2">
                 <button
-                  onClick={() => handleEditEvent(event.eventId)}
+                  onClick={() => navigate(`/event-manager/edit-event/${event.eventId}`)}
                   className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                  Chỉnh sửa
+                  {t('edit')}
                 </button>
                 <button
                   onClick={() => handleCancelEvent(event.eventId)}
-                  disabled={actionLoading[event.eventId] === 'canceling'}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors disabled:bg-red-300 flex items-center"
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                  disabled={actionLoading[event.eventId]}
                 >
-                  {actionLoading[event.eventId] === 'canceling' ? (
+                  {actionLoading[event.eventId] ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Đang hủy...
+                      {t('canceling')}
                     </>
                   ) : (
-                    'Hủy sự kiện'
+                    t('cancelEvent')
                   )}
                 </button>
               </div>
@@ -196,27 +216,25 @@ const ApprovedEventsManager = () => {
         </div>
 
         {/* PHÂN TRANG */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8">
-            <button
-              className="p-2 rounded-full bg-green-400 text-green-900 disabled:opacity-50"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              &lt;
-            </button>
-            <span className="text-green-200 font-bold">
-              Trang {page}/{totalPages}
-            </span>
-            <button
-              className="p-2 rounded-full bg-green-400 text-green-900 disabled:opacity-50"
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              &gt;
-            </button>
-          </div>
-        )}
+        <div className="flex justify-center items-center gap-4 mt-8">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            disabled={page === 1}
+          >
+            {t('prev')}
+          </button>
+          <span className="text-green-200 font-bold">
+            {t('page')} {page}/{totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            disabled={page === totalPages}
+          >
+            {t('next')}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllEvents } from "@/services/Event Manager/event.service";
 import { StageBackground } from "@/components/StageBackground";
+import { useTranslation } from 'react-i18next';
 
 export interface Event {
   eventId: string;
@@ -15,6 +16,7 @@ export interface Event {
 }
 
 const AllEventsPage = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ const AllEventsPage = () => {
         {/* Header */}
         <div className="text-center pt-40 pb-10 overflow-visible">
           <h1 className="text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] animate-titleGlow mb-4 overflow-visible">
-            TẤT CẢ SỰ KIỆN
+            {t("allEventsTitle")}
           </h1>
           <p className="text-xl text-gray-200 mb-8 animate-fadeInUp">Sân khấu của những trải nghiệm đáng nhớ ✨</p>
           {/* Music Visualizer */}
@@ -54,9 +56,13 @@ const AllEventsPage = () => {
         {/* Events Grid */}
         <div className="events-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 px-4 pb-20 max-w-7xl mx-auto">
           {loading ? (
-            <div className="col-span-full text-center text-2xl text-pink-400 py-20 animate-pulse">Đang tải sự kiện...</div>
+            <div className="col-span-full text-center text-2xl text-pink-400 py-20 animate-pulse">
+              {t("loadingEvents")}
+            </div>
           ) : events.length === 0 ? (
-            <div className="col-span-full text-center text-lg text-gray-400 py-20">Không có sự kiện nào được phê duyệt.</div>
+            <div className="col-span-full text-center text-lg text-gray-400 py-20">
+              {t("noApprovedEvents")}
+            </div>
           ) : (
             events.map((event, idx) => (
               <div
@@ -72,7 +78,9 @@ const AllEventsPage = () => {
                 </div>
                 <div className="event-content p-6">
                   <div className="event-header flex justify-between items-start mb-2">
-                    <div className="genre-badge bg-gradient-to-r from-pink-400 to-cyan-400 text-white px-3 py-1 rounded-full text-xs font-bold">Sự kiện</div>
+                    <div className="genre-badge bg-gradient-to-r from-pink-400 to-cyan-400 text-white px-3 py-1 rounded-full text-xs font-bold">
+                      {t("eventBadge")}
+                    </div>
                   </div>
                   <h3 className="event-title text-xl font-bold text-white mb-2">{event.eventName}</h3>
                   <div className="event-meta flex flex-col gap-1 mb-3 text-cyan-300 text-sm">
@@ -90,7 +98,7 @@ const AllEventsPage = () => {
                       className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-lg font-extrabold py-3 rounded-full shadow hover:scale-105 hover:brightness-125 transition relative overflow-hidden tracking-wide drop-shadow-lg"
                       onClick={() => navigate(`/event/${event.eventId}`)}
                     >
-                      🎫 Đặt vé ngay
+                      {t("bookTickets")}
                     </button>
                   </div>
                 </div>

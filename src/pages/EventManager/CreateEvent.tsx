@@ -10,7 +10,10 @@ import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import { Category, CreateEventData } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
+import type { StylesConfig } from 'react-select';
+import { useTranslation } from 'react-i18next';
 
+// Định nghĩa type cho EnhancedContent
 interface EnhancedContent {
   position: number;
   contentType: "description" | "image";
@@ -18,7 +21,8 @@ interface EnhancedContent {
   imageUrl: string;
 }
 
-interface EnhancedCreateEventData extends Omit<CreateEventData, 'contents'> {
+// Định nghĩa type cho EnhancedCreateEventData
+interface EnhancedCreateEventData extends CreateEventData {
   contents: EnhancedContent[];
 }
 
@@ -45,6 +49,7 @@ function cleanHtml(html: string) {
 }
 
 export default function CreateEventForm() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingContentImage, setUploadingContentImage] = useState(false);
@@ -79,7 +84,7 @@ export default function CreateEventForm() {
           label: cat.categoryName,
         }))
       );
-    } catch (err) {
+    } catch {
       setCategoryOptions([]);
     } finally {
       setLoadingCategories(false);
@@ -111,7 +116,7 @@ export default function CreateEventForm() {
         ...prev,
         eventCoverImageUrl: url,
       }));
-    } catch (err) {
+    } catch {
       alert('Upload cover image failed.');
     } finally {
       setUploadingCover(false);
@@ -134,7 +139,7 @@ export default function CreateEventForm() {
       const newContents = [...formData.contents];
       newContents[index].imageUrl = url;
       setFormData((prev) => ({ ...prev, contents: newContents }));
-    } catch (err) {
+    } catch {
       alert('Upload content image failed.');
     } finally {
       setUploadingContentImage(false);
@@ -214,6 +219,7 @@ export default function CreateEventForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Chặn double submit
     if (!validateContents(formData.contents)) {
       alert(
         'Invalid event contents. Maximum 5 sections allowed and positions must be unique between 1-5.'
@@ -244,15 +250,15 @@ export default function CreateEventForm() {
       await createEvent(apiData);
       alert('Event created successfully!');
       navigate('/event-manager/pending-events');
-    } catch (error) {
+    } catch {
       alert('Failed to create event.');
     } finally {
       setLoading(false);
     }
   };
 
-  const selectStyles = {
-    control: (provided: any) => ({
+  const selectStyles: StylesConfig = {
+    control: (provided) => ({
       ...provided,
       backgroundColor: '#27272a',
       borderColor: '#3f3f46',
@@ -264,12 +270,12 @@ export default function CreateEventForm() {
         borderColor: '#a21caf',
       },
     }),
-    menu: (provided: any) => ({
+    menu: (provided) => ({
       ...provided,
       backgroundColor: '#18181b',
       border: '1px solid #a21caf',
     }),
-    option: (provided: any, state: any) => ({
+    option: (provided, state) => ({
       ...provided,
       backgroundColor: state.isFocused ? '#a21caf' : '#18181b',
       color: '#fff',
@@ -277,15 +283,15 @@ export default function CreateEventForm() {
         backgroundColor: '#a21caf',
       },
     }),
-    multiValue: (provided: any) => ({
+    multiValue: (provided) => ({
       ...provided,
       backgroundColor: '#a21caf',
     }),
-    multiValueLabel: (provided: any) => ({
+    multiValueLabel: (provided) => ({
       ...provided,
       color: '#fff',
     }),
-    multiValueRemove: (provided: any) => ({
+    multiValueRemove: (provided) => ({
       ...provided,
       color: '#fff',
       '&:hover': {
@@ -293,11 +299,11 @@ export default function CreateEventForm() {
         color: '#fff',
       },
     }),
-    input: (provided: any) => ({
+    input: (provided) => ({
       ...provided,
       color: '#fff',
     }),
-    placeholder: (provided: any) => ({
+    placeholder: (provided) => ({
       ...provided,
       color: '#a3a3a3',
     }),
@@ -343,7 +349,7 @@ export default function CreateEventForm() {
             onClick={() => navigate('/event-manager')}
             className="bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white px-6 py-2 rounded-lg font-bold shadow transition-all"
           >
-            Trở về Dashboard
+            {t('backToDashboard')}
           </button>
         </div>
         <form
@@ -352,27 +358,27 @@ export default function CreateEventForm() {
         >
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2 drop-shadow">
-              Create New Event
+              {t('createNewEvent')}
             </h2>
-            <p className="text-slate-400">Fill in the details below to create your event</p>
+            <p className="text-slate-400">{t('fillEventDetails')}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Event Name</label>
+              <label className="block text-sm font-medium text-slate-300">{t('eventName')}</label>
               <input
                 type="text"
                 name="eventName"
                 value={formData.eventName}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter event name"
+                placeholder={t('enterEventName')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Cover Image</label>
+              <label className="block text-sm font-medium text-slate-300">{t('coverImage')}</label>
               <div
                 {...getCoverRootProps()}
                 className="w-full h-40 flex items-center justify-center bg-slate-700/30 border-2 border-dashed border-purple-400/50 rounded-xl cursor-pointer hover:border-purple-400 transition-all duration-200 overflow-hidden"
@@ -381,7 +387,7 @@ export default function CreateEventForm() {
                 {uploadingCover ? (
                   <div className="text-center">
                     <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                    <p className="text-slate-400">Uploading...</p>
+                    <p className="text-slate-400">{t('uploadingCover')}</p>
                   </div>
                 ) : formData.eventCoverImageUrl ? (
                   <img
@@ -390,65 +396,65 @@ export default function CreateEventForm() {
                     className="h-full w-full object-cover rounded-xl border border-purple-700"
                   />
                 ) : isCoverDragActive ? (
-                  <p className="text-purple-400">Drop the image here...</p>
+                  <p className="text-purple-400">{t('dropImageHere')}</p>
                 ) : (
                   <div className="text-center">
                     <div className="text-4xl mb-2">📷</div>
-                    <p className="text-slate-400">Click or drag image here</p>
+                    <p className="text-slate-400">{t('clickOrDragImage')}</p>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Location</label>
+              <label className="block text-sm font-medium text-slate-300">{t('location')}</label>
               <input
                 type="text"
                 name="eventLocation"
                 value={formData.eventLocation}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter event location"
+                placeholder={t('enterEventLocation')}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Bank Account</label>
+              <label className="block text-sm font-medium text-slate-300">{t('bankAccount')}</label>
               <input
                 type="text"
                 name="bankAccount"
                 value={formData.bankAccount}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter bank account"
+                placeholder={t('enterBankAccount')}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Bank Account Name</label>
+              <label className="block text-sm font-medium text-slate-300">{t('bankAccountName')}</label>
               <input
                 type="text"
                 name="bankAccountName"
                 value={formData.bankAccountName}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter bank account name"
+                placeholder={t('enterBankAccountName')}
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Bank Name</label>
+              <label className="block text-sm font-medium text-slate-300">{t('bankName')}</label>
               <input
                 type="text"
                 name="bankName"
                 value={formData.bankName}
                 onChange={handleChange}
                 className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter bank name"
+                placeholder={t('enterBankName')}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Start Time</label>
+              <label className="block text-sm font-medium text-slate-300">{t('startTime')}</label>
               <input
                 type="datetime-local"
                 name="startAt"
@@ -460,7 +466,7 @@ export default function CreateEventForm() {
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">End Time</label>
+              <label className="block text-sm font-medium text-slate-300">{t('endTime')}</label>
               <input
                 type="datetime-local"
                 name="endAt"
@@ -473,7 +479,7 @@ export default function CreateEventForm() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">Tags</label>
+            <label className="block text-sm font-medium text-slate-300">{t('tags')}</label>
             <input
               type="text"
               value={tagInput}
@@ -486,26 +492,26 @@ export default function CreateEventForm() {
                   .filter((tag) => tag !== '');
                 setFormData((prev) => ({ ...prev, tags }));
               }}
-              placeholder="e.g. game, workshop, offline"
+              placeholder={t('eGGameWorkshopOffline')}
               className="w-full p-4 rounded-xl bg-slate-700/60 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
             />
-            <p className="text-xs text-slate-400">Separate tags with commas</p>
+            <p className="text-xs text-slate-400">{t('separateTagsWithCommas')}</p>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">Categories</label>
+            <label className="block text-sm font-medium text-slate-300">{t('selectCategories')}</label>
             <Select
               isMulti
               options={categoryOptions}
               onChange={handleCategoriesChange}
               isLoading={loadingCategories}
               styles={selectStyles}
-              placeholder="Select categories..."
+              placeholder={t('selectCategories')}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">Event Description</label>
+            <label className="block text-sm font-medium text-slate-300">{t('eventDescription')}</label>
             <div className="rounded-xl border border-purple-700 bg-[#27272a] p-2">
               <div ref={quillRef} style={{ minHeight: 160, color: '#fff' }} />
             </div>
@@ -514,7 +520,7 @@ export default function CreateEventForm() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Event Contents
+                {t('eventContents')}
               </h3>
               <Button
                 type="button"
@@ -522,13 +528,13 @@ export default function CreateEventForm() {
                 disabled={formData.contents.length >= 5}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-1.5 text-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                + Add Content
+                {t('addContent')}
               </Button>
             </div>
             
             {formData.contents.length === 0 && (
               <div className="text-center py-8 text-slate-400">
-                <p>No content sections yet. Click "Add Content" to get started.</p>
+                <p>{t('noContentSectionsYet')}</p>
               </div>
             )}
             
@@ -538,7 +544,7 @@ export default function CreateEventForm() {
                 className="p-6 border border-purple-700/40 rounded-xl space-y-4 bg-slate-700/40 backdrop-blur-sm mb-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-medium text-purple-300">Content {index + 1}</span>
+                  <span className="text-lg font-medium text-purple-300">{t('content')} {index + 1}</span>
                   <Button
                     type="button"
                     variant="destructive"
@@ -546,11 +552,11 @@ export default function CreateEventForm() {
                     onClick={() => handleRemoveContent(index)}
                     className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-all duration-200"
                   >
-                    Remove
+                    {t('remove')}
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-300">Content Type</label>
+                  <label className="block text-sm font-medium text-slate-300">{t('contentType')}</label>
                   <div className="flex gap-3 flex-wrap">
                     {contentTypeOptions.map((option) => (
                       <button
@@ -571,14 +577,14 @@ export default function CreateEventForm() {
                 {content.contentType === "description" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Description (required)
+                      {t('descriptionRequired')}
                     </label>
                     <input
                       type="text"
                       value={content.description}
                       onChange={handleContentChange(index, "description")}
                       className="w-full p-4 rounded-xl bg-slate-600/50 border border-purple-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                      placeholder="Enter content description"
+                      placeholder={t('enterContentDescription')}
                       required
                     />
                   </div>
@@ -586,7 +592,7 @@ export default function CreateEventForm() {
                 {content.contentType === "image" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-slate-300">
-                      Upload Image (required)
+                      {t('uploadImageRequired')}
                     </label>
                     <input
                       type="file"
@@ -600,7 +606,7 @@ export default function CreateEventForm() {
                     {uploadingContentImage && (
                       <div className="flex items-center space-x-2">
                         <div className="animate-spin w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-                        <p className="text-sm text-slate-400">Uploading image...</p>
+                        <p className="text-sm text-slate-400">{t('uploadingImage')}</p>
                       </div>
                     )}
                     {content.imageUrl && !uploadingContentImage && (
@@ -620,7 +626,7 @@ export default function CreateEventForm() {
                       onClick={handleAddContent}
                       className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg transition-all duration-200"
                     >
-                      Add Content
+                      {t('addContent')}
                     </Button>
                   </div>
                 )}
@@ -637,10 +643,10 @@ export default function CreateEventForm() {
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  <span>Creating Event...</span>
+                  <span>{t('creatingEvent')}</span>
                 </div>
               ) : (
-                "Create Event"
+                t('createEvent')
               )}
             </Button>
           </div>

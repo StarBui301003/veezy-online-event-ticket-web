@@ -3,10 +3,12 @@ import { Clock, AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-reac
 import { getMyPendingEvents,  cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 const EVENTS_PER_PAGE = 5;
 
 const PendingEventsManager = () => {
+  const { t } = useTranslation();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -145,13 +147,13 @@ const PendingEventsManager = () => {
     <div className="w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749] py-8 px-2">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-yellow-400">Sự kiện đang chờ phê duyệt</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-yellow-400">{t('pendingEventsTitle')}</h1>
           <button
             onClick={fetchEvents}
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors flex items-center font-semibold shadow"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Làm mới
+            {t('refresh')}
           </button>
         </div>
 
@@ -159,34 +161,34 @@ const PendingEventsManager = () => {
           {pagedEvents.map((event) => (
             <div key={event.eventId} className="bg-[#20143a] shadow-sm rounded-lg p-6 border-l-4 border-yellow-400">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-yellow-500">{event.eventName || 'Không có tiêu đề'}</h3>
+                <h3 className="text-lg font-semibold text-yellow-500">{event.eventName || t('noTitle')}</h3>
                 <div className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(event.isApproved)}`}>
                   {getStatusIcon(event.isApproved)}
                   <span className="ml-1 font-bold uppercase tracking-wide">
-                    {event.isApproved === 0 ? 'Pending' : event.isApproved === 1 ? 'Approved' : event.isApproved === 2 ? 'Rejected' : 'Unknown'}
+                    {event.isApproved === 0 ? t('pending') : event.isApproved === 1 ? t('approved') : event.isApproved === 2 ? t('rejected') : t('unknown')}
                   </span>
                 </div>
               </div>
-              <p className="text-gray-300 mb-4">{event.eventDescription || 'Không có mô tả'}</p>
+              <p className="text-gray-300 mb-4">{event.eventDescription || t('noDescription')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">Ngày bắt đầu</p>
+                  <p className="text-sm text-gray-400">{t('startDate')}</p>
                   <p className="font-medium text-white">{formatDate(event.startAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Ngày kết thúc</p>
+                  <p className="text-sm text-gray-400">{t('endDate')}</p>
                   <p className="font-medium text-white">{formatDate(event.endAt)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Trạng thái</p>
+                  <p className="text-sm text-gray-400">{t('status')}</p>
                   <p className="font-medium text-white">
                     {event.isApproved === 0
-                      ? 'Đang chờ duyệt'
+                      ? t('pendingApproval')
                       : event.isApproved === 1
-                      ? 'Đã duyệt'
+                      ? t('approved')
                       : event.isApproved === 2
-                      ? 'Bị từ chối'
-                      : 'Không xác định'}
+                      ? t('rejected')
+                      : t('unknownStatus')}
                   </p>
                 </div>
               </div>
@@ -195,7 +197,7 @@ const PendingEventsManager = () => {
                   onClick={() => handleEditEvent(event.eventId)}
                   className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
                 >
-                  Chỉnh sửa
+                  {t('edit')}
                 </button>
                 <button
                   onClick={() => handleCancelEvent(event.eventId)}
@@ -208,10 +210,10 @@ const PendingEventsManager = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Đang hủy...
+                      {t('canceling')}
                     </>
                   ) : (
-                    'Hủy sự kiện'
+                    t('cancelEvent')
                   )}
                 </button>
               </div>
@@ -230,7 +232,7 @@ const PendingEventsManager = () => {
               &lt;
             </button>
             <span className="text-yellow-200 font-bold">
-              Trang {page}/{totalPages}
+              {t('page')} {page}/{totalPages}
             </span>
             <button
               className="p-2 rounded-full bg-yellow-400 text-yellow-900 disabled:opacity-50"

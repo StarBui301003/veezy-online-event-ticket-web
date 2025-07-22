@@ -21,6 +21,10 @@ import {
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ScrollToTop from '@/components/common/ScrollToTop';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Globe } from 'lucide-react';
 
 export function EventManagerLayout() {
   const navigate = useNavigate();
@@ -37,6 +41,8 @@ export function EventManagerLayout() {
   const [loading, setLoading] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const { t, i18n: i18nInstance } = useTranslation();
 
   const handleLogout = () => {
     // Xóa tất cả localStorage
@@ -174,173 +180,133 @@ export function EventManagerLayout() {
           {/* Sidebar */}
           <aside className="w-72 bg-gradient-to-br from-[#1e1b2e] to-[#2c2a40] shadow-2xl flex flex-col">
             <div className="p-6 border-b border-gray-700/50">
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
-                Veezy Manager
-              </h1>
-
-              <p className="text-xs text-gray-400 mt-1">Event Management Dashboard</p>
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
+                  Veezy Manager
+                </h1>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-800 font-semibold shadow-sm hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200 text-xs h-7 min-w-[48px]" style={{lineHeight: '1.1', height: '28px'}}>
+                      <Globe className="w-4 h-4 text-blue-500" style={{marginBottom: '1px'}} />
+                      <span className="font-bold text-xs" style={{marginTop: '1px'}}>
+                        {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
+                      </span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-xl shadow-xl bg-white p-1 min-w-[90px] border border-gray-100">
+                    <DropdownMenuItem
+                      onClick={() => i18n.changeLanguage('vi')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${i18nInstance.language === 'vi' ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
+                    >
+                      <span className="text-base">🇻🇳</span> VN
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => i18n.changeLanguage('en')}
+                      className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${i18nInstance.language === 'en' ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
+                    >
+                      <span className="text-base">🇬🇧</span> EN
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{t('eventManagement')}</p>
               <br />
-              <button
-                onClick={() => navigate('/')}
-                className="ml-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
-                title="Về trang chủ"
-              >
-                <FaHome className="text-sm" />
-                Home
-              </button>
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
+                  title={t('home')}
+                >
+                  <FaHome className="text-sm" />
+                  {t('home')}
+                </button>
+              </div>
             </div>
-
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6">
               <div>
                 <NavItem to="" icon={FaHome} isActive={isActiveRoute('/event-manager')}>
-                  Dashboard
+                  {t('dashboard')}
                 </NavItem>
               </div>
-
               {/* Event Management */}
               <div>
-                <SectionHeader section="events" icon={FaCalendarAlt} title="Quản lý sự kiện" />
+                <SectionHeader section="events" icon={FaCalendarAlt} title={t('eventManagement')} />
                 {expandedSections.events && (
                   <div className="ml-4 space-y-1 mt-2">
-                    <NavItem
-                      to="create-event"
-                      icon={FaPlus}
-                      isActive={isActiveRoute('/event-manager/create-event')}
-                    >
-                      Tạo sự kiện mới
+                    <NavItem to="create-event" icon={FaPlus} isActive={isActiveRoute('/event-manager/create-event')}>
+                      {t('createEvent')}
                     </NavItem>
-                    <NavItem
-                      to="pending-events"
-                      icon={FaClock}
-                      isActive={isActiveRoute('/event-manager/pending-events')}
-                    >
-                      Sự kiện đang chờ duyệt
+                    <NavItem to="pending-events" icon={FaClock} isActive={isActiveRoute('/event-manager/pending-events')}>
+                      {t('pendingEvents')}
                     </NavItem>
-                    <NavItem
-                      to="approved-events"
-                      icon={FaCheckCircle}
-                      isActive={isActiveRoute('/event-manager/approved-events')}
-                    >
-                      Sự kiện đã duyệt
+                    <NavItem to="approved-events" icon={FaCheckCircle} isActive={isActiveRoute('/event-manager/approved-events')}>
+                      {t('approvedEvents')}
                     </NavItem>
-                    <NavItem
-                      to="collaborators"
-                      icon={FaUsers}
-                      isActive={isActiveRoute('/event-manager/collaborators')}
-                    >
-                      Quản lý cộng tác viên
+                    <NavItem to="collaborators" icon={FaUsers} isActive={isActiveRoute('/event-manager/collaborators')}>
+                      {t('collaborators')}
                     </NavItem>
                   </div>
                 )}
               </div>
-
               {/* Ticket Management */}
               <div>
-                <SectionHeader section="tickets" icon={FaTicketAlt} title="Quản lý vé" />
+                <SectionHeader section="tickets" icon={FaTicketAlt} title={t('ticketManagement')} />
                 {expandedSections.tickets && (
                   <div className="ml-4 space-y-1 mt-2">
-                    <NavItem
-                      to="tickets/manage"
-                      icon={FaTicketAlt}
-                      isActive={isActiveRoute('/event-manager/tickets/manage')}
-                    >
-                      Quản lý vé
+                    <NavItem to="tickets/manage" icon={FaTicketAlt} isActive={isActiveRoute('/event-manager/tickets/manage')}>
+                      {t('ticketManagement')}
                     </NavItem>
-                    <NavItem
-                      to="discount-codes"
-                      icon={FaPercent}
-                      isActive={isActiveRoute('/event-manager/discount-codes')}
-                    >
-                      Mã giảm giá
+                    <NavItem to="discount-codes" icon={FaPercent} isActive={isActiveRoute('/event-manager/discount-codes')}>
+                      {t('discountCodes')}
                     </NavItem>
-                    <NavItem
-                      to="ticket-sales"
-                      icon={FaChartBar}
-                      isActive={isActiveRoute('/event-manager/ticket-sales')}
-                    >
-                      Theo dõi bán vé
+                    <NavItem to="ticket-sales" icon={FaChartBar} isActive={isActiveRoute('/event-manager/ticket-sales')}>
+                      {t('ticketSales')}
                     </NavItem>
-                    <NavItem
-                      to="check-ins"
-                      icon={FaCheckCircle}
-                      isActive={isActiveRoute('/event-manager/check-ins')}
-                    >
-                      Check-in & QR Code
+                    <NavItem to="check-ins" icon={FaCheckCircle} isActive={isActiveRoute('/event-manager/check-ins')}>
+                      Danh sách tham gia
                     </NavItem>
                   </div>
                 )}
               </div>
-
               {/* Analytics */}
               <div>
-                <SectionHeader section="analytics" icon={FaChartBar} title="Báo cáo & Phân tích" />
+                <SectionHeader section="analytics" icon={FaChartBar} title={t('analytics')} />
                 {expandedSections.analytics && (
                   <div className="ml-4 space-y-1 mt-2">
-                    <NavItem
-                      to="analytics/overview"
-                      icon={FaChartBar}
-                      isActive={isActiveRoute('/event-manager/analytics/overview')}
-                    >
-                      Tổng quan
+                    <NavItem to="analytics/overview" icon={FaChartBar} isActive={isActiveRoute('/event-manager/analytics/overview')}>
+                      {t('overview')}
                     </NavItem>
-
-                    <NavItem
-                      to="analytics/participants"
-                      icon={FaUsers}
-                      isActive={isActiveRoute('/event-manager/analytics/participants')}
-                    >
-                      Danh sách người tham gia
+                    <NavItem to="analytics/participants" icon={FaUsers} isActive={isActiveRoute('/event-manager/analytics/participants')}>
+                      {t('participants')}
                     </NavItem>
-                    <NavItem
-                      to="reviews"
-                      icon={FaEye}
-                      isActive={isActiveRoute('/event-manager/reviews')}
-                    >
-                      Đánh giá sự kiện
+                    <NavItem to="reviews" icon={FaEye} isActive={isActiveRoute('/event-manager/reviews')}>
+                      {t('EventReviews')}
                     </NavItem>
-                    <NavItem
-                      to="analytics/predictions"
-                      icon={FaChartBar}
-                      isActive={isActiveRoute('/event-manager/analytics/predictions')}
-                    >
-                      Dự đoán AI
+                    <NavItem to="analytics/predictions" icon={FaChartBar} isActive={isActiveRoute('/event-manager/analytics/predictions')}>
+                      {t('aiPrediction')}
                     </NavItem>
-                    <NavItem
-                      to="fund-management"
-                      icon={FaDollarSign}
-                      isActive={isActiveRoute('/event-manager/fund-management')}
-                    >
-                      Quản lý quỹ
+                    <NavItem to="fund-management" icon={FaDollarSign} isActive={isActiveRoute('/event-manager/fund-management')}>
+                      {t('fundManagement')}
                     </NavItem>
                   </div>
                 )}
               </div>
-
               {/* Content & Communication */}
               <div>
-                <SectionHeader section="content" icon={FaNewspaper} title="Nội dung & Liên lạc" />
+                <SectionHeader section="content" icon={FaNewspaper} title={t('contentCommunication')} />
                 {expandedSections.content && (
                   <div className="ml-4 space-y-1 mt-2">
-                    <NavItem
-                      to="news"
-                      icon={FaNewspaper}
-                      isActive={isActiveRoute('/event-manager/news')}
-                    >
-                      Quản lý tin tức
+                    <NavItem to="news" icon={FaNewspaper} isActive={isActiveRoute('/event-manager/news')}>
+                      {t('newsManagement')}
                     </NavItem>
-                    <NavItem
-                      to="chat"
-                      icon={FaComments}
-                      isActive={isActiveRoute('/event-manager/chat')}
-                    >
-                      Chat hỗ trợ
+                    <NavItem to="chat" icon={FaComments} isActive={isActiveRoute('/event-manager/chat')}>
+                      {t('chatSupport')}
                     </NavItem>
                   </div>
                 )}
               </div>
             </nav>
-
             {/* User Account */}
             <div className="p-4 border-t border-gray-700/50">
               <div className="relative" ref={dropdownRef}>
@@ -350,60 +316,34 @@ export function EventManagerLayout() {
                 >
                   <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-r from-pink-500 to-purple-500 overflow-hidden">
                     {avatar ? (
-                      <img
-                        src={avatar}
-                        alt="avatar"
-                        className="object-cover w-full h-full rounded-full"
-                      />
+                      <img src={avatar} alt="avatar" className="object-cover w-full h-full rounded-full" />
                     ) : (
                       <FaUserCircle className="text-lg text-white" />
                     )}
                   </div>
                   <div className="flex-1 text-left">
                     <div className="font-medium text-white">Event Manager</div>
-                    <div className="text-xs text-gray-300">Quản lý tài khoản</div>
+                    <div className="text-xs text-gray-300">{t('accountManagement')}</div>
                   </div>
-                  <FaChevronDown
-                    className={`text-gray-400 transition-transform duration-200 ${
-                      isDropdownOpen ? 'rotate-180' : 'rotate-0'
-                    }`}
-                  />
+                  <FaChevronDown className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
-
                 {isDropdownOpen && (
                   <div className="absolute left-0 bottom-full mb-2 w-full bg-[#2a243b] border border-purple-500/30 rounded-lg shadow-2xl backdrop-blur-sm z-20 overflow-hidden">
-                    <Link
-                      to="profile"
-                      className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200"
-                    >
+                    <Link to="profile" className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200">
                       <FaUserCircle className="text-gray-400" />
-                      <span>Hồ sơ cá nhân</span>
+                      <span>{t('personalProfile')}</span>
                     </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 transition-all duration-200 rounded-lg"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-200"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 transition-all duration-200 rounded-lg">
+                      <svg className="w-4 h-4 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
-                      <span>Đăng xuất</span>
+                      <span>{t('logout')}</span>
                     </button>
                   </div>
                 )}
               </div>
             </div>
           </aside>
-
           {/* Main Content */}
           <main className="flex-1 h-screen min-h-screen overflow-y-auto bg-gradient-to-br from-[#0f0c1a] to-[#1c1429]">
             <Outlet />

@@ -13,6 +13,7 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { Dashboard } from '@/pages/Admin/Dashboard/Dashboard';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
+import AttendanceListPage from './pages/EventManager/AttendanceListPage';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
 import PendingEventsManager from './pages/EventManager/PendingEventsManager';
@@ -76,8 +77,10 @@ import {
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
+import { useTranslation } from 'react-i18next';
 
 function App() {
+  const { t } = useTranslation();
   useEffect(() => {
     // NotificationService
     connectNotificationHub('http://localhost:5003/hubs/notifications').then(() => {
@@ -509,6 +512,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <TicketSalesDashboard />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'check-ins',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <AttendanceListPage />
             </ProtectedRoute>
           ),
         },

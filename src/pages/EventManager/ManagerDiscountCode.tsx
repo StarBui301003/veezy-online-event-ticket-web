@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import instance from "@/services/axios.customize";
 import { AxiosError } from "axios";
 import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 interface Event {
   eventId: string;
@@ -32,6 +33,7 @@ interface DiscountCode {
 const EVENTS_PER_PAGE = 3;
 
 export default function ManagerDiscountCode() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -149,22 +151,24 @@ export default function ManagerDiscountCode() {
         {/* Left column: Events list */}
         <div className="w-full md:w-1/3">
           <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent mb-6 uppercase tracking-wide text-center">
-            Sự kiện của tôi
+            {t("my_events")}
           </h2>
           <input
             type="text"
             value={searchEvent}
             onChange={(e) => setSearchEvent(e.target.value)}
-            placeholder="Search events..."
+            placeholder={t("search_events")}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
           />
           {loadingEvents ? (
-            <div className="text-pink-400 text-base text-center">Loading...</div>
+            <div className="text-pink-400 text-base text-center">
+              {t("loading_events")}
+            </div>
           ) : (
             <div className="space-y-4">
               {pagedEvents.length === 0 && (
                 <div className="text-slate-300 text-center text-base">
-                  No events found.
+                  {t("no_events_found")}
                 </div>
               )}
               {pagedEvents.map((event) => (
@@ -192,7 +196,7 @@ export default function ManagerDiscountCode() {
                       navigate(`/event-manager/discount-codes/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> Create Discount Code
+                    <FaPlus className="inline mr-2" /> {t("create_discount_code")}
                   </button>
                 </div>
               ))}
@@ -207,7 +211,7 @@ export default function ManagerDiscountCode() {
                     <FaChevronLeft />
                   </button>
                   <span className="text-white font-bold">
-                    Page {eventPage}/{totalEventPages}
+                    {t("page")} {eventPage}/{totalEventPages}
                   </span>
                   <button
                     className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50"
@@ -229,14 +233,14 @@ export default function ManagerDiscountCode() {
           {selectedEvent ? (
             <>
               <h3 className="text-2xl font-bold text-yellow-300 mb-5 text-center md:text-left">
-                Discount Codes for:{" "}
+                {t("discountCodesFor")}{" "}
                 <span className="text-pink-200">{selectedEvent.eventName}</span>
               </h3>
 
               {/* Discount codes list */}
               {loadingDiscountCodes ? (
                 <div className="text-pink-400 text-base text-center">
-                  Loading discount codes...
+                  {t("loadingDiscountCodes")}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -248,7 +252,7 @@ export default function ManagerDiscountCode() {
                       <button
                         onClick={() => handleDeleteCode(code.id)}
                         className="absolute top-4 right-4 p-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        title="Delete discount code"
+                        title={t("deleteDiscountCode")}
                       >
                         <FaTrash />
                       </button>
@@ -256,37 +260,37 @@ export default function ManagerDiscountCode() {
                         {code.code}
                       </div>
                       <div className="text-slate-200 text-base mb-2">
-                        <span className="font-semibold">Discount Type:</span>{" "}
+                        <span className="font-semibold">{t("discountType")}:</span>{" "}
                         <span className="font-bold text-pink-200">
-                          {code.discountType === 0 ? "Percentage" : "Fixed Amount"}
+                          {code.discountType === 0 ? t("percentage") : t("fixedAmount")}
                         </span>
                       </div>
                       <div className="text-slate-200 text-base mb-2">
-                        <span className="font-semibold">Value:</span>{" "}
+                        <span className="font-semibold">{t("value")}:</span>{" "}
                         <span className="font-bold text-pink-200">
                           {code.discountType === 0 ? `${code.value}%` : `${code.value.toLocaleString()}₫`}
                         </span>
                       </div>
                       <div className="text-slate-200 text-sm mb-2">
-                        <span className="font-semibold">Minimum Order:</span>{" "}
+                        <span className="font-semibold">{t("minimumOrder")}:</span>{" "}
                         <span className="font-bold text-white">
                           {code.minimum.toLocaleString()}₫
                         </span>
                       </div>
                       <div className="text-slate-200 text-sm mb-2">
-                        <span className="font-semibold">Maximum Discount:</span>{" "}
+                        <span className="font-semibold">{t("maximumDiscount")}:</span>{" "}
                         <span className="font-bold text-white">
                           {code.maximum.toLocaleString()}₫
                         </span>
                       </div>
                       <div className="text-slate-200 text-sm mb-2">
-                        <span className="font-semibold">Max Usage:</span>{" "}
+                        <span className="font-semibold">{t("maxUsage")}:</span>{" "}
                         <span className="font-bold text-white">
-                          {code.maxUsage === 2147483647 ? "Unlimited" : code.maxUsage}
+                          {code.maxUsage === 2147483647 ? t("unlimited") : code.maxUsage}
                         </span>
                       </div>
                       <div className="text-slate-200 text-sm">
-                        <span className="font-semibold">Expires at:</span>{" "}
+                        <span className="font-semibold">{t("expiresAt")}:</span>{" "}
                         <span className="font-bold text-white">
                           {format(new Date(code.expiredAt), "dd/MM/yyyy HH:mm")}
                         </span>
@@ -295,7 +299,7 @@ export default function ManagerDiscountCode() {
                   ))}
                   {discountCodes.length === 0 && (
                     <div className="col-span-2 text-center text-slate-300 py-8 text-base">
-                      No discount codes for this event.
+                      {t("noDiscountCodesForThisEvent")}
                     </div>
                   )}
                 </div>
@@ -303,7 +307,7 @@ export default function ManagerDiscountCode() {
             </>
           ) : (
             <div className="text-slate-300 text-center text-lg mt-10">
-              Please select an event to manage discount codes!
+              {t("pleaseSelectAnEventToManageDiscountCodes")}
             </div>
           )}
         </div>

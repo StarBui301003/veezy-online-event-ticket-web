@@ -35,26 +35,28 @@ import { AdminNotificationList } from '@/pages/Admin/Dashboard/AdminNotification
 import { getAdminUnreadCount, getAdminNotifications } from '@/services/Admin/notification.service';
 import { AdminNotificationType } from '@/types/Admin/notification';
 import { Bell, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Function to map event status number to meaningful names
-const getEventStatusName = (status: number): string => {
-  const statusMap = {
-    0: 'Draft',
-    1: 'Pending Approval',
-    2: 'Approved',
-    3: 'Rejected',
-    4: 'Active',
-    5: 'Completed',
-    6: 'Cancelled',
-    7: 'Postponed',
+const getEventStatusName = (status: number, t: (key: string) => string): string => {
+  const statusMap: { [key: number]: string } = {
+    0: t('draft'),
+    1: t('pendingApproval'),
+    2: t('approved'),
+    3: t('rejected'),
+    4: t('active'),
+    5: t('completed'),
+    6: t('cancelled'),
+    7: t('postponed'),
   };
-  return statusMap[status as keyof typeof statusMap] || `Unknown Status ${status}`;
+  return statusMap[status] || `${t('unknownStatus')} ${status}`;
 };
 
 const cardClass =
   'w-full min-w-[250px] max-w-[300px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-6 flex flex-col justify-between h-[140px]';
 
 export const Dashboard = () => {
+  const { t } = useTranslation();
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notificationStats, setNotificationStats] = useState({
@@ -69,7 +71,7 @@ export const Dashboard = () => {
     getAdminDashboard()
       .then((res) => setData(res.data))
       .catch(() => {
-        toast.error('Unable to load dashboard data. Please try again later.!');
+        toast.error(t('unableToLoadDashboardData'));
         setData(null);
       })
       .finally(() => setLoading(false));
@@ -147,7 +149,7 @@ export const Dashboard = () => {
 
   // Bar Chart - Events by Status
   const eventStatusData = data.eventStatistics.eventsByStatus.map((item) => ({
-    status: getEventStatusName(item.status),
+    status: getEventStatusName(item.status, t),
     count: item.count,
     percentage: item.percentage,
   }));
@@ -549,8 +551,8 @@ export const Dashboard = () => {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">System Metrics Overview</h3>
-                    <p className="text-sm text-gray-500">Key metrics requiring attention</p>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('systemMetricsOverview')}</h3>
+                    <p className="text-sm text-gray-500">{t('keyMetricsAttention')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-orange-500" />
@@ -586,7 +588,7 @@ export const Dashboard = () => {
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div className="mt-6 space-y-3">
-                  <h4 className="font-semibold text-sm text-gray-700 mb-3">Quick Actions</h4>
+                  <h4 className="font-semibold text-sm text-gray-700 mb-3">{t('quickActions')}</h4>
                   <div className="grid grid-cols-1 gap-2">
                     {adminManagementData.map((item, index) => (
                       <div
@@ -621,8 +623,8 @@ export const Dashboard = () => {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Recent Notifications</h3>
-                    <p className="text-sm text-gray-500">System alerts and updates</p>
+                    <h3 className="text-lg font-semibold text-gray-800">{t('recentNotifications')}</h3>
+                    <p className="text-sm text-gray-500">{t('systemAlertsUpdates')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Bell className="h-5 w-5 text-blue-500" />
@@ -652,8 +654,8 @@ export const Dashboard = () => {
             transition={{ delay: 0.5 }}
           >
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Revenue & Tickets Sold</h3>
-              <p className="text-sm text-gray-500">Performance trends over time</p>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">{t('revenueTicketsSold')}</h3>
+              <p className="text-sm text-gray-500">{t('performanceTrends')}</p>
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={chartData}>
@@ -676,8 +678,8 @@ export const Dashboard = () => {
             transition={{ delay: 0.6 }}
           >
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-2">User Growth</h3>
-              <p className="text-sm text-gray-500">New and total user trends over time</p>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">{t('userGrowth')}</h3>
+              <p className="text-sm text-gray-500">{t('newTotalUserTrends')}</p>
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={userGrowthData}>
@@ -716,9 +718,9 @@ export const Dashboard = () => {
               transition={{ delay: 0.7 }}
             >
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Events by Status</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{t('eventsByStatus')}</h3>
                 <p className="text-sm text-gray-500">
-                  Distribution of events across different statuses
+                  {t('distributionEventsAcrossStatuses')}
                 </p>
               </div>
               <ResponsiveContainer width="100%" height={320}>
@@ -742,9 +744,9 @@ export const Dashboard = () => {
               transition={{ delay: 0.8 }}
             >
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">User Demographics</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{t('userDemographics')}</h3>
                 <p className="text-sm text-gray-500">
-                  Breakdown of user demographics and distribution
+                  {t('breakdownUserDemographics')}
                 </p>
               </div>
               <ResponsiveContainer width="100%" height={320}>
@@ -779,8 +781,8 @@ export const Dashboard = () => {
               transition={{ delay: 0.9 }}
             >
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Events by Category</h3>
-                <p className="text-sm text-gray-500">Breakdown of events by different categories</p>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{t('eventsByCategory')}</h3>
+                <p className="text-sm text-gray-500">{t('breakdownEventsByCategories')}</p>
               </div>
               <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
@@ -812,9 +814,9 @@ export const Dashboard = () => {
               transition={{ delay: 1.0 }}
             >
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">Platform Health Overview</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">{t('platformHealthOverview')}</h3>
                 <p className="text-sm text-gray-500">
-                  Comprehensive health metrics of your platform
+                  {t('comprehensiveHealthMetrics')}
                 </p>
               </div>
               <ResponsiveContainer width="100%" height={320}>

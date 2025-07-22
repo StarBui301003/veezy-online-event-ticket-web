@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { getCategoryById } from '@/services/Admin/event.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
+  const { t } = useTranslation();
   const [createdByName, setCreatedByName] = useState<string>('unknown');
   const [approvedByName, setApprovedByName] = useState<string>('unknown');
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
@@ -57,21 +59,21 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
         <div className="border-b-2 border-gray-400 pb-4 p-4">
           <DialogHeader>
-            <DialogTitle>Event Details</DialogTitle>
+            <DialogTitle>{t('eventDetails')}</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
           <div>
-            <b>Event ID:</b> {event.eventId ?? 'unknown'}
+            <b>{t('eventId')}:</b> {event.eventId ?? 'unknown'}
           </div>
           <div>
-            <b>Name:</b> {event.eventName ?? 'unknown'}
+            <b>{t('name')}:</b> {event.eventName ?? 'unknown'}
           </div>
           <div>
-            <b>Description:</b> {event.eventDescription ?? 'unknown'}
+            <b>{t('description')}:</b> {event.eventDescription ?? 'unknown'}
           </div>
           <div>
-            <b>Cover Image:</b>{' '}
+            <b>{t('coverImage')}:</b>{' '}
             <div className="w-48 h-32 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
               {event.eventCoverImageUrl ? (
                 <img
@@ -80,30 +82,30 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                   className="object-contain w-full h-full"
                 />
               ) : (
-                <span className="text-gray-400">unknown</span>
+                <span className="text-gray-400">{t('unknown')}</span>
               )}
             </div>
           </div>
           <div>
-            <b>Location:</b> {event.eventLocation ?? 'unknown'}
+            <b>{t('location')}:</b> {event.eventLocation ?? 'unknown'}
           </div>
           <div className="flex gap-1">
-            <b>Start At:</b> {event.startAt ?? 'unknown'}
+            <b>{t('startAt')}:</b> {event.startAt ?? 'unknown'}
           </div>
           <div className="flex gap-1">
-            <b>End At:</b> {event.endAt ?? 'unknown'}
+            <b>{t('endAt')}:</b> {event.endAt ?? 'unknown'}
           </div>
           <div>
-            <b>Tags:</b> {event.tags && event.tags.length > 0 ? event.tags.join(', ') : 'unknown'}
+            <b>{t('tags')}:</b> {event.tags && event.tags.length > 0 ? event.tags.join(', ') : 'unknown'}
           </div>
           <div className="flex gap-1">
-            <b>Category:</b>{' '}
+            <b>{t('category')}:</b>{' '}
             <div className="truncate max-w-[300px]" title={categoryNames.join(', ')}>
               {categoryNames.length > 0 ? categoryNames.join(', ') : 'unknown'}
             </div>
           </div>
           <div>
-            <b>Contents:</b>
+            <b>{t('contents')}:</b>
             <ul className="list-disc ml-6">
               {event.contents && event.contents.length > 0 ? (
                 event.contents.map((c, idx) => (
@@ -112,7 +114,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                       <div>Position:</div> {c.position ?? 'unknown'}
                     </div> */}
                     <div>
-                      <b>Description:</b>
+                      <b>{t('description')}:</b>
                       <div>{c.description || 'unknown'}</div>
                     </div>
                     <div>
@@ -124,34 +126,34 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                             className="object-contain w-full h-full"
                           />
                         ) : (
-                          <span className="text-gray-400">unknown</span>
+                          <span className="text-gray-400">{t('unknown')}</span>
                         )}
                       </div>
                     </div>
                   </li>
                 ))
               ) : (
-                <li>unknown</li>
+                <li>{t('unknown')}</li>
               )}
             </ul>
           </div>
           <div>
-            <b>Approved By:</b> {event.approvedBy ? approvedByName : 'unknown'}
+            <b>{t('approvedBy')}:</b> {event.approvedBy ? approvedByName : 'unknown'}
           </div>
           <div>
-            <b>Approved At:</b> {event.approvedAt ?? 'unknown'}
+            <b>{t('approvedAt')}:</b> {event.approvedAt ?? 'unknown'}
           </div>
           <div>
-            <b>Rejection Reason:</b> {event.rejectionReason ?? 'unknown'}
+            <b>{t('rejectionReason')}:</b> {event.rejectionReason ?? 'unknown'}
           </div>
           <div>
-            <b>Created By:</b> {event.createdBy ? createdByName : 'unknown'}
+            <b>{t('createdBy')}:</b> {event.createdBy ? createdByName : 'unknown'}
           </div>
           <div>
-            <b>Created At:</b> {event.createdAt ?? 'unknown'}
+            <b>{t('createdAt')}:</b> {event.createdAt ?? 'unknown'}
           </div>
           <div>
-            <b>Bank Account:</b> {event.bankAccount ?? 'unknown'}
+            <b>{t('bankAccount')}:</b> {event.bankAccount ?? 'unknown'}
           </div>
         </div>
         <div className="p-4 border-t-2 border-gray-400">
@@ -160,7 +162,7 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
               className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600"
               onClick={onClose}
             >
-              Close
+              {t('close')}
             </button>
           </DialogFooter>
         </div>

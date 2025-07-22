@@ -5,6 +5,7 @@ import { TrendingUp, DollarSign, Calendar, Download, Filter, Ticket, Users, Mess
 import { motion } from 'framer-motion';
 import { getMyApprovedEvents, getEventFund } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 interface AnalyticsData {
   totalEvents: number;
@@ -16,6 +17,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsOverview() {
+  const { t } = useTranslation();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function AnalyticsOverview() {
       setAnalyticsData(realAnalytics);
 
     } catch {
-      toast.error('Không thể tải dữ liệu phân tích!');
+      toast.error(t('cannotLoadAnalyticsData'));
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,7 @@ export default function AnalyticsOverview() {
       <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-400 mx-auto mb-4"></div>
-          <p className="text-xl text-purple-300">Đang tải dữ liệu phân tích...</p>
+          <p className="text-xl text-purple-300">{t('loadingAnalyticsData')}</p>
         </div>
       </div>
     );
@@ -98,19 +100,19 @@ export default function AnalyticsOverview() {
         <div className="flex flex-col lg:flex-row items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl lg:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 mb-4">
-              PHÂN TÍCH TỔNG QUAN
+              {t('analyticsOverview')}
             </h1>
-            <p className="text-lg text-gray-300">Thống kê chi tiết và xu hướng hiệu suất</p>
+            <p className="text-lg text-gray-300">{t('analyticsOverviewDescription')}</p>
           </div>
           
           <div className="flex gap-4">
             <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
-              Xuất Báo Cáo
+              {t('exportReport')}
             </Button>
             <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl">
               <Filter className="mr-2" size={20} />
-              Lọc Dữ Liệu
+              {t('filterData')}
             </Button>
           </div>
         </div>
@@ -133,10 +135,10 @@ export default function AnalyticsOverview() {
                     : 'bg-transparent text-gray-300 hover:bg-purple-600/20'
                 }`}
               >
-                {period === 'week' && 'Tuần'}
-                {period === 'month' && 'Tháng'}
-                {period === 'quarter' && 'Quý'}
-                {period === 'year' && 'Năm'}
+                {period === 'week' && t('week')}
+                {period === 'month' && t('month')}
+                {period === 'quarter' && t('quarter')}
+                {period === 'year' && t('year')}
               </Button>
             ))}
           </div>
@@ -153,7 +155,7 @@ export default function AnalyticsOverview() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-300 text-sm font-semibold">Tổng Sự Kiện</p>
+                  <p className="text-purple-300 text-sm font-semibold">{t('totalEvents')}</p>
                   <p className="text-3xl font-bold text-purple-400">{analyticsData.totalEvents}</p>
                    {analyticsData.revenueGrowth && (
                     <div className="flex items-center mt-2">
@@ -162,7 +164,7 @@ export default function AnalyticsOverview() {
                         size: 16
                       })}
                       <span className={`text-sm ${getGrowthColor(analyticsData.revenueGrowth)}`}>
-                        {formatPercentage(analyticsData.revenueGrowth)} so với kỳ trước
+                        {formatPercentage(analyticsData.revenueGrowth)} {t('revenueGrowth')}
                       </span>
                     </div>
                   )}
@@ -181,7 +183,7 @@ export default function AnalyticsOverview() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-300 text-sm font-semibold">Tổng Doanh Thu</p>
+                  <p className="text-green-300 text-sm font-semibold">{t('totalRevenue')}</p>
                   <p className="text-3xl font-bold text-green-400">{formatCurrency(analyticsData.totalRevenue)}</p>
                   {analyticsData.revenueGrowth && (
                     <div className="flex items-center mt-2">
@@ -190,7 +192,7 @@ export default function AnalyticsOverview() {
                         size: 16
                       })}
                       <span className={`text-sm ${getGrowthColor(analyticsData.revenueGrowth)}`}>
-                        {formatPercentage(analyticsData.revenueGrowth)} so với kỳ trước
+                        {formatPercentage(analyticsData.revenueGrowth)} {t('revenueGrowth')}
                       </span>
                     </div>
                   )}
@@ -210,9 +212,9 @@ export default function AnalyticsOverview() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-300 text-sm font-semibold">Vé Đã Bán</p>
-                  <p className="text-3xl font-bold text-blue-400">{analyticsData.ticketsSold ?? 'N/A'}</p>
-                  <span className="text-sm text-gray-500">???</span>
+                  <p className="text-blue-300 text-sm font-semibold">{t('ticketsSold')}</p>
+                  <p className="text-3xl font-bold text-blue-400">{analyticsData.ticketsSold ?? t('na')}</p>
+                  <span className="text-sm text-gray-500">{t('unknown')}</span>
                 </div>
                 <motion.div>
                   <Ticket className="text-blue-400" size={40} />
@@ -226,9 +228,9 @@ export default function AnalyticsOverview() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-yellow-300 text-sm font-semibold">Người Tham Gia</p>
-                  <p className="text-3xl font-bold text-yellow-400">{analyticsData.totalParticipants ?? 'N/A'}</p>
-                  <span className="text-sm text-gray-500">???</span>
+                  <p className="text-yellow-300 text-sm font-semibold">{t('totalParticipants')}</p>
+                  <p className="text-3xl font-bold text-yellow-400">{analyticsData.totalParticipants ?? t('na')}</p>
+                  <span className="text-sm text-gray-500">{t('unknown')}</span>
                 </div>
                 <motion.div>
                   <Users className="text-yellow-400" size={40} />
@@ -242,9 +244,9 @@ export default function AnalyticsOverview() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-cyan-300 text-sm font-semibold">Bình Luận</p>
-                  <p className="text-3xl font-bold text-cyan-400">{analyticsData.totalComments ?? 'N/A'}</p>
-                  <span className="text-sm text-gray-500">???</span>
+                  <p className="text-cyan-300 text-sm font-semibold">{t('totalComments')}</p>
+                  <p className="text-3xl font-bold text-cyan-400">{analyticsData.totalComments ?? t('na')}</p>
+                  <span className="text-sm text-gray-500">{t('unknown')}</span>
                 </div>
                 <motion.div>
                   <MessageSquare className="text-cyan-400" size={40} />
@@ -263,12 +265,12 @@ export default function AnalyticsOverview() {
             transition={{ delay: 0.4 }}
             className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl"
           >
-            <h2 className="text-2xl font-bold text-blue-300 mb-6">Xu Hướng Hiệu Suất</h2>
+            <h2 className="text-2xl font-bold text-blue-300 mb-6">{t('performanceTrend')}</h2>
             <div className="h-64 bg-[#1a0022]/40 rounded-xl border border-blue-500/20 flex items-center justify-center">
               <div className="text-center">
                 <TrendingUp className="text-blue-400 mx-auto mb-4" size={48} />
-                <p className="text-blue-300">Biểu đồ xu hướng</p>
-                <p className="text-gray-400 text-sm">Tích hợp với Chart.js hoặc Recharts</p>
+                <p className="text-blue-300">{t('chartTrend')}</p>
+                <p className="text-gray-400 text-sm">{t('integratedWithChartJsOrRecharts')}</p>
               </div>
             </div>
           </motion.div>
