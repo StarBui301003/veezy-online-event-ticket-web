@@ -23,7 +23,6 @@ import {
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
 
 interface Props {
   discount: (DiscountCodeUpdateInput & { discountId: string }) | null;
@@ -42,7 +41,6 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
     expiredAt: discount?.expiredAt || '',
   });
   const [loading, setLoading] = useState(false);
-  const { t } = useTranslation();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -140,18 +138,18 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
       <DialogContent className="max-w-md bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
-            <DialogTitle>{t('editDiscountCode')}</DialogTitle>
+            <DialogTitle>Edit Discount Code</DialogTitle>
           </DialogHeader>
         </div>
         <div className="space-y-3 p-4 pt-0">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('code')}</label>
+            <label className="block text-xs text-gray-500 mb-1">Code</label>
             <input
-              className={getErrorClass('code', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('code', 'border rounded px-2 py-1 w-full')}
               value={form.code}
               onChange={handleCodeChange}
               disabled={loading}
-              placeholder={t('enterCode')}
+              placeholder="Enter discount code"
             />
             {getFieldError('code') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -160,7 +158,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('discountType')}</label>
+            <label className="block text-xs text-gray-500 mb-1">Discount Type</label>
             <Select
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
@@ -175,9 +173,9 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">{t('percentage')}</SelectItem>
-                <SelectItem value="1">{t('amount')}</SelectItem>
-                <SelectItem value="3">{t('other')}</SelectItem>
+                <SelectItem value="0">Percentage</SelectItem>
+                <SelectItem value="1">Amount</SelectItem>
+                <SelectItem value="3">Other</SelectItem>
               </SelectContent>
             </Select>
             {getFieldError('discountType') && (
@@ -187,16 +185,20 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('value')} {form.discountType === 0 ? '(%)' : '(VND)'}</label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Value {form.discountType === 0 ? '(%)' : '(VND)'}
+            </label>
             <input
               type="number"
-              className={getErrorClass('value', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('value', 'border rounded px-2 py-1 w-full')}
               value={form.value}
               onChange={handleValueChange}
               disabled={loading}
               min={0}
               step={form.discountType === 0 ? 0.01 : 1000}
-              placeholder={form.discountType === 0 ? t('enterPercentage') : t('enterAmount')}
+              placeholder={
+                form.discountType === 0 ? 'Enter percentage (0-100)' : 'Enter amount in VND'
+              }
             />
             {getFieldError('value') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -205,7 +207,9 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('minimumAmount')} (VND) <span className="text-gray-400">{t('optional')}</span></label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Minimum Amount (VND) <span className="text-gray-400">(optional)</span>
+            </label>
             <input
               type="number"
               className={getErrorClass('minimum', 'border rounded px-2 py-1 w-full')}
@@ -214,7 +218,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               disabled={loading}
               min={0}
               step={1000}
-              placeholder={t('minimumOrderAmount')}
+              placeholder="Enter minimum amount to apply discount"
             />
             {getFieldError('minimum') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -223,7 +227,9 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('maximumDiscount')} (VND) <span className="text-gray-400">{t('optional')}</span></label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Maximum Discount (VND) <span className="text-gray-400">(optional)</span>
+            </label>
             <input
               type="number"
               className={getErrorClass('maximum', 'border rounded px-2 py-1 w-full')}
@@ -232,7 +238,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               disabled={loading}
               min={0}
               step={1000}
-              placeholder={t('maximumDiscountAmount')}
+              placeholder="Enter maximum discount amount"
             />
             {getFieldError('maximum') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -241,16 +247,16 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('maxUsage')}</label>
+            <label className="block text-xs text-gray-500 mb-1">Max Usage</label>
             <input
               type="number"
-              className={getErrorClass('maxUsage', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('maxUsage', 'border rounded px-2 py-1 w-full')}
               value={form.maxUsage}
               onChange={handleMaxUsageChange}
               disabled={loading}
               min={1}
               step={1}
-              placeholder={t('maximumNumberOfUses')}
+              placeholder="Enter maximum usage count"
             />
             {getFieldError('maxUsage') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -259,7 +265,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('expiredAt')}</label>
+            <label className="block text-xs text-gray-500 mb-1">Expired At</label>
             <input
               type="datetime-local"
               className={getErrorClass('expiredAt', 'border rounded px-2 py-1 w-full')}
@@ -277,12 +283,12 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
         <div className="p-4">
           <DialogFooter>
             <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
               onClick={onClose}
               disabled={loading}
               type="button"
             >
-              {t('cancel')}
+              Cancel
             </button>
             <button
               className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
@@ -293,10 +299,10 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               {loading ? (
                 <>
                   <FaSpinner className="animate-spin" />
-                  {t('updating')}
+                  Updating...
                 </>
               ) : (
-                t('update')
+                'Update'
               )}
             </button>
           </DialogFooter>
