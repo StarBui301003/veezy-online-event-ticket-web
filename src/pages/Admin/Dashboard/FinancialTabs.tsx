@@ -179,7 +179,7 @@ export default function FinancialTabs() {
                   outerRadius={80}
                   label={(entry) => `${Number(entry.feeCollected).toLocaleString('vi-VN')}₫`}
                 >
-                  {platformFees.map((entry, idx) => (
+                  {platformFees.map((_entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                   ))}
                 </Pie>

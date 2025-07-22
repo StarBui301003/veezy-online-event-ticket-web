@@ -126,7 +126,7 @@ export default function NewsTabs() {
                   }}
                 />
                 <Tooltip
-                  formatter={(value, name, props) => {
+                  formatter={(value, name, _props) => {
                     if (name === 'approved' || name === 'rejected' || name === 'pending') {
                       return [`${Number(value).toLocaleString('vi-VN')}₫`, ''];
                     }

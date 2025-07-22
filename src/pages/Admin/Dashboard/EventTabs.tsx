@@ -173,7 +173,7 @@ export default function EventTabs() {
                   outerRadius={80}
                   label
                 >
-                  {eventsByCategory.map((entry, idx) => (
+                  {eventsByCategory.map((_entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                   ))}
                 </Pie>
