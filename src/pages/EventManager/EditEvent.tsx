@@ -9,6 +9,7 @@ import {
   deleteEventImage,
   getAllCategories,
 } from '@/services/Event Manager/event.service';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { CreateEventData, Category, Content } from '@/types/event';
 import { validateEventForm } from '@/utils/validation';
 
@@ -123,7 +124,23 @@ export default function EditEvent() {
         setLoading(false);
       }
     };
+    
+    const fetchCategories = async () => {
+      try {
+        const categoryData = await getAllCategories();
+        setCategories(categoryData);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
+    
     fetchEventAndCategories();
+    
+    // Connect to EventHub and listen for category changes
+    connectEventHub('http://localhost:5004/notificationHub');
+    onEvent('OnCategoryCreated', fetchCategories);
+    onEvent('OnCategoryUpdated', fetchCategories);
+    onEvent('OnCategoryDeleted', fetchCategories);
     // eslint-disable-next-line
   }, [eventId]);
 

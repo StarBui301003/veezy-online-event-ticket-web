@@ -16,9 +16,7 @@ import {
 } from '@/services/Admin/notification.service';
 import { AdminNotification, AdminNotificationType } from '@/types/Admin/notification';
 import {
-  connectNotificationHub,
   onNotification,
-  disconnectNotificationHub,
 } from '@/services/signalr.service';
 
 interface AdminNotificationListProps {
@@ -167,7 +165,10 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   };
 
   useEffect(() => {
-    connectNotificationHub('http://localhost:5003/hubs/notifications');
+    console.log('AdminNotificationList: Component mounted, setting up event listeners...');
+    
+    // Don't create separate connection, use the global one from App.tsx
+    // connectNotificationHub('http://localhost:5003/hubs/notifications');
 
     // Load initial data
     fetchNotifications();
@@ -175,28 +176,33 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
 
     // Listen for realtime notifications
     const reloadNotifications = () => {
+      console.log('AdminNotificationList: Reloading notifications...');
       fetchNotifications();
       fetchUnreadCount();
     };
 
     // Listen for admin notifications
-    onNotification('ReceiveAdminNotification', () => {
+    onNotification('ReceiveAdminNotification', (data) => {
+      console.log('AdminNotificationList: Received ReceiveAdminNotification', data);
       reloadNotifications();
     });
-    onNotification('AdminNotificationRead', () => {
+    onNotification('AdminNotificationRead', (data) => {
+      console.log('AdminNotificationList: Received AdminNotificationRead', data);
       reloadNotifications();
     });
     onNotification('AdminAllNotificationsRead', () => {
+      console.log('AdminNotificationList: Received AdminAllNotificationsRead');
       reloadNotifications();
     });
-    onNotification('AdminNotificationDeleted', () => {
+    onNotification('AdminNotificationDeleted', (data) => {
+      console.log('AdminNotificationList: Received AdminNotificationDeleted', data);
       reloadNotifications();
     });
 
-    // Cleanup on unmount
-    return () => {
-      disconnectNotificationHub();
-    };
+    // Don't cleanup global connection on unmount
+    // return () => {
+    //   disconnectNotificationHub();
+    // };
   }, []);
 
   const handleMarkAsRead = async (notificationId: string) => {

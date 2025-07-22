@@ -10,17 +10,26 @@ let connections: Record<string, HubConnection | null> = {
   identity: null,
   news: null,
   comment: null,
+  analytics: null, // Thêm analytics
 };
 
 export function connectHub(hubType: keyof typeof connections, hubUrl: string, accessToken?: string) {
   if (connections[hubType]) {
     return Promise.resolve(); // Đã kết nối
   }
-  const connection = new HubConnectionBuilder()
-    .withUrl(hubUrl, accessToken ? { accessTokenFactory: () => accessToken } : undefined)
-    .configureLogging(LogLevel.Information)
-    .withAutomaticReconnect()
-    .build();
+  
+  const connectionBuilder = new HubConnectionBuilder()
+    .configureLogging(LogLevel.Warning) // Only log Warning and above to reduce noise
+    .withAutomaticReconnect();
+    
+  // If token is provided, add it to query string
+  if (accessToken) {
+    connectionBuilder.withUrl(`${hubUrl}?access_token=${accessToken}`);
+  } else {
+    connectionBuilder.withUrl(hubUrl);
+  }
+  
+  const connection = connectionBuilder.build();
   connections[hubType] = connection;
   return connection.start();
 }
@@ -62,3 +71,46 @@ export const disconnectNewsHub = () => disconnectHub('news');
 export const connectCommentHub = (url: string, token?: string) => connectHub('comment', url, token);
 export const onComment = (event: string, cb: (...args: any[]) => void) => onHubEvent('comment', event, cb);
 export const disconnectCommentHub = () => disconnectHub('comment');
+
+export const connectAnalyticsHub = (url: string, token?: string) => connectHub('analytics', url, token);
+export const onAnalytics = (event: string, cb: (...args: any[]) => void) => onHubEvent('analytics', event, cb);
+export const disconnectAnalyticsHub = () => {
+  if (connections.analytics) {
+    connections.analytics.stop();
+    connections.analytics = null;
+  }
+};
+
+// Join admin group for admin notifications
+export const joinAdminGroup = async () => {
+  // Check if user is admin (role = 0)
+  const accountStr = localStorage.getItem('account');
+  const account = accountStr ? JSON.parse(accountStr) : null;
+  
+  if (!account || account.role !== 0) {
+    console.log('User is not admin, skipping admin group join');
+    return;
+  }
+
+  const connection = connections['notification'];
+  if (connection && connection.state === 'Connected') {
+    try {
+      await connection.invoke('JoinAdminGroup');
+      console.log('Successfully joined Admin group');
+    } catch (error) {
+      console.error('Failed to join Admin group:', error);
+    }
+  }
+};
+
+export const leaveAdminGroup = async () => {
+  const connection = connections['notification'];
+  if (connection && connection.state === 'Connected') {
+    try {
+      await connection.invoke('LeaveAdminGroup');
+      console.log('Successfully left Admin group');
+    } catch (error) {
+      console.error('Failed to leave Admin group:', error);
+    }
+  }
+};

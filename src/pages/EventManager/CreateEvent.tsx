@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createEvent, getAllCategories, uploadImage } from '@/services/Event Manager/event.service';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import Select from 'react-select';
@@ -93,6 +94,18 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     fetchCategories();
+    
+    // Connect to EventHub and listen for category changes
+    connectEventHub('http://localhost:5004/notificationHub');
+    onEvent('OnCategoryCreated', () => {
+      fetchCategories(); // Reload categories when new category is created
+    });
+    onEvent('OnCategoryUpdated', () => {
+      fetchCategories(); // Reload categories when category is updated
+    });
+    onEvent('OnCategoryDeleted', () => {
+      fetchCategories(); // Reload categories when category is deleted
+    });
   }, [fetchCategories]);
 
   useEffect(() => {
