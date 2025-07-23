@@ -138,7 +138,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   };
 
   return (
-    <div className="mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl">
+    <div className="mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl max-h-[500px] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
       <h3 className="text-xl font-semibold text-purple-300 mb-6 border-b border-purple-700 pb-3">
         {t('commentDiscussion')}
       </h3>
@@ -200,13 +200,13 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                       <p className="font-semibold text-purple-300">{c.fullName}</p>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
-                        <DropdownMenu>
+                        <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild>
                             <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 focus:outline-none border border-slate-700">
                               <MoreVertical className="w-6 h-6 text-white" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
                             <DropdownMenuItem
                               onSelect={e => {
                                 e.preventDefault();

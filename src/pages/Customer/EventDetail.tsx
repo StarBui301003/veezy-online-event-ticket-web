@@ -412,7 +412,7 @@ const EventDetail = () => {
         >
           {/* Nút 3 chấm overlay trên ảnh */}
           <div className="absolute top-4 right-4 z-20">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700">
                   <MoreVertical className="w-5 h-5 text-white" />

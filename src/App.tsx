@@ -12,6 +12,7 @@ import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordFor
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
+import AllNotificationsPage from './pages/EventManager/AllNotificationsPage';
 import AttendanceListPage from './pages/EventManager/AttendanceListPage';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
@@ -87,9 +88,30 @@ import {
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
 import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
+import i18n from './i18n';
+import { getUserConfig } from './services/userConfig.service';
 import { ChatboxAdmin } from './pages/Admin/Chatbox/ChatboxAdmin';
 
 function App() {
+  useEffect(() => {
+    // Đồng bộ ngôn ngữ với user config
+    const accStr = localStorage.getItem('account');
+    let userId = '';
+    if (accStr) {
+      try {
+        const accObj = JSON.parse(accStr);
+        userId = accObj.userId;
+      } catch {/* ignore */}
+    }
+    if (userId) {
+      getUserConfig(userId).then(res => {
+        const lang = res.data.language;
+        if (lang === 1) i18n.changeLanguage('vi');
+        else if (lang === 2) i18n.changeLanguage('en');
+        // Nếu lang === 0 thì giữ nguyên default (en)
+      });
+    }
+  }, []);
   useEffect(() => {
     // Connect directly to services since Ocelot doesn't support SignalR WebSocket
 
@@ -399,6 +421,14 @@ function App() {
         {
           path: 'event-manager/:id',
           element: <EventManagerProfile />,
+        },
+        {
+          path: 'all-notifications',
+          element: (
+            <ProtectedRoute allowedRoles={[1,2]}>
+              <AllNotificationsPage />
+            </ProtectedRoute>
+          ),
         },
       ],
     },
