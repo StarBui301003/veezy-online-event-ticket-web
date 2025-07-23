@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from './axios.customize';
+import { isCurrentUserAdmin } from '@/utils/admin-utils';
 
 // Types
 export interface ChatUser {
@@ -108,22 +109,46 @@ class ChatService {
     };
   }
 
-  // Get admin chat rooms
+  // Create chat with admin (for customers)
+  async createChatWithAdmin(): Promise<ChatRoom> {
+    try {
+      const response = await axios.post('/api/ChatRoom/admin-chat');
+      return this.transformChatRoom(response.data);
+    } catch (error) {
+      console.error('Error creating chat with admin:', error);
+      throw error;
+    }
+  }
+
+  // Get admin chat rooms (admin only)
   async getAdminChatRooms(): Promise<ChatRoom[]> {
     try {
+      // Check if user is admin before making the call
+      if (!isCurrentUserAdmin()) {
+        console.warn('User is not admin, cannot fetch admin chat rooms');
+        return [];
+      }
+
       const response = await axios.get('/api/chat/admin/rooms');
       const rooms: ChatRoomResponseDto[] = response.data;
       return rooms.map(room => this.transformChatRoom(room));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin chat rooms:', error);
+      
+      // If 404 or 403, it means user doesn't have permission
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.warn('Access denied to admin chat rooms - user may not be admin');
+        return [];
+      }
+      
       throw error;
     }
   }
 
   // Get all chat rooms for current user
-  async getChatRooms(): Promise<ChatRoom[]> {
+  async getChatRooms(userId: string): Promise<ChatRoom[]> {
     try {
-      const response = await axios.get('/api/chat/rooms');
+      const response = await axios.get(`/api/ChatRoom/user/${userId}`);
       const rooms: ChatRoomResponseDto[] = response.data;
       return rooms.map(room => this.transformChatRoom(room));
     } catch (error) {
@@ -135,7 +160,7 @@ class ChatService {
   // Get messages for a specific room
   async getRoomMessages(roomId: string, page: number = 1, limit: number = 50): Promise<ChatMessage[]> {
     try {
-      const response = await axios.get(`/api/chat/rooms/${roomId}/messages`, {
+      const response = await axios.get(`/api/ChatMessage/room/${roomId}`, {
         params: { page, pageSize: limit }
       });
 
@@ -175,17 +200,17 @@ class ChatService {
     try {
       // Transform frontend request to backend DTO format
       const backendDto = {
-        RoomId: messageData.roomId,
-        Content: messageData.content,
-        Type: this.getMessageTypeAsNumber(messageData.messageType || 'Text'),
-        MentionedUserIds: messageData.mentionedUserIds || [],
-        Attachments: messageData.attachments || [],
-        ReplyToMessageId: messageData.replyToMessageId || null
+        roomId: messageData.roomId,
+        content: messageData.content,
+        type: this.getMessageTypeAsNumber(messageData.messageType || 'Text'),
+        mentionedUserIds: messageData.mentionedUserIds || [],
+        attachments: messageData.attachments || [],
+        replyToMessageId: messageData.replyToMessageId || undefined
         // SenderUserId will be set by the backend from JWT token
       };
 
       console.log('Sending message with payload:', backendDto);
-      const response = await axios.post('/api/chat/messages', backendDto);
+      const response = await axios.post('/api/ChatMessage', backendDto);
       return response.data;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -217,10 +242,23 @@ class ChatService {
   // Get online users (admin only)
   async getOnlineUsers(): Promise<ChatUser[]> {
     try {
+      // Check if user is admin before making the call
+      if (!isCurrentUserAdmin()) {
+        console.warn('User is not admin, cannot fetch online users');
+        return [];
+      }
+
       const response = await axios.get('/api/chat/admin/online-users');
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching online users:', error);
+      
+      // If 404 or 403, it means user doesn't have permission
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        console.warn('Access denied to online users - user may not be admin');
+        return [];
+      }
+      
       throw error;
     }
   }
@@ -239,8 +277,8 @@ class ChatService {
   // Get chat room by ID
   async getChatRoom(roomId: string): Promise<ChatRoom> {
     try {
-      const response = await axios.get(`/api/chat/rooms/${roomId}`);
-      return response.data;
+      const response = await axios.get(`/api/ChatRoom/${roomId}`);
+      return this.transformChatRoom(response.data);
     } catch (error) {
       console.error('Error fetching chat room:', error);
       throw error;
@@ -266,7 +304,7 @@ class ChatService {
   // Delete a message (admin only)
   async deleteMessage(messageId: string): Promise<void> {
     try {
-      await axios.delete(`/api/chat/messages/${messageId}`);
+      await axios.delete(`/api/ChatMessage/${messageId}`);
     } catch (error) {
       console.error('Error deleting message:', error);
       throw error;
@@ -276,13 +314,77 @@ class ChatService {
   // Update a message
   async updateMessage(messageId: string, content: string): Promise<ChatMessage> {
     try {
-      const response = await axios.put(`/api/chat/messages/${messageId}`, {
+      const response = await axios.put(`/api/ChatMessage/${messageId}`, {
         content: content
       });
       return response.data;
     } catch (error) {
       console.error('Error updating message:', error);
       throw error;
+    }
+  }
+
+  // AI Chat functions
+  async processAIChat(roomId: string, message: string, eventId?: string): Promise<any> {
+    try {
+      const response = await axios.post('/api/ChatMessage/ai-chat', { 
+        question: message, // Backend expects 'Question' field
+        roomId: roomId,    // Backend expects 'RoomId' field
+        eventId: eventId   // Backend expects 'EventId' field (optional)
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error processing AI chat:', error);
+      throw error;
+    }
+  }
+
+  // Process AI chat stream
+  async processAIChatStream(roomId: string, message: string, eventId?: string): Promise<Response> {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${axios.defaults.baseURL}/api/ChatMessage/ai-chat-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          question: message, // Backend expects 'Question' field
+          roomId: roomId,    // Backend expects 'RoomId' field
+          eventId: eventId   // Backend expects 'EventId' field (optional)
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error processing AI chat stream:', error);
+      throw error;
+    }
+  }
+
+  // Simple AI chat for customer support (no roomId)
+  async processSimpleAIChat(message: string, eventId?: string): Promise<string> {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.post('/api/ChatMessage/ai-chat', {
+        question: message, // Backend expects 'Question' field
+        eventId: eventId   // Backend expects 'EventId' field (optional)
+        // No roomId for simple chat - so messages won't be saved to chat room
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      return response.data.answer || response.data.response || response.data.message || 'Xin lỗi, tôi không thể trả lời câu hỏi này.';
+    } catch (error) {
+      console.error('Error processing simple AI chat:', error);
+      throw new Error('Không thể kết nối tới AI Assistant. Vui lòng thử lại sau.');
     }
   }
 
