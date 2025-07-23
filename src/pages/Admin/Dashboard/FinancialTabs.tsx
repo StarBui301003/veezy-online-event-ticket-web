@@ -130,29 +130,7 @@ export default function FinancialTabs() {
 
   return (
     <div className="space-y-6 p-3">
-      {/* Card tổng quan financial */}
-      {summary && (
-        <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Total Revenue</div>
-            <div className="text-xl font-bold text-gray-800">
-              {summary.totalRevenue.toLocaleString('vi-VN')}₫
-            </div>
-          </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Net Revenue</div>
-            <div className="text-xl font-bold text-gray-800">
-              {summary.netRevenue.toLocaleString('vi-VN')}₫
-            </div>
-          </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Platform Fee</div>
-            <div className="text-xl font-bold text-gray-800">
-              {summary.platformFee.toLocaleString('vi-VN')}₫
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Filter trên cùng */}
       <div className="flex gap-4 items-center mb-4">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
@@ -182,6 +160,35 @@ export default function FinancialTabs() {
               className="border px-3 py-1 rounded"
               placeholder="End date"
             />
+          </>
+        )}
+      </div>
+      {/* Card tổng quan financial */}
+      <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
+        {!summary ? (
+          <div className="flex w-full items-center justify-center h-[100px]">
+            <RingLoader size={40} color="#fbbf24" />
+          </div>
+        ) : (
+          <>
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Total Revenue</div>
+              <div className="text-xl font-bold text-gray-800">
+                {summary.totalRevenue.toLocaleString('vi-VN')}₫
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Net Revenue</div>
+              <div className="text-xl font-bold text-gray-800">
+                {summary.netRevenue.toLocaleString('vi-VN')}₫
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Platform Fee</div>
+              <div className="text-xl font-bold text-gray-800">
+                {summary.platformFee.toLocaleString('vi-VN')}₫
+              </div>
+            </div>
           </>
         )}
       </div>

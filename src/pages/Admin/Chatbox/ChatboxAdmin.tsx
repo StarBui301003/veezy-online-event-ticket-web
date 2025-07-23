@@ -507,9 +507,9 @@ export const ChatboxAdmin = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4  mt-8 rounded-xl">
+    <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
       {/* Left Sidebar - Chat Rooms */}
-      <Card className="w-80 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200">
+      <Card className="w-80 flex flex-col bg-white/80 rounded-2xl shadow-2xl border border-blue-100">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -679,7 +679,7 @@ export const ChatboxAdmin = () => {
         {activeRoom ? (
           <>
             {/* Chat Header */}
-            <Card className="mb-4 bg-white rounded-xl shadow border border-gray-200">
+            <Card className="mb-4 bg-white/80 rounded-2xl shadow-xl border border-blue-100">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -728,7 +728,7 @@ export const ChatboxAdmin = () => {
             </Card>
 
             {/* Messages Area */}
-            <Card className="flex-1 flex flex-col bg-white rounded-xl shadow border border-gray-200">
+            <Card className="flex-1 flex flex-col bg-white/90 rounded-2xl shadow-xl border border-blue-100">
               <CardContent className="flex-1 p-0">
                 <ScrollArea className="h-[calc(100vh-20rem)] p-4">
                   <AnimatePresence>
@@ -736,7 +736,6 @@ export const ChatboxAdmin = () => {
                       const isOwnMessage = message.senderId === currentUser.userId;
                       const showAvatar =
                         index === 0 || messages[index - 1]?.senderId !== message.senderId;
-                      // Tạo key duy nhất - kết hợp messageId và index để đảm bảo không duplicate
                       const uniqueKey = message.messageId
                         ? `${message.messageId}-${index}`
                         : `msg-${index}-${Date.now()}`;
@@ -779,7 +778,7 @@ export const ChatboxAdmin = () => {
                             {/* Show reply preview if this is a reply */}
                             {message.replyToMessage && (
                               <div
-                                className={`text-xs mb-2 p-2 rounded bg-muted/50 border-l-2 border-muted-foreground/30 ${
+                                className={`text-xs mb-2 p-2 rounded bg-blue-50 border-l-2 border-blue-200 ${
                                   isOwnMessage ? 'mr-2' : 'ml-2'
                                 }`}
                               >
@@ -795,7 +794,7 @@ export const ChatboxAdmin = () => {
                             {editingMessage?.messageId === message.messageId ? (
                               /* Edit mode */
                               <div
-                                className={`w-full rounded-lg px-3 py-2 bg-background border ${
+                                className={`w-full rounded-xl px-3 py-2 bg-background border ${
                                   isOwnMessage ? 'mr-2' : 'ml-2'
                                 }`}
                               >
@@ -810,14 +809,23 @@ export const ChatboxAdmin = () => {
                                       cancelEditing();
                                     }
                                   }}
-                                  className="border-none p-0 focus-visible:ring-0"
+                                  className="border-none p-0 focus-visible:ring-0 rounded-full"
                                   autoFocus
                                 />
                                 <div className="flex justify-end gap-2 mt-2">
-                                  <Button size="sm" variant="outline" onClick={cancelEditing}>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={cancelEditing}
+                                    className="rounded-full"
+                                  >
                                     Cancel
                                   </Button>
-                                  <Button size="sm" onClick={saveEditedMessage}>
+                                  <Button
+                                    size="sm"
+                                    onClick={saveEditedMessage}
+                                    className="rounded-full"
+                                  >
                                     Save
                                   </Button>
                                 </div>
@@ -826,12 +834,12 @@ export const ChatboxAdmin = () => {
                               /* Normal message display */
                               <div className="relative">
                                 <div
-                                  className={`rounded-lg px-3 py-2 max-w-full break-words ${
+                                  className={`rounded-xl px-4 py-2 max-w-full break-words shadow ${
                                     message.isDeleted
-                                      ? 'bg-muted/50 text-muted-foreground italic'
+                                      ? 'bg-gray-100 text-gray-400 italic'
                                       : isOwnMessage
-                                      ? 'bg-primary text-primary-foreground'
-                                      : 'bg-muted'
+                                      ? 'bg-blue-100 text-blue-900'
+                                      : 'bg-gray-100 text-gray-800'
                                   }`}
                                 >
                                   {message.content}
@@ -937,9 +945,14 @@ export const ChatboxAdmin = () => {
                     placeholder={
                       replyingTo ? `Reply to ${replyingTo.senderName}...` : 'Type your message...'
                     }
-                    className="flex-1"
+                    className="flex-1 rounded-full bg-white/90 border border-blue-200 shadow px-4 py-2"
                   />
-                  <Button onClick={sendMessage} disabled={!newMessage.trim()} size="sm">
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim()}
+                    size="sm"
+                    className="rounded-full bg-blue-400 hover:bg-blue-500 text-white shadow"
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -953,7 +966,7 @@ export const ChatboxAdmin = () => {
             </Card>
           </>
         ) : (
-          <Card className="flex-1 flex items-center justify-center bg-white rounded-xl shadow border border-gray-200">
+          <Card className="flex-1 flex items-center justify-center bg-white/80 rounded-2xl shadow-xl border border-blue-100">
             <CardContent className="text-center">
               <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Select a conversation</h3>
@@ -966,7 +979,7 @@ export const ChatboxAdmin = () => {
       </div>
 
       {/* Right Sidebar - Online Users */}
-      <Card className="w-64 bg-white rounded-xl shadow-lg border border-gray-200">
+      <Card className="w-64 bg-white/80 rounded-2xl shadow-2xl border border-blue-100">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />

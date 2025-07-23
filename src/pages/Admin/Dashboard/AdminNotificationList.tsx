@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +15,16 @@ import {
   deleteAdminNotification,
   getAdminUnreadCount,
 } from '@/services/Admin/notification.service';
-import { AdminNotification, AdminNotificationType } from '@/types/Admin/notification';
+import { AdminNotificationType, AdminNotificationItem } from '@/types/Admin/notification';
+import { onNotification } from '@/services/signalr.service';
 import {
-  onNotification,
-} from '@/services/signalr.service';
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 interface AdminNotificationListProps {
   className?: string;
@@ -130,20 +137,101 @@ const formatDate = (dateString: string) => {
   }
 };
 
+type NotificationRaw = {
+  notificationId: string;
+  notificationTitle?: string;
+  notificationMessage?: string;
+  notificationType?: number;
+  title?: string;
+  message?: string;
+  type?: number;
+  isRead?: boolean;
+  readAt?: string | null;
+  createdAt?: string;
+  [key: string]: any;
+};
+
 export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   className,
   onUnreadCountChange,
 }) => {
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notifications, setNotifications] = useState<AdminNotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSizeOptions = [5, 10, 20, 50];
+  const [pageSize, setPageSize] = useState(5); // Mặc định 5, cho chọn
+  const [totalPages, setTotalPages] = useState(1);
+  const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await getAdminNotifications(1, 20);
-      if (response.flag) {
-        setNotifications(response.data);
+      // Chuyển status sang isRead: undefined (all), false (unread), true (read)
+      let isRead: boolean | undefined = undefined;
+      if (status === 'unread') isRead = false;
+      else if (status === 'read') isRead = true;
+      const response = await getAdminNotifications(page, pageSize, isRead);
+      if (response.flag && response.data && Array.isArray(response.data)) {
+        // Nếu data là mảng (kiểu cũ)
+        setNotifications(
+          (response.data as NotificationRaw[]).map((item) => ({
+            notificationId: item.notificationId,
+            notificationTitle: item.notificationTitle || item.title || '',
+            notificationMessage: item.notificationMessage || item.message || '',
+            notificationType:
+              typeof item.notificationType === 'number'
+                ? item.notificationType
+                : typeof item.type === 'number'
+                ? item.type
+                : 10,
+            isRead: !!item.isRead,
+            readAt: item.readAt ?? null,
+            createdAt: item.createdAt || '',
+            userId: item.userId || '',
+            redirectUrl: item.redirectUrl || '',
+            createdAtVietnam: item.createdAtVietnam || '',
+            readAtVietnam: item.readAtVietnam || '',
+            username: item.username || '',
+          }))
+        );
+        setTotalPages(1);
+      } else if (
+        response.flag &&
+        response.data &&
+        typeof response.data === 'object' &&
+        Array.isArray((response.data as { items?: NotificationRaw[] }).items)
+      ) {
+        // Kiểu mới: data có items
+        const dataTyped = response.data as unknown as {
+          items: NotificationRaw[];
+          totalPages: number;
+        };
+        setNotifications(
+          dataTyped.items.map((item) => ({
+            notificationId: item.notificationId,
+            notificationTitle: item.notificationTitle || item.title || '',
+            notificationMessage: item.notificationMessage || item.message || '',
+            notificationType:
+              typeof item.notificationType === 'number'
+                ? item.notificationType
+                : typeof item.type === 'number'
+                ? item.type
+                : 10,
+            isRead: !!item.isRead,
+            readAt: item.readAt ?? null,
+            createdAt: item.createdAt || '',
+            userId: item.userId || '',
+            redirectUrl: item.redirectUrl || '',
+            createdAtVietnam: item.createdAtVietnam || '',
+            readAtVietnam: item.readAtVietnam || '',
+            username: item.username || '',
+          }))
+        );
+        setTotalPages(dataTyped.totalPages);
+      } else {
+        setNotifications([]);
+        setTotalPages(1);
       }
     } catch {
       toast.error('Failed to load notifications');
@@ -166,7 +254,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
 
   useEffect(() => {
     console.log('AdminNotificationList: Component mounted, setting up event listeners...');
-    
+
     // Don't create separate connection, use the global one from App.tsx
     // connectNotificationHub('http://localhost:5003/hubs/notifications');
 
@@ -204,6 +292,11 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     //   disconnectNotificationHub();
     // };
   }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, status]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
@@ -264,7 +357,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Admin Notifications
+            Admins Notifications
             {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
                 {unreadCount}
@@ -287,7 +380,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Admin Notifications
+            Admins Notifications
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
@@ -297,6 +390,21 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
               </Badge>
             )}
           </CardTitle>
+          {/* Filter trạng thái */}
+          <div className="flex items-center gap-2">
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value as 'all' | 'unread' | 'read');
+                setPage(1);
+              }}
+              className="border rounded px-2 py-1 text-sm bg-white"
+            >
+              <option value="all">All</option>
+              <option value="unread">Unread</option>
+              <option value="read">Read</option>
+            </select>
+          </div>
           {unreadCount > 0 && (
             <TooltipProvider>
               <Tooltip>
@@ -325,110 +433,179 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
             <p>No notifications</p>
           </div>
         ) : (
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-2">
-              {notifications.map((notification, index) => (
-                <div key={notification.notificationId}>
-                  <div
-                    className={`p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      notification.isRead
-                        ? 'bg-gray-200 border-gray-300/40 shadow-sm hover:bg-gray-100 hover:shadow-md'
-                        : 'bg-white border-blue-200 shadow-sm hover:bg-blue-50 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4
-                                className={`font-medium text-sm ${
-                                  notification.isRead ? 'text-gray-600' : 'text-gray-900'
+          <>
+            <ScrollArea className="h-[600px]">
+              <div className="space-y-2">
+                {notifications.map((notification, index) => (
+                  <div key={notification.notificationId}>
+                    <div
+                      className={`p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
+                        notification.isRead
+                          ? 'bg-gray-200 border-gray-300/40 shadow-sm hover:bg-gray-100 hover:shadow-md'
+                          : 'bg-white border-blue-200 shadow-sm hover:bg-blue-50 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          {getNotificationIcon(notification.notificationType)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4
+                                  className={`font-medium text-sm ${
+                                    notification.isRead ? 'text-gray-600' : 'text-gray-900'
+                                  }`}
+                                >
+                                  {notification.notificationTitle}
+                                </h4>
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs rounded-full ${getNotificationBadgeColor(
+                                    notification.notificationType
+                                  )}`}
+                                >
+                                  {getNotificationTypeName(notification.notificationType)}
+                                </Badge>
+                              </div>
+                              <p
+                                className={`text-sm ${
+                                  notification.isRead ? 'text-gray-500' : 'text-gray-700'
                                 }`}
                               >
-                                {notification.title}
-                              </h4>
-                              <Badge
-                                variant="secondary"
-                                className={`text-xs rounded-full ${getNotificationBadgeColor(
-                                  notification.type
-                                )}`}
-                              >
-                                {getNotificationTypeName(notification.type)}
-                              </Badge>
-                            </div>
-                            <p
-                              className={`text-sm ${
-                                notification.isRead ? 'text-gray-500' : 'text-gray-700'
-                              }`}
-                            >
-                              {notification.message}
-                            </p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <div className="flex items-center gap-1 text-xs text-gray-400">
-                                <Clock className="h-3 w-3" />
-                                {formatDate(notification.createdAt)}
-                              </div>
-                              {notification.isRead && notification.readAt && (
-                                <div className="flex items-center gap-1 text-xs text-green-600">
-                                  <CheckCircle className="h-3 w-3" />
-                                  Read
+                                {notification.notificationMessage}
+                              </p>
+                              <div className="flex items-center gap-4 mt-2">
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                  <Clock className="h-3 w-3" />
+                                  {formatDate(notification.createdAt)}
                                 </div>
-                              )}
+                                {notification.isRead && notification.readAt && (
+                                  <div className="flex items-center gap-1 text-xs text-green-600">
+                                    <CheckCircle className="h-3 w-3" />
+                                    Read
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {!notification.isRead && (
+                            <div className="flex items-center gap-1">
+                              {!notification.isRead && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleMarkAsRead(notification.notificationId)
+                                        }
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <CheckCircle className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Mark this notification as read</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleMarkAsRead(notification.notificationId)}
-                                      className="h-8 w-8 p-0"
+                                      onClick={() =>
+                                        handleDeleteNotification(notification.notificationId)
+                                      }
+                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                                     >
-                                      <CheckCircle className="h-4 w-4" />
+                                      <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Mark this notification as read</p>
+                                    <p>Delete this notification</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                            )}
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDeleteNotification(notification.notificationId)
-                                    }
-                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete this notification</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                    {index < notifications.length - 1 && <Separator className="my-2" />}
                   </div>
-                  {index < notifications.length - 1 && <Separator className="my-2" />}
+                ))}
+              </div>
+            </ScrollArea>
+            {/* Ẩn phân trang nếu chỉ có 1 trang (BE chưa hỗ trợ phân trang) */}
+            {totalPages > 1 && (
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2 mt-2">
+                <div className="flex-1 flex justify-center">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          aria-disabled={page === 1}
+                          className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            isActive={i === page}
+                            onClick={() => setPage(i)}
+                            className={`transition-colors rounded 
+                              ${
+                                i === page
+                                  ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                  : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                              }
+                              px-2 py-1 mx-0.5`}
+                            style={{
+                              minWidth: 32,
+                              textAlign: 'center',
+                              fontWeight: i === page ? 700 : 400,
+                              cursor: i === page ? 'default' : 'pointer',
+                            }}
+                          >
+                            {i}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          aria-disabled={page === totalPages}
+                          className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+                <div className="flex items-center gap-2 justify-end w-full md:w-auto">
+                  <span className="text-sm text-gray-700">Rows per page</span>
+                  <select
+                    className="border rounded px-2 py-1 text-sm bg-white"
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                  >
+                    {pageSizeOptions.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

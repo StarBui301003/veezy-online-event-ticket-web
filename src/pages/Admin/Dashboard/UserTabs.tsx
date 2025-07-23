@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'react-toastify';
+import { RingLoader } from 'react-spinners';
 
 const FILTERS = [
   { label: 'Last 30 Days', value: 12 }, // Last30Days
@@ -114,46 +115,52 @@ export default function UserTabs() {
         )}
       </div>
       {/* Card tổng quan user */}
-      {growth && (
-        <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Total Users</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {growth.totalUsers.toLocaleString()}
-            </div>
+      <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
+        {!growth ? (
+          <div className="flex w-full items-center justify-center h-[100px]">
+            <RingLoader size={40} color="#60a5fa" />
           </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">New Users</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {growth.newUsers.toLocaleString()}
+        ) : (
+          <>
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Total Users</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {growth.totalUsers.toLocaleString()}
+              </div>
             </div>
-          </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Active New Users</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {growth.activeNewUsers.toLocaleString()}
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">New Users</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {growth.newUsers.toLocaleString()}
+              </div>
             </div>
-          </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Inactive New Users</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {growth.inactiveNewUsers.toLocaleString()}
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Active New Users</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {growth.activeNewUsers.toLocaleString()}
+              </div>
             </div>
-          </div>
-          <div className={cardClass}>
-            <div className="text-gray-500 font-medium">Online Users</div>
-            <div className="text-2xl font-bold text-gray-800">
-              {growth.onlineUsers.toLocaleString()}
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Inactive New Users</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {growth.inactiveNewUsers.toLocaleString()}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+            <div className={cardClass}>
+              <div className="text-gray-500 font-medium">Online Users</div>
+              <div className="text-2xl font-bold text-gray-800">
+                {growth.onlineUsers.toLocaleString()}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
       {/* Biểu đồ phụ demographics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
         {/* PieChart usersByRole */}
-        {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 && (
-          <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-            <h4 className="font-semibold mb-2">Users by Role</h4>
+        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+          <h4 className="font-semibold mb-2">Users by Role</h4>
+          {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
                 <Pie
@@ -176,61 +183,75 @@ export default function UserTabs() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        )}
-        {/* PieChart usersByGender */}
-        {demographics &&
-          demographics.usersByGender &&
-          Object.keys(demographics.usersByGender).length > 0 && (
-            <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-              <h4 className="font-semibold mb-2">Users by Gender</h4>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
-                      name: gender,
-                      value,
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    label
-                  >
-                    {Object.keys(demographics.usersByGender).map((_gender, idx) => (
-                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => v.toLocaleString()} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[180px]">
+              <RingLoader size={40} color="#60a5fa" />
             </div>
           )}
-        {/* BarChart usersByAgeGroup */}
-        {demographics &&
-          demographics.usersByAgeGroup &&
-          Object.keys(demographics.usersByAgeGroup).length > 0 && (
-            <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-              <h4 className="font-semibold mb-2">Users by Age Group</h4>
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart
-                  data={Object.entries(demographics.usersByAgeGroup).map(([age, value]) => ({
-                    age,
+        </div>
+        {/* PieChart usersByGender */}
+        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+          <h4 className="font-semibold mb-2">Users by Gender</h4>
+          {demographics &&
+          demographics.usersByGender &&
+          Object.keys(demographics.usersByGender).length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <PieChart>
+                <Pie
+                  data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
+                    name: gender,
                     value,
                   }))}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={60}
+                  label
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="age" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip formatter={(v) => v.toLocaleString()} />
-                  <Bar dataKey="value" fill="#60a5fa" name="Users" />
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="text-xs text-gray-500 mt-2">Avg. Age: {demographics.averageAge}</div>
+                  {Object.keys(demographics.usersByGender).map((_gender, idx) => (
+                    <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => v.toLocaleString()} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[180px]">
+              <RingLoader size={40} color="#fbbf24" />
             </div>
           )}
+        </div>
+        {/* BarChart usersByAgeGroup */}
+        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
+          <h4 className="font-semibold mb-2">Users by Age Group</h4>
+          {demographics &&
+          demographics.usersByAgeGroup &&
+          Object.keys(demographics.usersByAgeGroup).length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={Object.entries(demographics.usersByAgeGroup).map(([age, value]) => ({
+                  age,
+                  value,
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="age" />
+                <YAxis allowDecimals={false} />
+                <Tooltip formatter={(v) => v.toLocaleString()} />
+                <Bar dataKey="value" fill="#60a5fa" name="Users" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[180px]">
+              <RingLoader size={40} color="#a78bfa" />
+            </div>
+          )}
+          {demographics && demographics.averageAge && (
+            <div className="text-xs text-gray-500 mt-2">Avg. Age: {demographics.averageAge}</div>
+          )}
+        </div>
       </div>
     </div>
   );

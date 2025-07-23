@@ -16,13 +16,8 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
   RadialBarChart,
   RadialBar,
-  Legend as RadialLegend,
 } from 'recharts';
 import type {
   NewsApprovalTrendItem,
@@ -39,7 +34,6 @@ import {
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
 import { toast } from 'react-toastify';
-import { TooltipProps } from 'recharts';
 
 const FILTERS = [
   { label: 'Last 30 Days', value: 12 }, // Last30Days
