@@ -15,3 +15,18 @@ export interface CommentListResponse {
   data: Comment[];
   message?: string | null;
 }
+
+export interface PaginatedCommentResponse {
+  flag: boolean;
+  code: number;
+  data: {
+    items: Comment[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string | null;
+}

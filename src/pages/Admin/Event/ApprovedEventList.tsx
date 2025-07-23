@@ -17,7 +17,6 @@ import {
   cancelEvent,
 } from '@/services/Admin/event.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,9 +34,10 @@ import {
 import { FaEye, FaRegTrashAlt, FaTimes } from 'react-icons/fa';
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { Category } from '@/types/Admin/category';
+import type { PaginatedEventResponse } from '@/types/Admin/event';
+import type { Category } from '@/types/Admin/category';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'react-toastify'; // Thêm dòng này
+import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -47,10 +47,8 @@ interface ApprovedEventListProps {
 }
 
 export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) => {
-  const [events, setEvents] = useState<ApprovedEvent[]>([]);
-  const [categories, setCategories] = useState<Record<string, Category>>({});
+  const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -96,55 +94,52 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     onLoadingChange?.(true);
-    getApprovedEvents()
-      .then(async (res) => {
-        setEvents(res.data.items);
-
-        const allCategoryIds = Array.from(
-          new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-        );
-        const categoryMap: Record<string, Category> = { ...categories };
-        const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
-        await Promise.all(
-          idsToFetch.map(async (id) => {
-            try {
-              const cat = await getCategoryById(id);
-              categoryMap[id] = cat;
-            } catch {
-              categoryMap[id] = {
-                categoryId: id,
-                categoryName: 'Unknown',
-                categoryDescription: '',
-              };
-            }
-          })
-        );
-        setCategories(categoryMap);
-
-        const allUserId = Array.from(
-          new Set(
-            res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-          )
-        );
-        const usernameMap: Record<string, string> = {};
-        await Promise.all(
-          allUserId.map(async (id) => {
-            try {
-              const user = await getUserByIdAPI(id);
-              usernameMap[id] = user.fullName || user.username || 'Unknown';
-            } catch {
-              usernameMap[id] = id;
-            }
-          })
-        );
-        setUsernames(usernameMap);
+    getApprovedEvents({ page, pageSize })
+      .then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage:
+              typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                ? res.data.currentPage
+                : page,
+            pageSize:
+              typeof res.data.pageSize === 'number' && res.data.pageSize > 0
+                ? res.data.pageSize
+                : pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
       })
-      .catch(() => setEvents([]))
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+      .finally(() => setLoading(false));
     // Lắng nghe realtime SignalR
-    const reload = () => getApprovedEvents().then((res) => setEvents(res.data.items));
+    const reload = () =>
+      getApprovedEvents({ page, pageSize }).then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage:
+              typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                ? res.data.currentPage
+                : page,
+            pageSize:
+              typeof res.data.pageSize === 'number' && res.data.pageSize > 0
+                ? res.data.pageSize
+                : pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
+      });
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
@@ -152,12 +147,17 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
     onEvent('OnEventApproved', reload);
     onEvent('OnEventHidden', reload);
     onEvent('OnEventShown', reload);
-
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+  }, [page, pageSize]);
+
+  // Khi destructure:
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+  // pageSize chỉ lấy từ state: const [pageSize, setPageSize] = useState(10);
 
   // Filter logic
-  const filteredEvents = events.filter((event) => {
+  const filteredEvents = items.filter((event) => {
     // Filter by category
     if (
       selectedCategoryIds.length > 0 &&
@@ -168,16 +168,15 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
     // Filter by search (event name, created by)
     if (search.trim()) {
       const s = search.trim().toLowerCase();
-      const createdByName = usernames[event.createdBy]?.toLowerCase() || '';
-      if (!(event.eventName?.toLowerCase().includes(s) || createdByName.includes(s))) {
+      // usernames[event.createdBy]?.toLowerCase() || '' // Không dùng biến không dùng
+      if (
+        !(event.eventName?.toLowerCase().includes(s) || event.createdBy?.toLowerCase().includes(s))
+      ) {
         return false;
       }
     }
     return true;
   });
-
-  const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
 
   // Toggle status handler
   const handleToggleStatus = async (event: ApprovedEvent) => {
@@ -189,9 +188,28 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
         await showEvent(event.eventId);
         toast.success('Event shown successfully!');
       }
-
       // Reload list immediately after toggle
-      getApprovedEvents().then((res) => setEvents(res.data.items));
+      getApprovedEvents({ page, pageSize }).then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage:
+              typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                ? res.data.currentPage
+                : page,
+            pageSize:
+              typeof res.data.pageSize === 'number' && res.data.pageSize > 0
+                ? res.data.pageSize
+                : pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
+      });
     } catch {
       toast.error('Failed to update event status!');
     }
@@ -202,15 +220,43 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
       await deleteEvent(event.eventId);
-      setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.filter((e) => e.eventId !== event.eventId),
+              totalItems: prev.totalItems - 1,
+              totalPages: Math.ceil((prev.totalItems - 1) / pageSize),
+              currentPage: prev.currentPage,
+              pageSize: pageSize,
+              hasNextPage: prev.hasNextPage,
+              hasPreviousPage: prev.hasPreviousPage,
+            }
+          : null
+      );
       toast.success('Event deleted successfully!');
-
-      // Reload data để đảm bảo consistency
       setTimeout(() => {
-        getApprovedEvents().then((res) => setEvents(res.data.items));
+        getApprovedEvents({ page, pageSize }).then((res) => {
+          if (res && res.data) {
+            setData({
+              items: res.data.items,
+              totalItems: res.data.totalItems,
+              totalPages: res.data.totalPages,
+              currentPage:
+                typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                  ? res.data.currentPage
+                  : page,
+              pageSize: pageSize,
+              hasNextPage: res.data.hasNextPage,
+              hasPreviousPage: res.data.hasPreviousPage,
+            });
+          } else {
+            setData(null);
+          }
+        });
       }, 500);
     } catch {
-      toast.error('Cannot delete this event!');
+      toast.error('Cannot delete event!');
     }
   };
 
@@ -221,51 +267,28 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
       await cancelEvent(event.eventId);
       toast.success('Event canceled successfully!');
       setLoading(true);
-      getApprovedEvents()
-        .then(async (res) => {
-          setEvents(res.data.items);
-
-          const allCategoryIds = Array.from(
-            new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-          );
-          const categoryMap: Record<string, Category> = { ...categories };
-          const idsToFetch = allCategoryIds.filter((id) => !categoryMap[id]);
-          await Promise.all(
-            idsToFetch.map(async (id) => {
-              try {
-                const cat = await getCategoryById(id);
-                categoryMap[id] = cat;
-              } catch {
-                categoryMap[id] = {
-                  categoryId: id,
-                  categoryName: 'Unknown',
-                  categoryDescription: '',
-                };
-              }
-            })
-          );
-          setCategories(categoryMap);
-
-          const allAccountIds = Array.from(
-            new Set(
-              res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-            )
-          );
-          const usernameMap: Record<string, string> = { ...usernames };
-          const idsToFetchUser = allAccountIds.filter((id) => !usernameMap[id]);
-          await Promise.all(
-            idsToFetchUser.map(async (id) => {
-              try {
-                const username = await getUserByIdAPI(id);
-                usernameMap[id] = username;
-              } catch {
-                usernameMap[id] = id;
-              }
-            })
-          );
-          setUsernames(usernameMap);
+      getApprovedEvents({ page, pageSize })
+        .then((res) => {
+          if (res && res.data) {
+            setData({
+              items: res.data.items,
+              totalItems: res.data.totalItems,
+              totalPages: res.data.totalPages,
+              currentPage:
+                typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                  ? res.data.currentPage
+                  : page,
+              pageSize:
+                typeof res.data.pageSize === 'number' && res.data.pageSize > 0
+                  ? res.data.pageSize
+                  : pageSize,
+              hasNextPage: res.data.hasNextPage,
+              hasPreviousPage: res.data.hasPreviousPage,
+            });
+          } else {
+            setData(null);
+          }
         })
-        .catch(() => setEvents([]))
         .finally(() => {
           setTimeout(() => setLoading(false), 500);
         });
@@ -425,95 +448,81 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedEvents.filter(
-                (event) =>
-                  !search ||
-                  event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                  (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                    search.trim().toLowerCase()
-                  )
-              ).length === 0 ? (
+              {filteredEvents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-4 text-gray-500">
                     No approved events found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedEvents
-                  .filter(
-                    (event) =>
-                      !search ||
-                      event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                      (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                        search.trim().toLowerCase()
-                      )
-                  )
-                  .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-green-50">
-                      <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
-                      </TableCell>
-                      <TableCell>{event.eventName}</TableCell>
-                      <TableCell>
-                        {event.categoryIds && event.categoryIds.length > 0
-                          ? event.categoryIds
-                              .map((id) => categories[id]?.categoryName || id)
-                              .join(', ')
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {/* Status switch giống NewsOwnList */}
-                        <Switch
-                          checked={event.isActive}
-                          onCheckedChange={() => handleToggleStatus(event)}
-                          disabled={loading}
-                          className={
-                            event.isActive
-                              ? '!bg-green-500 !border-green-500'
-                              : '!bg-red-400 !border-red-400'
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {event.approvedBy
-                          ? usernames[event.approvedBy] || event.approvedBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.createdBy
-                          ? usernames[event.createdBy] || event.createdBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-center justify-center flex items-center">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          onClick={() => setSelectedEvent(event)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
-                          title="Delete"
-                          onClick={() => handleDelete(event)}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-gray-500 bg-gray-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-700 ml-2"
-                          title="Cancel Event"
-                          onClick={() => handleCancelEvent(event)}
-                        >
-                          <FaTimes className="w-4 h-4" />
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                filteredEvents.map((event, idx) => (
+                  <TableRow key={event.eventId} className="hover:bg-green-50">
+                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
+                    <TableCell>{event.eventName}</TableCell>
+                    <TableCell>
+                      {event.categoryIds && event.categoryIds.length > 0
+                        ? event.categoryIds
+                            .map(
+                              (id) =>
+                                allCategories.find((cat) => cat.categoryId === id)?.categoryName ||
+                                id
+                            )
+                            .join(', ')
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {/* Status switch giống NewsOwnList */}
+                      <Switch
+                        checked={event.isActive}
+                        onCheckedChange={() => handleToggleStatus(event)}
+                        disabled={loading}
+                        className={
+                          event.isActive
+                            ? '!bg-green-500 !border-green-500'
+                            : '!bg-red-400 !border-red-400'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {event.approvedBy
+                        ? event.approvedBy // Không dùng biến không dùng
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {event.createdBy
+                        ? event.createdBy // Không dùng biến không dùng
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
+                    </TableCell>
+                    <TableCell className="text-center justify-center flex items-center">
+                      <button
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
+                        title="Delete"
+                        onClick={() => handleDelete(event)}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="border-2 border-gray-500 bg-gray-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-700 ml-2"
+                        title="Cancel Event"
+                        onClick={() => handleCancelEvent(event)}
+                      >
+                        <FaTimes className="w-4 h-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
             <TableFooter>
@@ -572,7 +581,7 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
                               filteredEvents.length
-                            )} of ${filteredEvents.length}`}
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

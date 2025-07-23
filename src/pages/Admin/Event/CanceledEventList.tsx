@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import {
   Table,
@@ -9,8 +11,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { getCanceledEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
-import type { ApprovedEvent } from '@/types/Admin/event';
-import { getFullNameByUserId } from '@/services/Admin/user.service';
+import type { ApprovedEvent, PaginatedEventResponse } from '@/types/Admin/event';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -31,13 +32,12 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
 import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CanceledEventList = () => {
-  const [events, setEvents] = useState<ApprovedEvent[]>([]);
-  const [categories, setCategories] = useState<Record<string, Category>>({});
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -45,6 +45,7 @@ export const CanceledEventList = () => {
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
 
   // Fetch all categories for filter (once)
   useEffect(() => {
@@ -64,7 +65,7 @@ export const CanceledEventList = () => {
           try {
             const cat = await getCategoryById(id);
             cats.push(cat);
-          } catch {
+          } catch (err: unknown) {
             cats.push({
               categoryId: id,
               categoryName: 'unknown',
@@ -74,6 +75,27 @@ export const CanceledEventList = () => {
         })
       );
       setAllCategories(cats);
+
+      // Fetch all userIds (createdBy, approvedBy)
+      const allUserIds = Array.from(
+        new Set(
+          res.data.items
+            .flatMap((event: ApprovedEvent) => [event.createdBy, event.approvedBy])
+            .filter(Boolean)
+        )
+      );
+      const usernameMap: Record<string, string> = {};
+      await Promise.all(
+        allUserIds.map(async (id) => {
+          try {
+            const user = await getUserByIdAPI(id);
+            usernameMap[id] = user.fullName || user.username || user.accountId || id;
+          } catch {
+            usernameMap[id] = id;
+          }
+        })
+      );
+      setUsernames(usernameMap);
     })();
   }, []);
 
@@ -82,55 +104,39 @@ export const CanceledEventList = () => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getCanceledEvents({ page, pageSize })
-      .then(async (res) => {
-        setEvents(res.data.items);
-
-        // Lấy tất cả categoryId duy nhất từ các event
-        const allCategoryIds = Array.from(
-          new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-        );
-        const categoryMap: Record<string, Category> = {};
-        await Promise.all(
-          allCategoryIds.map(async (id) => {
-            try {
-              const cat = await getCategoryById(id);
-              categoryMap[id] = cat;
-            } catch {
-              categoryMap[id] = {
-                categoryId: id,
-                categoryName: 'unknown',
-                categoryDescription: '',
-              };
-            }
-          })
-        );
-        setCategories(categoryMap);
-
-        // Lấy tất cả accountId duy nhất từ approvedBy và createdBy
-        const allAccountIds = Array.from(
-          new Set(
-            res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-          )
-        );
-        const usernameMap: Record<string, string> = {};
-        await Promise.all(
-          allAccountIds.map(async (id) => {
-            try {
-              const username = await getFullNameByUserId(id);
-              usernameMap[id] = username;
-            } catch {
-              usernameMap[id] = id;
-            }
-          })
-        );
-        setUsernames(usernameMap);
+      .then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage: page,
+            pageSize: pageSize, // luôn lấy từ state FE
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
       })
-      .catch(() => setEvents([]))
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+      .finally(() => setTimeout(() => setLoading(false), 500));
     // Lắng nghe realtime SignalR
-    const reload = () => getCanceledEvents({ page, pageSize }).then(res => setEvents(res.data.items));
+    const reload = () =>
+      getCanceledEvents({ page, pageSize }).then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage: page,
+            pageSize: pageSize, // luôn lấy từ state FE
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
+      });
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
@@ -139,27 +145,9 @@ export const CanceledEventList = () => {
   }, [page, pageSize]);
 
   // Filter logic
-  const filteredEvents = events.filter((event) => {
-    // Filter by category
-    if (
-      selectedCategoryIds.length > 0 &&
-      !event.categoryIds.some((id) => selectedCategoryIds.includes(id))
-    ) {
-      return false;
-    }
-    // Filter by search (event name, created by)
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      const createdByName = usernames[event.createdBy]?.toLowerCase() || '';
-      if (!(event.eventName?.toLowerCase().includes(s) || createdByName.includes(s))) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
 
   // Reset page when pageSize changes
   useEffect(() => {
@@ -168,21 +156,34 @@ export const CanceledEventList = () => {
 
   // Reset page if current page exceeds total pages after filtering
   useEffect(() => {
-    const newTotalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+    const newTotalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     if (page > newTotalPages) {
       setPage(newTotalPages);
     }
-  }, [filteredEvents.length]);
+  }, [totalItems, pageSize]);
 
   // Delete handler
   const handleDelete = async (event: ApprovedEvent) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
       await deleteEvent(event.eventId);
-      setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.filter((e) => e.eventId !== event.eventId),
+              totalItems: prev.totalItems - 1,
+              totalPages: Math.ceil((prev.totalItems - 1) / pageSize),
+              pageSize: pageSize,
+              hasNextPage: prev.hasNextPage,
+              hasPreviousPage: prev.hasPreviousPage,
+            }
+          : null
+      );
       toast.success('Event deleted successfully!');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Cannot delete this event!');
+    } catch (err: unknown) {
+      const error = err as any;
+      toast.error(error?.response?.data?.message || error?.message || 'Cannot delete this event!');
     }
   };
 
@@ -332,18 +333,16 @@ export const CanceledEventList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedEvents.length === 0 ? (
+              {items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
                     No canceled events found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedEvents.map((event, idx) => (
+                items.map((event, idx) => (
                   <TableRow key={event.eventId} className="hover:bg-gray-100/60">
-                    <TableCell className="text-center">
-                      {(page - 1) * pageSize + idx + 1}
-                    </TableCell>
+                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell
                       style={{
                         maxWidth: 200,
@@ -364,7 +363,11 @@ export const CanceledEventList = () => {
                     >
                       {event.categoryIds && event.categoryIds.length > 0
                         ? event.categoryIds
-                            .map((id) => categories[id]?.categoryName || id)
+                            .map(
+                              (id) =>
+                                allCategories.find((cat) => cat.categoryId === id)?.categoryName ||
+                                id
+                            )
                             .join(', ')
                         : 'Unknown'}
                     </TableCell>
@@ -391,9 +394,7 @@ export const CanceledEventList = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {event.createdBy
-                        ? usernames[event.createdBy] || event.createdBy
-                        : 'Unknown'}
+                      {event.createdBy ? usernames[event.createdBy] || event.createdBy : 'Unknown'}
                     </TableCell>
                     <TableCell>
                       {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
@@ -468,12 +469,12 @@ export const CanceledEventList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredEvents.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              filteredEvents.length
-                            )} of ${filteredEvents.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select
@@ -506,4 +507,4 @@ export const CanceledEventList = () => {
       </div>
     </div>
   );
-}; 
+};

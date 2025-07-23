@@ -12,7 +12,6 @@ import {
   Bar,
   PieChart,
   Pie,
-  Legend,
   Cell,
 } from 'recharts';
 import type {
@@ -29,18 +28,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
+import { toast } from 'react-toastify';
 
 const FILTERS = [
-  { label: 'Day', value: 'day' },
-  { label: 'Week', value: 'week' },
-  { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' },
-  { label: 'All', value: 'all' },
-  { label: 'Custom', value: '16' },
+  { label: 'Last 30 Days', value: 12 }, // Last30Days
+  { label: 'This Week', value: 3 }, // ThisWeek
+  { label: 'This Month', value: 5 }, // ThisMonth
+  { label: 'This Year', value: 9 }, // ThisYear
+  { label: 'All Time', value: 15 }, // AllTime
+  { label: 'Custom', value: 16 }, // Custom
 ];
 
+const cardClass =
+  'w-full min-w-[180px] max-w-[220px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
+
 export default function FinancialTabs() {
-  const [filter, setFilter] = useState('month');
+  const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [revenueTimeline, setRevenueTimeline] = useState<FinancialRevenueTimelineItem[]>([]);
@@ -48,25 +51,49 @@ export default function FinancialTabs() {
   const [platformFees, setPlatformFees] = useState<FinancialPlatformFees['topContributingEvents']>(
     []
   );
+  const [summary, setSummary] = useState<{
+    totalRevenue: number;
+    netRevenue: number;
+    platformFee: number;
+    topEventRevenue: number;
+    topEventPlatformFee: number;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (filter === '16') {
+      if (!startDate || !endDate) {
+        if (startDate || endDate) {
+          toast.warn('Please select both start and end date!');
+        }
+        return;
+      }
+      if (endDate < startDate) {
+        toast.error('End date must be after start date!');
+        return;
+      }
+    }
     setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
-      params.filter = 'custom';
-      if (startDate && endDate) {
-        params.startDate = startDate.toISOString().slice(0, 10);
-        params.endDate = endDate.toISOString().slice(0, 10);
-      }
-    } else {
-      params.filter = filter;
+      params.period = 16;
+      params.customStartDate = startDate?.toISOString().slice(0, 10);
+      params.customEndDate = endDate?.toISOString().slice(0, 10);
+    } else if (filter !== '12') {
+      params.period = parseInt(filter, 10);
     }
     getFinancialAnalytics(params)
       .then((res: AdminFinancialAnalyticsResponse) => {
         setRevenueTimeline(res.data.revenueTimeline || []);
         setTopEvents(res.data.topEventsByRevenue || []);
         setPlatformFees(res.data.platformFees?.topContributingEvents || []);
+        setSummary({
+          totalRevenue: res.data.totalRevenue,
+          netRevenue: res.data.revenueTimeline?.[0]?.revenue ?? 0,
+          platformFee: res.data.revenueTimeline?.[0]?.platformFee ?? 0,
+          topEventRevenue: res.data.topEventsByRevenue?.[0]?.revenue ?? 0,
+          topEventPlatformFee: res.data.platformFees?.topContributingEvents?.[0]?.feeCollected ?? 0,
+        });
       })
       .finally(() => setLoading(false));
   }, [filter, startDate, endDate]);
@@ -74,8 +101,58 @@ export default function FinancialTabs() {
   // PieChart colors
   const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
 
+  // Custom tick cho eventName
+  interface EventNameTickProps {
+    x?: number;
+    y?: number;
+    payload: { value: string };
+  }
+  function EventNameTick({ x = 0, y = 0, payload }: EventNameTickProps) {
+    const maxLen = 16;
+    const value = payload.value;
+    const showValue = value.length > maxLen ? value.slice(0, maxLen) + '...' : value;
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <title>{value}</title>
+        <text
+          x={0}
+          y={0}
+          dy={16}
+          textAnchor="middle"
+          fill="#666"
+          style={{ fontSize: 12, cursor: 'pointer' }}
+        >
+          {showValue}
+        </text>
+      </g>
+    );
+  }
+
   return (
     <div className="space-y-6 p-3">
+      {/* Card tổng quan financial */}
+      {summary && (
+        <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
+          <div className={cardClass}>
+            <div className="text-gray-500 font-medium">Total Revenue</div>
+            <div className="text-xl font-bold text-gray-800">
+              {summary.totalRevenue.toLocaleString('vi-VN')}₫
+            </div>
+          </div>
+          <div className={cardClass}>
+            <div className="text-gray-500 font-medium">Net Revenue</div>
+            <div className="text-xl font-bold text-gray-800">
+              {summary.netRevenue.toLocaleString('vi-VN')}₫
+            </div>
+          </div>
+          <div className={cardClass}>
+            <div className="text-gray-500 font-medium">Platform Fee</div>
+            <div className="text-xl font-bold text-gray-800">
+              {summary.platformFee.toLocaleString('vi-VN')}₫
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex gap-4 items-center mb-4">
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
@@ -83,7 +160,7 @@ export default function FinancialTabs() {
           </SelectTrigger>
           <SelectContent>
             {FILTERS.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
+              <SelectItem key={f.value} value={String(f.value)}>
                 {f.label}
               </SelectItem>
             ))}
@@ -95,14 +172,14 @@ export default function FinancialTabs() {
               type="date"
               value={startDate ? startDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="Start date"
             />
             <input
               type="date"
               value={endDate ? endDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="End date"
             />
           </>
@@ -147,16 +224,26 @@ export default function FinancialTabs() {
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={topEvents} margin={{ top: 16, right: 16, left: 48, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="eventName" />
-                <YAxis tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}₫` : '')} />
+                <XAxis dataKey="eventName" tick={EventNameTick} />
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}₫` : '')}
+                  orientation="left"
+                />
+                <YAxis
+                  yAxisId="right"
+                  tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}` : '')}
+                  orientation="right"
+                />
                 <Tooltip
                   formatter={(value, name) =>
-                    name === 'Revenue' ? `${Number(value).toLocaleString('vi-VN')}₫` : value
+                    name === 'Revenue'
+                      ? `${Number(value).toLocaleString('vi-VN')}₫`
+                      : Number(value).toLocaleString('vi-VN')
                   }
                 />
-                <Legend />
-                <Bar dataKey="revenue" fill="#fbbf24" name="Revenue" />
-                <Bar dataKey="ticketsSold" fill="#60a5fa" name="Tickets Sold" />
+                <Bar dataKey="revenue" fill="#fbbf24" name="Revenue" yAxisId="left" />
+                <Bar dataKey="ticketsSold" fill="#60a5fa" name="Tickets Sold" yAxisId="right" />
               </BarChart>
             </ResponsiveContainer>
           )}

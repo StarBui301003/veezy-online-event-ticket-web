@@ -9,8 +9,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { getRejectedEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
-import type { ApprovedEvent } from '@/types/Admin/event';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
+import type { ApprovedEvent, PaginatedEventResponse } from '@/types/Admin/event';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,9 +34,7 @@ import { onEvent, connectEventHub } from '@/services/signalr.service';
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const RejectedEventList = () => {
-  const [events, setEvents] = useState<ApprovedEvent[]>([]);
-  const [categories, setCategories] = useState<Record<string, Category>>({});
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -82,108 +79,84 @@ export const RejectedEventList = () => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
     getRejectedEvents({ page, pageSize })
-      .then(async (res) => {
-        setEvents(res.data.items);
-        // Không dùng biến total, chỉ dùng filteredEvents.length và pagedEvents như user/pending
-
-        // Lấy tất cả categoryId duy nhất từ các event
-        const allCategoryIds = Array.from(
-          new Set(res.data.items.flatMap((event) => event.categoryIds || []))
-        );
-        const categoryMap: Record<string, Category> = {};
-        await Promise.all(
-          allCategoryIds.map(async (id) => {
-            try {
-              const cat = await getCategoryById(id);
-              categoryMap[id] = cat;
-            } catch {
-              categoryMap[id] = {
-                categoryId: id,
-                categoryName: 'unknown',
-                categoryDescription: '',
-              };
-            }
-          })
-        );
-        setCategories(categoryMap);
-
-        const allUserId = Array.from(
-          new Set(
-            res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-          )
-        );
-        const usernameMap: Record<string, string> = {};
-        await Promise.all(
-          allUserId.map(async (id) => {
-            try {
-              const user = await getUserByIdAPI(id);
-              usernameMap[id] = user.fullName || user.username || 'Unknown';
-            } catch {
-              usernameMap[id] = id;
-            }
-          })
-        );
-        setUsernames(usernameMap);
+      .then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage: page,
+            pageSize: pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
       })
-      .catch(() => setEvents([]))
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+      .finally(() => setTimeout(() => setLoading(false), 500));
     // Lắng nghe realtime SignalR
     const reload = () =>
-      getRejectedEvents({ page, pageSize }).then((res) => setEvents(res.data.items));
+      getRejectedEvents({ page, pageSize }).then((res) => {
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage: page,
+            pageSize: pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
+      });
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, [page, pageSize]);
 
   // Filter logic (giống user và pending: filter toàn bộ rồi phân trang)
-  const filteredEvents = events.filter((event) => {
-    // Filter by category
-    if (
-      selectedCategoryIds.length > 0 &&
-      !event.categoryIds.some((id) => selectedCategoryIds.includes(id))
-    ) {
-      return false;
-    }
-    // Filter by search (event name, created by)
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      const createdByName = usernames[event.createdBy]?.toLowerCase() || '';
-      if (!(event.eventName?.toLowerCase().includes(s) || createdByName.includes(s))) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+  const filteredEvents = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+  // currentPage không cần dùng, chỉ dùng page FE
 
   // Khi đổi pageSize, reset về trang 1 (giống user và pending)
   useEffect(() => {
     setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageSize]);
 
   // Khi filter/search thay đổi, nếu page vượt quá tổng số trang mới thì setPage về trang cuối cùng
   useEffect(() => {
-    const newTotalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+    const newTotalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     if (page > newTotalPages) {
       setPage(newTotalPages);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredEvents.length]);
+  }, [totalItems, pageSize]);
 
   // Thêm hàm xử lý xóa
   const handleDelete = async (event: ApprovedEvent) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     try {
       await deleteEvent(event.eventId);
-      setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              items: prev.items.filter((e) => e.eventId !== event.eventId),
+              totalItems: prev.totalItems - 1,
+              totalPages: Math.ceil((prev.totalItems - 1) / pageSize),
+              currentPage: prev.currentPage,
+              pageSize: pageSize,
+              hasNextPage: prev.hasNextPage,
+              hasPreviousPage: prev.hasPreviousPage,
+            }
+          : null
+      );
       toast.success('Event deleted successfully!');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -337,13 +310,11 @@ export const RejectedEventList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedEvents.filter(
+              {filteredEvents.filter(
                 (event) =>
                   !search ||
                   event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                  (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                    search.trim().toLowerCase()
-                  )
+                  (event.createdBy?.toLowerCase() || '').includes(search.trim().toLowerCase())
               ).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
@@ -351,14 +322,12 @@ export const RejectedEventList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedEvents
+                filteredEvents
                   .filter(
                     (event) =>
                       !search ||
                       event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                      (usernames[event.createdBy]?.toLowerCase() || '').includes(
-                        search.trim().toLowerCase()
-                      )
+                      (event.createdBy?.toLowerCase() || '').includes(search.trim().toLowerCase())
                   )
                   .map((event, idx) => (
                     <TableRow key={event.eventId} className="hover:bg-red-100/60">
@@ -385,7 +354,11 @@ export const RejectedEventList = () => {
                       >
                         {event.categoryIds && event.categoryIds.length > 0
                           ? event.categoryIds
-                              .map((id) => categories[id]?.categoryName || id)
+                              .map(
+                                (id) =>
+                                  allCategories.find((cat) => cat.categoryId === id)
+                                    ?.categoryName || id
+                              )
                               .join(', ')
                           : 'Unknown'}
                       </TableCell>
@@ -397,9 +370,7 @@ export const RejectedEventList = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {event.approvedBy
-                          ? usernames[event.approvedBy] || event.approvedBy
-                          : 'Unknown'}
+                        {event.approvedBy ? event.approvedBy : 'Unknown'}
                       </TableCell>
                       <TableCell
                         style={{
@@ -419,9 +390,7 @@ export const RejectedEventList = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {event.createdBy
-                          ? usernames[event.createdBy] || event.createdBy
-                          : 'Unknown'}
+                        {event.createdBy ? event.createdBy : 'Unknown'}
                       </TableCell>
                       <TableCell
                         style={{
@@ -502,7 +471,7 @@ export const RejectedEventList = () => {
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
                               filteredEvents.length
-                            )} of ${filteredEvents.length}`}
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

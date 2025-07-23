@@ -37,6 +37,8 @@ export interface EventListResponse {
   data: {
     items: ApprovedEvent[];
     totalItems: number;
+    pageSize: number;
+
     totalPages: number;
     currentPage: number;
     hasNextPage: boolean;
@@ -64,11 +66,26 @@ export interface AdminTicketListResponse {
   message: string;
   data: {
     items: AdminTicket[];
-    pageNumber: number;
+    currentPage: number;
     pageSize: number;
     totalItems: number;
     totalPages: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+}
+
+export interface PaginatedEventResponse {
+  flag: boolean;
+  code: number;
+  data: {
+    items: ApprovedEvent[];
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string | null;
 }

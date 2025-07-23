@@ -16,6 +16,13 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  RadialBarChart,
+  RadialBar,
+  Legend as RadialLegend,
 } from 'recharts';
 import type {
   NewsApprovalTrendItem,
@@ -31,18 +38,79 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
+import { toast } from 'react-toastify';
+import { TooltipProps } from 'recharts';
 
 const FILTERS = [
-  { label: 'Day', value: 'day' },
-  { label: 'Week', value: 'week' },
-  { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' },
-  { label: 'All', value: 'all' },
-  { label: 'Custom', value: '16' },
+  { label: 'Last 30 Days', value: 12 }, // Last30Days
+  { label: 'This Week', value: 3 }, // ThisWeek
+  { label: 'This Month', value: 5 }, // ThisMonth
+  { label: 'This Year', value: 9 }, // ThisYear
+  { label: 'All Time', value: 15 }, // AllTime
+  { label: 'Custom', value: 16 }, // Custom
 ];
 
+// Custom Tooltip cho Approval Trend
+function CustomApprovalTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: NewsApprovalTrendItem }>;
+}) {
+  if (active && payload && payload.length && payload[0] && payload[0].payload) {
+    const data = payload[0].payload;
+    return (
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid #eee',
+          borderRadius: 8,
+          padding: 8,
+          minWidth: 120,
+        }}
+      >
+        <div style={{ fontWeight: 600 }}>{data.periodLabel}</div>
+        <div style={{ color: '#22c55e' }}>Approved: {data.approved}</div>
+        <div style={{ color: '#ef4444' }}>Rejected: {data.rejected}</div>
+        <div style={{ color: '#f59e42' }}>Pending: {data.pending}</div>
+      </div>
+    );
+  }
+  return null;
+}
+
+// Custom Tooltip cho Approval Trend (RadialBarChart)
+function CustomRadialTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: { name: string; value: number; fill: string } }>;
+}) {
+  if (active && payload && payload.length && payload[0] && payload[0].payload) {
+    const data = payload[0].payload;
+    return (
+      <div
+        style={{
+          background: 'white',
+          border: '1px solid #eee',
+          borderRadius: 8,
+          padding: 8,
+          minWidth: 100,
+          fontSize: 13,
+          color: data.fill,
+        }}
+      >
+        <b>{data.name}</b>: {data.value}
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function NewsTabs() {
-  const [filter, setFilter] = useState('month');
+  const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [approvalTrend, setApprovalTrend] = useState<NewsApprovalTrendItem[]>([]);
@@ -51,16 +119,26 @@ export default function NewsTabs() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (filter === '16') {
+      if (!startDate || !endDate) {
+        if (startDate || endDate) {
+          toast.warn('Please select both start and end date!');
+        }
+        return;
+      }
+      if (endDate < startDate) {
+        toast.error('End date must be after start date!');
+        return;
+      }
+    }
     setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
-      params.filter = 'custom';
-      if (startDate && endDate) {
-        params.startDate = startDate.toISOString().slice(0, 10);
-        params.endDate = endDate.toISOString().slice(0, 10);
-      }
-    } else {
-      params.filter = filter;
+      params.period = 16;
+      params.customStartDate = startDate?.toISOString().slice(0, 10);
+      params.customEndDate = endDate?.toISOString().slice(0, 10);
+    } else if (filter !== '12') {
+      params.period = parseInt(filter, 10);
     }
     getNewAnalytics(params)
       .then((res: AdminNewsAnalyticsResponse) => {
@@ -80,7 +158,7 @@ export default function NewsTabs() {
           </SelectTrigger>
           <SelectContent>
             {FILTERS.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
+              <SelectItem key={f.value} value={String(f.value)}>
                 {f.label}
               </SelectItem>
             ))}
@@ -92,14 +170,14 @@ export default function NewsTabs() {
               type="date"
               value={startDate ? startDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="Start date"
             />
             <input
               type="date"
               value={endDate ? endDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="End date"
             />
           </>
@@ -111,6 +189,48 @@ export default function NewsTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
+            </div>
+          ) : approvalTrend.length === 1 ? (
+            <div className="flex flex-row items-center justify-center h-[260px] gap-6">
+              {/* Chart bên trái */}
+              <RadialBarChart
+                width={180}
+                height={180}
+                cx="50%"
+                cy="50%"
+                innerRadius="30%"
+                outerRadius="90%"
+                barSize={18}
+                data={[
+                  { name: 'Approved', value: approvalTrend[0]?.approved ?? 0, fill: '#22c55e' },
+                  { name: 'Pending', value: approvalTrend[0]?.pending ?? 0, fill: '#f59e42' },
+                  { name: 'Rejected', value: approvalTrend[0]?.rejected ?? 0, fill: '#ef4444' },
+                ]}
+                startAngle={90}
+                endAngle={-270}
+              >
+                <RadialBar
+                  background
+                  dataKey="value"
+                  label={{ position: 'inside', fill: '#333', fontSize: 12 }}
+                />
+                <Tooltip content={<CustomRadialTooltip />} />
+              </RadialBarChart>
+              {/* Legend bên phải, tách biệt */}
+              <div className="flex flex-col gap-2 ml-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: '#22c55e' }}></span>{' '}
+                  <span>Approved</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: '#f59e42' }}></span>{' '}
+                  <span>Pending</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }}></span>{' '}
+                  <span>Rejected</span>
+                </div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -125,14 +245,7 @@ export default function NewsTabs() {
                     return v.toString();
                   }}
                 />
-                <Tooltip
-                  formatter={(value, name, _props) => {
-                    if (name === 'approved' || name === 'rejected' || name === 'pending') {
-                      return [`${Number(value).toLocaleString('vi-VN')}₫`, ''];
-                    }
-                    return [value, ''];
-                  }}
-                />
+                <Tooltip content={<CustomApprovalTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="approved"

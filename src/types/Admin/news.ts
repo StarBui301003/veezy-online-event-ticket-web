@@ -38,3 +38,18 @@ export interface NewsListResponse {
   };
   message: string;
 }
+
+export interface PaginatedNewsResponse {
+  flag: boolean;
+  code: number;
+  data: {
+    items: News[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string | null;
+}

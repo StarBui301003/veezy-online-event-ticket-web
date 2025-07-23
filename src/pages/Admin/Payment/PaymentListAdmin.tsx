@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { getPaymentsAdmin } from '@/services/Admin/order.service';
-import type { AdminPayment } from '@/types/Admin/order';
+import type { AdminPaymentListResponse } from '@/types/Admin/order';
 import {
   Table,
   TableHeader,
@@ -22,21 +22,29 @@ import {
 } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from 'react-i18next';
+import GenerateTicketModal from './GenerateTicketModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const PaymentListAdmin = () => {
   const { t } = useTranslation();
-  const [payments, setPayments] = useState<AdminPayment[]>([]);
+  const [data, setData] = useState<AdminPaymentListResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
-    getPaymentsAdmin()
-      .then((res) => setPayments(res.data.items))
+    getPaymentsAdmin({ page: page, pageSize: pageSize })
+      .then((res) => {
+        if (res && res.data) {
+          setData(res.data);
+        } else {
+          setData(null);
+        }
+      })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
@@ -44,8 +52,14 @@ export const PaymentListAdmin = () => {
     // Lắng nghe realtime SignalR cho payment
     const reload = () => {
       setLoading(true);
-      getPaymentsAdmin()
-        .then((res) => setPayments(res.data.items))
+      getPaymentsAdmin({ page: page, pageSize: pageSize })
+        .then((res) => {
+          if (res && res.data) {
+            setData(res.data);
+          } else {
+            setData(null);
+          }
+        })
         .finally(() => {
           setTimeout(() => setLoading(false), 500);
         });
@@ -53,10 +67,11 @@ export const PaymentListAdmin = () => {
     onEvent('OnPaymentCreated', reload);
     onEvent('OnPaymentUpdated', reload);
     onEvent('OnPaymentDeleted', reload);
-  }, []);
+  }, [page, pageSize]);
 
-  const pagedPayments = payments.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(payments.length / pageSize));
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
 
   const paymentMethodLabel = (method: number) => {
     switch (method) {
@@ -76,8 +91,17 @@ export const PaymentListAdmin = () => {
   return (
     <div className="p-6">
       <SpinnerOverlay show={loading} />
+      <GenerateTicketModal open={showGenerateModal} onClose={() => setShowGenerateModal(false)} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
+          <div className="flex justify-end mb-4">
+            <button
+              className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+              onClick={() => setShowGenerateModal(true)}
+            >
+              Generate Error Ticket
+            </button>
+          </div>
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
@@ -102,14 +126,14 @@ export const PaymentListAdmin = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedPayments.length === 0 ? (
+              {items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
                     No payments found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedPayments.map((p, idx) => (
+                items.map((p, idx) => (
                   <TableRow key={p.paymentId} className="hover:bg-blue-50">
                     <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
                     {/* <TableCell>{p.paymentId}</TableCell> */}
@@ -193,12 +217,12 @@ export const PaymentListAdmin = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {payments.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              payments.length
-                            )} of ${payments.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select

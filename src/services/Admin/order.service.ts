@@ -15,3 +15,8 @@ export async function getPaymentsAdmin(params?: { page?: number; pageSize?: numb
   const res = await instance.get<AdminPaymentListResponse>('/api/Payment', { params });
   return res.data;
 }
+
+export async function processFreeOrder(orderId: string) {
+  const res = await instance.post(`/api/Payment/process-free-order/${orderId}`);
+  return res.data;
+}

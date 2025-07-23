@@ -17,3 +17,18 @@ export interface GetAllReportResponse {
   data: Report[];
   code: number;
 }
+
+export interface PaginatedReportResponse {
+  flag: boolean;
+  code: number;
+  data: {
+    items: Report[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string | null;
+}

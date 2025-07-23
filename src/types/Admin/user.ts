@@ -1,3 +1,5 @@
+import { User } from "../auth";
+
 export interface EditUserRequest {
   fullName: string;
   email: string;
@@ -16,4 +18,19 @@ export interface CreateAdminRequest {
   gender: 0 | 1; // 0: Male, 1: Female
   fullName: string;
   dateOfBirth: string; // ISO string
+}
+
+export interface PaginatedUserResponse {
+  flag: boolean;
+  code: number;
+  data: {
+    items: User[];
+    pageNumber: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string | null;
 }

@@ -9,9 +9,16 @@ import { AdminNotificationList } from './AdminNotificationList';
 import { getAdminOverviewDashboard } from '@/services/Admin/dashboard.service';
 import { RadialBarChart, RadialBar, Tooltip, ResponsiveContainer } from 'recharts';
 import { Clock } from 'lucide-react';
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from '@/components/ui/select';
 
 const cardClass =
-  'w-full min-w-[180px] max-w-[220px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
+  'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
 
 function CustomRadialTooltip({
   active,
@@ -126,20 +133,52 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
   );
 }
 
+const OVERVIEW_FILTERS = [
+  { label: 'Day', value: 0 },
+  { label: 'Week', value: 1 },
+  { label: 'Month', value: 2 },
+  { label: 'Year', value: 3 },
+  { label: 'All', value: 4 }, // Mặc định
+  { label: 'Custom', value: 5 },
+];
+
 export const OverviewTabs = () => {
   const [data, setData] = useState<AdminOverviewRealtimeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('4'); // Mặc định All
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    if (filter === '5') {
+      if (!startDate || !endDate) {
+        if (startDate || endDate) {
+          toast.warn('Please select both start and end date!');
+        }
+        return;
+      }
+      if (endDate < startDate) {
+        toast.error('End date must be after start date!');
+        return;
+      }
+    }
     setLoading(true);
-    getAdminOverviewDashboard()
+    const params: Record<string, unknown> = {};
+    if (filter === '5') {
+      params.period = 5;
+      params.customStartDate = startDate?.toISOString().slice(0, 10);
+      params.customEndDate = endDate?.toISOString().slice(0, 10);
+    } else if (filter !== '4') {
+      params.period = parseInt(filter, 10);
+    }
+    getAdminOverviewDashboard(params)
       .then((res: AdminOverviewRealtimeResponse) => setData(res.data))
       .catch(() => {
         toast.error('Unable to load dashboard data. Please try again later.');
         setData(null);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [filter, startDate, endDate]);
 
   if (loading) return <SpinnerOverlay show />;
   if (!data)
@@ -150,7 +189,39 @@ export const OverviewTabs = () => {
     );
 
   return (
-    <div className="flex flex-col gap-8 w-full p-2">
+    <div className="space-y-6 p-3">
+      <div className="flex gap-4 items-center mb-4">
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
+            <SelectValue placeholder="Select filter" />
+          </SelectTrigger>
+          <SelectContent>
+            {OVERVIEW_FILTERS.map((f) => (
+              <SelectItem key={f.value} value={String(f.value)}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {filter === '5' && (
+          <>
+            <input
+              type="date"
+              value={startDate ? startDate.toISOString().slice(0, 10) : ''}
+              onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+              className="border px-3 py-1 rounded"
+              placeholder="Start date"
+            />
+            <input
+              type="date"
+              value={endDate ? endDate.toISOString().slice(0, 10) : ''}
+              onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+              className="border px-3 py-1  rounded"
+              placeholder="End date"
+            />
+          </>
+        )}
+      </div>
       {/* 5 card tổng quan */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full">
         <div className={cardClass}>
