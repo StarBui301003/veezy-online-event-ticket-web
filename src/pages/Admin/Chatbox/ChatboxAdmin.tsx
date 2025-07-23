@@ -20,7 +20,6 @@ import {
   MessageCircle,
   Clock,
   AlertCircle,
-  Settings,
   Trash2,
   Reply,
   Edit3,
@@ -636,14 +635,20 @@ export const ChatboxAdmin = () => {
                                 'Unknown User'}
                             </p>
                             {room.unreadCount > 0 && (
-                              <Badge variant="destructive" className="text-xs">
+                              <Badge
+                                variant="destructive"
+                                className="text-xs border border-blue-200 bg-white rounded-full"
+                              >
                                 {room.unreadCount}
                               </Badge>
                             )}
                           </div>
 
                           <div className="flex items-center gap-1 mt-1">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-xs  border border-blue-200 bg-white rounded-full"
+                            >
                               {room.participants[0]?.role || 'User'}
                             </Badge>
                             {room.roomType === 'Support' && (
@@ -718,10 +723,12 @@ export const ChatboxAdmin = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{activeRoom.participants[0]?.role || 'User'}</Badge>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="h-4 w-4" />
-                    </Button>
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border border-blue-200 bg-white"
+                    >
+                      {activeRoom.participants[0]?.role || 'User'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
