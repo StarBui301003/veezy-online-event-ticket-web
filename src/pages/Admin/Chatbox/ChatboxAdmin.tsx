@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Send, 
-  Search, 
-  Users, 
-  MessageCircle, 
+import {
+  Send,
+  Search,
+  Users,
+  MessageCircle,
   Clock,
   AlertCircle,
   Settings,
@@ -24,15 +25,21 @@ import {
   Reply,
   Edit3,
   X,
-  MoreVertical
+  MoreVertical,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { connectChatHub, onChat, disconnectChatHub, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
-import { 
-  chatService, 
-  type ChatUser, 
-  type ChatMessage, 
-  type ChatRoom 
+import {
+  connectChatHub,
+  onChat,
+  disconnectChatHub,
+  joinChatRoom,
+  leaveChatRoom,
+} from '@/services/signalr.service';
+import {
+  chatService,
+  type ChatUser,
+  type ChatMessage,
+  type ChatRoom,
 } from '@/services/chat.service';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -46,12 +53,12 @@ export const ChatboxAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
   const [editingContent, setEditingContent] = useState('');
-  
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -66,19 +73,19 @@ export const ChatboxAdmin = () => {
         userId: account.userId || 'admin-id',
         username: account.username || 'admin',
         fullName: account.fullName || 'Administrator',
-        role: 'Admin' as const
+        role: 'Admin' as const,
       };
     }
-    
+
     // Fallback if no account found
     return {
       userId: 'admin-id',
       username: 'admin',
       fullName: 'Administrator',
-      role: 'Admin' as const
+      role: 'Admin' as const,
     };
   };
-  
+
   const currentUser = getCurrentUser();
 
   // Scroll to bottom of messages
@@ -89,13 +96,15 @@ export const ChatboxAdmin = () => {
         if (messagesEndRef.current) {
           const scrollContainer = messagesEndRef.current.parentElement?.parentElement;
           if (scrollContainer) {
-            const isAtBottom = scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 10;
+            const isAtBottom =
+              scrollContainer.scrollTop + scrollContainer.clientHeight >=
+              scrollContainer.scrollHeight - 10;
             // Only auto-scroll if user is already near the bottom
             if (isAtBottom) {
-              messagesEndRef.current.scrollIntoView({ 
+              messagesEndRef.current.scrollIntoView({
                 behavior: 'smooth',
                 block: 'end',
-                inline: 'nearest'
+                inline: 'nearest',
               });
             }
           }
@@ -121,7 +130,7 @@ export const ChatboxAdmin = () => {
         // Listen for new messages
         onChat('ReceiveMessage', (messageDto: any) => {
           console.log('📩 Received SignalR message:', messageDto);
-          
+
           // Transform backend DTO to frontend interface
           const message: ChatMessage = {
             messageId: messageDto.Id || messageDto.id,
@@ -136,13 +145,13 @@ export const ChatboxAdmin = () => {
             isDeleted: messageDto.IsDeleted || messageDto.isDeleted || false,
             isEdited: messageDto.IsEdited || messageDto.isEdited || false,
             replyToMessageId: messageDto.ReplyToMessageId || messageDto.replyToMessageId,
-            replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage
+            replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage,
           };
-          
+
           console.log('🔄 Transformed message:', message);
-          
+
           // Add message to current room if it belongs to the active room
-          setMessages(prev => {
+          setMessages((prev) => {
             // Use ref to get current active room to avoid stale closure
             const currentRoomId = activeRoomRef.current?.roomId;
             console.log(`🎯 Current room ID: ${currentRoomId}, Message room ID: ${message.roomId}`);
@@ -153,14 +162,16 @@ export const ChatboxAdmin = () => {
             console.log('❌ Message not for current room, ignoring');
             return prev;
           });
-          
+
           // Update last message in room list
-          setChatRooms(prev => prev.map(room => 
-            room.roomId === message.roomId 
-              ? { ...room, lastMessage: message, unreadCount: room.unreadCount + 1 }
-              : room
-          ));
-          
+          setChatRooms((prev) =>
+            prev.map((room) =>
+              room.roomId === message.roomId
+                ? { ...room, lastMessage: message, unreadCount: room.unreadCount + 1 }
+                : room
+            )
+          );
+
           // Show notification if message is not from current user
           if (message.senderId !== currentUser.userId) {
             toast.info(`New message from ${message.senderName}`);
@@ -168,13 +179,15 @@ export const ChatboxAdmin = () => {
         });
 
         // Listen for message deleted
-        onChat('MessageDeleted', (data: { messageId: string, deletedBy: string }) => {
+        onChat('MessageDeleted', (data: { messageId: string; deletedBy: string }) => {
           console.log('🗑️ Message deleted:', data);
-          setMessages(prev => prev.map(msg => 
-            msg.messageId === data.messageId 
-              ? { ...msg, isDeleted: true, content: '[Message deleted]' }
-              : msg
-          ));
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.messageId === data.messageId
+                ? { ...msg, isDeleted: true, content: '[Message deleted]' }
+                : msg
+            )
+          );
         });
 
         // Listen for message updated
@@ -183,7 +196,8 @@ export const ChatboxAdmin = () => {
           const updatedMessage: ChatMessage = {
             messageId: updatedMessageDto.Id || updatedMessageDto.id,
             senderId: updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId,
-            senderName: updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown',
+            senderName:
+              updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown',
             content: updatedMessageDto.Content || updatedMessageDto.content,
             timestamp: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
             createdAt: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
@@ -192,35 +206,35 @@ export const ChatboxAdmin = () => {
             roomId: updatedMessageDto.RoomId || updatedMessageDto.roomId,
             isDeleted: updatedMessageDto.IsDeleted || updatedMessageDto.isDeleted || false,
             isEdited: updatedMessageDto.IsEdited || updatedMessageDto.isEdited || true,
-            replyToMessageId: updatedMessageDto.ReplyToMessageId || updatedMessageDto.replyToMessageId,
-            replyToMessage: updatedMessageDto.ReplyToMessage || updatedMessageDto.replyToMessage
+            replyToMessageId:
+              updatedMessageDto.ReplyToMessageId || updatedMessageDto.replyToMessageId,
+            replyToMessage: updatedMessageDto.ReplyToMessage || updatedMessageDto.replyToMessage,
           };
-          
-          setMessages(prev => prev.map(msg => 
-            msg.messageId === updatedMessage.messageId ? updatedMessage : msg
-          ));
+
+          setMessages((prev) =>
+            prev.map((msg) => (msg.messageId === updatedMessage.messageId ? updatedMessage : msg))
+          );
         });
 
         // Listen for user online status
         onChat('UserConnected', (user: ChatUser) => {
-          setOnlineUsers(prev => {
-            const filtered = prev.filter(u => u.userId !== user.userId);
+          setOnlineUsers((prev) => {
+            const filtered = prev.filter((u) => u.userId !== user.userId);
             return [...filtered, { ...user, isOnline: true }];
           });
         });
 
         onChat('UserDisconnected', (userId: string) => {
-          setOnlineUsers(prev => prev.map(user => 
-            user.userId === userId ? { ...user, isOnline: false } : user
-          ));
+          setOnlineUsers((prev) =>
+            prev.map((user) => (user.userId === userId ? { ...user, isOnline: false } : user))
+          );
         });
 
         // Listen for new chat room created (support requests)
         onChat('NewChatRoomCreated', (room: ChatRoom) => {
-          setChatRooms(prev => [room, ...prev]);
+          setChatRooms((prev) => [room, ...prev]);
           toast.info(`New support request from ${room.participants[0]?.fullName}`);
         });
-
       } catch (error) {
         console.error('Failed to connect to ChatHub:', error);
         setIsConnected(false);
@@ -251,17 +265,19 @@ export const ChatboxAdmin = () => {
       setLoading(true);
       const rooms = await chatService.getAdminChatRooms();
       // Validate and sanitize room data
-      const validatedRooms = rooms.filter(room => room && room.roomId).map(room => ({
-        ...room,
-        roomName: room.roomName || 'Unnamed Room',
-        createdByUserName: room.createdByUserName || 'Unknown User',
-        participants: (room.participants || []).map(p => ({
-          ...p,
-          fullName: p?.fullName || 'Unknown User'
-        })),
-        lastMessage: room.lastMessage || null,
-        unreadCount: room.unreadCount || 0
-      }));
+      const validatedRooms = rooms
+        .filter((room) => room && room.roomId)
+        .map((room) => ({
+          ...room,
+          roomName: room.roomName || 'Unnamed Room',
+          createdByUserName: room.createdByUserName || 'Unknown User',
+          participants: (room.participants || []).map((p) => ({
+            ...p,
+            fullName: p?.fullName || 'Unknown User',
+          })),
+          lastMessage: room.lastMessage || null,
+          unreadCount: room.unreadCount || 0,
+        }));
       setChatRooms(validatedRooms);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
@@ -277,9 +293,9 @@ export const ChatboxAdmin = () => {
     try {
       const users = await chatService.getOnlineUsers();
       // Validate and sanitize user data
-      const validatedUsers = (users || []).map(user => ({
+      const validatedUsers = (users || []).map((user) => ({
         ...user,
-        fullName: user?.fullName || 'Unknown User'
+        fullName: user?.fullName || 'Unknown User',
       }));
       setOnlineUsers(validatedUsers);
     } catch (error) {
@@ -313,22 +329,22 @@ export const ChatboxAdmin = () => {
       if (activeRoom) {
         await leaveChatRoom(activeRoom.roomId);
       }
-      
+
       setActiveRoom(room);
       activeRoomRef.current = room; // Update ref for SignalR handlers
-      
+
       // Join the new room via SignalR
       await joinChatRoom(room.roomId);
       console.log(`Joined SignalR room: ${room.roomId}`);
-      
+
       await fetchMessages(room.roomId);
-      
+
       // Mark messages as read
       try {
         await chatService.markMessagesAsRead(room.roomId);
-        setChatRooms(prev => prev.map(r => 
-          r.roomId === room.roomId ? { ...r, unreadCount: 0 } : r
-        ));
+        setChatRooms((prev) =>
+          prev.map((r) => (r.roomId === room.roomId ? { ...r, unreadCount: 0 } : r))
+        );
       } catch (error) {
         console.error('Error marking messages as read:', error);
       }
@@ -345,7 +361,7 @@ export const ChatboxAdmin = () => {
       roomId: activeRoom.roomId,
       content: newMessage,
       messageType: 'Text' as const,
-      replyToMessageId: replyingTo?.messageId // Add reply support
+      replyToMessageId: replyingTo?.messageId, // Add reply support
     };
 
     const messageContent = newMessage;
@@ -357,18 +373,17 @@ export const ChatboxAdmin = () => {
       const sentMessage = await chatService.sendMessage(messageData);
       // Message will be received via SignalR and added to UI automatically
       console.log('Message sent successfully:', sentMessage);
-      
+
       // Force scroll to bottom for user's own message
       setTimeout(() => {
         if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ 
+          messagesEndRef.current.scrollIntoView({
             behavior: 'smooth',
             block: 'end',
-            inline: 'nearest'
+            inline: 'nearest',
           });
         }
       }, 100);
-      
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -381,14 +396,16 @@ export const ChatboxAdmin = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await chatService.deleteMessage(messageId);
-      
+
       // Update local state to mark message as deleted
-      setMessages(prev => prev.map(msg => 
-        msg.messageId === messageId 
-          ? { ...msg, isDeleted: true, content: '[Message deleted]' }
-          : msg
-      ));
-      
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.messageId === messageId
+            ? { ...msg, isDeleted: true, content: '[Message deleted]' }
+            : msg
+        )
+      );
+
       toast.success('Message deleted successfully');
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -413,15 +430,20 @@ export const ChatboxAdmin = () => {
     if (!editingMessage || !editingContent.trim()) return;
 
     try {
-      const updatedMessage = await chatService.updateMessage(editingMessage.messageId, editingContent);
-      
+      const updatedMessage = await chatService.updateMessage(
+        editingMessage.messageId,
+        editingContent
+      );
+
       // Update local state
-      setMessages(prev => prev.map(msg => 
-        msg.messageId === editingMessage.messageId 
-          ? { ...msg, content: updatedMessage.content, isEdited: true }
-          : msg
-      ));
-      
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.messageId === editingMessage.messageId
+            ? { ...msg, content: updatedMessage.content, isEdited: true }
+            : msg
+        )
+      );
+
       setEditingMessage(null);
       setEditingContent('');
       toast.success('Message updated successfully');
@@ -451,10 +473,11 @@ export const ChatboxAdmin = () => {
   };
 
   // Filter chat rooms
-  const filteredRooms = chatRooms.filter(room =>
-    room.createdByUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.roomName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.participants?.some(p => p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredRooms = chatRooms.filter(
+    (room) =>
+      room.createdByUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.roomName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.participants?.some((p) => p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Format timestamp
@@ -465,7 +488,7 @@ export const ChatboxAdmin = () => {
     }
 
     const date = new Date(timestamp);
-    
+
     // Kiểm tra xem date có hợp lệ không
     if (isNaN(date.getTime())) {
       return 'Invalid Date';
@@ -484,9 +507,9 @@ export const ChatboxAdmin = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4">
+    <div className="flex h-[calc(100vh-8rem)] gap-4  mt-8 rounded-xl">
       {/* Left Sidebar - Chat Rooms */}
-      <Card className="w-80 flex flex-col">
+      <Card className="w-80 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -494,35 +517,84 @@ export const ChatboxAdmin = () => {
               Admin Chat
             </CardTitle>
             <div className="flex items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div
+                className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+              />
               <span className="text-xs text-muted-foreground">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
           </div>
-          
+
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
+          <div
+            className="InputContainer relative"
+            style={{
+              width: 280,
+              height: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+              borderRadius: 30,
+              overflow: 'hidden',
+              cursor: 'pointer',
+              boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+              position: 'relative',
+              marginTop: 16,
+            }}
+          >
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              className="input"
+              style={{
+                width: 260,
+                height: 40,
+                border: 'none',
+                outline: 'none',
+                caretColor: 'rgb(255,81,0)',
+                backgroundColor: 'rgb(255,255,255)',
+                borderRadius: 30,
+                paddingLeft: 30,
+                letterSpacing: 0.8,
+                color: 'rgb(19,19,19)',
+                fontSize: 13.4,
+              }}
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
             />
+            {searchQuery && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  height: 24,
+                  width: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onClick={() => setSearchQuery('')}
+                tabIndex={-1}
+                type="button"
+                aria-label="Clear search"
+              >
+                &#10005;
+              </button>
+            )}
           </div>
         </CardHeader>
 
         <CardContent className="flex-1 p-0">
           <ScrollArea className="h-full">
             {loading ? (
-              <div className="p-4 text-center text-muted-foreground">
-                Loading chat rooms...
-              </div>
+              <div className="p-4 text-center text-muted-foreground">Loading chat rooms...</div>
             ) : filteredRooms.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                No chat rooms found
-              </div>
+              <div className="p-4 text-center text-muted-foreground">No chat rooms found</div>
             ) : (
               <div className="space-y-1 p-2">
                 {filteredRooms.map((room, index) => (
@@ -544,18 +616,24 @@ export const ChatboxAdmin = () => {
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={room.participants[0]?.avatar} />
                             <AvatarFallback>
-                              {(room.createdByUserName || room.participants[0]?.fullName || 'U')?.charAt(0)}
+                              {(
+                                room.createdByUserName ||
+                                room.participants[0]?.fullName ||
+                                'U'
+                              )?.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           {room.participants[0]?.isOnline && (
                             <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
                           )}
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <p className="font-medium truncate">
-                              {room.createdByUserName || room.participants[0]?.fullName || 'Unknown User'}
+                              {room.createdByUserName ||
+                                room.participants[0]?.fullName ||
+                                'Unknown User'}
                             </p>
                             {room.unreadCount > 0 && (
                               <Badge variant="destructive" className="text-xs">
@@ -563,7 +641,7 @@ export const ChatboxAdmin = () => {
                               </Badge>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center gap-1 mt-1">
                             <Badge variant="outline" className="text-xs">
                               {room.participants[0]?.role || 'User'}
@@ -575,13 +653,13 @@ export const ChatboxAdmin = () => {
                               </Badge>
                             )}
                           </div>
-                          
+
                           {room.lastMessage && (
                             <p className="text-sm text-muted-foreground truncate mt-1">
                               {room.lastMessage.content}
                             </p>
                           )}
-                          
+
                           <p className="text-xs text-muted-foreground mt-1">
                             {formatTime(room.lastMessage?.timestamp || room.createdAt)}
                           </p>
@@ -601,37 +679,46 @@ export const ChatboxAdmin = () => {
         {activeRoom ? (
           <>
             {/* Chat Header */}
-            <Card className="mb-4">
+            <Card className="mb-4 bg-white rounded-xl shadow border border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={activeRoom.participants[0]?.avatar} />
                       <AvatarFallback>
-                        {(activeRoom.createdByUserName || activeRoom.participants[0]?.fullName || 'U')?.charAt(0)}
+                        {(
+                          activeRoom.createdByUserName ||
+                          activeRoom.participants[0]?.fullName ||
+                          'U'
+                        )?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div>
                       <h3 className="font-semibold">
-                        {activeRoom.createdByUserName || activeRoom.participants[0]?.fullName || 'Unknown User'}
+                        {activeRoom.createdByUserName ||
+                          activeRoom.participants[0]?.fullName ||
+                          'Unknown User'}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activeRoom.participants[0]?.isOnline ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            activeRoom.participants[0]?.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                          }`}
+                        />
                         {activeRoom.participants[0]?.isOnline ? 'Online' : 'Offline'}
-                        {activeRoom.participants[0]?.lastSeen && !activeRoom.participants[0]?.isOnline && (
-                          <span>• Last seen {formatTime(activeRoom.participants[0].lastSeen)}</span>
-                        )}
+                        {activeRoom.participants[0]?.lastSeen &&
+                          !activeRoom.participants[0]?.isOnline && (
+                            <span>
+                              • Last seen {formatTime(activeRoom.participants[0].lastSeen)}
+                            </span>
+                          )}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">
-                      {activeRoom.participants[0]?.role || 'User'}
-                    </Badge>
+                    <Badge variant="outline">{activeRoom.participants[0]?.role || 'User'}</Badge>
                     <Button variant="ghost" size="sm">
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -641,16 +728,19 @@ export const ChatboxAdmin = () => {
             </Card>
 
             {/* Messages Area */}
-            <Card className="flex-1 flex flex-col">
+            <Card className="flex-1 flex flex-col bg-white rounded-xl shadow border border-gray-200">
               <CardContent className="flex-1 p-0">
                 <ScrollArea className="h-[calc(100vh-20rem)] p-4">
                   <AnimatePresence>
                     {(Array.isArray(messages) ? messages : []).map((message, index) => {
                       const isOwnMessage = message.senderId === currentUser.userId;
-                      const showAvatar = index === 0 || messages[index - 1]?.senderId !== message.senderId;
+                      const showAvatar =
+                        index === 0 || messages[index - 1]?.senderId !== message.senderId;
                       // Tạo key duy nhất - kết hợp messageId và index để đảm bảo không duplicate
-                      const uniqueKey = message.messageId ? `${message.messageId}-${index}` : `msg-${index}-${Date.now()}`;
-                      
+                      const uniqueKey = message.messageId
+                        ? `${message.messageId}-${index}`
+                        : `msg-${index}-${Date.now()}`;
+
                       return (
                         <motion.div
                           key={uniqueKey}
@@ -667,32 +757,48 @@ export const ChatboxAdmin = () => {
                             </Avatar>
                           )}
                           {!showAvatar && !isOwnMessage && <div className="w-8" />}
-                          
-                          <div className={`max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col group relative`}>
+
+                          <div
+                            className={`max-w-[70%] ${
+                              isOwnMessage ? 'items-end' : 'items-start'
+                            } flex flex-col group relative`}
+                          >
                             {showAvatar && (
-                              <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                              <div
+                                className={`flex items-center gap-2 mb-1 ${
+                                  isOwnMessage ? 'flex-row-reverse' : ''
+                                }`}
+                              >
                                 <span className="text-sm font-medium">{message.senderName}</span>
                                 <span className="text-xs text-muted-foreground">
                                   {formatTime(message.timestamp || (message as any).createdAt)}
                                 </span>
                               </div>
                             )}
-                            
+
                             {/* Show reply preview if this is a reply */}
                             {message.replyToMessage && (
-                              <div className={`text-xs mb-2 p-2 rounded bg-muted/50 border-l-2 border-muted-foreground/30 ${
-                                isOwnMessage ? 'mr-2' : 'ml-2'
-                              }`}>
-                                <div className="font-medium">{message.replyToMessage.senderName}</div>
-                                <div className="truncate opacity-70">{message.replyToMessage.content}</div>
+                              <div
+                                className={`text-xs mb-2 p-2 rounded bg-muted/50 border-l-2 border-muted-foreground/30 ${
+                                  isOwnMessage ? 'mr-2' : 'ml-2'
+                                }`}
+                              >
+                                <div className="font-medium">
+                                  {message.replyToMessage.senderName}
+                                </div>
+                                <div className="truncate opacity-70">
+                                  {message.replyToMessage.content}
+                                </div>
                               </div>
                             )}
-                            
+
                             {editingMessage?.messageId === message.messageId ? (
                               /* Edit mode */
-                              <div className={`w-full rounded-lg px-3 py-2 bg-background border ${
-                                isOwnMessage ? 'mr-2' : 'ml-2'
-                              }`}>
+                              <div
+                                className={`w-full rounded-lg px-3 py-2 bg-background border ${
+                                  isOwnMessage ? 'mr-2' : 'ml-2'
+                                }`}
+                              >
                                 <Input
                                   value={editingContent}
                                   onChange={(e) => setEditingContent(e.target.value)}
@@ -721,11 +827,11 @@ export const ChatboxAdmin = () => {
                               <div className="relative">
                                 <div
                                   className={`rounded-lg px-3 py-2 max-w-full break-words ${
-                                    message.isDeleted 
+                                    message.isDeleted
                                       ? 'bg-muted/50 text-muted-foreground italic'
                                       : isOwnMessage
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-muted'
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-muted'
                                   }`}
                                 >
                                   {message.content}
@@ -733,7 +839,7 @@ export const ChatboxAdmin = () => {
                                     <span className="text-xs opacity-70 ml-2">(edited)</span>
                                   )}
                                 </div>
-                                
+
                                 {/* Message options dropdown */}
                                 {!message.isDeleted && (
                                   <DropdownMenu>
@@ -748,18 +854,22 @@ export const ChatboxAdmin = () => {
                                         <MoreVertical className="h-3 w-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align={isOwnMessage ? "end" : "start"}>
-                                      <DropdownMenuItem onClick={() => handleReplyToMessage(message)}>
+                                    <DropdownMenuContent align={isOwnMessage ? 'end' : 'start'}>
+                                      <DropdownMenuItem
+                                        onClick={() => handleReplyToMessage(message)}
+                                      >
                                         <Reply className="h-4 w-4 mr-2" />
                                         Reply
                                       </DropdownMenuItem>
                                       {isOwnMessage && (
                                         <>
-                                          <DropdownMenuItem onClick={() => handleEditMessage(message)}>
+                                          <DropdownMenuItem
+                                            onClick={() => handleEditMessage(message)}
+                                          >
                                             <Edit3 className="h-4 w-4 mr-2" />
                                             Edit
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem 
+                                          <DropdownMenuItem
                                             onClick={() => handleDeleteMessage(message.messageId)}
                                             className="text-destructive"
                                           >
@@ -773,7 +883,7 @@ export const ChatboxAdmin = () => {
                                 )}
                               </div>
                             )}
-                            
+
                             {isOwnMessage && (
                               <div className="flex items-center gap-1 mt-1">
                                 <Clock className="h-3 w-3 text-muted-foreground" />
@@ -799,8 +909,12 @@ export const ChatboxAdmin = () => {
                   <div className="mb-3 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="text-sm font-medium">Replying to {replyingTo.senderName}</div>
-                        <div className="text-sm text-muted-foreground truncate">{replyingTo.content}</div>
+                        <div className="text-sm font-medium">
+                          Replying to {replyingTo.senderName}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {replyingTo.content}
+                        </div>
                       </div>
                       <Button
                         variant="ghost"
@@ -813,25 +927,23 @@ export const ChatboxAdmin = () => {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex gap-2">
                   <Input
                     ref={chatInputRef}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={replyingTo ? `Reply to ${replyingTo.senderName}...` : "Type your message..."}
+                    placeholder={
+                      replyingTo ? `Reply to ${replyingTo.senderName}...` : 'Type your message...'
+                    }
                     className="flex-1"
                   />
-                  <Button 
-                    onClick={sendMessage} 
-                    disabled={!newMessage.trim()}
-                    size="sm"
-                  >
+                  <Button onClick={sendMessage} disabled={!newMessage.trim()} size="sm">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 {!isConnected && (
                   <p className="text-sm text-orange-500 mt-2">
                     Chat service is disconnected. Messages will be sent when connection is restored.
@@ -841,7 +953,7 @@ export const ChatboxAdmin = () => {
             </Card>
           </>
         ) : (
-          <Card className="flex-1 flex items-center justify-center">
+          <Card className="flex-1 flex items-center justify-center bg-white rounded-xl shadow border border-gray-200">
             <CardContent className="text-center">
               <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Select a conversation</h3>
@@ -854,45 +966,43 @@ export const ChatboxAdmin = () => {
       </div>
 
       {/* Right Sidebar - Online Users */}
-      <Card className="w-64">
+      <Card className="w-64 bg-white rounded-xl shadow-lg border border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Online Users ({onlineUsers.filter(u => u.isOnline).length})
+            Online Users ({onlineUsers.filter((u) => u.isOnline).length})
           </CardTitle>
         </CardHeader>
-        
+
         <CardContent className="p-0">
           <ScrollArea className="h-[calc(100vh-12rem)]">
             <div className="space-y-2 p-2">
-              {onlineUsers.filter(user => user.isOnline).map((user, index) => (
-                <div
-                  key={user.userId || `user-${index}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                >
-                  <div className="relative">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback>
-                        {user.fullName?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+              {onlineUsers
+                .filter((user) => user.isOnline)
+                .map((user, index) => (
+                  <div
+                    key={user.userId || `user-${index}`}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                  >
+                    <div className="relative">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.avatar} />
+                        <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{user.fullName}</p>
+                      <Badge variant="outline" className="text-xs">
+                        {user.role}
+                      </Badge>
+                    </div>
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.fullName}</p>
-                    <Badge variant="outline" className="text-xs">
-                      {user.role}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-              
-              {onlineUsers.filter(u => u.isOnline).length === 0 && (
-                <div className="p-4 text-center text-muted-foreground text-sm">
-                  No users online
-                </div>
+                ))}
+
+              {onlineUsers.filter((u) => u.isOnline).length === 0 && (
+                <div className="p-4 text-center text-muted-foreground text-sm">No users online</div>
               )}
             </div>
           </ScrollArea>

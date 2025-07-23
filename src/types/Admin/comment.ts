@@ -1,9 +1,9 @@
 export interface Comment {
-  commentId: string;
+  commentId: string; // Guid
   eventId: string;
   userId: string;
   content: string;
-  createdAt: string;
+  createdAt: string; // ISO date
   updatedAt: string | null;
   avatarUrl: string | null;
   fullName: string | null;
@@ -21,7 +21,7 @@ export interface PaginatedCommentResponse {
   code: number;
   data: {
     items: Comment[];
-    pageNumber: number;
+    currentPage: number;
     pageSize: number;
     totalItems: number;
     totalPages: number;

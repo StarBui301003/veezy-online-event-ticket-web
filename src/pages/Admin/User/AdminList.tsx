@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAdminUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
+import type { PaginatedUserResponse } from '@/types/Admin/user';
 import {
   Table,
   TableHeader,
@@ -41,6 +42,7 @@ export const AdminList = () => {
 
   const [adminPage, setAdminPage] = useState(1);
   const [adminPageSize, setAdminPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -51,32 +53,32 @@ export const AdminList = () => {
   // Thêm hàm reload danh sách
   const reloadUsers = () => {
     setLoading(true);
-    getAdminUsers()
-      .then((data) => {
-        setUsers(data);
+    getAdminUsers(adminPage, adminPageSize)
+      .then((res: PaginatedUserResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setUsers(res.data.items);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setUsers([]);
+          setTotalPages(1);
+        }
       })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     reloadUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminPage, adminPageSize]);
 
-  const adminUsers = users;
-
-  const filteredAdmins = adminUsers.filter(
+  const filteredAdmins = users.filter(
     (user) =>
       !adminSearch ||
       user.fullName.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
       user.email.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
       (user.phone && user.phone.toLowerCase().includes(adminSearch.trim().toLowerCase()))
   );
-
-  const pagedAdmins = filteredAdmins.slice(
-    (adminPage - 1) * adminPageSize,
-    adminPage * adminPageSize
-  );
-  const adminTotalPages = Math.max(1, Math.ceil(filteredAdmins.length / adminPageSize));
+  const pagedAdmins = filteredAdmins;
 
   return (
     <div className="p-3">
@@ -251,7 +253,7 @@ export const AdminList = () => {
                               {t('previous')}
                             </PaginationPrevious>
                           </PaginationItem>
-                          {Array.from({ length: adminTotalPages }, (_, i) => i + 1).map((i) => (
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
                                 isActive={i === adminPage}
@@ -270,12 +272,10 @@ export const AdminList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setAdminPage((p) => Math.min(adminTotalPages, p + 1))}
-                              aria-disabled={adminPage === adminTotalPages}
+                              onClick={() => setAdminPage((p) => Math.min(totalPages, p + 1))}
+                              aria-disabled={adminPage === totalPages}
                               className={
-                                adminPage === adminTotalPages
-                                  ? 'pointer-events-none opacity-50'
-                                  : ''
+                                adminPage === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             >
                               {t('next')}

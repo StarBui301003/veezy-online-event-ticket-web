@@ -1,6 +1,5 @@
 import instance from "../axios.customize";
-import { User } from "@/types/auth";
-import type { CreateAdminRequest, EditUserRequest } from "@/types/Admin/user";
+import type { CreateAdminRequest, EditUserRequest, PaginatedUserResponse } from "@/types/Admin/user";
 
 
 // export const getAccountByIdAPI = async (accountId: string) => {
@@ -49,13 +48,6 @@ export const editUserAPI = async (
 
 
 //------------------------------------------------------------------------------------------------------
-interface UserListResponse {
-  data: {
-    items: User[];
-  };
-  message?: string;
-  code?: number;
-}
 
 
 export const uploadUserAvatarAPI = async (userId: string, avatarFile: File) => {
@@ -83,24 +75,24 @@ export const createAdminAPI = async (data: CreateAdminRequest) => {
   return response.data;
 };
 
-export async function getAdminUsers() {
-  const res = await instance.get<UserListResponse>('/api/User/admins');
-  return res.data.data.items;
+export async function getAdminUsers(page = 1, pageSize = 10): Promise<PaginatedUserResponse> {
+  const res = await instance.get('/api/User/admins', { params: { page, pageSize } });
+  return res.data;
 }
 
-export async function getCustomerUsers() {
-  const res = await instance.get<UserListResponse>('/api/User/customers');
-  return res.data.data.items;
+export async function getCustomerUsers(page = 1, pageSize = 10): Promise<PaginatedUserResponse> {
+  const res = await instance.get('/api/User/customers', { params: { page, pageSize } });
+  return res.data;
 }
 
-export async function getEventManagerUsers() {
-  const res = await instance.get<UserListResponse>('/api/User/event-managers');
-  return res.data.data.items;
+export async function getEventManagerUsers(page = 1, pageSize = 10): Promise<PaginatedUserResponse> {
+  const res = await instance.get('/api/User/event-managers', { params: { page, pageSize } });
+  return res.data;
 }
 
-export async function getCollaboratorUsers() {
-  const res = await instance.get<UserListResponse>('/api/User/collaborators');
-  return res.data.data.items;
+export async function getCollaboratorUsers(page = 1, pageSize = 10): Promise<PaginatedUserResponse> {
+  const res = await instance.get('/api/User/collaborators', { params: { page, pageSize } });
+  return res.data;
 }
 
 export const updateFaceAPI = async (

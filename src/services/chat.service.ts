@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from './axios.customize';
 
@@ -137,13 +138,13 @@ class ChatService {
       const response = await axios.get(`/api/chat/rooms/${roomId}/messages`, {
         params: { page, pageSize: limit }
       });
-      
+
       // Debug: Log raw response
       console.log('Raw API response:', response.data);
-      
+
       // Backend trả về PaginatedResponseDto với Items property
       const items = response.data.items || response.data.Items || [];
-      
+
       // Map backend DTO to frontend interface
       const messages = items.map((item: any) => ({
         messageId: item.id || item.Id,
@@ -160,7 +161,7 @@ class ChatService {
         replyToMessageId: item.replyToMessageId || item.ReplyToMessageId,
         replyToMessage: item.replyToMessage || item.ReplyToMessage
       }));
-      
+
       console.log('Mapped messages:', messages);
       return messages;
     } catch (error) {
@@ -301,13 +302,13 @@ class ChatService {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await axios.post('/api/chat/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
       return response.data.url;
     } catch (error) {
       console.error('Error uploading attachment:', error);

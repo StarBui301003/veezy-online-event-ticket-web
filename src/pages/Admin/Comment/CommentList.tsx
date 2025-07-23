@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/pagination';
 import { getAllComment } from '@/services/Admin/comment.service';
 import { getEventById } from '@/services/Admin/event.service';
-import type { Comment } from '@/types/Admin/comment';
+import type { Comment, PaginatedCommentResponse } from '@/types/Admin/comment';
 import { FaEye } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,10 @@ export const CommentList = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
   const [viewComment, setViewComment] = useState<Comment | null>(null);
   const { t } = useTranslation();
@@ -39,13 +43,20 @@ export const CommentList = () => {
   useEffect(() => {
     connectCommentHub('http://localhost:5004/commentHub');
     setLoading(true);
-    getAllComment()
-      .then((res) => {
-        // Chuẩn hóa lấy mảng comment từ API trả về: res.data là mảng comment
-        if (res && Array.isArray(res.data)) {
-          setComments(res.data);
+    getAllComment(page, pageSize)
+      .then((res: PaginatedCommentResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setComments(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
+          setHasNextPage(res.data.hasNextPage);
+          setHasPreviousPage(res.data.hasPreviousPage);
         } else {
           setComments([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          setHasNextPage(false);
+          setHasPreviousPage(false);
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
@@ -53,12 +64,20 @@ export const CommentList = () => {
     // Lắng nghe realtime SignalR cho comment
     const reload = () => {
       setLoading(true);
-      getAllComment()
-        .then((res) => {
-          if (res && Array.isArray(res.data)) {
-            setComments(res.data);
+      getAllComment(page, pageSize)
+        .then((res: PaginatedCommentResponse) => {
+          if (res && res.data && Array.isArray(res.data.items)) {
+            setComments(res.data.items);
+            setTotalItems(res.data.totalItems);
+            setTotalPages(res.data.totalPages);
+            setHasNextPage(res.data.hasNextPage);
+            setHasPreviousPage(res.data.hasPreviousPage);
           } else {
             setComments([]);
+            setTotalItems(0);
+            setTotalPages(1);
+            setHasNextPage(false);
+            setHasPreviousPage(false);
           }
         })
         .finally(() => setTimeout(() => setLoading(false), 500));
@@ -71,12 +90,20 @@ export const CommentList = () => {
   // Function to refresh comments after deletion
   const refreshComments = () => {
     setLoading(true);
-    getAllComment()
-      .then((res) => {
-        if (res && Array.isArray(res.data)) {
-          setComments(res.data);
+    getAllComment(page, pageSize)
+      .then((res: PaginatedCommentResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setComments(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
+          setHasNextPage(res.data.hasNextPage);
+          setHasPreviousPage(res.data.hasPreviousPage);
         } else {
           setComments([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          setHasNextPage(false);
+          setHasPreviousPage(false);
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
@@ -102,10 +129,7 @@ export const CommentList = () => {
     if (comments.length > 0) fetchEvents();
   }, [comments]);
 
-  const filteredComments = comments; // add filter/search if needed
-  const totalItems = filteredComments.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const pagedComments = filteredComments.slice((page - 1) * pageSize, page * pageSize);
+  const pagedComments = comments;
 
   return (
     <div className="p-6">
@@ -127,13 +151,27 @@ export const CommentList = () => {
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '8%' }}>{t('avatar')}</TableHead>
-                <TableHead className="text-center" style={{ width: '12%' }}>{t('userName')}</TableHead>
-                <TableHead className="text-left" style={{ width: '15%' }}>{t('eventName')}</TableHead>
-                <TableHead className="text-left" style={{ width: '25%' }}>{t('content')}</TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>{t('createdAt')}</TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>{t('updatedAt')}</TableHead>
-                <TableHead className="text-center" style={{ width: '5%' }}>{t('actions')}</TableHead>
+                <TableHead className="text-center" style={{ width: '8%' }}>
+                  {t('avatar')}
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '12%' }}>
+                  {t('userName')}
+                </TableHead>
+                <TableHead className="text-left" style={{ width: '15%' }}>
+                  {t('eventName')}
+                </TableHead>
+                <TableHead className="text-left" style={{ width: '25%' }}>
+                  {t('content')}
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  {t('createdAt')}
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  {t('updatedAt')}
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '5%' }}>
+                  {t('actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,8 +238,8 @@ export const CommentList = () => {
                           <PaginationItem>
                             <PaginationPrevious
                               onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              aria-disabled={!hasPreviousPage}
+                              className={!hasPreviousPage ? 'pointer-events-none opacity-50' : ''}
                             >
                               {t('previous')}
                             </PaginationPrevious>
@@ -232,10 +270,8 @@ export const CommentList = () => {
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
-                              className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              aria-disabled={!hasNextPage}
+                              className={!hasNextPage ? 'pointer-events-none opacity-50' : ''}
                             >
                               {t('next')}
                             </PaginationNext>

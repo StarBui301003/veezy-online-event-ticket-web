@@ -9,7 +9,7 @@ export interface PaginatedCategoryResponse {
   code: number;
   data: {
     items: Category[];
-    pageNumber: number;
+    currentPage: number;
     pageSize: number;
     totalItems: number;
     totalPages: number;

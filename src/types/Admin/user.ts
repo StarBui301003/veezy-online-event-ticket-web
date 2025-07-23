@@ -25,7 +25,7 @@ export interface PaginatedUserResponse {
   code: number;
   data: {
     items: User[];
-    pageNumber: number;
+    currentPage: number;
     pageSize: number;
     totalItems: number;
     totalPages: number;

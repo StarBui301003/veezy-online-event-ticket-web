@@ -11,6 +11,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
 import CreateNewsModal from './CreateNewsModal';
 import type { News } from '@/types/Admin/news';
+import type { NewsListResponse } from '@/types/Admin/news';
 import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import {
@@ -42,48 +43,44 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState(''); // Thêm state search
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editNews, setEditNews] = useState<News | null>(null);
 
+  const fetchData = () => {
+    setLoading(true);
+    getOwnNews(page, pageSize)
+      .then((res: NewsListResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setNews(res.data.items);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setNews([]);
+          setTotalPages(1);
+        }
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
+
   useEffect(() => {
     if (activeTab !== 'own') return;
     connectNewsHub('http://localhost:5004/newsHub');
-    setLoading(true);
-    getOwnNews(1, 100)
-      .then((res) => {
-        setNews(res.data.items || []);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-
+    fetchData();
     // Lắng nghe realtime SignalR cho news
-    const reload = () => reloadList();
+    const reload = () => fetchData();
     onNews('OnNewsCreated', reload);
     onNews('OnNewsUpdated', reload);
     onNews('OnNewsDeleted', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
-  }, [activeTab]);
-
-  const reloadList = () => {
-    setLoading(true);
-    getOwnNews()
-      .then((res) => {
-        setNews(res.data.items || []);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  };
+  }, [activeTab, page, pageSize]);
 
   // Lọc theo search
   const filteredNews = news.filter(
     (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
   );
-  const pagedNews = filteredNews.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
+  const pagedNews = filteredNews;
 
   // Delete handler
   const handleDelete = async (item: News) => {
@@ -95,7 +92,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       }
       await deleteNews(item.newsId);
       toast.success('News deleted successfully!');
-      reloadList();
+      fetchData();
     } catch {
       toast.error('Cannot delete this news!');
     }
@@ -111,7 +108,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
         await showNews(item.newsId);
         toast.success('News shown successfully!');
       }
-      reloadList();
+      fetchData();
     } catch {
       toast.error('Failed to update status!');
     }
@@ -377,11 +374,11 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       <CreateNewsModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
+        onCreated={fetchData}
         authorId={authorId}
       />
       {editNews && (
-        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={reloadList} />
+        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={fetchData} />
       )}
     </div>
   );

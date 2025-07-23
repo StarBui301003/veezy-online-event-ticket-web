@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAllCategory, deleteCategoryById } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
+import type { PaginatedCategoryResponse } from '@/types/Admin/category';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import {
@@ -31,13 +32,16 @@ import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-
 export const CategoryList = () => {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewCate, setViewCategory] = useState<Category | null>(null);
@@ -45,34 +49,52 @@ export const CategoryList = () => {
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    reloadList();
+    reloadList(page, pageSize);
 
     // Lắng nghe realtime SignalR cho category
-    const reload = () => reloadList();
+    const reload = () => reloadList(page, pageSize);
     onEvent('OnCategoryCreated', reload);
     onEvent('OnCategoryUpdated', reload);
     onEvent('OnCategoryDeleted', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const reloadList = () => {
+  useEffect(() => {
+    reloadList(page, pageSize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize]);
+
+  const reloadList = (pageArg: number, pageSizeArg: number) => {
     setLoading(true);
-    getAllCategory()
-      .then((data) => setCategories(data))
+    getAllCategory(pageArg, pageSizeArg)
+      .then((res: PaginatedCategoryResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setCategories(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
+          setHasNextPage(res.data.hasNextPage);
+          setHasPreviousPage(res.data.hasPreviousPage);
+        } else {
+          setCategories([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          setHasNextPage(false);
+          setHasPreviousPage(false);
+        }
+      })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
   };
 
-  const pagedCategories = categories.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
+  const pagedCategories = categories;
 
   const handleDelete = async (cat: Category) => {
     if (!window.confirm(t('confirmDeleteCategory'))) return;
     try {
       await deleteCategoryById(cat.categoryId);
       toast.success(t('categoryDeletedSuccessfully'));
-      setCategories((prev) => prev.filter((c) => c.categoryId !== cat.categoryId));
+      reloadList(page, pageSize);
     } catch {
       toast.error(t('cannotDeleteCategory'));
     }
@@ -86,14 +108,14 @@ export const CategoryList = () => {
         <EditCategoryModal
           category={editCategory}
           onClose={() => setEditCategory(null)}
-          onUpdated={reloadList}
+          onUpdated={() => reloadList(page, pageSize)}
         />
       )}
       {viewCate && <CategoryDetailModal cate={viewCate} onClose={() => setViewCategory(null)} />}
       <CreateCategoryModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
+        onCreated={() => reloadList(page, pageSize)}
       />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
@@ -250,8 +272,8 @@ export const CategoryList = () => {
                           <PaginationItem>
                             <PaginationPrevious
                               onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              aria-disabled={!hasPreviousPage}
+                              className={!hasPreviousPage ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
@@ -274,10 +296,8 @@ export const CategoryList = () => {
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
-                              className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              aria-disabled={!hasNextPage}
+                              className={!hasNextPage ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
                         </PaginationContent>
@@ -285,12 +305,12 @@ export const CategoryList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {categories.length === 0
+                        {totalItems === 0
                           ? t('paginationEmpty')
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              categories.length
-                            )} ${t('of')} ${categories.length}`}
+                              totalItems
+                            )} ${t('of')} ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
                       <select
