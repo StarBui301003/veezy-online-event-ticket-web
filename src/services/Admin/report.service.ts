@@ -1,22 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import instance from '../axios.customize';
-import type { GetAllReportResponse } from '@/types/Admin/report';
+import type { PaginatedReportResponse } from '@/types/Admin/report';
 
-export async function getAllReport(): Promise<GetAllReportResponse> {
-  const res = await instance.get(`/api/Report`);
+export async function getAllReport(page = 1, pageSize = 10): Promise<PaginatedReportResponse> {
+  const res = await instance.get(`/api/Report/allReports`, { params: { page, pageSize } });
   return res.data;
 }
-export async function getPendingReport(): Promise<GetAllReportResponse> {
-  const res = await instance.get(`/api/Report/pending`);
-  return res.data;
-}
-
-export async function getResolvedReport(): Promise<GetAllReportResponse> {
-  const res = await instance.get(`/api/Report/resolved`);
+export async function getPendingReport(page = 1, pageSize = 10, search = ''): Promise<PaginatedReportResponse> {
+  const params: Record<string, any> = { page, pageSize };
+  if (search) params.search = search;
+  const res = await instance.get(`/api/Report/pending`, { params });
   return res.data;
 }
 
-export async function getRejectedReport(): Promise<GetAllReportResponse> {
-  const res = await instance.get(`/api/Report/rejected`);
+export async function getResolvedReport(page = 1, pageSize = 10, search = ''): Promise<PaginatedReportResponse> {
+  const params: Record<string, any> = { page, pageSize };
+  if (search) params.search = search;
+  const res = await instance.get(`/api/Report/resolved`, { params });
+  return res.data;
+}
+
+export async function getRejectedReport(page = 1, pageSize = 10, search = ''): Promise<PaginatedReportResponse> {
+  const params: Record<string, any> = { page, pageSize };
+  if (search) params.search = search;
+  const res = await instance.get(`/api/Report/rejected`, { params });
   return res.data;
 }
 

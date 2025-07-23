@@ -29,21 +29,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
+import { toast } from 'react-toastify';
 
 const FILTERS = [
-  { label: 'Day', value: 'day' },
-  { label: 'Week', value: 'week' },
-  { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' },
-  { label: 'All', value: 'all' },
-  { label: 'Custom', value: '16' },
+  { label: 'Last 30 Days', value: 12 }, // Last30Days
+  { label: 'This Week', value: 3 }, // ThisWeek
+  { label: 'This Month', value: 5 }, // ThisMonth
+  { label: 'This Year', value: 9 }, // ThisYear
+  { label: 'All Time', value: 15 }, // AllTime
+  { label: 'Custom', value: 16 }, // Custom
 ];
 
 // PieChart colors
 const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
 
 export default function EventTabs() {
-  const [filter, setFilter] = useState('month');
+  const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [approvalTrend, setApprovalTrend] = useState<EventApprovalTrendItem[]>([]);
@@ -52,16 +53,26 @@ export default function EventTabs() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (filter === '16') {
+      if (!startDate || !endDate) {
+        if (startDate || endDate) {
+          toast.warn('Please select both start and end date!');
+        }
+        return;
+      }
+      if (endDate < startDate) {
+        toast.error('End date must be after start date!');
+        return;
+      }
+    }
     setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
-      params.filter = 'custom';
-      if (startDate && endDate) {
-        params.startDate = startDate.toISOString().slice(0, 10);
-        params.endDate = endDate.toISOString().slice(0, 10);
-      }
-    } else {
-      params.filter = filter;
+      params.period = 16;
+      params.customStartDate = startDate?.toISOString().slice(0, 10);
+      params.customEndDate = endDate?.toISOString().slice(0, 10);
+    } else if (filter !== '12') {
+      params.period = parseInt(filter, 10);
     }
     getEventAnalytics(params)
       .then((res: AdminEventAnalyticsResponse) => {
@@ -81,7 +92,7 @@ export default function EventTabs() {
           </SelectTrigger>
           <SelectContent>
             {FILTERS.map((f) => (
-              <SelectItem key={f.value} value={f.value}>
+              <SelectItem key={f.value} value={String(f.value)}>
                 {f.label}
               </SelectItem>
             ))}
@@ -93,14 +104,14 @@ export default function EventTabs() {
               type="date"
               value={startDate ? startDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="Start date"
             />
             <input
               type="date"
               value={endDate ? endDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-2 rounded"
+              className="border px-3 py-1 rounded"
               placeholder="End date"
             />
           </>

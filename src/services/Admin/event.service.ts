@@ -6,6 +6,7 @@ import type {
 import instance from '@/services/axios.customize';
 import type { EventApproveStatus } from '@/types/Admin/event';
 import { Category } from '@/types/Admin/category';
+import type { PaginatedCategoryResponse } from '@/types/Admin/category';
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
   const res = await instance.get<EventListResponse>('/api/Event/approved', { params });
@@ -52,9 +53,11 @@ export async function getCategoryById(categoryId: string) {
   return res.data.data;
 }
 
-export async function getAllCategory() {
-  const res = await instance.get<{ data: Category[] }>(`/api/Category`);
-  return res.data.data;
+export async function getAllCategory(page = 1, pageSize = 10): Promise<PaginatedCategoryResponse> {
+  const res = await instance.get('/api/Category/CategoriesByPaginate', {
+    params: { page, pageSize },
+  });
+  return res.data;
 }
 
 // API: Get tickets by eventId (Admin)

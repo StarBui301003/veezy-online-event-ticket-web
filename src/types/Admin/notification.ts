@@ -54,3 +54,32 @@ export interface AdminNotificationMarkReadResponse {
     message: string;
     data: boolean;
 }
+
+export interface AdminNotificationItem {
+    notificationId: string;
+    userId: string;
+    notificationTitle: string;
+    notificationMessage: string;
+    notificationType: number;
+    isRead: boolean;
+    redirectUrl: string;
+    createdAt: string;
+    createdAtVietnam: string;
+    readAt: string | null;
+    readAtVietnam: string | null;
+    username: string;
+}
+
+export interface PaginatedAdminNotificationResponse {
+    flag: boolean;
+    code: number;
+    message: string;
+    data: {
+        items: AdminNotificationItem[];
+        totalItems: number;
+        totalPages: number;
+        currentPage: number;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+    };
+}

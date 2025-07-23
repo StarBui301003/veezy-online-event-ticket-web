@@ -38,3 +38,4 @@ export interface NewsListResponse {
   };
   message: string;
 }
+

@@ -20,7 +20,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getPendingNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
-import type { News } from '@/types/Admin/news';
+import type { News, NewsListResponse } from '@/types/Admin/news';
 import { FaEye } from 'react-icons/fa';
 import PendingNewsDetailModal from './PendingNewsDetailModal';
 
@@ -37,15 +37,22 @@ export const PendingNewsList = ({
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
 
   const fetchData = () => {
     setLoading(true);
-    getPendingNews(1, 100)
-      .then((res) => {
-        setNews(res.data.items || []);
+    getPendingNews(page, pageSize)
+      .then((res: NewsListResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setNews(res.data.items);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setNews([]);
+          setTotalPages(1);
+        }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
   };
@@ -69,7 +76,7 @@ export const PendingNewsList = ({
     onNews('OnNewsRejected', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
-  }, [activeTab]);
+  }, [activeTab, page, pageSize]);
 
   useEffect(() => {
     const fetchAuthors = async () => {
@@ -102,8 +109,7 @@ export const PendingNewsList = ({
   const filteredNews = news.filter(
     (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
   );
-  const pagedNews = filteredNews.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredNews.length / pageSize));
+  const pagedNews = filteredNews;
 
   return (
     <div className="p-3">

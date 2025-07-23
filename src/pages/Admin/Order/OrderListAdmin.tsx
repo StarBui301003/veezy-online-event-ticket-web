@@ -9,7 +9,7 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import type { AdminOrder } from '@/types/Admin/order';
+import type { AdminOrderListResponse } from '@/types/Admin/order';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
   Pagination,
@@ -21,25 +21,43 @@ import {
 } from '@/components/ui/pagination';
 import { getOrdersAdmin } from '@/services/Admin/order.service';
 import { useTranslation } from 'react-i18next';
+import { FaEye } from 'react-icons/fa';
+import OrderDetail from './OrderDetail';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
+// Thêm hàm format tiền VND
+function formatVND(amount: number | string) {
+  if (typeof amount === 'string') amount = parseFloat(amount);
+  if (isNaN(amount)) return '';
+  return amount.toLocaleString('vi-VN') + ' ₫';
+}
+
 export const OrderListAdmin = () => {
   const { t } = useTranslation();
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [data, setData] = useState<AdminOrderListResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     setLoading(true);
-    getOrdersAdmin()
+    getOrdersAdmin({ page: page, pageSize: pageSize })
       .then((res) => {
-        setOrders(res.data?.items || []);
+        if (res && res.data) {
+          setData({
+            ...res.data,
+            pageSize: pageSize,
+          });
+        } else {
+          setData(null);
+        }
       })
       .catch(() => {
-        setOrders([]);
+        setData(null);
       })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
@@ -48,12 +66,19 @@ export const OrderListAdmin = () => {
     // Lắng nghe realtime SignalR cho order
     const reload = () => {
       setLoading(true);
-      getOrdersAdmin()
+      getOrdersAdmin({ page: page, pageSize: pageSize })
         .then((res) => {
-          setOrders(res.data?.items || []);
+          if (res && res.data) {
+            setData({
+              ...res.data,
+              pageSize: pageSize,
+            });
+          } else {
+            setData(null);
+          }
         })
         .catch(() => {
-          setOrders([]);
+          setData(null);
         })
         .finally(() => {
           setTimeout(() => setLoading(false), 500);
@@ -62,14 +87,12 @@ export const OrderListAdmin = () => {
     onEvent('OnOrderCreated', reload);
     onEvent('OnOrderUpdated', reload);
     onEvent('OnOrderDeleted', reload);
-  }, []);
+  }, [page, pageSize]);
 
-  // Nếu có filter/search, hãy filter ở đây (giống ApprovedEventList)
-  const filteredOrders = orders; // Nếu có filter thì filter ở đây
-
-  const totalItems = filteredOrders.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const pagedOrders = filteredOrders.slice((page - 1) * pageSize, page * pageSize);
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+  // pageSize luôn lấy từ state FE
 
   return (
     <div className="p-6">
@@ -79,71 +102,42 @@ export const OrderListAdmin = () => {
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4" style={{ width: '5%' }}>
+                <TableHead className="pl-4 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>{t('orderId')}</TableHead>
-                <TableHead style={{ width: '25%' }}>{t('customer')}</TableHead>
-                <TableHead style={{ width: '15%' }} className="text-center">
-                  {t('totalAmount')}
+                <TableHead className="text-center" style={{ width: '25%' }}>
+                  {t('customer')}
                 </TableHead>
-                <TableHead style={{ width: '10%' }} className="text-center">
-                  {t('status')}
-                </TableHead>
-                <TableHead style={{ width: '15%' }}>{t('createdAt')}</TableHead>
-                <TableHead className="text-center">{t('actions')}</TableHead>
+                <TableHead style={{ width: '25%' }}>Event Name</TableHead>
+                <TableHead className="text-center"> {t('totalAmount')}</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedOrders.length === 0 ? (
+              {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={5} className="text-center py-4 text-gray-500">
                     {t('noOrdersFound')}
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedOrders.map((order, idx) => (
-                  <TableRow key={order.orderId} className="hover:bg-blue-50">
-                    <TableCell className="text-center sticky left-0 bg-white z-10">
+                items.map((order, idx) => (
+                  <TableRow key={order.orderId} className="hover:bg-blue-50 transition-colors">
+                    <TableCell className="pl-4 text-center sticky left-0 bg-white z-10">
                       {(page - 1) * pageSize + idx + 1}
                     </TableCell>
-                    <TableCell className="text-center sticky left-0 bg-white z-10">
-                      {order.customerName}
-                    </TableCell>
+                    <TableCell className="text-center">{order.customerName}</TableCell>
                     <TableCell>{order.eventName}</TableCell>
-                    <TableCell>
-                      {order.items && order.items.length > 0 ? (
-                        order.items.map((item) => item.ticketName).join(', ')
-                      ) : (
-                        <span className="text-gray-400">No ticket items</span>
-                      )}
+                    <TableCell className="text-center">{formatVND(order.totalAmount)}</TableCell>
+                    <TableCell className="text-center flex items-center justify-center gap-2">
+                      <button
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                        title="View details"
+                        onClick={() => setSelectedOrder(order)}
+                      >
+                        <FaEye className="w-4 h-4" />
+                      </button>
                     </TableCell>
-                    <TableCell className="text-center">
-                      {order.items && order.items.length > 0
-                        ? order.items.map((item) => item.pricePerTicket).join(', ')
-                        : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {order.items && order.items.length > 0
-                        ? order.items.map((item) => item.quantity).join(', ')
-                        : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {order.items && order.items.length > 0
-                        ? order.items.map((item) => item.subtotal).join(', ')
-                        : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {order.discountCode ? (
-                        order.discountCode
-                      ) : (
-                        <span className="text-gray-400">None</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
-                    </TableCell>
-                    <TableCell className="text-center">{order.totalAmount}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -229,6 +223,9 @@ export const OrderListAdmin = () => {
           </Table>
         </div>
       </div>
+      {selectedOrder && (
+        <OrderDetail order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      )}
     </div>
   );
 };

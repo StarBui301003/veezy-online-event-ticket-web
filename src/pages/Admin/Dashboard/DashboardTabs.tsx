@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { FaMoneyBillWave, FaUsers, FaRegNewspaper, FaUser } from 'react-icons/fa';
 import { RiDashboard2Fill } from 'react-icons/ri';
+import { useSearchParams } from 'react-router-dom';
 
 import { OverviewTabs } from './OverviewTabs';
 import UserTabs from './UserTabs';
@@ -11,20 +12,26 @@ import EventTabs from './EventTabs';
 import NewsTabs from './NewsTabs';
 
 export default function DashboardTabs() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [loadedTabs, setLoadedTabs] = useState<string[]>(['overview']);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabParam || 'overview');
+  const [loadedTabs, setLoadedTabs] = useState<string[]>([tabParam || 'overview']);
   // Nếu muốn badge số cho Overview, có thể lấy số từ props hoặc context
   const overviewBadge = 0; // ví dụ: số thông báo mới
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    setSearchParams({ tab });
   };
 
   useEffect(() => {
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
     if (!loadedTabs.includes(activeTab)) {
       setLoadedTabs((prev) => [...prev, activeTab]);
     }
-  }, [activeTab, loadedTabs]);
+  }, [tabParam, activeTab, loadedTabs]);
 
   return (
     <div className="p-6">

@@ -8,8 +8,9 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { getPendingEvents, getCategoryById, cancelEvent } from '@/services/Admin/event.service';
-import { ApprovedEvent, EventApproveStatus } from '@/types/Admin/event';
+import { getPendingEvents, getCategoryById } from '@/services/Admin/event.service';
+import type { PaginatedEventResponse } from '@/types/Admin/event';
+import { ApprovedEvent } from '@/types/Admin/event';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import {
   DropdownMenu,
@@ -26,18 +27,16 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import PendingEventDetailModal from '@/pages/Admin/Event/PendingEventDetailModal';
-import { FaRegTrashAlt } from 'react-icons/fa';
 import { FaEye } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { Category } from '@/types/Admin/category';
+import type { Category } from '@/types/Admin/category';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 // Thêm prop onChangePending
 export const PendingEventList = ({ onChangePending }: { onChangePending?: () => void }) => {
-  const [events, setEvents] = useState<ApprovedEvent[]>([]);
+  const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
@@ -88,7 +87,11 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
     setLoading(true);
     getPendingEvents()
       .then(async (res) => {
-        setEvents(res.data.items);
+        if (res && res.data) {
+          setData(res.data);
+        } else {
+          setData(null);
+        }
 
         // Lấy tất cả categoryId duy nhất từ các event
         const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
@@ -133,7 +136,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         );
         setUsernames(usernameMap);
       })
-      .catch(() => setEvents([]))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
 
     // Lắng nghe realtime SignalR
@@ -145,26 +148,6 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
     onEvent('OnEventApproved', reload);
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
-
-  const handleDelete = async (event: ApprovedEvent) => {
-    if (!window.confirm('Are you sure you want to cancel this event?')) return;
-    try {
-      const res = await cancelEvent(event.eventId);
-      if (res.flag) {
-        toast.success('Event cancelled successfully!');
-        // Xóa event khỏi danh sách hiển thị và reload toàn bộ
-        setEvents((prev) => prev.filter((e) => e.eventId !== event.eventId));
-        // Trigger reload để đảm bảo data consistency
-        setTimeout(() => {
-          reloadList();
-        }, 500);
-      } else {
-        toast.error(res.message || 'Cannot cancel this event!');
-      }
-    } catch {
-      toast.error('Cannot cancel this event!');
-    }
-  };
 
   // Sau khi approve/reject thành công, gọi reloadList
   const reloadList = () => {
@@ -178,9 +161,27 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
 
   const fetchData = () => {
     setLoading(true);
-    getPendingEvents()
+    getPendingEvents({ page, pageSize })
       .then(async (res) => {
-        setEvents(res.data.items);
+        if (res && res.data) {
+          setData({
+            items: res.data.items,
+            totalItems: res.data.totalItems,
+            totalPages: res.data.totalPages,
+            currentPage:
+              typeof res.data.currentPage === 'number' && res.data.currentPage > 0
+                ? res.data.currentPage
+                : page,
+            pageSize:
+              typeof res.data.pageSize === 'number' && res.data.pageSize > 0
+                ? res.data.pageSize
+                : pageSize,
+            hasNextPage: res.data.hasNextPage,
+            hasPreviousPage: res.data.hasPreviousPage,
+          });
+        } else {
+          setData(null);
+        }
         const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
 
         const allCategoryIds = Array.from(
@@ -223,7 +224,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         );
         setUsernames(usernameMap);
       })
-      .catch(() => setEvents([]))
+      .catch(() => setData(null))
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
@@ -235,27 +236,10 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
   }, []);
 
   // Filter logic
-  const filteredEvents = events.filter((event) => {
-    // Filter by category
-    if (
-      selectedCategoryIds.length > 0 &&
-      !event.categoryIds.some((id) => selectedCategoryIds.includes(id))
-    ) {
-      return false;
-    }
-    // Filter by search (event name, created by)
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      const createdByName = usernames[event.createdBy]?.toLowerCase() || '';
-      if (!(event.eventName?.toLowerCase().includes(s) || createdByName.includes(s))) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const pagedEvents = filteredEvents.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+  // pageSize chỉ lấy từ state: const [pageSize, setPageSize] = useState(10);
 
   // UI for filter and search
   return (
@@ -404,7 +388,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedEvents.filter(
+              {items.filter(
                 (event) =>
                   !search ||
                   event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
@@ -418,7 +402,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedEvents
+                items
                   .filter(
                     (event) =>
                       !search ||
@@ -507,21 +491,6 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
-                        <button
-                          className={`border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ${
-                            event.isApproved === EventApproveStatus.Approved
-                              ? 'opacity-50 cursor-not-allowed'
-                              : ''
-                          }`}
-                          onClick={() => {
-                            if (event.isApproved !== EventApproveStatus.Approved)
-                              handleDelete(event);
-                          }}
-                          type="button"
-                          disabled={event.isApproved === EventApproveStatus.Approved}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -572,12 +541,12 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredEvents.length === 0
+                        {items.length === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              filteredEvents.length
-                            )} of ${filteredEvents.length}`}
+                              items.length
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

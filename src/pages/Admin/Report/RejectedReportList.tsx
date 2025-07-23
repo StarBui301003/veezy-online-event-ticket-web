@@ -51,35 +51,19 @@ export const RejectedReportList = () => {
 
   useEffect(() => {
     connectFeedbackHub('http://localhost:5008/notificationHub');
-    setLoading(true);
-    getRejectedReport()
-      .then((res) => {
-        if (res && Array.isArray(res.data)) {
-          setReports(res.data);
-        } else {
-          setReports([]);
-        }
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
-
     // Lắng nghe realtime SignalR cho report
-    const reload = () => {
-      setLoading(true);
-      getRejectedReport()
-        .then((res) => {
-          if (res && Array.isArray(res.data)) {
-            setReports(res.data);
-          } else {
-            setReports([]);
-          }
-        })
-        .finally(() => setTimeout(() => setLoading(false), 500));
-    };
+    const reload = () => reloadList(page, pageSize, search);
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportUpdated', reload);
     onFeedback('OnReportDeleted', reload);
     onFeedback('OnReportStatusChanged', reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    reloadList(page, pageSize, search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search]);
 
   useEffect(() => {
     const fetchReporters = async () => {
@@ -100,14 +84,21 @@ export const RejectedReportList = () => {
     if (reports.length > 0) fetchReporters();
   }, [reports]);
 
-  const filteredReports = reports.filter(
-    (item) =>
-      !search ||
-      item.reason.toLowerCase().includes(search.trim().toLowerCase()) ||
-      item.reportId.toLowerCase().includes(search.trim().toLowerCase())
-  );
-  const pagedReports = filteredReports.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(filteredReports.length / pageSize));
+  const reloadList = (pageArg: number, pageSizeArg: number, searchArg: string) => {
+    setLoading(true);
+    getRejectedReport(pageArg, pageSizeArg, searchArg)
+      .then((res) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setReports(res.data.items);
+        } else {
+          setReports([]);
+        }
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
+
+  const pagedReports = reports;
+  const totalPages = Math.max(1, Math.ceil(reports.length / pageSize));
 
   return (
     <div className="p-3">
@@ -299,12 +290,12 @@ export const RejectedReportList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredReports.length === 0
+                        {reports.length === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              filteredReports.length
-                            )} of ${filteredReports.length}`}
+                              reports.length
+                            )} of ${reports.length}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select

@@ -47,9 +47,6 @@ export function AdminLayout() {
     dashboard: 'Dashboard',
     users: t('users'),
     events: t('events'),
-    'approved-events-list': t('approvedEventsList'),
-    'rejected-events-list': t('rejectedEventsList'),
-    'pending-events-list': t('pendingEventsList'),
     'order-list': t('ordersList'),
     'user-list': t('usersList'),
     'payment-list': t('paymentsList'),
@@ -60,6 +57,7 @@ export function AdminLayout() {
     'comment-list': t('commentsList'),
     'news-list': t('newsList'),
     'news-own-list': t('myNewsList'),
+    chatbox: 'Chatbox',
   };
 
   // Thêm state và effect cho nút go to top

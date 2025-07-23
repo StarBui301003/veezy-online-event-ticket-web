@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getEventManagerUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
+import type { PaginatedUserResponse } from '@/types/Admin/user';
 
 import {
   Table,
@@ -39,6 +40,7 @@ export const EventManagerList = () => {
 
   const [userPage, setUserPage] = useState(1);
   const [userPageSize, setUserPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -47,16 +49,23 @@ export const EventManagerList = () => {
 
   const reloadUsers = () => {
     setLoading(true);
-    getEventManagerUsers()
-      .then((data) => {
-        setUsers(data);
+    getEventManagerUsers(userPage, userPageSize)
+      .then((res: PaginatedUserResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setUsers(res.data.items);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setUsers([]);
+          setTotalPages(1);
+        }
       })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     reloadUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userPage, userPageSize]);
 
   const filteredUsers = users.filter(
     (user) =>
@@ -65,9 +74,7 @@ export const EventManagerList = () => {
       user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
       (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
   );
-
-  const pagedUsers = filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
-  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
+  const pagedUsers = filteredUsers;
 
   return (
     <div className="p-3">
@@ -218,7 +225,7 @@ export const EventManagerList = () => {
                               className={userPage === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map((i) => (
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
                                 isActive={i === userPage}
@@ -237,10 +244,10 @@ export const EventManagerList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
-                              aria-disabled={userPage === userTotalPages}
+                              onClick={() => setUserPage((p) => Math.min(totalPages, p + 1))}
+                              aria-disabled={userPage === totalPages}
                               className={
-                                userPage === userTotalPages ? 'pointer-events-none opacity-50' : ''
+                                userPage === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>

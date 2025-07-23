@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCustomerUsers } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
+import type { PaginatedUserResponse } from '@/types/Admin/user';
 
 import {
   Table,
@@ -48,26 +49,32 @@ export const CustomerList = () => {
   // Thêm hàm reload danh sách
   const reloadUsers = () => {
     setLoading(true);
-    getCustomerUsers()
-      .then((data) => {
-        setUsers(data);
+    getCustomerUsers(userPage, userPageSize)
+      .then((res: PaginatedUserResponse) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setUsers(res.data.items);
+        } else {
+          setUsers([]);
+        }
       })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     reloadUsers();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userPage, userPageSize]);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      !userSearch ||
-      user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
-      user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
-      (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
-  );
-
-  const pagedUsers = filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
+  const filteredUsers = Array.isArray(users)
+    ? users.filter(
+        (user) =>
+          !userSearch ||
+          user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+          user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
+          (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
+      )
+    : [];
+  const pagedUsers = filteredUsers;
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
 
   return (

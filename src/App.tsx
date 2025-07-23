@@ -81,12 +81,16 @@ import {
   connectAnalyticsHub,
   onAnalytics,
   disconnectAnalyticsHub,
+  connectChatHub,
+  onChat,
+  disconnectChatHub,
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
 import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
 import i18n from './i18n';
 import { getUserConfig } from './services/userConfig.service';
+import { ChatboxAdmin } from './pages/Admin/Chatbox/ChatboxAdmin';
 
 function App() {
   useEffect(() => {
@@ -110,48 +114,55 @@ function App() {
   }, []);
   useEffect(() => {
     // Connect directly to services since Ocelot doesn't support SignalR WebSocket
-    
+
     // 1. NotificationService - Port 5003
     const token = localStorage.getItem('access_token');
     console.log('JWT Token:', token ? 'exists' : 'not found');
-    
+
     // Decode JWT to check claims
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         console.log('JWT Payload:', payload);
-        console.log('Role claim in JWT:', payload.role || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'not found');
+        console.log(
+          'Role claim in JWT:',
+          payload.role ||
+            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+            'not found'
+        );
       } catch (e) {
         console.error('Failed to decode JWT:', e);
       }
     }
-    
-    connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined).then(() => {
-      console.log('Connected to NotificationService SignalR (Port 5003)');
-      
-      // Join admin group if user is admin
-      joinAdminGroup();
-      
-      onNotification('ReceiveNotification', (data) => {
-        console.log('NotificationService:', data);
-        // Handle real-time notifications
+
+    connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined)
+      .then(() => {
+        console.log('Connected to NotificationService SignalR (Port 5003)');
+
+        // Join admin group if user is admin
+        joinAdminGroup();
+
+        onNotification('ReceiveNotification', (data) => {
+          console.log('NotificationService:', data);
+          // Handle real-time notifications
+        });
+        // Remove global ReceiveAdminNotification handler to avoid conflicts with AdminNotificationList component
+        // The AdminNotificationList component will handle this event
+
+        // Only handle other admin events at global level for logging
+        onNotification('AdminNotificationRead', (data) => {
+          console.log('AdminNotificationRead:', data);
+        });
+        onNotification('AdminAllNotificationsRead', () => {
+          console.log('AdminAllNotificationsRead');
+        });
+        onNotification('AdminNotificationDeleted', (data) => {
+          console.log('AdminNotificationDeleted:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to NotificationService:', err);
       });
-      // Remove global ReceiveAdminNotification handler to avoid conflicts with AdminNotificationList component
-      // The AdminNotificationList component will handle this event
-      
-      // Only handle other admin events at global level for logging
-      onNotification('AdminNotificationRead', (data) => {
-        console.log('AdminNotificationRead:', data);
-      });
-      onNotification('AdminAllNotificationsRead', () => {
-        console.log('AdminAllNotificationsRead');
-      });
-      onNotification('AdminNotificationDeleted', (data) => {
-        console.log('AdminNotificationDeleted:', data);
-      });
-    }).catch(err => {
-      console.error('Failed to connect to NotificationService:', err);
-    });
     // 2. EventService - NotificationHub for Events real-time (Port 5004)
     connectEventHub('http://localhost:5004/notificationHub').then(() => {
       console.log('Connected to EventService SignalR (Port 5004)');
@@ -211,96 +222,127 @@ function App() {
         console.log('OnCategoryDeleted:', data);
       });
     });
-    
+
     // 3. TicketService - Port 5005
-    connectTicketHub('http://localhost:5005/notificationHub').then(() => {
-      console.log('Connected to TicketService SignalR (Port 5005)');
-      onTicket('OnOrderCreated', (data) => {
-        console.log('OnOrderCreated:', data);
+    connectTicketHub('http://localhost:5005/notificationHub')
+      .then(() => {
+        console.log('Connected to TicketService SignalR (Port 5005)');
+        onTicket('OnOrderCreated', (data) => {
+          console.log('OnOrderCreated:', data);
+        });
+        onTicket('OnOrderStatusChanged', (data) => {
+          console.log('OnOrderStatusChanged:', data);
+        });
+        onTicket('OnPaymentCompleted', (data) => {
+          console.log('OnPaymentCompleted:', data);
+        });
+        onTicket('OnTicketIssued', (data) => {
+          console.log('OnTicketIssued:', data);
+        });
+        onTicket('OnCheckedIn', (data) => {
+          console.log('OnCheckedIn:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to TicketService:', err);
       });
-      onTicket('OnOrderStatusChanged', (data) => {
-        console.log('OnOrderStatusChanged:', data);
+
+    // 4. IdentityService - Port 5001
+    connectIdentityHub('http://localhost:5001/hubs/notifications')
+      .then(() => {
+        console.log('Connected to IdentityService SignalR (Port 5001)');
+        onIdentity('UserProfileUpdated', (data) => {
+          console.log('UserProfileUpdated:', data);
+        });
+        onIdentity('UserPasswordChanged', (data) => {
+          console.log('UserPasswordChanged:', data);
+        });
+        onIdentity('UserVerifiedEmail', (data) => {
+          console.log('UserVerifiedEmail:', data);
+        });
+        onIdentity('UserUpdated', (data) => {
+          console.log('UserUpdated:', data);
+        });
+        onIdentity('UserAvatarUpdated', (data) => {
+          console.log('UserAvatarUpdated:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to IdentityService:', err);
       });
-      onTicket('OnPaymentCompleted', (data) => {
-        console.log('OnPaymentCompleted:', data);
-      });
-      onTicket('OnTicketIssued', (data) => {
-        console.log('OnTicketIssued:', data);
-      });
-      onTicket('OnCheckedIn', (data) => {
-        console.log('OnCheckedIn:', data);
-      });
-    }).catch(err => {
-      console.error('Failed to connect to TicketService:', err);
-    });
-    
-    // 4. IdentityService - Port 5001 
-    connectIdentityHub('http://localhost:5001/hubs/notifications').then(() => {
-      console.log('Connected to IdentityService SignalR (Port 5001)');
-      onIdentity('UserProfileUpdated', (data) => {
-        console.log('UserProfileUpdated:', data);
-      });
-      onIdentity('UserPasswordChanged', (data) => {
-        console.log('UserPasswordChanged:', data);
-      });
-      onIdentity('UserVerifiedEmail', (data) => {
-        console.log('UserVerifiedEmail:', data);
-      });
-      onIdentity('UserUpdated', (data) => {
-        console.log('UserUpdated:', data);
-      });
-      onIdentity('UserAvatarUpdated', (data) => {
-        console.log('UserAvatarUpdated:', data);
-      });
-    }).catch(err => {
-      console.error('Failed to connect to IdentityService:', err);
-    });
 
     // 5. EventService - NewsHub for News real-time (Port 5004)
-    connectNewsHub('http://localhost:5004/newsHub').then(() => {
-      console.log('Connected to NewsHub SignalR (Port 5004)');
-      onNews('OnNewsCreated', (data) => {
-        console.log('OnNewsCreated:', data);
+    connectNewsHub('http://localhost:5004/newsHub')
+      .then(() => {
+        console.log('Connected to NewsHub SignalR (Port 5004)');
+        onNews('OnNewsCreated', (data) => {
+          console.log('OnNewsCreated:', data);
+        });
+        onNews('OnNewsUpdated', (data) => {
+          console.log('OnNewsUpdated:', data);
+        });
+        onNews('OnNewsDeleted', (data) => {
+          console.log('OnNewsDeleted:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to NewsHub:', err);
       });
-      onNews('OnNewsUpdated', (data) => {
-        console.log('OnNewsUpdated:', data);
-      });
-      onNews('OnNewsDeleted', (data) => {
-        console.log('OnNewsDeleted:', data);
-      });
-    }).catch(err => {
-      console.error('Failed to connect to NewsHub:', err);
-    });
 
     // 6. EventService - CommentHub for Comments real-time (Port 5004)
-    connectCommentHub('http://localhost:5004/commentHub').then(() => {
-      console.log('Connected to CommentHub SignalR (Port 5004)');
-      onComment('OnCommentCreated', (data) => {
-        console.log('OnCommentCreated:', data);
+    connectCommentHub('http://localhost:5004/commentHub')
+      .then(() => {
+        console.log('Connected to CommentHub SignalR (Port 5004)');
+        onComment('OnCommentCreated', (data) => {
+          console.log('OnCommentCreated:', data);
+        });
+        onComment('OnCommentUpdated', (data) => {
+          console.log('OnCommentUpdated:', data);
+        });
+        onComment('OnCommentDeleted', (data) => {
+          console.log('OnCommentDeleted:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to CommentHub:', err);
       });
-      onComment('OnCommentUpdated', (data) => {
-        console.log('OnCommentUpdated:', data);
-      });
-      onComment('OnCommentDeleted', (data) => {
-        console.log('OnCommentDeleted:', data);
-      });
-    }).catch(err => {
-      console.error('Failed to connect to CommentHub:', err);
-    });
 
     // 7. AnalyticsService - Port 5006 (Optional - may not always be running)
-    connectAnalyticsHub('http://localhost:5006/analyticsHub').then(() => {
-      console.log('Connected to AnalyticsHub SignalR (Port 5006)');
-      onAnalytics('OnEventManagerRealtimeOverview', (data) => {
-        console.log('OnEventManagerRealtimeOverview:', data);
+    connectAnalyticsHub('http://localhost:5006/analyticsHub')
+      .then(() => {
+        console.log('Connected to AnalyticsHub SignalR (Port 5006)');
+        onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+          console.log('OnEventManagerRealtimeOverview:', data);
+        });
+        onAnalytics('OnEventManagerPerformanceComparison', (data) => {
+          console.log('OnEventManagerPerformanceComparison:', data);
+        });
+      })
+      .catch((err) => {
+        console.warn('AnalyticsHub not available (Port 5006):', err.message);
+        // This is optional, continue without analytics
       });
-      onAnalytics('OnEventManagerPerformanceComparison', (data) => {
-        console.log('OnEventManagerPerformanceComparison:', data);
+
+    // 8. ChatService - Port 5007
+    connectChatHub('http://localhost:5007/chatHub', token || undefined)
+      .then(() => {
+        console.log('Connected to ChatHub SignalR (Port 5007)');
+        onChat('ReceiveMessage', (data) => {
+          console.log('ReceiveMessage:', data);
+        });
+        onChat('UserConnected', (data) => {
+          console.log('UserConnected:', data);
+        });
+        onChat('UserDisconnected', (data) => {
+          console.log('UserDisconnected:', data);
+        });
+        onChat('NewChatRoomCreated', (data) => {
+          console.log('NewChatRoomCreated:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to ChatHub:', err);
       });
-    }).catch(err => {
-      console.warn('AnalyticsHub not available (Port 5006):', err.message);
-      // This is optional, continue without analytics
-    });
 
     // Remove FeedbackService connection as it doesn't have a dedicated port
     // FeedbackService uses NotificationHub through other services
@@ -313,6 +355,7 @@ function App() {
       disconnectNewsHub();
       disconnectCommentHub();
       disconnectAnalyticsHub();
+      disconnectChatHub();
     };
   }, []);
   const router = createBrowserRouter([
@@ -487,6 +530,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <CommentList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'chatbox',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <ChatboxAdmin />
             </ProtectedRoute>
           ),
         },

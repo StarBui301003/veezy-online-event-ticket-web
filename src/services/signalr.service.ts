@@ -11,6 +11,7 @@ let connections: Record<string, HubConnection | null> = {
   news: null,
   comment: null,
   analytics: null, // Thêm analytics
+  chat: null, // Thêm chat
 };
 
 export function connectHub(hubType: keyof typeof connections, hubUrl: string, accessToken?: string) {
@@ -78,6 +79,38 @@ export const disconnectAnalyticsHub = () => {
   if (connections.analytics) {
     connections.analytics.stop();
     connections.analytics = null;
+  }
+};
+
+export const connectChatHub = (url: string, token?: string) => connectHub('chat', url, token);
+export const onChat = (event: string, cb: (...args: any[]) => void) => onHubEvent('chat', event, cb);
+export const disconnectChatHub = () => disconnectHub('chat');
+
+// Join a specific chat room
+export const joinChatRoom = async (roomId: string) => {
+  const connection = connections['chat'];
+  if (connection && connection.state === 'Connected') {
+    try {
+      await connection.invoke('JoinRoom', roomId);
+      console.log(`Joined chat room: ${roomId}`);
+    } catch (error) {
+      console.error(`Failed to join chat room ${roomId}:`, error);
+    }
+  } else {
+    console.error('Chat hub not connected');
+  }
+};
+
+// Leave a specific chat room
+export const leaveChatRoom = async (roomId: string) => {
+  const connection = connections['chat'];
+  if (connection && connection.state === 'Connected') {
+    try {
+      await connection.invoke('LeaveRoom', roomId);
+      console.log(`Left chat room: ${roomId}`);
+    } catch (error) {
+      console.error(`Failed to leave chat room ${roomId}:`, error);
+    }
   }
 };
 
