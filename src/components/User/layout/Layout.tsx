@@ -3,6 +3,7 @@ import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
 import { useEffect, useState } from 'react';
 import ScrollToTop from '@/components/common/ScrollToTop';
+import { UnifiedCustomerChat } from '@/components/Customer';
 
 export function Layout() {
   const [show, setShow] = useState(false);
@@ -55,10 +56,14 @@ export function Layout() {
       <Header />
       <Outlet />
       <Footer />
+      
+      {/* Unified Customer Chat - Available on all customer pages */}
+      <UnifiedCustomerChat />
+      
       {show && (
         <button
           onClick={handleGoTop}
-          className="fixed bottom-6 right-6 z-50 rounded-full bg-primary text-primary-foreground shadow-lg p-3 hover:bg-primary/90 transition"
+          className="fixed bottom-6 left-6 z-40 rounded-full bg-primary text-primary-foreground shadow-lg p-3 hover:bg-primary/90 transition"
           aria-label="Go to top"
         >
           ↑
