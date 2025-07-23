@@ -80,6 +80,9 @@ import {
   connectAnalyticsHub,
   onAnalytics,
   disconnectAnalyticsHub,
+  connectChatHub,
+  onChat,
+  disconnectChatHub,
 } from './services/signalr.service';
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
@@ -298,6 +301,27 @@ function App() {
         // This is optional, continue without analytics
       });
 
+    // 8. ChatService - Port 5007
+    connectChatHub('http://localhost:5007/chatHub', token || undefined)
+      .then(() => {
+        console.log('Connected to ChatHub SignalR (Port 5007)');
+        onChat('ReceiveMessage', (data) => {
+          console.log('ReceiveMessage:', data);
+        });
+        onChat('UserConnected', (data) => {
+          console.log('UserConnected:', data);
+        });
+        onChat('UserDisconnected', (data) => {
+          console.log('UserDisconnected:', data);
+        });
+        onChat('NewChatRoomCreated', (data) => {
+          console.log('NewChatRoomCreated:', data);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to connect to ChatHub:', err);
+      });
+
     // Remove FeedbackService connection as it doesn't have a dedicated port
     // FeedbackService uses NotificationHub through other services
     // Cleanup
@@ -309,6 +333,7 @@ function App() {
       disconnectNewsHub();
       disconnectCommentHub();
       disconnectAnalyticsHub();
+      disconnectChatHub();
     };
   }, []);
   const router = createBrowserRouter([
