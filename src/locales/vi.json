@@ -602,11 +602,17 @@
   "editAvatar": "Chỉnh Sửa Ảnh Đại Diện",
   "editing": "Đang Chỉnh Sửa..."
   ,
+  "rememberMe": "Ghi Nhớ Đăng Nhập",
+  "forgotPassword": "Quên Mật Khẩu?",
+  "loggingIn": "Đang Đăng Nhập...",
+  "or": "Hoặc",
   "confirmDeleteCategory": "Xác Nhận Xóa Danh Mục",
   "categoryDeletedSuccessfully": "Xóa Danh Mục Thành Công!",
   "cannotDeleteCategory": "Không Thể Xóa Danh Mục!",
   "searchByCategoryName": "Tìm Kiếm Theo Tên Danh Mục",
   "noCategoriesFound": "Không Tìm Thấy Danh Mục Nào.",
   "of": "Trên",
-  "paginationEmpty": "Không Có Dữ Liệu Để Hiển Thị"
+  "paginationEmpty": "Không Có Dữ Liệu Để Hiển Thị",
+  "goToEditEvent": "Chuyển Đến Trang Chỉnh Sửa Sự Kiện",
+  "missingBankInfo": "Bạn Cần Cung Cấp Đầy Đủ Thông Tin Tài Khoản Ngân Hàng Để Bán Vé Thu Phí. Thiếu: Số Tài Khoản, Tên Chủ Tài Khoản, Tên Ngân Hàng"
 }

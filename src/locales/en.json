@@ -638,5 +638,11 @@
   "searchByCategoryName": "Search By Category Name",
   "noCategoriesFound": "No Categories Found.",
   "of": "Of",
-  "paginationEmpty": "No Data To Display"
+  "paginationEmpty": "No Data To Display",
+  "rememberMe": "Remember Me",
+  "forgotPassword": "Forgot Password?",
+  "loggingIn": "Logging In...",
+  "or": "Or",
+  "goToEditEvent": "Go To Edit Event",
+  "missingBankInfo": "You Must Provide Complete Bank Account Information To Sell Paid Tickets. Missing: Bank Account Number, Bank Account Name, Bank Name"
 }

@@ -1,3 +1,10 @@
+// Helper to format ISO string to yyyy-MM-ddTHH:mm for datetime-local input (like EditTicket)
+function toInputDate(dateString: string): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 16);
+}
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
@@ -12,6 +19,7 @@ import {
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { CreateEventData, Category, Content } from '@/types/event';
 import { validateEventForm } from '@/utils/validation';
+
 
 const MAX_SECTIONS = 5;
 const contentTypeOptions = [
@@ -88,6 +96,9 @@ export default function EditEvent() {
   const tagInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  // const { t } = useTranslation();
+
+  // const isMissingBankInfo = !formData.bankAccount || !formData.bankAccountName || !formData.bankName;
 
   useEffect(() => {
     const fetchEventAndCategories = async () => {
@@ -100,8 +111,8 @@ export default function EditEvent() {
           eventDescription: event.eventDescription || '',
           eventCoverImageUrl: event.eventCoverImageUrl || '',
           eventLocation: event.eventLocation || '',
-          startAt: event.startAt || '',
-          endAt: event.endAt || '',
+          startAt: toInputDate(event.startAt || ''),
+          endAt: toInputDate(event.endAt || ''),
           tags: event.tags || [],
           categoryIds: event.categoryIds || [],
           contents: event.contents || [],
@@ -141,7 +152,6 @@ export default function EditEvent() {
     onEvent('OnCategoryCreated', fetchCategories);
     onEvent('OnCategoryUpdated', fetchCategories);
     onEvent('OnCategoryDeleted', fetchCategories);
-    // eslint-disable-next-line
   }, [eventId]);
 
   // Cover image handlers
@@ -307,8 +317,11 @@ export default function EditEvent() {
     }
 
     try {
+      // Ensure startAt and endAt are passed as string (datetime-local returns string)
       const updatedData: CreateEventData = {
         ...formData,
+        startAt: formData.startAt,
+        endAt: formData.endAt,
         contents: contents.map((c, idx) => ({
           position: Number(c.position) || idx + 1,
           description: c.contentType === 'image' ? '' : c.description,
@@ -345,6 +358,7 @@ export default function EditEvent() {
           onSubmit={handleSubmit}
           className="space-y-8 bg-slate-800/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-6xl mx-auto"
         >
+          {/* Bank info warning removed as requested */}
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
               Chỉnh sửa sự kiện
@@ -413,10 +427,8 @@ export default function EditEvent() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Số tài khoản ngân hàng
-              </label>
+            <div className="space-y-2" id="bank-info-section">
+              <label className="block text-sm font-medium text-slate-300">Số tài khoản ngân hàng</label>
               <input
                 type="text"
                 name="bankAccount"
@@ -426,13 +438,35 @@ export default function EditEvent() {
                 placeholder="Nhập số tài khoản"
               />
             </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Tên chủ tài khoản</label>
+              <input
+                type="text"
+                name="bankAccountName"
+                value={formData.bankAccountName}
+                onChange={handleInputChange}
+                className="w-full p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                placeholder="Nhập tên chủ tài khoản"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Ngân hàng</label>
+              <input
+                type="text"
+                name="bankName"
+                value={formData.bankName}
+                onChange={handleInputChange}
+                className="w-full p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                placeholder="Nhập tên ngân hàng"
+              />
+            </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-slate-300">Thời gian bắt đầu</label>
               <input
                 type="datetime-local"
                 name="startAt"
-                value={formData.startAt}
+                value={formData.startAt || ''}
                 onChange={handleInputChange}
                 className="w-full p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                 required
@@ -444,12 +478,14 @@ export default function EditEvent() {
               <input
                 type="datetime-local"
                 name="endAt"
-                value={formData.endAt}
+                value={formData.endAt || ''}
                 onChange={handleInputChange}
                 className="w-full p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                 required
               />
             </div>
+
+
           </div>
 
           <div className="space-y-2">

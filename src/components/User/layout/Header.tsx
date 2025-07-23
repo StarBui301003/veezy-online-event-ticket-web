@@ -1,9 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useNotifications } from '@/hooks/useNotifications';
+import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
 import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AVATAR, LOGO } from '@/assets/img';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +24,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FiUser } from 'react-icons/fi';
 import { LogOut } from 'lucide-react';
 import { Bell } from 'lucide-react';
-import {
-  getUserNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
-} from '@/services/notification.service';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 
@@ -39,12 +36,20 @@ export const Header = () => {
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
   const [notifDropdown, setNotifDropdown] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [notifLoading, setNotifLoading] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const [notifHasUnread, setNotifHasUnread] = useState(false);
-  const [notifPage, setNotifPage] = useState(1);
-  const [notifHasMore, setNotifHasMore] = useState(true);
+  const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+  const accountObj = accountStr ? JSON.parse(accountStr) : null;
+  const userId = accountObj?.userId || accountObj?.accountId;
+  const {
+    notifications,
+    notifLoading,
+    notifHasUnread,
+    notifHasMore,
+    notifRef,
+    handleReadNotification,
+    handleReadAll,
+    handleLoadMore,
+  } = useNotifications({ userId, maxNotifications: 30, language: i18nInstance.language });
+
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
@@ -84,45 +89,12 @@ export const Header = () => {
     window.addEventListener('user-updated', fetchAccountAndUser);
     window.addEventListener('storage', fetchAccountAndUser);
 
-    // Fetch notifications if logged in
-    if (account?.userId) {
-      getUserNotifications(account.userId, 1, 5).then((res) => {
-        const items = res.data?.data?.items || [];
-        setNotifications(items);
-        setNotifHasUnread(items.some((n: any) => !n.isRead));
-      });
-    }
-
     return () => {
       window.removeEventListener('scroll', changeBlur);
       window.removeEventListener('user-updated', fetchAccountAndUser);
       window.removeEventListener('storage', fetchAccountAndUser);
     };
   }, []);
-
-  useEffect(() => {
-    if (!notifDropdown || !account?.userId) return;
-    setNotifLoading(true);
-    getUserNotifications(account.userId, 1, 5)
-      .then((res) => {
-        const items = res.data?.data?.items || [];
-        setNotifications(items);
-        setNotifHasUnread(items.some((n: any) => !n.isRead));
-        setNotifPage(1);
-        setNotifHasMore(res.data?.data?.hasNextPage ?? false);
-      })
-      .finally(() => setNotifLoading(false));
-  }, [notifDropdown, account?.userId]);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifDropdown(false);
-      }
-    };
-    if (notifDropdown) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [notifDropdown]);
 
   const changeBlur = () => {
     setBlur(window.scrollY > 0);
@@ -142,48 +114,6 @@ export const Header = () => {
     } finally {
       setLoadingLogout(false);
     }
-  };
-
-  const handleReadNotification = async (notification: any) => {
-    if (!notification.isRead && account?.userId) {
-      await markNotificationRead(notification.notificationId, account.userId);
-    }
-    // Refetch notifications
-    if (account?.userId) {
-      const res = await getUserNotifications(account.userId, 1, notifPage * 5);
-      const items = res.data?.data?.items || [];
-      setNotifications(items);
-      setNotifHasUnread(items.some((n: any) => !n.isRead));
-      setNotifHasMore(res.data?.data?.hasNextPage ?? false);
-    }
-    // Redirect if needed
-    if (notification.redirectUrl) {
-      navigate(notification.redirectUrl);
-      setNotifDropdown(false);
-    }
-  };
-
-  const handleReadAll = async () => {
-    if (account?.userId) {
-      await markAllNotificationsRead(account.userId);
-      const res = await getUserNotifications(account.userId, 1, notifPage * 5);
-      const items = res.data?.data?.items || [];
-      setNotifications(items);
-      setNotifHasUnread(false);
-      setNotifHasMore(res.data?.data?.hasNextPage ?? false);
-    }
-  };
-
-  const handleLoadMore = async () => {
-    if (!account?.userId || notifLoading || !notifHasMore) return;
-    setNotifLoading(true);
-    const nextPage = notifPage + 1;
-    const res = await getUserNotifications(account.userId, nextPage, 5);
-    const items = res.data?.data?.items || [];
-    setNotifications((prev) => [...prev, ...items]);
-    setNotifPage(nextPage);
-    setNotifHasMore(res.data?.data?.hasNextPage ?? false);
-    setNotifLoading(false);
   };
 
   return (
@@ -320,6 +250,8 @@ export const Header = () => {
                         </span>
                       </div>
                     </div>
+                    {/* ...existing code... */}
+                    {/* ...existing code... */}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -351,7 +283,7 @@ export const Header = () => {
             )}
             {/* Notification Bell */}
             {account && (
-              <div className="relative" ref={notifRef}>
+              <div className="relative">
                 <button
                   className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/30 transition-all relative"
                   onClick={() => setNotifDropdown((v) => !v)}
@@ -363,60 +295,17 @@ export const Header = () => {
                   )}
                 </button>
                 {notifDropdown && (
-                  <div className="absolute right-0 z-30 mt-2 w-80 bg-white text-gray-900 rounded-xl shadow-2xl border border-purple-400/30 overflow-hidden animate-fadeIn">
-                    <div className="flex items-center justify-between p-4 border-b font-bold text-purple-600 gap-2">
-                      <span className="flex items-center gap-2">
-                        <Bell className="text-purple-400" /> {t('new_notifications')}
-                      </span>
-                      <button
-                        className="text-xs text-purple-500 hover:underline font-semibold px-2 py-1 rounded hover:bg-purple-100 transition"
-                        onClick={handleReadAll}
-                        disabled={
-                          notifications.length === 0 || notifications.every((n) => n.isRead)
-                        }
-                      >
-                        {t('mark_all_as_read')}
-                      </button>
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifLoading && notifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400">{t('loading')}</div>
-                      ) : notifications.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400">{t('no_new_notifications')}</div>
-                      ) : (
-                        <>
-                          {notifications.map((n) => (
-                            <button
-                              key={n.notificationId}
-                              className={`w-full text-left px-4 py-3 border-b last:border-b-0 ${
-                                n.isRead ? 'bg-white' : 'bg-purple-50 hover:bg-purple-100'
-                              } transition`}
-                              onClick={() => handleReadNotification(n)}
-                            >
-                              <div className="font-semibold text-sm text-purple-700 truncate">
-                                {n.notificationTitle}
-                              </div>
-                              <div className="text-xs text-gray-600 truncate">
-                                {n.notificationMessage}
-                              </div>
-                              <div className="text-[10px] text-gray-400 mt-1">
-                                {n.createdAtVietnam || n.createdAt}
-                              </div>
-                            </button>
-                          ))}
-                          {notifications.length > 0 && notifHasMore && (
-                            <button
-                              className="w-full py-3 text-center text-purple-600 font-semibold hover:bg-purple-50 border-t border-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={handleLoadMore}
-                              disabled={notifLoading || !notifHasMore}
-                            >
-                              {notifLoading ? t('loading') : t('see_more')}
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  <NotificationDropdown
+                    notifications={notifications}
+                    notifLoading={notifLoading}
+                    notifHasMore={notifHasMore}
+                    notifRef={notifRef}
+                    onReadNotification={n => handleReadNotification(n, url => { navigate(url); setNotifDropdown(false); })}
+                    onReadAll={handleReadAll}
+                    onLoadMore={handleLoadMore}
+                    onViewAll={() => { setNotifDropdown(false); navigate('/all-notifications'); }}
+                    t={t}
+                  />
                 )}
               </div>
             )}

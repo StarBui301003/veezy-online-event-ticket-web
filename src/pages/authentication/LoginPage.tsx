@@ -20,6 +20,7 @@ import {
 import { FiCamera } from 'react-icons/fi';
 import FaceCapture from '@/components/common/FaceCapture';
 import { loginByFaceAPI } from '@/services/auth.service';
+import { useTranslation } from 'react-i18next';
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -31,6 +32,7 @@ export const LoginPage = () => {
   const [faceError, setFaceError] = useState('');
   const navigate = useNavigate();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
@@ -409,10 +411,10 @@ export const LoginPage = () => {
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
                   className="border-none focus:outline-none rounded-none bg-white/5 text-[#A1A1AA]"
                 />
-                <div>Remember me</div>
+                <div>{t('rememberMe')}</div>
               </div>
               <Link to="/reset-password" className="text-[#60A5FA] hover:underline">
-                Forgot password?
+                {t('forgotPassword')}
               </Link>
             </div>
             <Button
@@ -423,16 +425,16 @@ export const LoginPage = () => {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="animate-spin w-6 h-6" />
-                  Logging in...
+                  {t('loggingIn')}
                 </span>
               ) : (
-                'Login'
+                t('login')
               )}
             </Button>
             {/* OR Divider */}
             <div className="flex items-center w-[380px] my-4">
               <div className="flex-grow h-px bg-gray-300" />
-              <span className="mx-4 text-gray-400 font-semibold text-lg select-none">or</span>
+              <span className="mx-4 text-gray-400 font-semibold text-lg select-none">{t('or')}</span>
               <div className="flex-grow h-px bg-gray-300" />
             </div>
             <Button

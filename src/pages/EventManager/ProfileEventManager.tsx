@@ -1,3 +1,6 @@
+
+  // Fetch following events when the tab is selected
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
@@ -11,8 +14,11 @@ import {
 } from '@/components/ui/select';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
-import { getEventFollowersByUserId } from '@/services/follow.service';
+import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import type { User } from '@/types/auth';
+
+// Extend User type for event followers to include eventName
+type EventFollower = User & { eventName?: string };
 import { NO_AVATAR } from '@/assets/img';
 import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
@@ -21,9 +27,10 @@ import { useTranslation } from 'react-i18next';
 
 const TABS = [
   { key: 'profile', label: 'Thông tin cá nhân' },
-  { key: 'followers', label: 'Người theo dõi sự kiện' },
-  { key: 'managerFollowers', label: 'Người theo dõi bạn' },
+  { key: 'followers', label: 'Người theo dõi event của bạn' },
+  { key: 'managerFollowers', label: 'Người theo dõi bạn' }
 ];
+
 
 export default function ProfileEventManager() {
   const { t } = useTranslation();
@@ -36,11 +43,12 @@ export default function ProfileEventManager() {
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
-  const [tab, setTab] = useState<'profile' | 'followers' | 'managerFollowers'>('profile');
-  const [followers, setFollowers] = useState<User[]>([]);
-  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [tab, setTab] = useState<'profile' | 'followers' | 'managerFollowers' | 'followingEvents'>('profile');
+  const [eventFollowers, setEventFollowers] = useState<EventFollower[]>([]);
+  const [loadingEventFollowers, setLoadingEventFollowers] = useState(false);
   const [managerFollowers, setManagerFollowers] = useState<User[]>([]);
   const [loadingManagerFollowers, setLoadingManagerFollowers] = useState(false);
+
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -72,19 +80,63 @@ export default function ProfileEventManager() {
   }, []);
 
   useEffect(() => {
+    const fetchEventFollowers = async () => {
+      setLoadingEventFollowers(true);
+      try {
+        // 1. Lấy danh sách event mà user này quản lý
+        const eventsRes = await getMyApprovedEvents();
+        const events = Array.isArray(eventsRes) ? eventsRes : (eventsRes?.data?.items || []);
+        // 2. Lấy followers cho từng event
+        const allFollowers = [];
+        for (const event of events) {
+          try {
+            const res = await instance.get('/api/Follow/getFollowersByEvent', { params: { eventId: event.eventId, page: 1, pageSize: 1000 } });
+            const items = Array.isArray(res.data?.data?.items) ? res.data.data.items : [];
+            // Gắn thêm tên event vào từng follower để hiển thị, đồng thời chuẩn hóa dữ liệu
+            items.forEach(f => {
+              // Chuẩn hóa dữ liệu theo API mới: userId, userName, eventName, createdAt
+              f.userId = f.userId || '';
+              f.fullName = f.fullName || f.userName || '';
+              f.email = f.email || '';
+              f.phone = f.phone || '';
+              f.avatarUrl = f.avatarUrl || '';
+              f.eventName = f.eventName || event.eventName || '';
+            });
+            allFollowers.push(...items);
+          } catch { /* empty */ }
+        }
+        setEventFollowers(Array.isArray(allFollowers) ? allFollowers : []);
+      } catch {
+        setEventFollowers([]);
+      } finally {
+        setLoadingEventFollowers(false);
+      }
+    };
     if (tab === 'followers' && account?.userId) {
-      setLoadingFollowers(true);
-      getEventFollowersByUserId(account.userId)
-        .then((res) => setFollowers(res || []))
-        .catch(() => setFollowers([]))
-        .finally(() => setLoadingFollowers(false));
+      fetchEventFollowers();
     }
     if (tab === 'managerFollowers') {
       setLoadingManagerFollowers(true);
       instance.get('/api/Follow/followers')
         .then((res) => {
-          const data = res.data?.data;
-          setManagerFollowers(Array.isArray(data) ? data : []);
+          // API returns { data: { items: [...] } }
+          const items = res.data?.data?.items || [];
+          // Map to unified structure for table rendering
+          setManagerFollowers(Array.isArray(items)
+            ? items.map((item) => ({
+                userId: item.followerId,
+                accountId: '',
+                fullName: item.followerFullName,
+                phone: item.followerPhone || '',
+                email: item.followerEmail || '',
+                avatarUrl: item.followerAvatar,
+                gender: 0,
+                dob: '',
+                location: '',
+                createdAt: item.createdAt || '',
+                userName: item.followerUsername,
+              }))
+            : []);
         })
         .catch(() => setManagerFollowers([]))
         .finally(() => setLoadingManagerFollowers(false));
@@ -377,21 +429,21 @@ export default function ProfileEventManager() {
               <div>
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    👥 {t('Người theo dõi sự kiện')}
+                    👥 {t('Người theo dõi event của bạn')}
                   </h2>
                   <div className="bg-purple-600/20 px-4 py-2 rounded-full border border-purple-500/30">
                     <span className="text-purple-300 text-sm font-medium">
-                      {followers.length} {t('người')}
+                      {eventFollowers.length} {t('người')}
                     </span>
                   </div>
                 </div>
-                {loadingFollowers ? (
+                {loadingEventFollowers ? (
                   <SpinnerOverlay show={true} />
-                ) : followers.length === 0 ? (
+                ) : !Array.isArray(eventFollowers) || eventFollowers.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
-                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi sự kiện nào')}</div>
-                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow sự kiện của bạn')}</div>
+                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi event của bạn')}</div>
+                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow event của bạn')}</div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl shadow border border-slate-700/40 bg-slate-900/60">
@@ -400,19 +452,17 @@ export default function ProfileEventManager() {
                         <tr className="bg-slate-800/80 text-purple-300">
                           <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
                           <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Email')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('SĐT')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Tên sự kiện')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {followers.map((f, idx) => (
-                          <tr key={f.userId || idx} className="border-b border-slate-700/30 hover:bg-slate-800/60 transition">
+                        {Array.isArray(eventFollowers) && eventFollowers.map((f, idx) => (
+                          <tr key={(f.userId || idx) + '-' + ((f as EventFollower).eventName || idx)} className="border-b border-slate-700/30 hover:bg-slate-800/60 transition">
                             <td className="px-4 py-2">
-                              <img src={f.avatarUrl || NO_AVATAR} alt={f.fullName} className="w-10 h-10 rounded-full object-cover border border-slate-700" />
+                              <img src={f.avatarUrl || NO_AVATAR} alt={f.fullName || ''} className="w-10 h-10 rounded-full object-cover border border-slate-700" />
                             </td>
-                            <td className="px-4 py-2 font-medium text-white">{f.fullName}</td>
-                            <td className="px-4 py-2 text-slate-300">{f.email}</td>
-                            <td className="px-4 py-2 text-slate-300">{f.phone}</td>
+                            <td className="px-4 py-2 font-medium text-white">{f.fullName || ''}</td>
+                            <td className="px-4 py-2 text-slate-300">{(f as EventFollower).eventName || ''}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -448,8 +498,7 @@ export default function ProfileEventManager() {
                         <tr className="bg-slate-800/80 text-purple-300">
                           <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
                           <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Email')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('SĐT')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('Username')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -459,8 +508,7 @@ export default function ProfileEventManager() {
                               <img src={f.avatarUrl || NO_AVATAR} alt={f.fullName} className="w-10 h-10 rounded-full object-cover border border-slate-700" />
                             </td>
                             <td className="px-4 py-2 font-medium text-white">{f.fullName}</td>
-                            <td className="px-4 py-2 text-slate-300">{f.email}</td>
-                            <td className="px-4 py-2 text-slate-300">{f.phone}</td>
+                            <td className="px-4 py-2 text-slate-300">{(f as any).userName || ''}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -469,6 +517,7 @@ export default function ProfileEventManager() {
                 )}
               </div>
             )}
+
           </main>
         </div>
       </div>

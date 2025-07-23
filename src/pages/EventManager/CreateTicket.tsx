@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa';
 import { createTicket } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
+import { AlertTriangle } from 'lucide-react';
 
 const defaultTicket = {
   name: '',
@@ -29,6 +30,7 @@ export default function CreateTicket() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showBankError, setShowBankError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -44,7 +46,8 @@ export default function CreateTicket() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-  
+    setShowBankError(false);
+    
     // Validate
     if (!form.name.trim()) return setError(t('ticketNameEmpty'));
     if (!form.price || form.price < 0) return setError(t('ticketPriceInvalid'));
@@ -55,7 +58,7 @@ export default function CreateTicket() {
       return setError(t('ticketSaleEndTimeInvalid'));
     if (!eventId) return setError(t('eventNotFound'));
     if (!form.description.trim()) return setError(t('ticketDescriptionEmpty'));
-  
+
     try {
       const ticketPayload = {
         eventId,
@@ -68,9 +71,16 @@ export default function CreateTicket() {
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
         isTransferable: false,
       };
-  
+
       const ticket = await createTicket(ticketPayload); // Gọi API tạo vé
-  
+
+      // Nếu API trả về lỗi thiếu thông tin tài khoản ngân hàng
+      if (ticket && ticket.success === false && ticket.message && ticket.message.toLowerCase().includes('bank')) {
+        setError(ticket.message);
+        setShowBankError(true);
+        return;
+      }
+
       if (ticket) {
         setSuccess(t('ticketCreatedSuccess'));
         setTimeout(() => {
@@ -80,14 +90,7 @@ export default function CreateTicket() {
         setError(t('ticketCreationFailed'));
       }
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'errors' in err.response.data) {
-        // Hiển thị lỗi chi tiết từ backend (nếu có)
-        setError(
-          Object.values(err.response.data.errors as Record<string, unknown>)
-            .flat()
-            .join(' | ')
-        );
-      } else if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
+      if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
         setError(err.response.data.message as string || t('ticketCreationFailed'));
       } else {
         setError(t('ticketCreationFailed'));
@@ -217,8 +220,23 @@ export default function CreateTicket() {
             />
           </div>
 
-          {error && (
-            <div className="bg-red-100 text-red-700 rounded-lg px-4 py-3 font-bold text-center shadow-lg">
+          {error && showBankError && (
+            <div className="rounded-lg px-4 py-3 font-bold text-center shadow-lg mt-2 bg-yellow-50 border-2 border-yellow-400 text-yellow-800">
+              <div className="flex flex-col items-center gap-2">
+                <AlertTriangle className="w-8 h-8 text-yellow-500 mb-1" />
+                <div className="text-base font-semibold mb-2">{t('missingBankInfo')}</div>
+                {/* Only show the main warning, not the error text again */}
+                <button
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 mt-2"
+                  onClick={() => navigate(`/event-manager/edit/${eventId}`)}
+                >
+                  {t('goToEditEvent')}
+                </button>
+              </div>
+            </div>
+          )}
+          {error && !showBankError && (
+            <div className="rounded-lg px-4 py-3 font-bold text-center shadow-lg mt-2 bg-red-100 text-red-700">
               {error}
             </div>
           )}
