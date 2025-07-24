@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement } from 'chart.js';
-import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+// import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement);
 
-export default function RevenueChartSection() {
+
+export default function RevenueChartSection({ filter }: { filter: { CustomStartDate: string; CustomEndDate: string; GroupBy: number } }) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; revenue: number }[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
@@ -15,16 +16,21 @@ export default function RevenueChartSection() {
 
   async function fetchData() {
     setLoading(true);
-    const dash = await getEventManagerDashboard();
-    const revenueByEvent = dash.data?.financial?.revenueByEvent || [];
+    // Call revenue API with filter
+    const res = await fetch(`/api/analytics/eventManager/revenue?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
+      headers: { 'accept': '*/*' }
+    });
+    const dash = await res.json();
+    const revenueByEvent = dash.data?.revenueByEvent || [];
     setEvents(revenueByEvent.map((e: any) => ({ eventName: e.eventName, revenue: e.revenue })));
-    setTimeline(dash.data?.financial?.revenueTimeline || []);
+    setTimeline(dash.data?.revenueTrend || []);
     setLoading(false);
   }
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy]);
 
   if (loading) return <div className="mb-10">{t('loadingRevenueChart')}</div>;
   if (events.length === 0 && timeline.length === 0) return <div className="mb-10">{t('noRevenueData')}</div>;

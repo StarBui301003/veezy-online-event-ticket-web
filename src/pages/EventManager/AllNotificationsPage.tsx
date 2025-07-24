@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, ArrowLeft, Loader2, AlertCircle, Mail, Star, Settings } from 'lucide-react';
 import { getUserNotifications, markAllNotificationsRead } from '@/services/notification.service';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Notification {
   notificationId: string;
@@ -24,6 +25,7 @@ export default function AllNotificationsPage() {
   const [notifLoading, setNotifLoading] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Lấy userId từ localStorage (giả định giống các nơi khác)
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
@@ -62,8 +64,6 @@ export default function AllNotificationsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      
-
       {/* Main content */}
       <div className="max-w-4xl mx-auto p-6 pt-8">
         {/* Action buttons below header */}
@@ -74,7 +74,7 @@ export default function AllNotificationsPage() {
               onClick={() => navigate(-1)}
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-sm font-medium">Quay lại</span>
+              <span className="text-sm font-medium">{t('Back')}</span>
             </button>
           </div>
           <button
@@ -87,7 +87,7 @@ export default function AllNotificationsPage() {
             ) : (
               <Check className="w-4 h-4" />
             )}
-            Đọc tất cả
+            {t('Mark All As Read')}
           </button>
         </div>
         <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
@@ -96,13 +96,12 @@ export default function AllNotificationsPage() {
             {notifLoading && notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-400 mb-4" />
-                <p className="text-white/60">Đang tải thông báo...</p>
+                <p className="text-white/60">{t('Loading Notifications')}</p>
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
-                {/* ...existing code... */}
-                <p className="text-white/60 text-lg">Không có thông báo nào</p>
-                <p className="text-white/40 text-sm mt-2">Các thông báo mới sẽ xuất hiện tại đây</p>
+                <p className="text-white/60 text-lg">{t('No Notifications')}</p>
+                <p className="text-white/40 text-sm mt-2">{t('New Notifications Will Appear Here')}</p>
               </div>
             ) : (
               <div className="divide-y divide-white/5">
@@ -144,7 +143,7 @@ export default function AllNotificationsPage() {
                           <span>{notification.createdAtVietnam || notification.createdAt}</span>
                           {!notification.isRead && (
                             <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full">
-                              Mới
+                              {t('New')}
                             </span>
                           )}
                         </div>

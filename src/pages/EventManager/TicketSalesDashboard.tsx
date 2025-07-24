@@ -391,7 +391,11 @@ export default function TicketSalesDashboard() {
         </motion.div>
 
         {/* Ticket Stats Chart */}
-        <TicketStatsSection />
+        <TicketStatsSection filter={{
+          CustomStartDate: filterDateFrom || '',
+          CustomEndDate: filterDateTo || '',
+          GroupBy: 1
+        }} />
       </motion.div>
     </div>
   );

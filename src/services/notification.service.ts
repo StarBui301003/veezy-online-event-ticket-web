@@ -10,4 +10,35 @@ export async function markNotificationRead(notificationId: string, userId: strin
 
 export async function markAllNotificationsRead(userId: string) {
   return instance.put(`/api/Notification/user/${userId}/read-all`);
-} 
+}
+
+// Send notification to event attendance
+export function sendAttendanceNotification(data: {
+  eventId: string;
+  title: string;
+  message: string;
+  roles: number[];
+  sendEmail: boolean;
+}) {
+  return instance.post('/api/Notification/event-attendance', data);
+}
+
+// Send notification to event wishlist
+export function sendWishlistNotification(data: {
+  eventId: string;
+  title: string;
+  message: string;
+  sendEmail: boolean;
+}) {
+  return instance.post('/api/Notification/event-wishlist', data);
+}
+
+// Send notification to event followers
+export function sendFollowersNotification(data: {
+  eventManagerId: string;
+  title: string;
+  message: string;
+  sendEmail: boolean;
+}) {
+  return instance.post('/api/Notification/event-followers', data);
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Ticket, Users, Calendar } from 'lucide-react';
-import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+// import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 interface DashboardStats {
@@ -11,14 +11,27 @@ interface DashboardStats {
   totalAttendees: number;
 }
 
-export default function DashboardSummaryCards() {
+interface DashboardSummaryCardsProps {
+  filter: {
+    CustomStartDate: string;
+    CustomEndDate: string;
+    GroupBy: number;
+  };
+}
+
+
+export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsProps) {
   const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
-    const dash = await getEventManagerDashboard();
+    // Call API directly for summary
+    const res = await fetch(`/api/analytics/eventManager/dashboard?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
+      headers: { 'accept': '*/*' }
+    });
+    const dash = await res.json();
     const overview = dash.data?.overview || {};
     setStats({
       totalEvents: overview.totalEvents || 0,
@@ -31,7 +44,8 @@ export default function DashboardSummaryCards() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy]);
 
   if (loading || !stats) return <div>{t('loadingDashboard')}</div>;
 

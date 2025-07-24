@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, TooltipItem } from 'chart.js';
-import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-export default function TicketStatsSection() {
+
+export default function TicketStatsSection({ filter }: { filter: { CustomStartDate: string; CustomEndDate: string; GroupBy: number } }) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; ticketsSold: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function fetchData() {
     setLoading(true);
-    const dash = await getEventManagerDashboard();
-    const revenueByEvent = dash.data?.financial?.revenueByEvent || [];
+    // Call ticket stats API with filter
+    // Use revenueByEvent for event ticket stats
+    const revenueRes = await fetch(`/api/analytics/eventManager/revenue?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
+      headers: { 'accept': '*/*' }
+    });
+    const revenueData = await revenueRes.json();
+    const revenueByEvent = revenueData.data?.revenueByEvent || [];
     // Sort by ticketsSold descending and take top 10
     type Event = { eventName: string; ticketsSold: number };
     const sorted = (revenueByEvent as Event[]).sort((a, b) => b.ticketsSold - a.ticketsSold).slice(0, 10);
@@ -24,7 +29,8 @@ export default function TicketStatsSection() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy]);
 
   if (loading) return <div className="mb-10">{t('loadingTicketChart')}</div>;
   if (events.length === 0) return <div className="mb-10">{t('noTicketEvent')}</div>;
