@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
 import {
   Table,
@@ -39,20 +39,72 @@ const statusMap: Record<number, string> = {
   2: 'Rejected',
 };
 
-// Thêm prop onChangePending
-export const PendingReportList = ({ onChangePending }: { onChangePending?: () => void }) => {
+// Thay vì:
+// export const PendingReportList = ({ onChangePending }: { onChangePending?: (totalItems: number) => void }) => {
+// ...
+//   const [page, setPage] = useState(1);
+//   const [pageSize, setPageSize] = useState(10);
+// ...
+// Sửa thành:
+export const PendingReportList = ({
+  onChangePending,
+  page,
+  pageSize,
+  setPage,
+  setPageSize,
+}: {
+  onChangePending?: (totalItems: number) => void;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+}) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
   const [viewReport, setViewReport] = useState<Report | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(search);
 
   useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
+
+  // 1. Định nghĩa fetchData giống PendingNewsList
+  const fetchData = () => {
+    setLoading(true);
+    getPendingReport(page, pageSize, search)
+      .then((res) => {
+        if (res && res.data && Array.isArray(res.data.items)) {
+          setReports(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
+          if (onChangePending) onChangePending(res.data.totalItems);
+        } else {
+          setReports([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          if (onChangePending) onChangePending(0);
+        }
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
+
+  // 2. useEffect mount: chỉ connect hub và lắng nghe signalR, không gọi fetchData ở đây
+  useEffect(() => {
     connectFeedbackHub('http://localhost:5008/notificationHub');
-    // Lắng nghe realtime SignalR cho report
-    const reload = () => reloadList(page, pageSize, search);
+    const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportUpdated', reload);
     onFeedback('OnReportDeleted', reload);
@@ -60,25 +112,11 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 3. useEffect paging: gọi fetchData khi page, pageSize, search thay đổi
   useEffect(() => {
-    reloadList(page, pageSize, search);
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search]);
-
-  const reloadList = (pageArg: number, pageSizeArg: number, searchArg: string) => {
-    setLoading(true);
-    getPendingReport(pageArg, pageSizeArg, searchArg)
-      .then((res) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setReports(res.data.items);
-          // Nếu muốn dùng totalItems, totalPages từ BE thì set ở đây
-        } else {
-          setReports([]);
-        }
-        if (onChangePending) onChangePending();
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
-  };
 
   useEffect(() => {
     const fetchReporters = async () => {
@@ -99,8 +137,8 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
     if (reports.length > 0) fetchReporters();
   }, [reports]);
 
+  // Khi render, dùng reports, totalItems, totalPages từ BE
   const pagedReports = reports;
-  const totalPages = Math.max(1, Math.ceil(reports.length / pageSize));
 
   return (
     <div className="p-3">
@@ -116,10 +154,6 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
           showNote={false}
           onActionDone={() => {
             setViewReport(null);
-            getPendingReport().then((res) => {
-              if (res && Array.isArray(res.data)) setReports(res.data);
-              if (onChangePending) onChangePending();
-            });
           }}
         />
       )}
@@ -264,7 +298,7 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
+                              onClick={() => setPage(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
@@ -288,7 +322,7 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                              onClick={() => setPage(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
                               className={
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
@@ -300,12 +334,12 @@ export const PendingReportList = ({ onChangePending }: { onChangePending?: () =>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {reports.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              reports.length
-                            )} of ${reports.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select

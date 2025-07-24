@@ -43,6 +43,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState(''); // Thêm state search
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -54,9 +55,11 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       .then((res: NewsListResponse) => {
         if (res && res.data && Array.isArray(res.data.items)) {
           setNews(res.data.items);
+          setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
         } else {
           setNews([]);
+          setTotalItems(0);
           setTotalPages(1);
         }
       })
@@ -338,12 +341,12 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {news.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              news.length
-                            )} of ${news.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select

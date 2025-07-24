@@ -45,6 +45,8 @@ export const CustomerList = () => {
   const [editUser, setEditUser] = useState<User | null>(null);
 
   const [userSearch, setUserSearch] = useState('');
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Thêm hàm reload danh sách
   const reloadUsers = () => {
@@ -53,8 +55,12 @@ export const CustomerList = () => {
       .then((res: PaginatedUserResponse) => {
         if (res && res.data && Array.isArray(res.data.items)) {
           setUsers(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
         } else {
           setUsers([]);
+          setTotalItems(0);
+          setTotalPages(1);
         }
       })
       .finally(() => setLoading(false));
@@ -75,7 +81,8 @@ export const CustomerList = () => {
       )
     : [];
   const pagedUsers = filteredUsers;
-  const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
+  // Xóa dòng tính userTotalPages FE
+  // const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize));
 
   return (
     <div className="p-3">
@@ -227,7 +234,7 @@ export const CustomerList = () => {
                               className={userPage === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: userTotalPages }, (_, i) => i + 1).map((i) => (
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
                                 isActive={i === userPage}
@@ -246,10 +253,10 @@ export const CustomerList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setUserPage((p) => Math.min(userTotalPages, p + 1))}
-                              aria-disabled={userPage === userTotalPages}
+                              onClick={() => setUserPage((p) => Math.min(totalPages, p + 1))}
+                              aria-disabled={userPage === totalPages}
                               className={
-                                userPage === userTotalPages ? 'pointer-events-none opacity-50' : ''
+                                userPage === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -258,12 +265,12 @@ export const CustomerList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredUsers.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(userPage - 1) * userPageSize + 1}-${Math.min(
                               userPage * userPageSize,
-                              filteredUsers.length
-                            )} of ${filteredUsers.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

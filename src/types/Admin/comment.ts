@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Comment {
   commentId: string; // Guid
   eventId: string;
@@ -7,13 +8,6 @@ export interface Comment {
   updatedAt: string | null;
   avatarUrl: string | null;
   fullName: string | null;
-}
-
-export interface CommentListResponse {
-  flag: boolean;
-  code: number;
-  data: Comment[];
-  message?: string | null;
 }
 
 export interface PaginatedCommentResponse {
@@ -28,5 +22,26 @@ export interface PaginatedCommentResponse {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
+  message: string | null;
+}
+
+export interface SentimentAnalysisResponse {
+  overall_sentiment: {
+    positive_percentage: number;
+    negative_percentage: number;
+    neutral_percentage: number;
+  };
+  aspect_sentiments: Record<string, any>;
+  top_keywords: string[];
+  negative_reviews: {
+    text: string;
+    score: number;
+  }[];
+}
+
+export interface ApiResponse<T> {
+  flag: boolean;
+  code: number;
+  data: T;
   message: string | null;
 }

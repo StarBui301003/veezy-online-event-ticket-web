@@ -18,66 +18,47 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import { getAllComment } from '@/services/Admin/comment.service';
+import { getCommentsByPaginate } from '@/services/Admin/comment.service';
 import { getEventById } from '@/services/Admin/event.service';
 import type { Comment, PaginatedCommentResponse } from '@/types/Admin/comment';
 import { FaEye } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
 import { useTranslation } from 'react-i18next';
+import AnalyzeCommentModal from './AnalyzeCommentModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CommentList = () => {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [data, setData] = useState<PaginatedCommentResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
   const [viewComment, setViewComment] = useState<Comment | null>(null);
+  const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
     connectCommentHub('http://localhost:5004/commentHub');
     setLoading(true);
-    getAllComment(page, pageSize)
+    getCommentsByPaginate(page, pageSize)
       .then((res: PaginatedCommentResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setComments(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-          setHasNextPage(res.data.hasNextPage);
-          setHasPreviousPage(res.data.hasPreviousPage);
+        if (res && res.data) {
+          setData(res.data);
         } else {
-          setComments([]);
-          setTotalItems(0);
-          setTotalPages(1);
-          setHasNextPage(false);
-          setHasPreviousPage(false);
+          setData(null);
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
-
     // Lắng nghe realtime SignalR cho comment
     const reload = () => {
       setLoading(true);
-      getAllComment(page, pageSize)
+      getCommentsByPaginate(page, pageSize)
         .then((res: PaginatedCommentResponse) => {
-          if (res && res.data && Array.isArray(res.data.items)) {
-            setComments(res.data.items);
-            setTotalItems(res.data.totalItems);
-            setTotalPages(res.data.totalPages);
-            setHasNextPage(res.data.hasNextPage);
-            setHasPreviousPage(res.data.hasPreviousPage);
+          if (res && res.data) {
+            setData(res.data);
           } else {
-            setComments([]);
-            setTotalItems(0);
-            setTotalPages(1);
-            setHasNextPage(false);
-            setHasPreviousPage(false);
+            setData(null);
           }
         })
         .finally(() => setTimeout(() => setLoading(false), 500));
@@ -85,25 +66,17 @@ export const CommentList = () => {
     onComment('OnCommentCreated', reload);
     onComment('OnCommentUpdated', reload);
     onComment('OnCommentDeleted', reload);
-  }, []);
+  }, [page, pageSize]);
 
   // Function to refresh comments after deletion
   const refreshComments = () => {
     setLoading(true);
-    getAllComment(page, pageSize)
+    getCommentsByPaginate(page, pageSize)
       .then((res: PaginatedCommentResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setComments(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-          setHasNextPage(res.data.hasNextPage);
-          setHasPreviousPage(res.data.hasPreviousPage);
+        if (res && res.data) {
+          setData(res.data);
         } else {
-          setComments([]);
-          setTotalItems(0);
-          setTotalPages(1);
-          setHasNextPage(false);
-          setHasPreviousPage(false);
+          setData(null);
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
@@ -111,7 +84,9 @@ export const CommentList = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      const eventIds = Array.from(new Set(comments.map((c) => c.eventId).filter(Boolean)));
+      const eventIds = Array.from(
+        new Set((data?.items || []).map((c) => c.eventId).filter(Boolean))
+      );
       const eventMap: Record<string, string> = {};
 
       await Promise.all([
@@ -126,14 +101,15 @@ export const CommentList = () => {
       ]);
       setEventNames(eventMap);
     };
-    if (comments.length > 0) fetchEvents();
-  }, [comments]);
+    if ((data?.items || []).length > 0) fetchEvents();
+  }, [data]);
 
-  const pagedComments = comments;
+  const pagedComments = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
 
   return (
     <div className="p-6">
-      {/* Modal xem chi tiết comment */}
       {viewComment && (
         <CommentDetailModal
           comment={viewComment}
@@ -142,19 +118,27 @@ export const CommentList = () => {
           onDelete={refreshComments}
         />
       )}
+
+      <AnalyzeCommentModal open={showAnalyzeModal} onClose={() => setShowAnalyzeModal(false)} />
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
+          <div className="flex justify-end mb-4">
+            <button
+              className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+              onClick={() => setShowAnalyzeModal(true)}
+            >
+              Analyze Comment
+            </button>
+          </div>
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '8%' }}>
-                  {t('avatar')}
-                </TableHead>
-                <TableHead className="text-center" style={{ width: '12%' }}>
+
+                <TableHead className="text-center" style={{ width: '22%' }}>
                   {t('userName')}
                 </TableHead>
                 <TableHead className="text-left" style={{ width: '15%' }}>
@@ -163,10 +147,10 @@ export const CommentList = () => {
                 <TableHead className="text-left" style={{ width: '25%' }}>
                   {t('content')}
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
+                <TableHead className="text-center" style={{ width: '10%' }}>
                   {t('createdAt')}
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
+                <TableHead className="text-center" style={{ width: '10%' }}>
                   {t('updatedAt')}
                 </TableHead>
                 <TableHead className="text-center" style={{ width: '5%' }}>
@@ -185,18 +169,7 @@ export const CommentList = () => {
                 pagedComments.map((comment, idx) => (
                   <TableRow key={comment.commentId} className="hover:bg-blue-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center">
-                        <img
-                          src={comment.avatarUrl || '/src/assets/img/avatar_default.png'}
-                          alt="Avatar"
-                          className="w-8 h-8 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = '/src/assets/img/avatar_default.png';
-                          }}
-                        />
-                      </div>
-                    </TableCell>
+
                     <TableCell className="text-center">
                       {comment.fullName || 'Unknown User'}
                     </TableCell>
@@ -238,8 +211,8 @@ export const CommentList = () => {
                           <PaginationItem>
                             <PaginationPrevious
                               onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={!hasPreviousPage}
-                              className={!hasPreviousPage ? 'pointer-events-none opacity-50' : ''}
+                              aria-disabled={page === 1}
+                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             >
                               {t('previous')}
                             </PaginationPrevious>
@@ -270,8 +243,10 @@ export const CommentList = () => {
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={!hasNextPage}
-                              className={!hasNextPage ? 'pointer-events-none opacity-50' : ''}
+                              aria-disabled={page === totalPages}
+                              className={
+                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                              }
                             >
                               {t('next')}
                             </PaginationNext>

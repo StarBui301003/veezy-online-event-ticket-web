@@ -2,12 +2,13 @@ export interface AdminNotification {
     notificationId: string;
     title: string;
     message: string;
-    type: AdminNotificationType;
-    targetType: AdminNotificationTargetType;
-    targetId?: string;
-    senderId?: string;
+    type: number;
+    targetType: number;
+    targetId: string;
+    senderId: string;
+    username: string;
     isRead: boolean;
-    readAt?: string;
+    readAt: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -25,6 +26,8 @@ export enum AdminNotificationType {
     NewPost = 9,
     Other = 10
 }
+
+
 
 export enum AdminNotificationTargetType {
     Unknown = 0,
@@ -75,11 +78,89 @@ export interface PaginatedAdminNotificationResponse {
     code: number;
     message: string;
     data: {
-        items: AdminNotificationItem[];
+        items: AdminNotification[];
         totalItems: number;
         totalPages: number;
         currentPage: number;
         hasNextPage: boolean;
         hasPreviousPage: boolean;
     };
+}
+
+// Thông báo cá nhân (Personal Notification)
+export interface PersonalNotification {
+    notificationId: string;
+    userId: string;
+    notificationTitle: string;
+    notificationMessage: string;
+    notificationType: PersonalNotificationType;
+    isRead: boolean;
+    redirectUrl?: string;
+    createdAt: string;
+    createdAtVietnam: string;
+    readAt?: string | null;
+    readAtVietnam?: string | null;
+    username?: string;
+}
+
+export enum PersonalNotificationType {
+    EventApproved = 0,
+    PayoutProcessed = 1,
+    OrderSuccess = 2,
+    EventManagerNewEvent = 3,
+    EventManagerUpdateEvent = 4,
+    EventManagerNewPost = 5,
+    AdminNewEvent = 6,
+    EventApprovedByAdmin = 7,
+    EventRejectedByAdmin = 8,
+    AdminNewReport = 9,
+    WithdrawalRequested = 10,
+    WithdrawalApproved = 11,
+    WithdrawalRejected = 12,
+    AdminWithdrawalRequest = 13,
+    ReportResolved = 14,
+    ReportRejected = 15,
+    Assigned = 16,
+    RemovedAssigned = 17,
+    Other = 18,
+    Welcome = 19,
+    NewsApproved = 20,
+    NewsRejected = 21,
+    ChatMessage = 22
+}
+
+export interface PaginatedPersonalNotificationResponse {
+    flag: boolean;
+    code: number;
+    message: string;
+    data: {
+        items: PersonalNotification[];
+        totalItems: number;
+        totalPages: number;
+        currentPage: number;
+        hasNextPage: boolean;
+        hasPreviousPage: boolean;
+    };
+}
+
+// Gửi thông báo theo vai trò (POST /api/Notification/roles)
+export interface SendNotificationByRolesRequest {
+    title: string;
+    message: string;
+    roles?: Role[];
+    sendEmail?: boolean;
+}
+
+export interface SendNotificationByRolesResponse {
+    flag: boolean;
+    code: number;
+    message: string;
+    data: string;
+}
+
+export enum Role {
+    Admin = 0,
+    Customer = 1,
+    EventManager = 2,
+    Collaborator = 3
 }

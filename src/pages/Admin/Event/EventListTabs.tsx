@@ -25,6 +25,8 @@ export default function EventListTabs() {
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingPageSize, setPendingPageSize] = useState(10);
 
   const fetchPendingCount = () => {
     getPendingEvents()
@@ -143,7 +145,13 @@ export default function EventListTabs() {
           </TabsContent>
           <TabsContent value="pending">
             {loadedTabs.includes('pending') && (
-              <PendingEventList onChangePending={fetchPendingCount} />
+              <PendingEventList
+                page={pendingPage}
+                pageSize={pendingPageSize}
+                setPage={setPendingPage}
+                setPageSize={setPendingPageSize}
+                onTotalChange={setPendingCount}
+              />
             )}
           </TabsContent>
           <TabsContent value="rejected">

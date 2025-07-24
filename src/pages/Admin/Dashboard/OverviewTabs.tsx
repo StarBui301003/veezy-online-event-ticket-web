@@ -16,6 +16,8 @@ import {
   SelectItem,
   SelectValue,
 } from '@/components/ui/select';
+import { PersonalNotificationList } from './PersonalNotificationList';
+// import { PersonNotificationList } from './PersonNotificationList';
 
 const cardClass =
   'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
@@ -81,7 +83,7 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col h-[700px]">
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">System Metrics Overview</h3>
@@ -264,13 +266,18 @@ export const OverviewTabs = () => {
           </div>
         </div>
       </div>
-      {/* Metrics Panel + Admin Notification nằm cạnh nhau, cùng chiều cao */}
-      <div className="flex flex-col md:flex-row gap-8 ">
-        <div className="flex-1 h-full flex flex-col">
-          <AdminMetricsPanel data={data} />
+      {/* Metrics Panel + Admin Notification: Metrics ở trên, Notifications ở dưới, notifications w-full */}
+      <div className="flex flex-col gap-8">
+        <div className="flex gap-8">
+          <div className="flex-1 flex flex-col">
+            <AdminMetricsPanel data={data} />
+          </div>
+          <div className="flex-1 flex flex-col">
+            <PersonalNotificationList className="bg-white" />
+          </div>
         </div>
-        <div className="flex-1 h-full flex flex-col">
-          <AdminNotificationList className="bg-white" />
+        <div className="w-full">
+          <AdminNotificationList className="bg-white w-full" />
         </div>
       </div>
     </div>

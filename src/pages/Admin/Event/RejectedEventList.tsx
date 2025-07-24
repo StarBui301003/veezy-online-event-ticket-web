@@ -37,7 +37,7 @@ export const RejectedEventList = () => {
   const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -120,7 +120,7 @@ export const RejectedEventList = () => {
   }, [page, pageSize]);
 
   // Filter logic (giống user và pending: filter toàn bộ rồi phân trang)
-  const filteredEvents = data?.items || [];
+  const items = data?.items || [];
   const totalItems = data?.totalItems || 0;
   const totalPages = data?.totalPages || 1;
   // currentPage không cần dùng, chỉ dùng page FE
@@ -310,7 +310,7 @@ export const RejectedEventList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEvents.filter(
+              {items.filter(
                 (event) =>
                   !search ||
                   event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
@@ -322,7 +322,7 @@ export const RejectedEventList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredEvents
+                items
                   .filter(
                     (event) =>
                       !search ||
@@ -466,11 +466,11 @@ export const RejectedEventList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredEvents.length === 0
+                        {items.length === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              filteredEvents.length
+                              items.length
                             )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>

@@ -54,7 +54,7 @@ export async function getCategoryById(categoryId: string) {
 }
 
 export async function getAllCategory(page = 1, pageSize = 10): Promise<PaginatedCategoryResponse> {
-  const res = await instance.get('/api/Category/CategoriesByPaginate', {
+  const res = await instance.get('/api/Category/getCategoriesByPaginate', {
     params: { page, pageSize },
   });
   return res.data;

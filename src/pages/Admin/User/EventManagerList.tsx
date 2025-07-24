@@ -40,6 +40,7 @@ export const EventManagerList = () => {
 
   const [userPage, setUserPage] = useState(1);
   const [userPageSize, setUserPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
   const [viewUser, setViewUser] = useState<User | null>(null);
@@ -53,9 +54,11 @@ export const EventManagerList = () => {
       .then((res: PaginatedUserResponse) => {
         if (res && res.data && Array.isArray(res.data.items)) {
           setUsers(res.data.items);
+          setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
         } else {
           setUsers([]);
+          setTotalItems(0);
           setTotalPages(1);
         }
       })
@@ -256,12 +259,12 @@ export const EventManagerList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredUsers.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(userPage - 1) * userPageSize + 1}-${Math.min(
                               userPage * userPageSize,
-                              filteredUsers.length
-                            )} of ${filteredUsers.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

@@ -1,112 +1,99 @@
 import instance from '../axios.customize';
 import type {
-    AdminNotificationResponse,
-    AdminNotificationCountResponse,
-    AdminNotificationMarkReadResponse,
-    AdminNotificationType,
-    AdminNotificationTargetType
+    PaginatedAdminNotificationResponse,
+    PaginatedPersonalNotificationResponse,
+    SendNotificationByRolesRequest,
+    SendNotificationByRolesResponse
 } from '@/types/Admin/notification';
 
+// Lấy danh sách thông báo admin (có phân trang)
 export async function getAdminNotifications(
     page: number = 1,
     pageSize: number = 10,
     isRead?: boolean
-): Promise<AdminNotificationResponse> {
+): Promise<PaginatedAdminNotificationResponse> {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('pageSize', pageSize.toString());
-    if (isRead !== undefined) {
-        params.append('isRead', isRead.toString());
-    }
-
+    if (typeof isRead === 'boolean') params.append('isRead', isRead.toString());
     const res = await instance.get(`/api/AdminNotification?${params.toString()}`);
     return res.data;
 }
 
-export async function getAdminNotificationsByType(
-    type: AdminNotificationType,
-    page: number = 1,
-    pageSize: number = 10
-): Promise<AdminNotificationResponse> {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('pageSize', pageSize.toString());
-    params.append('type', type.toString());
-
-    const res = await instance.get(`/api/AdminNotification/by-type?${params.toString()}`);
-    return res.data;
-}
-
-export async function getAdminNotificationsByTargetType(
-    targetType: AdminNotificationTargetType,
-    page: number = 1,
-    pageSize: number = 10
-): Promise<AdminNotificationResponse> {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('pageSize', pageSize.toString());
-    params.append('targetType', targetType.toString());
-
-    const res = await instance.get(`/api/AdminNotification/by-target-type?${params.toString()}`);
-    return res.data;
-}
-
-export async function getAdminUnreadCount(): Promise<AdminNotificationCountResponse> {
+// Lấy tổng số thông báo chưa đọc của admin
+export async function getAdminUnreadCount(): Promise<number> {
     const res = await instance.get(`/api/AdminNotification/unread-count`);
-    return res.data;
+    if (res.data && typeof res.data.data === 'number') {
+        return res.data.data;
+    }
+    return 0;
 }
 
-
-
+// Đánh dấu 1 thông báo là đã đọc
 export async function markAdminNotificationAsRead(
     notificationId: string
-): Promise<AdminNotificationMarkReadResponse> {
+): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
     const res = await instance.put(`/api/AdminNotification/${notificationId}/mark-read`);
     return res.data;
 }
 
-export async function markAllAdminNotificationsAsRead(): Promise<AdminNotificationMarkReadResponse> {
+// Đánh dấu tất cả thông báo là đã đọc
+export async function markAllAdminNotificationsAsRead(): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
     const res = await instance.put(`/api/AdminNotification/mark-all-read`);
     return res.data;
 }
 
-export async function markNotificationsByTypeAsRead(type: AdminNotificationType): Promise<AdminNotificationMarkReadResponse> {
-    const res = await instance.put(`/api/AdminNotification/mark-read-by-type/${type}`);
-    return res.data;
-}
-
+// Xóa 1 thông báo
 export async function deleteAdminNotification(
     notificationId: string
-): Promise<AdminNotificationMarkReadResponse> {
+): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
     const res = await instance.delete(`/api/AdminNotification/${notificationId}`);
     return res.data;
 }
 
-export async function deleteAllReadNotifications(): Promise<AdminNotificationMarkReadResponse> {
-    const res = await instance.delete(`/api/AdminNotification/delete-read`);
+// Lấy danh sách thông báo cá nhân (có phân trang, không filter)
+export async function getPersonalNotifications(
+    userId: string,
+    page: number = 1,
+    pageSize: number = 10
+): Promise<PaginatedPersonalNotificationResponse> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
+    const res = await instance.get(`/api/Notification/user/${userId}?${params.toString()}`);
     return res.data;
 }
 
-export async function deleteNotificationsByType(type: AdminNotificationType): Promise<AdminNotificationMarkReadResponse> {
-    const res = await instance.delete(`/api/AdminNotification/delete-by-type/${type}`);
+// Đánh dấu 1 thông báo cá nhân là đã đọc
+export async function markPersonalNotificationAsRead(
+    notificationId: string,
+    userId: string
+): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
+    const res = await instance.put(`/api/Notification/${notificationId}/read?userId=${userId}`);
     return res.data;
 }
 
-export async function createAdminNotification(
-    title: string,
-    message: string,
-    type: AdminNotificationType,
-    targetId?: string,
-    targetType?: AdminNotificationTargetType,
-    senderId?: string
-): Promise<AdminNotificationMarkReadResponse> {
-    const res = await instance.post(`/api/AdminNotification/create`, {
-        title,
-        message,
-        type,
-        targetId,
-        targetType,
-        senderId
-    });
+// Đánh dấu tất cả thông báo cá nhân là đã đọc
+export async function markAllPersonalNotificationsAsRead(
+    userId: string
+): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
+    const res = await instance.put(`/api/Notification/user/${userId}/read-all`);
+    return res.data;
+}
+
+// Đếm số thông báo cá nhân chưa đọc
+export async function getPersonalUnreadCount(userId: string): Promise<number> {
+    const res = await getPersonalNotifications(userId, 1, 9999);
+    if (res && res.data && Array.isArray(res.data.items)) {
+        return res.data.items.filter(n => !n.isRead).length;
+    }
+    return 0;
+}
+
+// Gửi thông báo theo vai trò (POST /api/Notification/roles)
+export async function sendNotificationByRoles(
+    request: SendNotificationByRolesRequest
+): Promise<SendNotificationByRolesResponse> {
+    const res = await instance.post('/api/Notification/roles', request);
     return res.data;
 }

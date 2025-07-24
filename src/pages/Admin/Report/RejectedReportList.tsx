@@ -48,6 +48,8 @@ export const RejectedReportList = () => {
   const [search, setSearch] = useState('');
   const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
   const [viewReport, setViewReport] = useState<Report | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     connectFeedbackHub('http://localhost:5008/notificationHub');
@@ -90,15 +92,19 @@ export const RejectedReportList = () => {
       .then((res) => {
         if (res && res.data && Array.isArray(res.data.items)) {
           setReports(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
         } else {
           setReports([]);
+          setTotalItems(0);
+          setTotalPages(1);
         }
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
   };
 
+  // Khi render, dùng reports, totalItems, totalPages từ BE
   const pagedReports = reports;
-  const totalPages = Math.max(1, Math.ceil(reports.length / pageSize));
 
   return (
     <div className="p-3">
@@ -290,12 +296,12 @@ export const RejectedReportList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {reports.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              reports.length
-                            )} of ${reports.length}`}
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select

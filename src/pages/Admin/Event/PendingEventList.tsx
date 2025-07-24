@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -34,15 +34,31 @@ import { onEvent, connectEventHub } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-// Thêm prop onChangePending
-export const PendingEventList = ({ onChangePending }: { onChangePending?: () => void }) => {
+// Thay vì:
+// export const PendingEventList = ({ onChangePending }: { onChangePending?: () => void }) => {
+// ...
+//   const [page, setPage] = useState(1);
+//   const [pageSize, setPageSize] = useState(10);
+// ...
+// Sửa thành:
+export const PendingEventList = ({
+  page,
+  pageSize,
+  setPage,
+  setPageSize,
+  onTotalChange,
+}: {
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  onTotalChange?: (total: number) => void;
+}) => {
   const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [categories, setCategories] = useState<Record<string, Category>>({});
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
 
   // Filter state
@@ -82,86 +98,38 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
     })();
   }, []);
 
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(search);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
+
+  // Connect hub chỉ 1 lần khi mount, không gọi getPendingEvents toàn bộ ở đây
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    setLoading(true);
-    getPendingEvents()
-      .then(async (res) => {
-        if (res && res.data) {
-          setData(res.data);
-        } else {
-          setData(null);
-        }
-
-        // Lấy tất cả categoryId duy nhất từ các event
-        const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
-
-        const allCategoryIds = Array.from(
-          new Set(
-            res.data.items.flatMap((event) => event.categoryIds || []).filter(isValidCategoryId)
-          )
-        );
-        const categoryMap: Record<string, Category> = {};
-        await Promise.all(
-          allCategoryIds.map(async (id) => {
-            try {
-              const cat = await getCategoryById(id);
-              categoryMap[id] = cat;
-            } catch {
-              categoryMap[id] = {
-                categoryId: id,
-                categoryName: 'unknown',
-                categoryDescription: '',
-              };
-            }
-          })
-        );
-        setCategories(categoryMap);
-
-        const allUserId = Array.from(
-          new Set(
-            res.data.items.flatMap((event) => [event.approvedBy, event.createdBy]).filter(Boolean)
-          )
-        );
-        const usernameMap: Record<string, string> = {};
-        await Promise.all(
-          allUserId.map(async (id) => {
-            try {
-              const user = await getUserByIdAPI(id);
-              usernameMap[id] = user.fullName || user.username || user.accountId || id;
-            } catch {
-              usernameMap[id] = id;
-            }
-          })
-        );
-        setUsernames(usernameMap);
-      })
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-
-    // Lắng nghe realtime SignalR
-    const reload = () => fetchData();
+    const reload = () => {
+      fetchData(pageRef.current, pageSizeRef.current);
+    };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sau khi approve/reject thành công, gọi reloadList
-  const reloadList = () => {
-    fetchData();
-    if (onChangePending) {
-      setTimeout(() => {
-        onChangePending();
-      }, 600); // đảm bảo gọi sau khi fetchData hoàn thành
-    }
-  };
-
-  const fetchData = () => {
+  // fetchData nhận tham số để dùng cho callback SignalR
+  const fetchData = (p = page, ps = pageSize) => {
     setLoading(true);
-    getPendingEvents({ page, pageSize })
+    getPendingEvents({ page: p, pageSize: ps })
       .then(async (res) => {
         if (res && res.data) {
           setData({
@@ -171,16 +139,18 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
             currentPage:
               typeof res.data.currentPage === 'number' && res.data.currentPage > 0
                 ? res.data.currentPage
-                : page,
+                : p,
             pageSize:
               typeof res.data.pageSize === 'number' && res.data.pageSize > 0
                 ? res.data.pageSize
-                : pageSize,
+                : ps,
             hasNextPage: res.data.hasNextPage,
             hasPreviousPage: res.data.hasPreviousPage,
           });
+          if (onTotalChange) onTotalChange(res.data.totalItems);
         } else {
           setData(null);
+          if (onTotalChange) onTotalChange(0);
         }
         const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
 
@@ -224,16 +194,20 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
         );
         setUsernames(usernameMap);
       })
-      .catch(() => setData(null))
+      .catch(() => {
+        setData(null);
+        if (onTotalChange) onTotalChange(0);
+      })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
   };
 
+  // Chỉ gọi fetchData khi [page, pageSize, search] đổi
   useEffect(() => {
-    reloadList();
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, pageSize, search]);
 
   // Filter logic
   const items = data?.items || [];
@@ -398,7 +372,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
               ).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No approved events found.
+                    No pending events found.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -505,7 +479,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
+                              onClick={() => setPage(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
@@ -529,7 +503,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                              onClick={() => setPage(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
                               className={
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
@@ -593,7 +567,7 @@ export const PendingEventList = ({ onChangePending }: { onChangePending?: () => 
             <PendingEventDetailModal
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
-              onActionDone={reloadList}
+              onActionDone={() => setSelectedEvent(null)}
             />
           )}
         </div>

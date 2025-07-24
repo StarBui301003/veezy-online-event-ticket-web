@@ -6,16 +6,15 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, CheckCircle, Trash2, Eye, AlertCircle, Calendar, Clock } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, Clock, Plus } from 'lucide-react';
+import { CreateNotificationModal } from './CreateNotificationModal';
 import { toast } from 'react-toastify';
 import {
-  getAdminNotifications,
-  markAdminNotificationAsRead,
-  markAllAdminNotificationsAsRead,
-  deleteAdminNotification,
-  getAdminUnreadCount,
+  getPersonalNotifications,
+  markPersonalNotificationAsRead,
+  getPersonalUnreadCount,
 } from '@/services/Admin/notification.service';
-import { AdminNotificationType, AdminNotification } from '@/types/Admin/notification';
+import { PersonalNotificationType, PersonalNotification } from '@/types/Admin/notification';
 import { onNotification } from '@/services/signalr.service';
 import {
   Pagination,
@@ -25,13 +24,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
 
 interface AdminNotificationListProps {
@@ -39,88 +31,120 @@ interface AdminNotificationListProps {
   onUnreadCountChange?: (count: number) => void;
 }
 
-const getNotificationTypeName = (type: AdminNotificationType) => {
+const getNotificationTypeName = (type: PersonalNotificationType) => {
   switch (type) {
-    case AdminNotificationType.NewEvent:
-      return 'New Event';
-    case AdminNotificationType.NewPost:
-      return 'New Post';
-    case AdminNotificationType.NewReport:
-      return 'New Report';
-    case AdminNotificationType.PaymentIssue:
-      return 'Payment Issue';
-    case AdminNotificationType.SystemAlert:
-      return 'System Alert';
-    case AdminNotificationType.NewUser:
-      return 'New User';
-    case AdminNotificationType.EventApproval:
-      return 'Event Approval';
-    case AdminNotificationType.EventRejection:
-      return 'Event Rejection';
-    case AdminNotificationType.UserReport:
-      return 'User Report';
-    case AdminNotificationType.ContentReport:
-      return 'Content Report';
-    case AdminNotificationType.Other:
+    case PersonalNotificationType.EventApproved:
+      return 'Event Approved';
+    case PersonalNotificationType.PayoutProcessed:
+      return 'Payout Processed';
+    case PersonalNotificationType.OrderSuccess:
+      return 'Order Success';
+    case PersonalNotificationType.EventManagerNewEvent:
+      return 'New Event (Manager)';
+    case PersonalNotificationType.EventManagerUpdateEvent:
+      return 'Event Updated (Manager)';
+    case PersonalNotificationType.EventManagerNewPost:
+      return 'New Post (Manager)';
+    case PersonalNotificationType.AdminNewEvent:
+      return 'New Event (Admin)';
+    case PersonalNotificationType.EventApprovedByAdmin:
+      return 'Event Approved by Admin';
+    case PersonalNotificationType.EventRejectedByAdmin:
+      return 'Event Rejected by Admin';
+    case PersonalNotificationType.AdminNewReport:
+      return 'New Report (Admin)';
+    case PersonalNotificationType.WithdrawalRequested:
+      return 'Withdrawal Requested';
+    case PersonalNotificationType.WithdrawalApproved:
+      return 'Withdrawal Approved';
+    case PersonalNotificationType.WithdrawalRejected:
+      return 'Withdrawal Rejected';
+    case PersonalNotificationType.AdminWithdrawalRequest:
+      return 'Withdrawal Request (Admin)';
+    case PersonalNotificationType.ReportResolved:
+      return 'Report Resolved';
+    case PersonalNotificationType.ReportRejected:
+      return 'Report Rejected';
+    case PersonalNotificationType.Assigned:
+      return 'Assigned';
+    case PersonalNotificationType.RemovedAssigned:
+      return 'Removed Assignment';
+    case PersonalNotificationType.Welcome:
+      return 'Welcome';
+    case PersonalNotificationType.NewsApproved:
+      return 'News Approved';
+    case PersonalNotificationType.NewsRejected:
+      return 'News Rejected';
+    case PersonalNotificationType.ChatMessage:
+      return 'Chat Message';
+    case PersonalNotificationType.Other:
       return 'Other';
     default:
-      return 'Unknown';
+      return 'Notification';
   }
 };
 
-const getNotificationIcon = (type: AdminNotificationType) => {
+const getNotificationIcon = (type: PersonalNotificationType) => {
   switch (type) {
-    case AdminNotificationType.NewEvent:
-      return <Calendar className="h-4 w-4 text-blue-500" />;
-    case AdminNotificationType.NewPost:
-      return <Eye className="h-4 w-4 text-green-500" />;
-    case AdminNotificationType.NewReport:
-      return <AlertCircle className="h-4 w-4 text-red-500" />;
-    case AdminNotificationType.PaymentIssue:
-      return <AlertCircle className="h-4 w-4 text-orange-500" />;
-    case AdminNotificationType.SystemAlert:
-      return <Bell className="h-4 w-4 text-purple-500" />;
-    case AdminNotificationType.NewUser:
-      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-    case AdminNotificationType.EventApproval:
+    case PersonalNotificationType.EventApproved:
       return <CheckCircle className="h-4 w-4 text-green-500" />;
-    case AdminNotificationType.EventRejection:
+    case PersonalNotificationType.PayoutProcessed:
+      return <CheckCircle className="h-4 w-4 text-blue-500" />;
+    case PersonalNotificationType.OrderSuccess:
+      return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+    case PersonalNotificationType.WithdrawalRejected:
+    case PersonalNotificationType.NewsRejected:
+    case PersonalNotificationType.EventRejectedByAdmin:
       return <AlertCircle className="h-4 w-4 text-red-500" />;
-    case AdminNotificationType.UserReport:
+    case PersonalNotificationType.WithdrawalApproved:
+      return <CheckCircle className="h-4 w-4 text-green-600" />;
+    case PersonalNotificationType.Welcome:
+      return <Bell className="h-4 w-4 text-purple-500" />;
+    case PersonalNotificationType.ChatMessage:
+      return <Bell className="h-4 w-4 text-blue-500" />;
+    case PersonalNotificationType.ReportResolved:
+      return <CheckCircle className="h-4 w-4 text-emerald-600" />;
+    case PersonalNotificationType.ReportRejected:
       return <AlertCircle className="h-4 w-4 text-orange-500" />;
-    case AdminNotificationType.ContentReport:
-      return <AlertCircle className="h-4 w-4 text-red-500" />;
-    case AdminNotificationType.Other:
-      return <Bell className="h-4 w-4 text-gray-500" />;
+    case PersonalNotificationType.Assigned:
+      return <CheckCircle className="h-4 w-4 text-cyan-500" />;
+    case PersonalNotificationType.RemovedAssigned:
+      return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    case PersonalNotificationType.NewsApproved:
+      return <CheckCircle className="h-4 w-4 text-blue-600" />;
     default:
       return <Bell className="h-4 w-4 text-gray-500" />;
   }
 };
 
-const getNotificationBadgeColor = (type: AdminNotificationType) => {
+const getNotificationBadgeColor = (type: PersonalNotificationType) => {
   switch (type) {
-    case AdminNotificationType.NewEvent:
+    case PersonalNotificationType.EventApproved:
+      return 'bg-green-100 text-green-800 hover:bg-green-200';
+    case PersonalNotificationType.PayoutProcessed:
       return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-    case AdminNotificationType.NewPost:
-      return 'bg-green-100 text-green-800 hover:bg-green-200';
-    case AdminNotificationType.NewReport:
+    case PersonalNotificationType.OrderSuccess:
+      return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200';
+    case PersonalNotificationType.WithdrawalRejected:
+    case PersonalNotificationType.NewsRejected:
+    case PersonalNotificationType.EventRejectedByAdmin:
       return 'bg-red-100 text-red-800 hover:bg-red-200';
-    case AdminNotificationType.PaymentIssue:
-      return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
-    case AdminNotificationType.SystemAlert:
+    case PersonalNotificationType.WithdrawalApproved:
+      return 'bg-green-100 text-green-800 hover:bg-green-200';
+    case PersonalNotificationType.Welcome:
       return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
-    case AdminNotificationType.NewUser:
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-    case AdminNotificationType.EventApproval:
-      return 'bg-green-100 text-green-800 hover:bg-green-200';
-    case AdminNotificationType.EventRejection:
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
-    case AdminNotificationType.UserReport:
+    case PersonalNotificationType.ChatMessage:
+      return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+    case PersonalNotificationType.ReportResolved:
+      return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200';
+    case PersonalNotificationType.ReportRejected:
       return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
-    case AdminNotificationType.ContentReport:
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
-    case AdminNotificationType.Other:
+    case PersonalNotificationType.Assigned:
+      return 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200';
+    case PersonalNotificationType.RemovedAssigned:
       return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    case PersonalNotificationType.NewsApproved:
+      return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
     default:
       return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
   }
@@ -145,27 +169,31 @@ const formatDate = (dateString: string) => {
   }
 };
 
-export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
-  className,
-  onUnreadCountChange,
-}) => {
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({ className }) => {
+  const [notifications, setNotifications] = useState<PersonalNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [page, setPage] = useState(1);
   const pageSizeOptions = [5, 10, 20, 50];
   const [pageSize, setPageSize] = useState(5); // Mặc định 5, cho chọn
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      let isReadParam: boolean | undefined = undefined;
-      if (status === 'unread') isReadParam = false;
-      else if (status === 'read') isReadParam = true;
-      const response = await getAdminNotifications(page, pageSize, isReadParam);
+      // Lấy userId từ localStorage
+      const account = localStorage.getItem('account');
+      const userId = account ? JSON.parse(account).userId : '';
+      if (!userId) {
+        setNotifications([]);
+        setTotalPages(1);
+        setTotalItems(0);
+        setLoading(false);
+        return;
+      }
+      const response = await getPersonalNotifications(userId, page, pageSize);
       if (
         response.flag &&
         response.data &&
@@ -188,14 +216,17 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   };
 
   const fetchUnreadCount = async () => {
-    try {
-      const response = await getAdminUnreadCount();
-      setUnreadCount(response);
-      onUnreadCountChange?.(response);
-    } catch {
-      console.error('Failed to fetch unread count');
+    const account = localStorage.getItem('account');
+    const userId = account ? JSON.parse(account).userId : '';
+    if (!userId) {
+      setUnreadCount(0);
+      return;
     }
+    const count = await getPersonalUnreadCount(userId);
+    setUnreadCount(count);
   };
+
+  // Không có API đếm unread cho cá nhân, có thể bỏ hoặc tính thủ công nếu muốn
 
   useEffect(() => {
     console.log('AdminNotificationList: Component mounted, setting up event listeners...');
@@ -211,7 +242,6 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     const reloadNotifications = () => {
       console.log('AdminNotificationList: Reloading notifications...');
       fetchNotifications();
-      fetchUnreadCount();
     };
 
     // Listen for admin notifications
@@ -241,11 +271,13 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   useEffect(() => {
     fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, pageSize]);
+  }, [page, pageSize]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      const response = await markAdminNotificationAsRead(notificationId);
+      const account = localStorage.getItem('account');
+      const userId = account ? JSON.parse(account).userId : '';
+      const response = await markPersonalNotificationAsRead(notificationId, userId);
       if (response.flag) {
         setNotifications((prev) =>
           prev.map((notification) =>
@@ -259,39 +291,6 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
       }
     } catch {
       toast.error('Failed to mark notification as read');
-    }
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      const response = await markAllAdminNotificationsAsRead();
-      if (response.flag) {
-        setNotifications((prev) =>
-          prev.map((notification) => ({
-            ...notification,
-            isRead: true,
-            readAt: new Date().toISOString(),
-          }))
-        );
-        setUnreadCount(0);
-        onUnreadCountChange?.(0);
-        toast.success('All notifications marked as read');
-      }
-    } catch {
-      toast.error('Failed to mark all notifications as read');
-    }
-  };
-
-  const handleDeleteNotification = async (notificationId: string) => {
-    try {
-      const response = await deleteAdminNotification(notificationId);
-      if (response.flag) {
-        setNotifications((prev) => prev.filter((n) => n.notificationId !== notificationId));
-        fetchUnreadCount();
-        toast.success('Notification deleted');
-      }
-    } catch {
-      toast.error('Failed to delete notification');
     }
   };
 
@@ -326,12 +325,12 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const endIdx = notifications.length === 0 ? 0 : Math.min(page * pageSize, totalItems);
 
   return (
-    <Card className={className}>
+    <Card className={className + ' h-[700px]'}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Admins Notifications
+            Personal Notifications
             {unreadCount > 0 && (
               <Badge
                 variant="destructive"
@@ -341,45 +340,18 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
               </Badge>
             )}
           </CardTitle>
-          {/* Filter trạng thái */}
-          <div className="flex items-center gap-2">
-            <Select
-              value={status}
-              onValueChange={(value) => {
-                setStatus(value as 'all' | 'unread' | 'read');
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="border-gray-200 w-32 border px-3 py-2 rounded text-sm">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {unreadCount > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={handleMarkAllAsRead}
-                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 backdrop-blur-md font-medium isolation-auto border-1 border-gray-300 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group"
-                  >
-                    Mark all read
-                    <CheckCircle className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mark all notifications as read</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <button
+            type="button"
+            className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+            onClick={() => setOpenCreateModal(true)}
+          >
+            <Plus className="w-4 h-4" />
+            Create Notification
+          </button>
         </div>
+        {/* Filter trạng thái */}
+        <div className="flex items-center gap-2">{/* Removed filter status */}</div>
+        {/* Removed Mark all read button */}
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (
@@ -389,7 +361,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
           </div>
         ) : (
           <>
-            <ScrollArea className="h-[600px]">
+            <ScrollArea className="h-[530px]">
               <div className="space-y-2">
                 {notifications.map((notification, index) => (
                   <div key={notification.notificationId}>
@@ -402,7 +374,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-1">
-                          {getNotificationIcon(notification.type)}
+                          {getNotificationIcon(notification.notificationType)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
@@ -413,15 +385,15 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                     notification.isRead ? 'text-gray-600' : 'text-gray-900'
                                   }`}
                                 >
-                                  {notification.title}
+                                  {notification.notificationTitle}
                                 </h4>
                                 <Badge
                                   variant="secondary"
                                   className={`text-xs rounded-full ${getNotificationBadgeColor(
-                                    notification.type
+                                    notification.notificationType
                                   )}`}
                                 >
-                                  {getNotificationTypeName(notification.type)}
+                                  {getNotificationTypeName(notification.notificationType)}
                                 </Badge>
                               </div>
                               <p
@@ -429,7 +401,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                   notification.isRead ? 'text-gray-500' : 'text-gray-700'
                                 }`}
                               >
-                                {notification.message}
+                                {notification.notificationMessage}
                               </p>
                               <div className="flex items-center gap-4 mt-2">
                                 <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -466,25 +438,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        handleDeleteNotification(notification.notificationId)
-                                      }
-                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete this notification</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              {/* Removed delete button */}
                             </div>
                           </div>
                         </div>
@@ -568,6 +522,11 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
           </>
         )}
       </CardContent>
+      <CreateNotificationModal
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        onCreated={fetchNotifications}
+      />
     </Card>
   );
 };

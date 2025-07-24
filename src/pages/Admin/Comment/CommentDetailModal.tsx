@@ -27,12 +27,12 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
     setIsDeleting(true);
     try {
       const res = await deleteComment(comment.commentId);
-      if (res?.flag) {
+      if (res && res.commentId) {
         toast.success('Comment deleted successfully!');
         onDelete(); // Refresh the list
         onClose(); // Close modal
       } else {
-        toast.error(res?.message || 'Cannot delete this comment!');
+        toast.error('Failed to delete comment!');
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
