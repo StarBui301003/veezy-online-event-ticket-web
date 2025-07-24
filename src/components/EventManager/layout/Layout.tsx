@@ -17,6 +17,7 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaDollarSign,
+  FaBell,
 } from 'react-icons/fa';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
@@ -303,6 +304,9 @@ export function EventManagerLayout() {
                     <NavItem to="chat" icon={FaComments} isActive={isActiveRoute('/event-manager/chat')}>
                       {t('chatSupport')}
                     </NavItem>
+                    <NavItem to="notification-manager" icon={FaBell} isActive={isActiveRoute('/event-manager/notification-manager')}>
+                      Notification Center
+                    </NavItem>
                   </div>
                 )}
               </div>
@@ -345,7 +349,7 @@ export function EventManagerLayout() {
             </div>
           </aside>
           {/* Main Content */}
-          <main className="flex-1 h-screen min-h-screen overflow-y-auto bg-gradient-to-br from-[#0f0c1a] to-[#1c1429]">
+          <main className="flex-1 h-screen overflow-y-auto bg-gradient-to-br from-[#0f0c1a] to-[#1c1429]">
             <Outlet />
           </main>
         </div>

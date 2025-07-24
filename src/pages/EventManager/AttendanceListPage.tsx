@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Users, Download, Calendar, Clock, UserCheck, Search, Filter, RefreshCw } from 'lucide-react';
 import { getMyAttendances, exportAttendanceCheckin } from '@/services/Event Manager/attendance.service';
 
@@ -84,12 +85,13 @@ const [events, setEvents] = useState<Event[]>([]);
 
   
   // 0: Admin, 1: Customer, 2: Event Manager
+  const { t } = useTranslation();
   const getRoleText = (role) => {
     switch(role) {
-      case 0: return 'Admin';
-      case 1: return 'Khách hàng';
-      case 2: return 'Event Manager';
-      default: return 'Không xác định';
+      case 0: return t('Admin');
+      case 1: return t('Customer');
+      case 2: return t('Event Manager');
+      default: return t('Unknown');
     }
   };
 
@@ -126,9 +128,9 @@ const [events, setEvents] = useState<Event[]>([]);
             <div>
               <h1 className="text-3xl font-black flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
                 <Users className="text-green-400" />
-                Quản lý tham gia sự kiện
+                {t('Attendance Management')}
               </h1>
-              <p className="text-lg text-gray-200 mt-2">Theo dõi và xuất danh sách người tham gia sự kiện</p>
+              <p className="text-lg text-gray-200 mt-2">{t('Track And Export Event Attendees')}</p>
             </div>
             <button
               onClick={loadAttendances}
@@ -136,7 +138,7 @@ const [events, setEvents] = useState<Event[]>([]);
               disabled={loading}
             >
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
+              {t('Refresh')}
             </button>
           </div>
         </div>
@@ -189,7 +191,7 @@ const [events, setEvents] = useState<Event[]>([]);
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm theo tên hoặc sự kiện..."
+                  placeholder={t('Search By Name Or Event')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 w-full sm:w-80 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 placeholder:text-green-200"
@@ -203,7 +205,7 @@ const [events, setEvents] = useState<Event[]>([]);
                     onChange={(e) => setSelectedEvent(e.target.value)}
                     className="pl-10 pr-8 py-2 w-full sm:w-60 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 appearance-none"
                   >
-                    <option value="">Tất cả sự kiện</option>
+                    <option value="">{t('All Events')}</option>
                     {events.map(event => (
                       <option key={event.eventId} value={event.eventId} className="bg-[#2d0036] text-white">
                         {event.eventName}
@@ -225,12 +227,12 @@ const [events, setEvents] = useState<Event[]>([]);
                 {exportLoading ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    Đang xuất...
+                    {t('Exporting')}
                   </>
                 ) : (
                   <>
                     <Download className="w-5 h-5" />
-                    Xuất danh sách
+                    {t('Export List')}
                   </>
                 )}
               </button>
@@ -239,7 +241,7 @@ const [events, setEvents] = useState<Event[]>([]);
             {selectedEventData && (
               <div className="mt-4 p-4 bg-gradient-to-r from-green-900/60 to-blue-900/60 rounded-xl border-2 border-green-500/30">
                 <p className="text-sm text-green-200">
-                  <strong className="text-green-300">Sự kiện được chọn:</strong> {selectedEventData.eventName}
+                  <strong className="text-green-300">{t('Selected Event')}:</strong> {selectedEventData.eventName}
                 </p>
               </div>
             )}
@@ -250,30 +252,30 @@ const [events, setEvents] = useState<Event[]>([]);
         <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-xl shadow-2xl border-2 border-blue-500/30">
           <div className="p-6 border-b border-blue-500/30">
             <h2 className="text-xl font-bold text-blue-300">
-              Danh sách tham gia ({filteredAttendances.length})
+              {t('Attendance List')} ({filteredAttendances.length})
             </h2>
           </div>
           <div className="overflow-x-auto">
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <RefreshCw className="w-8 h-8 animate-spin text-green-400" />
-                <span className="ml-3 text-green-200">Đang tải dữ liệu...</span>
+                <span className="ml-3 text-green-200">{t('Loading Data')}</span>
               </div>
             ) : filteredAttendances.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-white mb-2">Không có dữ liệu</h3>
-                <p className="text-gray-300">Chưa có người nào đăng ký tham gia sự kiện này.</p>
+                <h3 className="text-lg font-bold text-white mb-2">{t('No Data')}</h3>
+                <p className="text-gray-300">{t('No One Has Registered For This Event Yet')}</p>
               </div>
             ) : (
               <table className="w-full">
                 <thead className="bg-[#1a0022]/60">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">Người tham gia</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">Sự kiện</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">Vai trò</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">Thời gian đăng ký</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">Check-in</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Attendee')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Event')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Role')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Registration Time')}</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Check-In')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,7 +321,7 @@ const [events, setEvents] = useState<Event[]>([]);
                         ) : (
                           <div className="flex items-center">
                             <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                            <span className="text-sm text-green-200">Chưa check-in</span>
+                            <span className="text-sm text-green-200">{t('Not Checked In Yet')}</span>
                           </div>
                         )}
                       </td>

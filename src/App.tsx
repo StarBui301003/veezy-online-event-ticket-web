@@ -47,8 +47,9 @@ import UserListTabs from './pages/Admin/User/UserListTabs';
 import NewsDetail from './pages/Customer/NewsDetail';
 // Import new dashboard pages
 import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
-import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
+
 import FundManagement from './pages/EventManager/FundManagement';
+import NotificationManager from './pages/EventManager/NotificationManager';
 // Import icons for placeholder pages
 import { Users, Eye, ChartBar } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
@@ -721,14 +722,6 @@ function App() {
           ),
         },
         {
-          path: 'analytics/overview',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <AnalyticsOverview />
-            </ProtectedRoute>
-          ),
-        },
-        {
           path: 'analytics/participants',
           element: (
             <ProtectedRoute allowedRoles={[2]}>
@@ -769,6 +762,14 @@ function App() {
                   <p className="text-gray-300">Trang này đang được phát triển</p>
                 </div>
               </div>
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'notification-manager',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <NotificationManager />
             </ProtectedRoute>
           ),
         },
