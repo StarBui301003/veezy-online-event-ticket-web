@@ -21,6 +21,19 @@ import { FiCamera } from 'react-icons/fi';
 import FaceCapture from '@/components/common/FaceCapture';
 import { loginByFaceAPI } from '@/services/auth.service';
 import { useTranslation } from 'react-i18next';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/autoplay';
+import { getHomeEvents } from '@/services/Event Manager/event.service';
+
+interface EventData {
+  eventId: string;
+  eventName: string;
+  eventCoverImageUrl: string;
+}
 
 export const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -33,6 +46,7 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const { t } = useTranslation();
+  const [events, setEvents] = useState<EventData[]>([]);
 
   useEffect(() => {
     // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
@@ -69,6 +83,22 @@ export const LoginPage = () => {
       localStorage.removeItem('remembered_username');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    getHomeEvents().then((fetchedEvents) => {
+      if (Array.isArray(fetchedEvents)) {
+        setEvents(
+          fetchedEvents.map((e) => ({
+            eventId: e.eventId,
+            eventName: e.eventName,
+            eventCoverImageUrl: e.eventCoverImageUrl,
+          }))
+        );
+      } else {
+        setEvents([]);
+      }
+    });
+  }, []);
 
   const handleLogin = async () => {
     // Clear previous errors
@@ -286,20 +316,53 @@ export const LoginPage = () => {
       <div className="min-h-screen text-white flex relative">
         {/* Left Side - Welcome Section */}
         <div className="flex-1 relative overflow-hidden">
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${wallpaperLogin})`,
-            }}
-          ></div>
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-black/60"></div>
-          {/* Blue Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-purple-900/40"></div>
+          {/* Swiper Background */}
+          <Swiper
+            modules={[Autoplay, Pagination, Navigation]}
+            slidesPerView={1}
+            loop={events.length > 1}
+            pagination={{ clickable: true }}
+            navigation={true}
+            autoplay={{ delay: 4000, disableOnInteraction: false }}
+            className="absolute inset-0 w-full h-full z-30"
+          >
+            {events.length > 0 ? (
+              events.slice(0, 5).map((event) => (
+                <SwiperSlide key={event.eventId}>
+                  <div className="w-full h-full relative">
+                    {/* Ảnh nền */}
+                    <div
+                      className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+                      style={{ backgroundImage: `url(${event.eventCoverImageUrl})` }}
+                    />
+                    {/* Overlay đen + gradient */}
+                    <div className="absolute inset-0 bg-black/60" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-purple-900/40" />
+                    {/* Tên event */}
+                    <div className="absolute bottom-8 left-8 bg-black/60 px-6 py-3 rounded-xl shadow-lg z-10">
+                      <div className="text-2xl font-bold text-white drop-shadow-lg">
+                        {event.eventName}
+                      </div>
+                    </div>
+                  </div>
+                </SwiperSlide>
+              ))
+            ) : (
+              <SwiperSlide>
+                <div className="w-full h-full relative">
+                  <div
+                    className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url(${wallpaperLogin})` }}
+                  />
+                  <div className="absolute inset-0 bg-black/60" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900/40 to-purple-900/40" />
+                </div>
+              </SwiperSlide>
+            )}
+          </Swiper>
 
           {/* Content */}
-          <div className="relative h-full flex flex-col justify-center items-start px-16 py-20">
+          <div className="relative h-full flex flex-col justify-center items-start px-16 py-20 z-30">
             {/* Main Content */}
             <div className="max-w-md">
               <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
@@ -434,7 +497,9 @@ export const LoginPage = () => {
             {/* OR Divider */}
             <div className="flex items-center w-[380px] my-4">
               <div className="flex-grow h-px bg-gray-300" />
-              <span className="mx-4 text-gray-400 font-semibold text-lg select-none">{t('or')}</span>
+              <span className="mx-4 text-gray-400 font-semibold text-lg select-none">
+                {t('or')}
+              </span>
               <div className="flex-grow h-px bg-gray-300" />
             </div>
             <Button

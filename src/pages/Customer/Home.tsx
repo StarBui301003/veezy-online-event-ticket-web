@@ -125,7 +125,12 @@ export const HomePage = () => {
       <SpinnerOverlay show={loadingEvents || loadingNews} />
       <div className="relative z-10 max-w-7xl mx-auto px-4">
         {/* Carousel */}
-        <div className="w-full mb-12">
+        <div className="w-full mb-12 relative">
+          {loadingEvents && (
+            <div className="absolute inset-0 flex items-center justify-center z-40 bg-white/60">
+              <SpinnerOverlay show={true} />
+            </div>
+          )}
           {loadingEvents ? (
             <div className="flex justify-center items-center h-60">
               <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
