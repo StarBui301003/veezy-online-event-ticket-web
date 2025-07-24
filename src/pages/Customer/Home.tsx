@@ -2,11 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import {
-  getHomeEvents,
-  getAllNewsHome,
-  getAllEvents,
-} from '@/services/Event Manager/event.service';
+import { getHomeEvents, getAllNewsHome } from '@/services/Event Manager/event.service';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
 import 'swiper/css';
@@ -93,12 +89,10 @@ export const HomePage = () => {
     // Lắng nghe realtime event
     const reloadEvents = () => {
       setLoadingEvents(true);
-      getAllEvents()
+      getHomeEvents()
         .then((fetchedEvents) => {
-          const approvedEvents = fetchedEvents.filter(
-            (event) => event.isApproved === 1 && !event.isCancelled
-          );
-          setEvents(approvedEvents);
+          const activeEvents = (fetchedEvents || []).filter((event) => event.isActive === true);
+          setEvents(activeEvents);
         })
         .catch(() => setEvents([]))
         .finally(() => setLoadingEvents(false));
