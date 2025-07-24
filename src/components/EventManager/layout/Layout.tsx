@@ -24,6 +24,34 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
+import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+  // Helper: get userId from localStorage
+  const getUserId = () => {
+    const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+    if (!accStr) return null;
+    try {
+      const acc = JSON.parse(accStr);
+      return acc.userId || acc.accountId || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    i18n.changeLanguage(lang);
+    const userId = getUserId();
+    if (!userId) return;
+    try {
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
+        await updateUserConfig(userId, newConfig);
+      }
+    } catch {
+      // ignore error
+    }
+  };
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
 
@@ -196,13 +224,13 @@ export function EventManagerLayout() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="rounded-xl shadow-xl bg-white p-1 min-w-[90px] border border-gray-100">
                     <DropdownMenuItem
-                      onClick={() => i18n.changeLanguage('vi')}
+                      onClick={() => handleChangeLanguage('vi')}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${i18nInstance.language === 'vi' ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
                     >
                       <span className="text-base">🇻🇳</span> VN
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => i18n.changeLanguage('en')}
+                      onClick={() => handleChangeLanguage('en')}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${i18nInstance.language === 'en' ? 'bg-blue-100 text-blue-900' : 'hover:bg-gray-100'}`}
                     >
                       <span className="text-base">🇬🇧</span> EN
@@ -275,17 +303,12 @@ export function EventManagerLayout() {
                 <SectionHeader section="analytics" icon={FaChartBar} title={t('analytics')} />
                 {expandedSections.analytics && (
                   <div className="ml-4 space-y-1 mt-2">
-                    <NavItem to="analytics/overview" icon={FaChartBar} isActive={isActiveRoute('/event-manager/analytics/overview')}>
-                      {t('overview')}
-                    </NavItem>
-                    <NavItem to="analytics/participants" icon={FaUsers} isActive={isActiveRoute('/event-manager/analytics/participants')}>
-                      {t('participants')}
-                    </NavItem>
-                    <NavItem to="reviews" icon={FaEye} isActive={isActiveRoute('/event-manager/reviews')}>
-                      {t('EventReviews')}
+                    
+                    <NavItem to="analytics/sentiment" icon={FaEye} isActive={isActiveRoute('/event-manager/analytics/sentiment')}>
+                      {t('sentimentAnalysis')}
                     </NavItem>
                     <NavItem to="analytics/predictions" icon={FaChartBar} isActive={isActiveRoute('/event-manager/analytics/predictions')}>
-                      {t('aiPrediction')}
+                      {t('aiattendancepredictor')}
                     </NavItem>
                     <NavItem to="fund-management" icon={FaDollarSign} isActive={isActiveRoute('/event-manager/fund-management')}>
                       {t('fundManagement')}

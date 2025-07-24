@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import { comparePerformance } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -12,24 +11,36 @@ interface CompareDataPoint {
   previous: number;
 }
 
-export default function PerformanceCompareChart() {
+
+
+export default function PerformanceCompareChart({ filter }: { filter?: { CustomStartDate: string; CustomEndDate: string; GroupBy: number } }) {
   const { t } = useTranslation();
   const [dataPoints, setDataPoints] = useState<CompareDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
+    if (!filter) return;
     setLoading(true);
-    // So sánh hiệu suất tuần này (3) với tuần trước (4)
-    const res = await comparePerformance(3, 4);
-    // Giả sử API trả về dạng: { data: { points: [{ label, current, previous }] } }
-    setDataPoints(res.data?.points || []);
+    const res = await fetch(`/api/analytics/eventManager/performance/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'accept': '*/*' },
+      body: JSON.stringify({
+        currentPeriod: filter.GroupBy,
+        comparisonPeriod: filter.GroupBy === 1 ? 2 : 1
+      })
+    });
+    const data = await res.json();
+    setDataPoints((data.data?.points || []).slice(0, 10));
     setLoading(false);
   };
 
   useEffect(() => {
+    if (!filter) return;
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter?.CustomStartDate, filter?.CustomEndDate, filter?.GroupBy]);
 
+  if (!filter) return <div className="mb-10">{t('loadingPerformanceChart')}</div>;
   if (loading) return <div className="mb-10">{t('loadingPerformanceChart')}</div>;
   if (dataPoints.length === 0) return <div className="mb-10">{t('noPerformanceData')}</div>;
 

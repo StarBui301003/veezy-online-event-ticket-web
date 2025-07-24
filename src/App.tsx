@@ -51,7 +51,7 @@ import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
 import FundManagement from './pages/EventManager/FundManagement';
 import NotificationManager from './pages/EventManager/NotificationManager';
 // Import icons for placeholder pages
-import { Users, Eye, ChartBar } from 'lucide-react';
+import { Users, Eye } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
 
@@ -92,6 +92,8 @@ import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
 import i18n from './i18n';
 import { getUserConfig } from './services/userConfig.service';
 import { ChatboxAdmin } from './pages/Admin/Chatbox/ChatboxAdmin';
+import EventReviews from './pages/EventManager/EventReviews';
+import EventAttendancePredictor from '@/pages/EventManager/EventAttendancePredictor';
 
 function App() {
   useEffect(() => {
@@ -755,13 +757,7 @@ function App() {
           path: 'analytics/predictions',
           element: (
             <ProtectedRoute allowedRoles={[2]}>
-              <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <ChartBar className="text-purple-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-purple-300 mb-4">Dự Đoán AI</h1>
-                  <p className="text-gray-300">Trang này đang được phát triển</p>
-                </div>
-              </div>
+              <EventAttendancePredictor />
             </ProtectedRoute>
           ),
         },
@@ -778,6 +774,22 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <FundManagement />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'analytics/sentiment',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventReviews />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'attendance-predictor',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventAttendancePredictor />
             </ProtectedRoute>
           ),
         },

@@ -15,6 +15,34 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
+import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+  // Helper: get userId from localStorage
+  const getUserId = () => {
+    const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+    if (!accStr) return null;
+    try {
+      const acc = JSON.parse(accStr);
+      return acc.userId || acc.accountId || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    i18n.changeLanguage(lang);
+    const userId = getUserId();
+    if (!userId) return;
+    try {
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
+        await updateUserConfig(userId, newConfig);
+      }
+    } catch {
+      // ignore error
+    }
+  };
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -144,7 +172,7 @@ export function AdminLayout() {
                   className="rounded-lg shadow-xl bg-white p-2 min-w-[140px] border border-gray-200"
                 >
                   <DropdownMenuItem
-                    onClick={() => i18n.changeLanguage('vi')}
+                    onClick={() => handleChangeLanguage('vi')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
                       i18nInstance.language === 'vi'
                         ? 'bg-gray-200 text-gray-900'
@@ -154,7 +182,7 @@ export function AdminLayout() {
                     <span className="text-lg">🇻🇳</span> {t('tiengViet')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => i18n.changeLanguage('en')}
+                    onClick={() => handleChangeLanguage('en')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
                       i18nInstance.language === 'en'
                         ? 'bg-gray-200 text-gray-900'

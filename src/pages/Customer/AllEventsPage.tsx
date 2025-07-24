@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAllEvents } from "@/services/Event Manager/event.service";
+import { getApprovedEvents } from "@/services/Event Manager/event.service";
 import { StageBackground } from "@/components/StageBackground";
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,7 @@ export interface Event {
   eventLocation: string;
   isApproved: number;
   isCancelled: boolean;
+  isActive: boolean; // Thêm trường này để khớp dữ liệu API
 }
 
 const AllEventsPage = () => {
@@ -23,12 +24,18 @@ const AllEventsPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    getAllEvents(1, 100)
-      .then((fetchedEvents) => {
-        const approvedEvents = fetchedEvents.filter(
-          (event) => event.isApproved === 1 && !event.isCancelled
-        );
-        setEvents(approvedEvents);
+    getApprovedEvents(1, 100)
+      .then((response) => {
+        // Một số API trả về response.data.items, một số trả về response.data.data.items
+        let items = [];
+        if (Array.isArray(response?.data?.items)) {
+          items = response.data.items;
+        } else if (Array.isArray(response?.data?.data?.items)) {
+          items = response.data.data.items;
+        }
+        // Nếu không có trường isActive thì bỏ filter này
+        const approvedActiveEvents = items.filter(event => event.isActive !== false && !event.isCancelled);
+        setEvents(approvedActiveEvents);
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));

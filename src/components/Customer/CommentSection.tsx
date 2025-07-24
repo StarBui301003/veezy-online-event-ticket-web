@@ -49,8 +49,9 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
+  const [showCount, setShowCount] = useState(3);
+  const [showComment, setShowComment] = useState(true);
   const loggedInUser = getLoggedInUser();
-  // Xoá state reportCommentId, pendingReportCommentId
 
   const fetchComments = () => {
     setLoading(true);
@@ -101,7 +102,6 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       connectCommentHub('http://localhost:5004/commentHub');
       // Lắng nghe realtime SignalR cho comment
       const reloadComment = (data: any) => {
-        // Nếu sự kiện liên quan đến eventId này thì refetch
         if (data?.eventId === eventId || data === eventId) {
           fetchComments();
         }
@@ -112,15 +112,10 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     }
   }, [eventId]);
 
-  useEffect(() => {
-    // Xoá phần render ReportModal ở cuối file
-  }, []);
-
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !loggedInUser) return;
     setPosting(true);
-
     try {
       await instance.post("/api/Comment", {
         eventId,
@@ -137,97 +132,137 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     }
   };
 
+  // Hiển thị tối đa 3 comment, có nút xem thêm
+  const sortedComments = [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const visibleComments = sortedComments.slice(0, showCount);
+
+  // Chỉ hiện scroll khi đã bấm "Xem thêm" (tức là showCount > 3 và có nhiều hơn 3 comment)
+  const isScrollable = showCount > 3 && sortedComments.length > 3;
+  // Tăng chiều cao tối đa để đủ chỗ cho 3 comment và tránh bị đè lên EventChatAssistant
   return (
-    <div className="mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl max-h-[500px] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
-      <h3 className="text-xl font-semibold text-purple-300 mb-6 border-b border-purple-700 pb-3">
+    <div className={`mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl max-h-[700px] min-h-[340px] flex flex-col${!showComment ? ' mb-0' : ''}`} style={{ overscrollBehavior: 'contain' }}>
+      <button
+        onClick={() => setShowComment(v => !v)}
+        className={`w-full flex justify-between items-center text-lg font-semibold text-purple-300 border-b border-purple-700 pb-3 focus:outline-none bg-slate-900/60 px-4 py-2 rounded-lg transition-all duration-200 ${showComment ? 'mb-6' : 'mb-0'}`}
+        type="button"
+      >
         {t('commentDiscussion')}
-      </h3>
-      {loggedInUser ? (
-        <form onSubmit={handlePost} className="flex items-start gap-4 mb-8">
-          <img
-            src={loggedInUser.avatar || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'}
-            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
-            alt="Your avatar"
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div className="flex-1">
-            <textarea
-              className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
-              placeholder={`${t('sendComment')} ${loggedInUser.fullName}...`}
-              value={newComment}
-              onChange={e => setNewComment(e.target.value)}
-              disabled={posting}
-              rows={3}
-            />
-            <div className="flex justify-end mt-2">
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={posting || !newComment.trim()}
-              >
-                {posting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
-                <span>{posting ? t('sending') : t('send')}</span>
-              </button>
-            </div>
-          </div>
-        </form>
-      ) : (
-        <div className="text-center text-slate-400 mb-8 p-4 bg-slate-700/50 rounded-lg">
-          {t('loginToComment')} <a href="/login" className="text-purple-400 hover:underline font-semibold">{t('login')}</a> {t('comment')}
-        </div>
-      )}
-      {loading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="animate-spin w-8 h-8 text-purple-400" />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {comments.length === 0 ? (
-            <div className="text-slate-400 text-center py-4">{t('noCommentsYet')}</div>
-          ) : (
-            [...comments]
-              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-              .map(c => (
-                <div key={c.commentId} className="flex items-start gap-4">
-                  <img
-                    src={c.avatarUrl}
-                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
-                    alt={`${c.fullName}'s avatar`}
-                    className="w-10 h-10 rounded-full object-cover"
+        <span>{showComment ? '▲' : '▼'}</span>
+      </button>
+      {showComment && (
+        <>
+          {/* Khung nhập chat luôn ghim trên đầu */}
+          <div className="sticky top-0 z-10 bg-slate-800/50 pb-4">
+            {loggedInUser ? (
+              <form onSubmit={handlePost} className="flex items-start gap-4 mb-4">
+                <img
+                  src={loggedInUser.avatar || 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'}
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
+                  alt="Your avatar"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <textarea
+                    className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                    placeholder={`${t('sendComment')} ${loggedInUser.fullName}...`}
+                    value={newComment}
+                    onChange={e => setNewComment(e.target.value)}
+                    disabled={posting}
+                    rows={3}
                   />
-                  <div className="flex-1 bg-slate-700 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-purple-300">{c.fullName}</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 focus:outline-none border border-slate-700">
-                              <MoreVertical className="w-6 h-6 text-white" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
-                            <DropdownMenuItem
-                              onSelect={e => {
-                                e.preventDefault();
-                                setReportModal({type: 'comment', id: c.commentId});
-                              }}
-                              className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                            >
-                              <Flag className="w-4 h-4" /> {t('reportComment')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-200 mt-1">{c.content}</p>
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={posting || !newComment.trim()}
+                    >
+                      {posting ? <Loader2 className="animate-spin w-5 h-5" /> : <Send className="w-5 h-5" />}
+                      <span>{posting ? t('sending') : t('send')}</span>
+                    </button>
                   </div>
                 </div>
-              ))
-          )}
-        </div>
+              </form>
+            ) : (
+              <div className="text-center text-slate-400 mb-4 p-4 bg-slate-700/50 rounded-lg">
+                {t('loginToComment')} <a href="/login" className="text-purple-400 hover:underline font-semibold">{t('login')}</a> {t('comment')}
+              </div>
+            )}
+          </div>
+          {/* Danh sách comment */}
+          <div className={`flex-1 space-y-6${isScrollable ? ' overflow-y-auto' : ''}`}>
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="animate-spin w-8 h-8 text-purple-400" />
+              </div>
+            ) : (
+              <>
+                {visibleComments.length === 0 ? (
+                  <div className="text-slate-400 text-center py-4">{t('noCommentsYet')}</div>
+                ) : (
+                  visibleComments.map(c => (
+                    <div key={c.commentId} className="flex items-start gap-4">
+                      <img
+                        src={c.avatarUrl}
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
+                        alt={`${c.fullName}'s avatar`}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1 bg-slate-700 p-4 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold text-purple-300">{c.fullName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+                            <DropdownMenu modal={false}>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 focus:outline-none border border-slate-700">
+                                  <MoreVertical className="w-6 h-6 text-white" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
+                                <DropdownMenuItem
+                                  onSelect={e => {
+                                    e.preventDefault();
+                                    setReportModal({type: 'comment', id: c.commentId});
+                                  }}
+                                  className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                                >
+                                  <Flag className="w-4 h-4" /> {t('reportComment')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                        <p className="text-sm text-slate-200 mt-1">{c.content}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {sortedComments.length > showCount ? (
+                  <div className="flex justify-center mt-2">
+                    <button
+                      className="px-4 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition"
+                      onClick={() => setShowCount(c => c + 3)}
+                    >
+                      {t('showMore')}
+                    </button>
+                  </div>
+                ) : null}
+                {/* Nút thu gọn khi đã hiện hết comment và tổng số comment > 3 */}
+                {sortedComments.length > 3 && showCount >= sortedComments.length && (
+                  <div className="flex justify-center mt-2">
+                    <button
+                      className="px-4 py-2 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-800 transition"
+                      onClick={() => setShowCount(3)}
+                    >
+                      {t('collapse') || 'Thu gọn'}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
       )}
-      {/* Xoá phần render ReportModal ở cuối file */}
     </div>
   );
 }

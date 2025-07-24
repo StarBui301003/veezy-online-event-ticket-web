@@ -26,6 +26,34 @@ import { LogOut } from 'lucide-react';
 import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
+import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+  // Helper: get userId from localStorage
+  const getUserId = () => {
+    const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+    if (!accStr) return null;
+    try {
+      const acc = JSON.parse(accStr);
+      return acc.userId || acc.accountId || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    i18n.changeLanguage(lang);
+    const userId = getUserId();
+    if (!userId) return;
+    try {
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
+        await updateUserConfig(userId, newConfig);
+      }
+    } catch {
+      // ignore error
+    }
+  };
 
 export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -169,10 +197,10 @@ export const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-32">
-                <DropdownMenuItem onClick={() => i18n.changeLanguage('vi')}>
+                <DropdownMenuItem onClick={() => handleChangeLanguage('vi')}>
                   VN
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => i18n.changeLanguage('en')}>
+                <DropdownMenuItem onClick={() => handleChangeLanguage('en')}>
                   EN
                 </DropdownMenuItem>
               </DropdownMenuContent>

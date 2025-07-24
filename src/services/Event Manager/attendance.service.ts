@@ -1,3 +1,11 @@
+// Lấy danh sách attendance theo eventId (có phân trang)
+export async function getAttendanceByEvent(eventId: string, pageNumber = 1, pageSize = 10) {
+  const response = await instance.get(`/api/TicketIssued/event/${eventId}/attendanceByEvent`, {
+    params: { PageNumber: pageNumber, PageSize: pageSize },
+    headers: { 'Cache-Control': 'no-cache' },
+  });
+  return response.data;
+}
 import instance from '@/services/axios.customize';
 
 // Lấy danh sách tham gia của user hiện tại

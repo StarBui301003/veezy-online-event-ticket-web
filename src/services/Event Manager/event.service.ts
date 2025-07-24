@@ -1,3 +1,10 @@
+// === Get Approved Events (public) ===
+export async function getApprovedEvents(page = 1, pageSize = 100) {
+  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
+  return instance.get(`/api/Event/approved`, {
+    params: { page, pageSize }
+  });
+}
 import instance from "@/services/axios.customize";
 import { CreateEventData, NewsPayload, CreateTicketData, News } from "@/types/event";
 
