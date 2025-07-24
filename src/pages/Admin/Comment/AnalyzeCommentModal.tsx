@@ -26,6 +26,16 @@ interface Props {
   onClose: () => void;
 }
 
+// Helper type guard for keyword object
+function isKeywordObject(obj: unknown): obj is { positive: string[]; negative: string[] } {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    Array.isArray((obj as Record<string, unknown>).positive) &&
+    Array.isArray((obj as Record<string, unknown>).negative)
+  );
+}
+
 export const AnalyzeCommentModal = ({ open, onClose }: Props) => {
   const [events, setEvents] = useState<ApprovedEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -74,7 +84,7 @@ export const AnalyzeCommentModal = ({ open, onClose }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onClose} modal={true}>
       <DialogContent
-        className="max-w-lg bg-white p-0 shadow-lg flex flex-col rounded-xl"
+        className="max-w-3xl bg-white p-0 shadow-lg flex flex-col rounded-xl"
         style={{ maxHeight: '80vh', minHeight: '200px' }}
       >
         <div className="p-4">
@@ -179,13 +189,44 @@ export const AnalyzeCommentModal = ({ open, onClose }: Props) => {
                 </ResponsiveContainer>
               </div>
               <div className="mb-2">
-                <div className="font-semibold">Top Keywords:</div>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {result.top_keywords.map((kw) => (
-                    <span key={kw} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
-                      {kw}
-                    </span>
-                  ))}
+                <div className="font-semibold mb-1">Top Keywords:</div>
+                <div className="flex flex-wrap gap-4 mt-1">
+                  {/* Positive Keywords */}
+                  {isKeywordObject(result.top_keywords) && (
+                    <div>
+                      <div className="text-green-600 font-medium mb-1">Positive:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {result.top_keywords.positive.map((kw) => (
+                          <span
+                            key={kw}
+                            className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Negative Keywords */}
+                  {isKeywordObject(result.top_keywords) && (
+                    <div>
+                      <div className="text-red-600 font-medium mb-1">Negative:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {result.top_keywords.negative.map((kw) => (
+                          <span
+                            key={kw}
+                            className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs"
+                          >
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Fallback if no keywords */}
+                  {(!result.top_keywords || !isKeywordObject(result.top_keywords)) && (
+                    <span className="text-gray-400 text-xs">No keywords found.</span>
+                  )}
                 </div>
               </div>
               <div className="mb-2">
@@ -194,23 +235,52 @@ export const AnalyzeCommentModal = ({ open, onClose }: Props) => {
                   {result.negative_reviews.map((r) => (
                     <li key={r.text} className="mb-1">
                       <span className="text-gray-700">{r.text}</span>
-                      <span className="ml-2 text-xs text-red-400">({r.score})</span>
                     </li>
                   ))}
                 </ul>
               </div>
               {/* Aspect sentiments nếu có */}
-              {Object.keys(result.aspect_sentiments).length > 0 && (
+              {Array.isArray(result.aspect_sentiments) && result.aspect_sentiments.length > 0 && (
                 <div className="mb-2">
-                  <div className="font-semibold">Aspect Sentiments:</div>
-                  <ul className="list-disc ml-5 text-sm">
-                    {Object.entries(result.aspect_sentiments).map(([aspect, value]) => (
-                      <li key={aspect}>
-                        <span className="text-gray-700">{aspect}:</span>{' '}
-                        <span className="ml-2 text-blue-600">{JSON.stringify(value)}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="font-semibold mb-1">Aspect Sentiments:</div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[400px] border border-gray-200 rounded text-sm">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="px-3 py-1 text-left font-semibold">Aspect</th>
+                          <th className="px-3 py-1 text-center font-semibold">Sentiment</th>
+                          <th className="px-3 py-1 text-center font-semibold">Mentions</th>
+                          <th className="px-3 py-1 text-center font-semibold">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.aspect_sentiments.map((aspect, idx) => (
+                          <tr key={aspect.aspect || idx} className="border-t">
+                            <td className="px-3 py-1 font-medium text-gray-700">{aspect.aspect}</td>
+                            <td
+                              className="px-3 py-1 font-semibold text-center"
+                              style={{
+                                color:
+                                  aspect.sentiment === 'positive'
+                                    ? '#16a34a'
+                                    : aspect.sentiment === 'negative'
+                                    ? '#dc2626'
+                                    : '#6b7280',
+                              }}
+                            >
+                              {aspect.sentiment}
+                            </td>
+                            <td className="px-3 py-1 text-gray-500 text-center">
+                              {aspect.mention_count}
+                            </td>
+                            <td className="px-3 py-1 text-gray-500 text-center">
+                              {aspect.score.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

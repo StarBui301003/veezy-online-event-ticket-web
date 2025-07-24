@@ -7,9 +7,12 @@ import {
   getAllNewsHome,
   getAllEvents,
 } from '@/services/Event Manager/event.service';
-import Slider from 'react-slick';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/autoplay';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { NO_IMAGE } from '@/assets/img';
 import { connectNewsHub, onNews, connectEventHub, onEvent } from '@/services/signalr.service';
@@ -107,17 +110,8 @@ export const HomePage = () => {
     onEvent('OnEventCancelled', reloadEvents);
   }, []);
 
-  const sliderSettings = {
-    dots: true,
-    infinite: events.length > 1,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    arrows: true,
-    autoplay: true,
-    autoplaySpeed: 4000,
-    className: 'w-full',
-  };
+  // Swiper settings
+  const swiperModules = [Autoplay, Pagination, Navigation];
 
   // Xử lý fallback ảnh: chỉ hiện NO_IMAGE nếu không có hoặc lỗi
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, globalThis.Event>) => {
@@ -137,13 +131,19 @@ export const HomePage = () => {
               <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
             </div>
           ) : events.length === 0 ? (
-            <div className="text-center text-lg text-gray-400">
-              {t('noApprovedEvents')}
-            </div>
+            <div className="text-center text-lg text-gray-400">{t('noApprovedEvents')}</div>
           ) : (
-            <Slider {...sliderSettings}>
+            <Swiper
+              modules={swiperModules}
+              slidesPerView={1}
+              loop={events.length > 1}
+              pagination={{ clickable: true }}
+              navigation={true}
+              autoplay={{ delay: 4000, disableOnInteraction: false }}
+              className="w-full"
+            >
               {events.slice(0, 5).map((event) => (
-                <div key={event.eventId} className="px-2">
+                <SwiperSlide key={event.eventId}>
                   <Link to={`/event/${event.eventId}`}>
                     <div className="relative h-[400px] w-full overflow-hidden rounded-2xl shadow-lg">
                       <img
@@ -155,9 +155,9 @@ export const HomePage = () => {
                       />
                     </div>
                   </Link>
-                </div>
+                </SwiperSlide>
               ))}
-            </Slider>
+            </Swiper>
           )}
         </div>
         {/* Sự kiện nổi bật + Tin tức */}
