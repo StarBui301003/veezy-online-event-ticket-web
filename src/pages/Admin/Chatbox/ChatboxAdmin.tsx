@@ -20,7 +20,6 @@ import {
   MessageCircle,
   Clock,
   AlertCircle,
-  Settings,
   Trash2,
   Reply,
   Edit3,
@@ -42,6 +41,7 @@ import {
   type ChatRoom,
 } from '@/services/chat.service';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isCurrentUserAdmin } from '@/utils/admin-utils';
 
 export const ChatboxAdmin = () => {
   // States
@@ -89,27 +89,36 @@ export const ChatboxAdmin = () => {
   const currentUser = getCurrentUser();
 
   // Scroll to bottom of messages
-  const scrollToBottom = () => {
+  const scrollToBottom = (force: boolean = false) => {
     if (messagesEndRef.current) {
       // Use setTimeout to ensure DOM has fully updated
       setTimeout(() => {
         if (messagesEndRef.current) {
           const scrollContainer = messagesEndRef.current.parentElement?.parentElement;
           if (scrollContainer) {
-            const isAtBottom =
-              scrollContainer.scrollTop + scrollContainer.clientHeight >=
-              scrollContainer.scrollHeight - 10;
-            // Only auto-scroll if user is already near the bottom
-            if (isAtBottom) {
+            if (force) {
+              // Force scroll to bottom regardless of current position
               messagesEndRef.current.scrollIntoView({
                 behavior: 'smooth',
                 block: 'end',
                 inline: 'nearest',
               });
+            } else {
+              const isAtBottom =
+                scrollContainer.scrollTop + scrollContainer.clientHeight >=
+                scrollContainer.scrollHeight - 10;
+              // Only auto-scroll if user is already near the bottom
+              if (isAtBottom) {
+                messagesEndRef.current.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'end',
+                  inline: 'nearest',
+                });
+              }
             }
           }
         }
-      }, 50);
+      }, 100);
     }
   };
 
@@ -132,10 +141,15 @@ export const ChatboxAdmin = () => {
           console.log('📩 Received SignalR message:', messageDto);
 
           // Transform backend DTO to frontend interface
+          const senderId = messageDto.SenderUserId || messageDto.senderUserId;
+          const senderName = senderId === 'system-ai-bot' 
+            ? 'AI Assistant' 
+            : (messageDto.SenderUserName || messageDto.senderUserName || 'Unknown');
+
           const message: ChatMessage = {
             messageId: messageDto.Id || messageDto.id,
-            senderId: messageDto.SenderUserId || messageDto.senderUserId,
-            senderName: messageDto.SenderUserName || messageDto.senderUserName || 'Unknown',
+            senderId: senderId,
+            senderName: senderName,
             content: messageDto.Content || messageDto.content,
             timestamp: messageDto.CreatedAt || messageDto.createdAt,
             createdAt: messageDto.CreatedAt || messageDto.createdAt,
@@ -193,11 +207,15 @@ export const ChatboxAdmin = () => {
         // Listen for message updated
         onChat('MessageUpdated', (updatedMessageDto: any) => {
           console.log('✏️ Message updated:', updatedMessageDto);
+          const senderId = updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId;
+          const senderName = senderId === 'system-ai-bot' 
+            ? 'AI Assistant' 
+            : (updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown');
+
           const updatedMessage: ChatMessage = {
             messageId: updatedMessageDto.Id || updatedMessageDto.id,
-            senderId: updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId,
-            senderName:
-              updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown',
+            senderId: senderId,
+            senderName: senderName,
             content: updatedMessageDto.Content || updatedMessageDto.content,
             timestamp: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
             createdAt: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
@@ -253,16 +271,48 @@ export const ChatboxAdmin = () => {
 
   // Auto scroll when new messages arrive
   useEffect(() => {
-    // Only scroll if we have messages and the scroll container exists
+    // Always scroll to bottom when messages change
     if (messages.length > 0 && messagesEndRef.current) {
-      scrollToBottom();
+      // Use longer timeout to ensure all DOM updates are complete
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 150);
     }
-  }, [messages.length]); // Only depend on messages length, not the entire array
+  }, [messages]); // Depend on entire messages array to catch all changes
+
+  // Auto scroll when active room changes
+  useEffect(() => {
+    if (activeRoom && messages.length > 0) {
+      // Scroll to bottom when switching rooms
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 300);
+    }
+  }, [activeRoom?.roomId]);
+
+  // Initial scroll to bottom when component mounts or messages first load
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Initial scroll with longer delay to ensure everything is rendered
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 500);
+    }
+  }, [messages.length > 0]); // Only trigger when messages go from 0 to having content
 
   // Fetch chat rooms (support requests, etc.)
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
+      
+      // Check if user is admin before fetching
+      if (!isCurrentUserAdmin()) {
+        console.warn('User is not admin, redirecting...');
+        toast.error('Bạn không có quyền truy cập trang này');
+        setChatRooms([]);
+        return;
+      }
+
       const rooms = await chatService.getAdminChatRooms();
       // Validate and sanitize room data
       const validatedRooms = rooms
@@ -279,9 +329,18 @@ export const ChatboxAdmin = () => {
           unreadCount: room.unreadCount || 0,
         }));
       setChatRooms(validatedRooms);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching chat rooms:', error);
-      toast.error('Failed to load chat rooms');
+      
+      // Handle different error types
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        toast.error('Bạn không có quyền truy cập');
+      } else if (error.response?.status === 404) {
+        toast.warn('Không tìm thấy phòng chat nào');
+      } else {
+        toast.error('Không thể tải danh sách phòng chat');
+      }
+      
       setChatRooms([]); // Set empty array on error
     } finally {
       setLoading(false);
@@ -291,6 +350,13 @@ export const ChatboxAdmin = () => {
   // Fetch online users
   const fetchOnlineUsers = async () => {
     try {
+      // Check if user is admin before fetching
+      if (!isCurrentUserAdmin()) {
+        console.warn('User is not admin, cannot fetch online users');
+        setOnlineUsers([]);
+        return;
+      }
+
       const users = await chatService.getOnlineUsers();
       // Validate and sanitize user data
       const validatedUsers = (users || []).map((user) => ({
@@ -298,8 +364,18 @@ export const ChatboxAdmin = () => {
         fullName: user?.fullName || 'Unknown User',
       }));
       setOnlineUsers(validatedUsers);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching online users:', error);
+      
+      // Handle different error types
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        console.warn('Access denied to online users');
+      } else if (error.response?.status === 404) {
+        console.warn('Online users endpoint not found');
+      } else {
+        toast.error('Không thể tải danh sách người dùng online');
+      }
+      
       setOnlineUsers([]); // Set empty array on error
     }
   };
@@ -313,8 +389,21 @@ export const ChatboxAdmin = () => {
       if (messages.length > 0) {
         console.log('First message structure:', JSON.stringify(messages[0], null, 2));
       }
-      // Đảm bảo messages luôn là array
-      setMessages(Array.isArray(messages) ? messages : []);
+      
+      // Transform messages to display AI Assistant properly
+      const transformedMessages = Array.isArray(messages) 
+        ? messages.map(msg => ({
+            ...msg,
+            senderName: msg.senderId === 'system-ai-bot' ? 'AI Assistant' : msg.senderName
+          }))
+        : [];
+      
+      setMessages(transformedMessages);
+      
+      // Force scroll to bottom when loading messages for a room
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 200);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');
@@ -376,13 +465,7 @@ export const ChatboxAdmin = () => {
 
       // Force scroll to bottom for user's own message
       setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-            inline: 'nearest',
-          });
-        }
+        scrollToBottom(true);
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -636,14 +719,20 @@ export const ChatboxAdmin = () => {
                                 'Unknown User'}
                             </p>
                             {room.unreadCount > 0 && (
-                              <Badge variant="destructive" className="text-xs">
+                              <Badge
+                                variant="destructive"
+                                className="text-xs border border-blue-200 bg-white rounded-full"
+                              >
                                 {room.unreadCount}
                               </Badge>
                             )}
                           </div>
 
                           <div className="flex items-center gap-1 mt-1">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-xs  border border-blue-200 bg-white rounded-full"
+                            >
                               {room.participants[0]?.role || 'User'}
                             </Badge>
                             {room.roomType === 'Support' && (
@@ -718,10 +807,12 @@ export const ChatboxAdmin = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{activeRoom.participants[0]?.role || 'User'}</Badge>
-                    <Button variant="ghost" size="sm">
-                      <Settings className="h-4 w-4" />
-                    </Button>
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border border-blue-200 bg-white"
+                    >
+                      {activeRoom.participants[0]?.role || 'User'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
@@ -751,7 +842,7 @@ export const ChatboxAdmin = () => {
                           {showAvatar && !isOwnMessage && (
                             <Avatar className="h-8 w-8">
                               <AvatarFallback>
-                                {message.senderName?.charAt(0) || 'U'}
+                                {message.senderId === 'system-ai-bot' ? '🤖' : (message.senderName?.charAt(0) || 'U')}
                               </AvatarFallback>
                             </Avatar>
                           )}
@@ -837,6 +928,8 @@ export const ChatboxAdmin = () => {
                                   className={`rounded-xl px-4 py-2 max-w-full break-words shadow ${
                                     message.isDeleted
                                       ? 'bg-gray-100 text-gray-400 italic'
+                                      : message.senderId === 'system-ai-bot'
+                                      ? 'bg-green-50 text-green-800 border border-green-200'
                                       : isOwnMessage
                                       ? 'bg-blue-100 text-blue-900'
                                       : 'bg-gray-100 text-gray-800'
@@ -849,7 +942,7 @@ export const ChatboxAdmin = () => {
                                 </div>
 
                                 {/* Message options dropdown */}
-                                {!message.isDeleted && (
+                                {!message.isDeleted && message.senderId !== 'system-ai-bot' && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button

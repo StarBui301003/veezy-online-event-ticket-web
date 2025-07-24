@@ -13,6 +13,7 @@ import { connectCommentHub, onComment } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
+import { EventChatAssistant } from '@/components/Customer/EventChatAssistant';
 
 interface EventDetailData {
   eventId: string;
@@ -560,6 +561,14 @@ const EventDetail = () => {
             {/* ====== COMMENT SECTION START ====== */}
             <CommentSection eventId={event.eventId} setReportModal={setReportModal} />
             {/* ====== COMMENT SECTION END ====== */}
+
+            {/* ====== EVENT CHAT ASSISTANT ====== */}
+            <div className="mt-8">
+              <EventChatAssistant 
+                eventId={event.eventId}
+                eventName={event.eventName}
+              />
+            </div>
 
           </motion.div>
 
