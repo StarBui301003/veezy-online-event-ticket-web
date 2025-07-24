@@ -7,6 +7,7 @@ export async function getApprovedEvents(page = 1, pageSize = 100) {
 }
 import instance from "@/services/axios.customize";
 import { CreateEventData, NewsPayload, CreateTicketData, News } from "@/types/event";
+import type { AIRecommendResponse } from '@/types/ai-recommend-event';
 
 // === Event APIs ===
 
@@ -115,7 +116,7 @@ export async function getMyEventsWithStatus(filter: string, searchTerm: string) 
     `/api/Event?filter=${filter}&searchTerm=${searchTerm}`
   );
   return Array.isArray(response.data?.data) ? response.data.data :
-         Array.isArray(response.data) ? response.data : [];
+    Array.isArray(response.data) ? response.data : [];
 }
 
 // === Get All Events (public) ===
@@ -127,7 +128,7 @@ export async function getAllEvents(page = 1, pageSize = 12) {
     let items = response.data?.data?.items ?? [];
     if (!Array.isArray(items)) items = [];
     return items;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
     return [];
   }
@@ -213,7 +214,7 @@ export const createNews = async (data: NewsPayload) => {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + localStorage.getItem('access_token')
     });
-    
+
     const response = await instance.post('/api/News', data);
     console.log('Create news API response:', response);
     return response;
@@ -226,7 +227,7 @@ export const createNews = async (data: NewsPayload) => {
         data: errorResponse.response?.data,
         headers: errorResponse.response?.headers
       });
-      
+
       if (errorResponse.response?.data) {
         console.error('Full error response data:', JSON.stringify(errorResponse.response.data, null, 2));
       }
@@ -235,34 +236,34 @@ export const createNews = async (data: NewsPayload) => {
   }
 };
 
-export const getAllNews = (page: number = 1, pageSize: number = 10) => instance.get<{ 
-  flag: boolean; 
-  code: number; 
-  data: { 
-    items: News[]; 
-    currentPage: number; 
-    pageSize: number; 
-    totalItems: number; 
-    totalPages: number; 
-    hasNextPage: boolean; 
-    hasPreviousPage: boolean; 
-  }; 
-  message: string; 
+export const getAllNews = (page: number = 1, pageSize: number = 10) => instance.get<{
+  flag: boolean;
+  code: number;
+  data: {
+    items: News[];
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string;
 }>(`/api/News/all?Page=${page}&PageSize=${pageSize}`);
 
-export const getNewsByEvent = (eventId: string) => instance.get<{ 
-  flag: boolean; 
-  code: number; 
-  data: { 
-    items: News[]; 
-    currentPage: number; 
-    pageSize: number; 
-    totalItems: number; 
-    totalPages: number; 
-    hasNextPage: boolean; 
-    hasPreviousPage: boolean; 
-  }; 
-  message: string; 
+export const getNewsByEvent = (eventId: string) => instance.get<{
+  flag: boolean;
+  code: number;
+  data: {
+    items: News[];
+    currentPage: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  message: string;
 }>(`/api/News/byEvent?eventId=${eventId}`);
 
 export const deleteNews = (newsId: string) => instance.delete(`/api/News/${newsId}`);
@@ -432,7 +433,7 @@ export async function createOrderWithFace({ eventId, customerId, items, faceImag
 export async function createVnPayPayment(orderId: string): Promise<any> { // Replace 'any' with a more specific type if you know the response structure
   try {
     const response = await instance.post(`/api/Payment/VnPay?orderId=${orderId}`);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error("Failed to create VnPay payment", error);
     throw error;
@@ -775,4 +776,10 @@ export async function getHomeEvents() {
   const response = await instance.get('/api/Event/home');
   // Trả về mảng sự kiện, có thể là response.data.data hoặc response.data tuỳ backend
   return Array.isArray(response.data?.data) ? response.data.data : response.data;
+}
+
+// === AI Recommend Events ===
+export async function getAIRecommendedEvents(): Promise<AIRecommendResponse> {
+  const response = await instance.get('/api/Event/recommend');
+  return response.data;
 }
