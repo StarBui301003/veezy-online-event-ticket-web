@@ -1010,7 +1010,7 @@ const EventDetail = () => {
                   640: { slidesPerView: 1.2 },
                   768: { slidesPerView: 2 },
                   1024: { slidesPerView: 3 },
-                  1440: { slidesPerView: 3 }, // Thêm breakpoint cho desktop lớn
+                  1440: { slidesPerView: 4 }, // Thêm breakpoint cho desktop lớn
                 }}
                 pagination={{ clickable: true, type: 'fraction' }}
                 navigation={true}
@@ -1020,7 +1020,7 @@ const EventDetail = () => {
                 {events.map((event) => (
                   <SwiperSlide key={event.eventId}>
                     <div
-                      className="group bg-white/90 rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full"
+                      className="group bg-white/90 rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl hover:scale-95 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full"
                       onClick={() => navigate(`/event/${event.eventId}`)}
                     >
                       <div className="relative h-48 w-full overflow-hidden">
