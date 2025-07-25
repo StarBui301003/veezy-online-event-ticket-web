@@ -27,7 +27,6 @@ export default function EditTicket() {
   const [form, setForm] = useState<TicketFormWithId | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   // Lấy thông tin vé hiện tại
         useEffect(() => {
@@ -86,8 +85,6 @@ export default function EditTicket() {
     e.preventDefault();
     if (loading) return; // Chặn double submit
     setError(null);
-    setSuccess(null);
-
     // Validate
     if (!form?.name?.trim()) return setError(t('ticketNameEmpty'));
     if (!form?.description?.trim()) return setError(t('ticketDescriptionEmpty'));
@@ -113,8 +110,7 @@ export default function EditTicket() {
         isTransferable: form.isTransferable,
         imageUrl: form.imageUrl, // giữ ảnh cũ nếu chưa chọn ảnh mới
       });
-      setSuccess(t('ticketUpdateSuccess'));
-      setTimeout(() => navigate(-1), 1200);
+      navigate(-1);
     } catch (err: any) {
       setError(err?.response?.data?.message || t('ticketUpdateFailed'));
     } finally {
@@ -291,11 +287,7 @@ export default function EditTicket() {
               {error}
             </div>
           )}
-          {success && (
-            <div className="bg-green-100 text-green-700 rounded-lg px-4 py-3 font-bold text-center shadow-lg">
-              {success}
-            </div>
-          )}
+          
           <button
             type="submit"
             className="w-full py-4 mt-4 text-xl font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-2xl shadow-xl transition-all duration-200 tracking-widest uppercase drop-shadow-glow"

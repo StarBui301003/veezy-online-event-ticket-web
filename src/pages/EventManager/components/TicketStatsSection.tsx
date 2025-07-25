@@ -2,35 +2,32 @@ import { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, TooltipItem } from 'chart.js';
 import { useTranslation } from 'react-i18next';
+import { getEventManagerTicketStats } from '@/services/Event Manager/event.service';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
 
 export default function TicketStatsSection({ filter }: { filter: { CustomStartDate: string; CustomEndDate: string; GroupBy: number } }) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; ticketsSold: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function fetchData() {
-    setLoading(true);
-    // Call ticket stats API with filter
-    // Use revenueByEvent for event ticket stats
-    const revenueRes = await fetch(`/api/analytics/eventManager/revenue?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
-      headers: { 'accept': '*/*' }
-    });
-    const revenueData = await revenueRes.json();
-    const revenueByEvent = revenueData.data?.revenueByEvent || [];
-    // Sort by ticketsSold descending and take top 10
-    type Event = { eventName: string; ticketsSold: number };
-    const sorted = (revenueByEvent as Event[]).sort((a, b) => b.ticketsSold - a.ticketsSold).slice(0, 10);
-    setEvents(sorted.map((e) => ({ eventName: e.eventName, ticketsSold: e.ticketsSold })));
-    setLoading(false);
-  }
-
   useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      // Gọi service đã customize, dùng instance chuẩn
+      const res = await getEventManagerTicketStats({
+        groupBy: filter.GroupBy,
+        customStartDate: filter.CustomStartDate,
+        customEndDate: filter.CustomEndDate,
+      });
+      // Tuỳ backend trả về, có thể là res.data?.ticketStats hoặc res.data
+      const ticketStats = res.data?.ticketStats || res.data?.revenueByEvent || res.data || [];
+      const sorted = ticketStats.sort((a: any, b: any) => b.ticketsSold - a.ticketsSold).slice(0, 10);
+      setEvents(sorted);
+      setLoading(false);
+    }
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy]);
+  }, [filter]);
 
   if (loading) return <div className="mb-10">{t('loadingTicketChart')}</div>;
   if (events.length === 0) return <div className="mb-10">{t('noTicketEvent')}</div>;
@@ -66,4 +63,4 @@ export default function TicketStatsSection({ filter }: { filter: { CustomStartDa
       <Bar data={data} options={options} />
     </div>
   );
-} 
+}

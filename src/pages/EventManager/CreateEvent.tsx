@@ -261,7 +261,6 @@ export default function CreateEventForm() {
         bankName: formData.bankName,
       };
       await createEvent(apiData);
-      alert('Event created successfully!');
       navigate('/event-manager/pending-events');
     } catch {
       alert('Failed to create event.');

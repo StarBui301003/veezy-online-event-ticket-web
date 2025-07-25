@@ -32,22 +32,6 @@ interface Event {
   endAt: string;
 }
 
-interface FundData {
-  fundId: string;
-  eventId: string;
-  eventManagerId: string;
-  totalRevenue: number;
-  totalWithdrawn: number;
-  availableBalance: number;
-  platformFeeRate: number;
-  platformFeePaid: number;
-  fundStatus: number;
-  isWithdrawalEnabled: boolean;
-  withdrawalRequestedAt: string | null;
-  lastWithdrawalAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface Transaction {
   transactionId: string;
@@ -70,7 +54,7 @@ export default function FundManagement() {
   const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [fundData, setFundData] = useState<FundData | null>(null);
+  // const [fundData, setFundData] = useState<FundData | null>(null);
   const [balance, setBalance] = useState<number>(0);
   const [revenue, setRevenue] = useState<number>(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -78,6 +62,7 @@ export default function FundManagement() {
   const [withdrawalAmount, setWithdrawalAmount] = useState<string>('');
   const [withdrawalNotes, setWithdrawalNotes] = useState<string>('');
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchEvent, setSearchEvent] = useState('');
@@ -137,17 +122,18 @@ export default function FundManagement() {
 
   const fetchFundData = async (eventId: string) => {
     try {
-      const [fundRes, balanceRes, revenueRes, transactionsRes] = await Promise.all([
+      const [ , balanceRes, revenueRes, transactionsRes] = await Promise.all([
         getEventFund(eventId),
         getEventBalance(eventId),
         getEventRevenue(eventId),
         getEventTransactions(eventId)
       ]);
 
-      setFundData(fundRes.data || null);
+      // setFundData(fundRes.data || null);
       setBalance(balanceRes.data || 0);
       setRevenue(revenueRes.data || 0);
-      setTransactions(transactionsRes.data || []);
+      const tx = transactionsRes.data;
+      setTransactions(Array.isArray(tx) ? tx : Array.isArray(tx?.items) ? tx.items : []);
     } catch (error) {
       console.error('Error fetching fund data:', error);
       toast.error(t('errorLoadingFundData'));
@@ -155,6 +141,7 @@ export default function FundManagement() {
   };
 
   const handleRequestWithdrawal = async () => {
+    if (isSubmitting) return;
     if (!selectedEvent || !withdrawalAmount) {
       toast.error(t('pleaseEnterAmount'));
       return;
@@ -166,6 +153,7 @@ export default function FundManagement() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       await requestWithdrawal(selectedEvent.eventId, amount);
       toast.success(t('withdrawalRequestSent'));
@@ -175,6 +163,8 @@ export default function FundManagement() {
       fetchFundData(selectedEvent.eventId);
     } catch {
       toast.error(t('errorSendingWithdrawalRequest'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -199,18 +189,20 @@ export default function FundManagement() {
     return '';
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const search = searchTerm.toLowerCase();
-    return (
-      transaction.transactionId.toLowerCase().includes(search) ||
-      transaction.orderId.toLowerCase().includes(search) ||
-      transaction.amount.toString().includes(search) ||
-      transaction.transactionDescription.toLowerCase().includes(search) ||
-      formatDate(transaction.createdAt).includes(search) ||
-      formatDateTime(transaction.createdAt).includes(search)
-    ) &&
-      (filterStatus === 'all' || transaction.transactionStatus.toString() === filterStatus);
-  });
+  const filteredTransactions = transactions
+    .filter(transaction => transaction.transactionStatus === 0 || transaction.transactionStatus === 1)
+    .filter(transaction => {
+      const search = searchTerm.toLowerCase();
+      return (
+        transaction.transactionId.toLowerCase().includes(search) ||
+        transaction.orderId.toLowerCase().includes(search) ||
+        transaction.amount.toString().includes(search) ||
+        transaction.transactionDescription.toLowerCase().includes(search) ||
+        formatDate(transaction.createdAt).includes(search) ||
+        formatDateTime(transaction.createdAt).includes(search)
+      ) &&
+        (filterStatus === 'all' || transaction.transactionStatus.toString() === filterStatus);
+    });
 
   const filteredEvents = searchEvent.trim()
     ? events.filter(ev =>
@@ -369,7 +361,7 @@ export default function FundManagement() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12"
           >
             <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-green-500/30 shadow-2xl">
               <CardContent className="p-6">
@@ -388,32 +380,6 @@ export default function FundManagement() {
                   <div>
                     <p className="text-blue-300 text-sm font-semibold">{t('availableBalance')}</p>
                     <p className="text-3xl font-bold text-blue-400">{formatCurrency(balance)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-yellow-500/30 shadow-2xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-yellow-300 text-sm font-semibold">{t('withdrawnAmount')}</p>
-                    <p className="text-3xl font-bold text-yellow-400">
-                      {formatCurrency(fundData?.totalWithdrawn || 0)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-purple-500/30 shadow-2xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-300 text-sm font-semibold">{t('platformFee')}</p>
-                    <p className="text-3xl font-bold text-purple-400">
-                      {formatCurrency(fundData?.platformFeePaid || 0)}
-                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -577,8 +543,9 @@ export default function FundManagement() {
                 <Button
                   onClick={handleRequestWithdrawal}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white"
+                  disabled={isSubmitting}
                 >
-                  {t('sendRequest')}
+                  {isSubmitting ? t('sending') : t('sendRequest')}
                 </Button>
                 <Button
                   onClick={() => setShowWithdrawalModal(false)}

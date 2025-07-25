@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { addDays, format } from 'date-fns';
-import { DateRange } from 'react-date-range';
+
 
 import { Bell } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -12,8 +12,7 @@ import DashboardSummaryCards from './components/DashboardSummaryCards';
 import RevenueChartSection from './components/RevenueChartSection';
 
 import ExportButtons from './components/ExportButtons';
-import TicketStatsSection from './components/TicketStatsSection';
-import PerformanceCompareChart from './components/PerformanceCompareChart';
+// import PerformanceCompareChart from './components/PerformanceCompareChart';
 
 
 
@@ -35,14 +34,14 @@ export default function EventManagerDashboard() {
   } = useNotifications({ userId, maxNotifications: 30, language: t('lang') });
 
   // Date filter state
-  const [dateRange, setDateRange] = useState([
+  const [dateRange] = useState([
     {
       startDate: addDays(new Date(), -7),
       endDate: new Date(),
       key: 'selection',
     },
   ]);
-  const [groupBy, setGroupBy] = useState(1); // 1: day, 2: week, 3: month
+  const [groupBy] = useState(1); // 1: day, 2: week, 3: month
 
   // Format params for API
   const filterParams = {
@@ -54,13 +53,13 @@ export default function EventManagerDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Header + Filter row */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">{t('dashboard')}</h1>
           <div className="flex flex-col md:flex-row items-center gap-4">
             {/* Date range filter */}
             <div className="flex items-center gap-2">
-              {/* Dropdown filter giống Admin */}
-              <select
+              {/* <select
                 value={groupBy}
                 onChange={e => setGroupBy(Number(e.target.value))}
                 className="px-3 py-2 rounded border border-sky-200 text-black bg-white focus:outline-none focus:ring-2 focus:ring-sky-300 shadow-sm"
@@ -73,7 +72,6 @@ export default function EventManagerDashboard() {
                 <option value={3}>Year</option>
                 <option value={5}>Custom</option>
               </select>
-              {/* Nếu chọn Custom thì show DateRange */}
               {groupBy === 5 && (
                 <DateRange
                   editableDateInputs={true}
@@ -82,10 +80,9 @@ export default function EventManagerDashboard() {
                   ranges={dateRange}
                   maxDate={new Date()}
                   className="bg-white text-black rounded-xl shadow-lg"
-                />
-              )}
+                /> */}
+              {/* )} */}
             </div>
-            {/* Export Excel button on the left */}
             <div>
               <ExportButtons />
             </div>
@@ -96,7 +93,6 @@ export default function EventManagerDashboard() {
                 title={t('notification')}
               >
                 <Bell className="text-purple-400 text-2xl" />
-                {/* Unread indicator handled inside NotificationDropdown */}
               </button>
               {notifDropdown && (
                 <NotificationDropdown
@@ -114,16 +110,18 @@ export default function EventManagerDashboard() {
             </div>
           </div>
         </div>
+
         {/* Summary cards */}
         <DashboardSummaryCards filter={filterParams} />
-        {/* Revenue chart by event */}
-        <RevenueChartSection filter={filterParams} />
-        {/* Ticket sales by event */}
-        <TicketStatsSection filter={filterParams} />
-        {/* Upcoming events table */}
-        
-        {/* PerformanceCompareChart will be added here */}
-        <PerformanceCompareChart filter={filterParams} />
+
+        {/* Main chart section: 2 columns on desktop, 1 column on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+          <RevenueChartSection filter={filterParams} />
+          {/* <TicketStatsSection filter={filterParams} /> */}
+        </div>
+
+        {/* Performance compare chart full width */}
+        {/* <PerformanceCompareChart filter={filterParams} /> */}
       </div>
     </div>
   );

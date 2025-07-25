@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Ticket, Download, Filter, Search } from 'lucide-react';
+import { DollarSign, Ticket, Download, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getEventManagerDashboard, exportDashboardPDF, exportAnalyticsExcel } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { Dialog } from '@/components/ui/dialog';
-import TicketStatsSection from './components/TicketStatsSection';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +25,6 @@ interface ExportFilter {
   groupBy: number;
   customStartDate?: string;
   customEndDate?: string;
-  filterStatus?: string;
   filterRevenueMin?: number;
   filterRevenueMax?: number;
   filterTicketsMin?: number;
@@ -48,7 +46,6 @@ export default function TicketSalesDashboard() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterRevenueMin, setFilterRevenueMin] = useState('');
@@ -57,15 +54,26 @@ export default function TicketSalesDashboard() {
   const [filterTicketsMax, setFilterTicketsMax] = useState('');
 
   useEffect(() => {
+    fetchSalesData(selectedPeriod);
+    // eslint-disable-next-line
+  }, [
+    selectedPeriod,
+    filterDateFrom,
+    filterDateTo,
+    filterRevenueMin,
+    filterRevenueMax,
+    filterTicketsMin,
+    filterTicketsMax,
+  ]);
+
+  useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    // Lắng nghe realtime SignalR
     const reload = () => fetchSalesData(selectedPeriod);
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, [selectedPeriod]);
 
   const fetchSalesData = async (periodKey: string) => {
@@ -101,7 +109,6 @@ export default function TicketSalesDashboard() {
       };
       if (filterDateFrom) filter.customStartDate = filterDateFrom;
       if (filterDateTo) filter.customEndDate = filterDateTo;
-      // Add more advanced filters if needed
       const dash = await getEventManagerDashboard({ period });
       if (!dash.data) {
         toast.error(t('ticketSalesDashboard.noDataToExport'));
@@ -118,7 +125,6 @@ export default function TicketSalesDashboard() {
         link.parentNode?.removeChild(link);
       } else {
         const blob = await exportAnalyticsExcel('dashboard', dash.data, filter, 0);
-        // Kiểm tra content-type để xác định tên file
         let fileName = 'analytics.xlsx';
         if (blob && blob.type === 'text/csv') {
           fileName = 'analytics.csv';
@@ -138,8 +144,13 @@ export default function TicketSalesDashboard() {
     }
   };
 
-  const totalRevenue = salesData.reduce((sum, item) => sum + (item.revenue || 0), 0);
-  const totalTickets = salesData.reduce((sum, item) => sum + (item.ticketsSold || 0), 0);
+  const totalRevenue = salesData
+    .filter(item => item.status === 4)
+    .reduce((sum, item) => sum + (item.revenue || 0), 0);
+
+  const totalTickets = salesData
+    .filter(item => item.status === 4)
+    .reduce((sum, item) => sum + (item.ticketsSold || 0), 0);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -148,17 +159,17 @@ export default function TicketSalesDashboard() {
     }).format(amount);
   };
 
-  // Filtered sales data by event name and advanced filters
+  // Chỉ hiện trạng thái 4 và giữ các filter khác
   const filteredSalesData = salesData.filter(item => {
+    if (item.status !== 4) return false;
     const nameMatch = item.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-    const statusMatch = filterStatus ? String(item.status) === filterStatus : true;
     const dateFromMatch = filterDateFrom ? (item.eventDate && new Date(item.eventDate) >= new Date(filterDateFrom)) : true;
     const dateToMatch = filterDateTo ? (item.eventDate && new Date(item.eventDate) <= new Date(filterDateTo)) : true;
     const revenueMinMatch = filterRevenueMin ? (item.revenue || 0) >= Number(filterRevenueMin) : true;
     const revenueMaxMatch = filterRevenueMax ? (item.revenue || 0) <= Number(filterRevenueMax) : true;
     const ticketsMinMatch = filterTicketsMin ? (item.ticketsSold || 0) >= Number(filterTicketsMin) : true;
     const ticketsMaxMatch = filterTicketsMax ? (item.ticketsSold || 0) <= Number(filterTicketsMax) : true;
-    return nameMatch && statusMatch && dateFromMatch && dateToMatch && revenueMinMatch && revenueMaxMatch && ticketsMinMatch && ticketsMaxMatch;
+    return nameMatch && dateFromMatch && dateToMatch && revenueMinMatch && revenueMaxMatch && ticketsMinMatch && ticketsMaxMatch;
   });
 
   return (
@@ -185,10 +196,6 @@ export default function TicketSalesDashboard() {
             <Button onClick={() => handleExport('excel')} disabled={loading} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
               {t('ticketSalesDashboard.exportExcel')}
-            </Button>
-            <Button onClick={() => fetchSalesData(selectedPeriod)} disabled={loading} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-xl">
-              <Filter className="mr-2" size={20} />
-              {t('ticketSalesDashboard.filterData')}
             </Button>
           </div>
         </div>
@@ -288,15 +295,7 @@ export default function TicketSalesDashboard() {
             <DialogContent className="bg-[#1a0022] text-white max-w-lg w-full rounded-xl p-6">
               <DialogTitle className="text-lg font-bold mb-4">{t('ticketSalesDashboard.advancedSearch')}</DialogTitle>
               <div className="flex flex-col gap-4">
-                <div>
-                  <label className="block mb-1">{t('ticketSalesDashboard.status')}</label>
-                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white">
-                    <option value="">{t('ticketSalesDashboard.all')}</option>
-                    <option value="1">{t('ticketSalesDashboard.ongoing')}</option>
-                    <option value="2">{t('ticketSalesDashboard.ended')}</option>
-                    <option value="3">{t('ticketSalesDashboard.cancelled')}</option>
-                  </select>
-                </div>
+                {/* Các filter khác vẫn giữ nguyên nhưng không dùng filterStatus nữa */}
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block mb-1">{t('ticketSalesDashboard.fromDate')}</label>
@@ -330,7 +329,7 @@ export default function TicketSalesDashboard() {
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <Button variant="outline" onClick={() => {
-                  setFilterStatus(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterRevenueMin(''); setFilterRevenueMax(''); setFilterTicketsMin(''); setFilterTicketsMax(''); setAdvancedOpen(false);
+                  setFilterDateFrom(''); setFilterDateTo(''); setFilterRevenueMin(''); setFilterRevenueMax(''); setFilterTicketsMin(''); setFilterTicketsMax(''); setAdvancedOpen(false);
                 }} className="border-green-400 text-green-300">{t('ticketSalesDashboard.reset')}</Button>
                 <Button onClick={() => setAdvancedOpen(false)} className="bg-green-600 text-white">{t('ticketSalesDashboard.apply')}</Button>
               </div>
@@ -381,7 +380,7 @@ export default function TicketSalesDashboard() {
                       <span className="text-purple-400 font-semibold">{item.eventDate ? new Date(item.eventDate).toLocaleDateString('vi-VN') : '-'}</span>
                     </td>
                     <td className="p-4 text-center">
-                      <span className="text-green-300 font-semibold">{item.status}</span>
+                      <span className="text-green-300 font-semibold">{t('ticketSalesDashboard.ended')}</span>
                     </td>
                   </motion.tr>
                 ))}
@@ -389,14 +388,7 @@ export default function TicketSalesDashboard() {
             </table>
           </div>
         </motion.div>
-
-        {/* Ticket Stats Chart */}
-        <TicketStatsSection filter={{
-          CustomStartDate: filterDateFrom || '',
-          CustomEndDate: filterDateTo || '',
-          GroupBy: 1
-        }} />
       </motion.div>
     </div>
   );
-} 
+}

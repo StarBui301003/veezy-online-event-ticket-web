@@ -305,7 +305,7 @@ export function EventManagerLayout() {
                   <div className="ml-4 space-y-1 mt-2">
                     
                     <NavItem to="analytics/sentiment" icon={FaEye} isActive={isActiveRoute('/event-manager/analytics/sentiment')}>
-                      {t('sentimentAnalysis')}
+                      {t('sentimentanalysis')}
                     </NavItem>
                     <NavItem to="analytics/predictions" icon={FaChartBar} isActive={isActiveRoute('/event-manager/analytics/predictions')}>
                       {t('aiattendancepredictor')}

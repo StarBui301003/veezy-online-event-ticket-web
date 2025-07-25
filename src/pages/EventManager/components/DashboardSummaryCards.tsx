@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Ticket, Users, Calendar } from 'lucide-react';
-// import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 interface DashboardStats {
@@ -27,18 +27,32 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
 
   const fetchData = async () => {
     setLoading(true);
-    // Call API directly for summary
-    const res = await fetch(`/api/analytics/eventManager/dashboard?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
-      headers: { 'accept': '*/*' }
-    });
-    const dash = await res.json();
-    const overview = dash.data?.overview || {};
-    setStats({
-      totalEvents: overview.totalEvents || 0,
-      totalRevenue: overview.totalRevenue || 0,
-      totalTicketsSold: overview.totalTicketsSold || 0,
-      totalAttendees: overview.totalAttendees || 0,
-    });
+    try {
+      const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+      const accountObj = accountStr ? JSON.parse(accountStr) : null;
+      const eventManagerID = accountObj?.userId || accountObj?.accountId;
+      const params: {
+        customStartDate: string;
+        customEndDate: string;
+        groupBy: number;
+        eventManagerId?: string | number;
+      } = {
+        customStartDate: filter.CustomStartDate,
+        customEndDate: filter.CustomEndDate,
+        groupBy: filter.GroupBy,
+      };
+      if (eventManagerID) params.eventManagerId = eventManagerID;
+      const dash = await getEventManagerDashboard(params);
+      const overview = dash.data?.overview || dash.overview || {};
+      setStats({
+        totalEvents: overview.totalEvents || 0,
+        totalRevenue: overview.totalRevenue || 0,
+        totalTicketsSold: overview.totalTicketsSold || 0,
+        totalAttendees: overview.totalAttendees || 0,
+      });
+    } catch {
+      setStats({ totalEvents: 0, totalRevenue: 0, totalTicketsSold: 0, totalAttendees: 0 });
+    }
     setLoading(false);
   };
 

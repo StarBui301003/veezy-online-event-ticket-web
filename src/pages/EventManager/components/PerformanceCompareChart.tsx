@@ -1,3 +1,4 @@
+import { comparePerformance } from '@/services/Event Manager/event.service';
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
@@ -21,16 +22,12 @@ export default function PerformanceCompareChart({ filter }: { filter?: { CustomS
   const fetchData = async () => {
     if (!filter) return;
     setLoading(true);
-    const res = await fetch(`/api/analytics/eventManager/performance/compare`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'accept': '*/*' },
-      body: JSON.stringify({
-        currentPeriod: filter.GroupBy,
-        comparisonPeriod: filter.GroupBy === 1 ? 2 : 1
-      })
-    });
-    const data = await res.json();
-    setDataPoints((data.data?.points || []).slice(0, 10));
+    try {
+      const data = await comparePerformance(filter.GroupBy, filter.GroupBy === 1 ? 2 : 1);
+      setDataPoints((data.data?.points || data.points || []).slice(0, 10));
+    } catch {
+      setDataPoints([]);
+    }
     setLoading(false);
   };
 

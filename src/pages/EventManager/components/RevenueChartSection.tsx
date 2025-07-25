@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Bar, Line } from 'react-chartjs-2';
 import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement } from 'chart.js';
-// import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
+import { getEventManagerRevenue } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement);
@@ -16,14 +16,19 @@ export default function RevenueChartSection({ filter }: { filter: { CustomStartD
 
   async function fetchData() {
     setLoading(true);
-    // Call revenue API with filter
-    const res = await fetch(`/api/analytics/eventManager/revenue?CustomStartDate=${filter.CustomStartDate}&CustomEndDate=${filter.CustomEndDate}&GroupBy=${filter.GroupBy}`, {
-      headers: { 'accept': '*/*' }
-    });
-    const dash = await res.json();
-    const revenueByEvent = dash.data?.revenueByEvent || [];
-    setEvents(revenueByEvent.map((e: any) => ({ eventName: e.eventName, revenue: e.revenue })));
-    setTimeline(dash.data?.revenueTrend || []);
+    try {
+      const dash = await getEventManagerRevenue({
+        customStartDate: filter.CustomStartDate,
+        customEndDate: filter.CustomEndDate,
+        groupBy: filter.GroupBy,
+      });
+      const revenueByEvent = dash.data?.revenueByEvent || dash.revenueByEvent || [];
+      setEvents(revenueByEvent.map((e: any) => ({ eventName: e.eventName, revenue: e.revenue })));
+      setTimeline(dash.data?.revenueTrend || dash.revenueTrend || []);
+    } catch {
+      setEvents([]);
+      setTimeline([]);
+    }
     setLoading(false);
   }
 
