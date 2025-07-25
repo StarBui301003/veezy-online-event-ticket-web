@@ -28,6 +28,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import 'swiper/css/autoplay';
 import { getHomeEvents } from '@/services/Event Manager/event.service';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 interface EventData {
   eventId: string;
@@ -47,6 +48,7 @@ export const LoginPage = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const { t } = useTranslation();
   const [events, setEvents] = useState<EventData[]>([]);
+  const [eventLoading, setEventLoading] = useState(true);
 
   useEffect(() => {
     // Đặt kiểm tra này ở đầu useEffect để tránh render UI khi đã đăng nhập
@@ -85,19 +87,26 @@ export const LoginPage = () => {
   }, [navigate]);
 
   useEffect(() => {
-    getHomeEvents().then((fetchedEvents) => {
-      if (Array.isArray(fetchedEvents)) {
-        setEvents(
-          fetchedEvents.map((e) => ({
-            eventId: e.eventId,
-            eventName: e.eventName,
-            eventCoverImageUrl: e.eventCoverImageUrl,
-          }))
-        );
-      } else {
-        setEvents([]);
+    async function fetchEvents() {
+      setEventLoading(true);
+      try {
+        const fetchedEvents = await getHomeEvents();
+        if (Array.isArray(fetchedEvents)) {
+          setEvents(
+            fetchedEvents.map((e) => ({
+              eventId: e.eventId,
+              eventName: e.eventName,
+              eventCoverImageUrl: e.eventCoverImageUrl,
+            }))
+          );
+        } else {
+          setEvents([]);
+        }
+      } finally {
+        setEventLoading(false);
       }
-    });
+    }
+    fetchEvents();
   }, []);
 
   const handleLogin = async () => {
@@ -300,6 +309,10 @@ export const LoginPage = () => {
       setShowFaceCapture(false);
     }
   };
+
+  if (eventLoading) {
+    return <SpinnerOverlay show={true} />;
+  }
 
   return (
     <>
@@ -531,6 +544,7 @@ export const LoginPage = () => {
           </div>
         </div>
       </div>
+      <SpinnerOverlay show={loading} />
     </>
   );
 };
