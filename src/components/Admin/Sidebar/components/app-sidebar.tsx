@@ -22,7 +22,8 @@ import { RiCoupon2Line } from 'react-icons/ri';
 import { MdReportGmailerrorred } from 'react-icons/md';
 import { FaRegNewspaper } from 'react-icons/fa6';
 import { useTranslation } from 'react-i18next';
-import { IoIosChatboxes } from 'react-icons/io';
+import { IoChatboxEllipsesOutline } from 'react-icons/io5';
+import { PiHandWithdraw } from 'react-icons/pi';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
@@ -74,9 +75,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: MdReportGmailerrorred,
       },
       {
+        title: 'Withdraw',
+        url: '/admin/withdraw',
+        icon: PiHandWithdraw,
+      },
+      {
         title: 'Chatbox',
         url: '/admin/chatbox',
-        icon: IoIosChatboxes,
+        icon: IoChatboxEllipsesOutline,
       },
     ],
   };

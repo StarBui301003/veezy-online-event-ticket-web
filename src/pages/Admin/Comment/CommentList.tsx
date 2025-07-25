@@ -36,6 +36,7 @@ export const CommentList = () => {
   const [eventNames, setEventNames] = useState<Record<string, string>>({});
   const [viewComment, setViewComment] = useState<Comment | null>(null);
   const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
+  const [search, setSearch] = useState('');
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -105,6 +106,12 @@ export const CommentList = () => {
   }, [data]);
 
   const pagedComments = data?.items || [];
+  // Lọc theo commentId nếu có search
+  const filteredComments = search
+    ? pagedComments.filter((comment) =>
+        comment.commentId.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : pagedComments;
   const totalItems = data?.totalItems || 0;
   const totalPages = data?.totalPages || 1;
 
@@ -123,13 +130,82 @@ export const CommentList = () => {
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          <div className="flex justify-end mb-4">
-            <button
-              className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-              onClick={() => setShowAnalyzeModal(true)}
+          {/* Search input và nút Analyze cùng hàng */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
+            <div
+              className="InputContainer relative"
+              style={{
+                width: 310,
+                height: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+                borderRadius: 30,
+                overflow: 'hidden',
+                cursor: 'pointer',
+                boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+                position: 'relative',
+              }}
             >
-              Analyze Comment
-            </button>
+              <input
+                className="input pr-8"
+                style={{
+                  width: 300,
+                  height: 40,
+                  border: 'none',
+                  outline: 'none',
+                  caretColor: 'rgb(255,81,0)',
+                  backgroundColor: 'rgb(255,255,255)',
+                  borderRadius: 30,
+                  paddingLeft: 15,
+                  letterSpacing: 0.8,
+                  color: 'rgb(19,19,19)',
+                  fontSize: 13.4,
+                }}
+                placeholder={t('searchByCommentId') || 'Search by Comment ID'}
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {search && (
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    height: 24,
+                    width: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onClick={() => {
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  tabIndex={-1}
+                  type="button"
+                  aria-label="Clear search"
+                >
+                  &#10005;
+                </button>
+              )}
+            </div>
+            {/* Nút Analyze (right) */}
+            <div className="flex justify-end">
+              <button
+                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+                onClick={() => setShowAnalyzeModal(true)}
+              >
+                Analyze Comment
+              </button>
+            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
@@ -159,14 +235,14 @@ export const CommentList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedComments.length === 0 ? (
+              {filteredComments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
                     {t('noCommentsFound')}
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedComments.map((comment, idx) => (
+                filteredComments.map((comment, idx) => (
                   <TableRow key={comment.commentId} className="hover:bg-blue-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
 

@@ -94,6 +94,7 @@ import { getUserConfig } from './services/userConfig.service';
 import { ChatboxAdmin } from './pages/Admin/Chatbox/ChatboxAdmin';
 import EventReviews from './pages/EventManager/EventReviews';
 import EventAttendancePredictor from '@/pages/EventManager/EventAttendancePredictor';
+import { FundTabs } from './pages/Admin/Fund/FundTabs';
 
 function App() {
   useEffect(() => {
@@ -104,10 +105,12 @@ function App() {
       try {
         const accObj = JSON.parse(accStr);
         userId = accObj.userId;
-      } catch {/* ignore */}
+      } catch {
+        /* ignore */
+      }
     }
     if (userId) {
-      getUserConfig(userId).then(res => {
+      getUserConfig(userId).then((res) => {
         const lang = res.data.language;
         if (lang === 1) i18n.changeLanguage('vi');
         else if (lang === 2) i18n.changeLanguage('en');
@@ -428,7 +431,7 @@ function App() {
         {
           path: 'all-notifications',
           element: (
-            <ProtectedRoute allowedRoles={[1,2]}>
+            <ProtectedRoute allowedRoles={[1, 2]}>
               <AllNotificationsPage />
             </ProtectedRoute>
           ),
@@ -533,6 +536,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[0]}>
               <CommentList />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'withdraw',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <FundTabs />
             </ProtectedRoute>
           ),
         },
