@@ -142,9 +142,10 @@ export const ChatboxAdmin = () => {
 
           // Transform backend DTO to frontend interface
           const senderId = messageDto.SenderUserId || messageDto.senderUserId;
-          const senderName = senderId === 'system-ai-bot' 
-            ? 'AI Assistant' 
-            : (messageDto.SenderUserName || messageDto.senderUserName || 'Unknown');
+          const senderName =
+            senderId === 'system-ai-bot'
+              ? 'AI Assistant'
+              : messageDto.SenderUserName || messageDto.senderUserName || 'Unknown';
 
           const message: ChatMessage = {
             messageId: messageDto.Id || messageDto.id,
@@ -208,9 +209,10 @@ export const ChatboxAdmin = () => {
         onChat('MessageUpdated', (updatedMessageDto: any) => {
           console.log('✏️ Message updated:', updatedMessageDto);
           const senderId = updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId;
-          const senderName = senderId === 'system-ai-bot' 
-            ? 'AI Assistant' 
-            : (updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown');
+          const senderName =
+            senderId === 'system-ai-bot'
+              ? 'AI Assistant'
+              : updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown';
 
           const updatedMessage: ChatMessage = {
             messageId: updatedMessageDto.Id || updatedMessageDto.id,
@@ -304,7 +306,7 @@ export const ChatboxAdmin = () => {
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
-      
+
       // Check if user is admin before fetching
       if (!isCurrentUserAdmin()) {
         console.warn('User is not admin, redirecting...');
@@ -331,7 +333,7 @@ export const ChatboxAdmin = () => {
       setChatRooms(validatedRooms);
     } catch (error: any) {
       console.error('Error fetching chat rooms:', error);
-      
+
       // Handle different error types
       if (error.response?.status === 403 || error.response?.status === 401) {
         toast.error('Bạn không có quyền truy cập');
@@ -340,7 +342,7 @@ export const ChatboxAdmin = () => {
       } else {
         toast.error('Không thể tải danh sách phòng chat');
       }
-      
+
       setChatRooms([]); // Set empty array on error
     } finally {
       setLoading(false);
@@ -366,7 +368,7 @@ export const ChatboxAdmin = () => {
       setOnlineUsers(validatedUsers);
     } catch (error: any) {
       console.error('Error fetching online users:', error);
-      
+
       // Handle different error types
       if (error.response?.status === 403 || error.response?.status === 401) {
         console.warn('Access denied to online users');
@@ -375,7 +377,7 @@ export const ChatboxAdmin = () => {
       } else {
         toast.error('Không thể tải danh sách người dùng online');
       }
-      
+
       setOnlineUsers([]); // Set empty array on error
     }
   };
@@ -389,17 +391,17 @@ export const ChatboxAdmin = () => {
       if (messages.length > 0) {
         console.log('First message structure:', JSON.stringify(messages[0], null, 2));
       }
-      
+
       // Transform messages to display AI Assistant properly
-      const transformedMessages = Array.isArray(messages) 
-        ? messages.map(msg => ({
+      const transformedMessages = Array.isArray(messages)
+        ? messages.map((msg) => ({
             ...msg,
-            senderName: msg.senderId === 'system-ai-bot' ? 'AI Assistant' : msg.senderName
+            senderName: msg.senderId === 'system-ai-bot' ? 'AI Assistant' : msg.senderName,
           }))
         : [];
-      
+
       setMessages(transformedMessages);
-      
+
       // Force scroll to bottom when loading messages for a room
       setTimeout(() => {
         scrollToBottom(true);
@@ -672,8 +674,8 @@ export const ChatboxAdmin = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-full">
+        <CardContent className="flex-1 p-0 flex flex-col">
+          <ScrollArea className="flex-1 max-h-[calc(100vh-16rem)]">
             {loading ? (
               <div className="p-4 text-center text-muted-foreground">Loading chat rooms...</div>
             ) : filteredRooms.length === 0 ? (
@@ -696,7 +698,7 @@ export const ChatboxAdmin = () => {
                     >
                       <div className="flex items-start gap-3">
                         <div className="relative">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-10 w-10 border border-blue-200">
                             <AvatarImage src={room.participants[0]?.avatar} />
                             <AvatarFallback>
                               {(
@@ -712,26 +714,27 @@ export const ChatboxAdmin = () => {
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium truncate">
-                              {room.createdByUserName ||
-                                room.participants[0]?.fullName ||
-                                'Unknown User'}
-                            </p>
+                          <div className="flex items-center justify-between min-w-0">
+                            <div className="overflow-x-auto max-w-[200px]">
+                              <p className="font-medium truncate">
+                                {room.createdByUserName ||
+                                  room.participants[0]?.fullName ||
+                                  'Unknown User'}
+                              </p>
+                            </div>
                             {room.unreadCount > 0 && (
                               <Badge
                                 variant="destructive"
-                                className="text-xs border border-blue-200 bg-white rounded-full"
+                                className="text-xs border border-blue-200 bg-white rounded-full ml-2"
                               >
                                 {room.unreadCount}
                               </Badge>
                             )}
                           </div>
-
                           <div className="flex items-center gap-1 mt-1">
                             <Badge
                               variant="outline"
-                              className="text-xs  border border-blue-200 bg-white rounded-full"
+                              className="text-xs border border-blue-200 bg-white rounded-full"
                             >
                               {room.participants[0]?.role || 'User'}
                             </Badge>
@@ -742,14 +745,17 @@ export const ChatboxAdmin = () => {
                               </Badge>
                             )}
                           </div>
-
                           {room.lastMessage && (
-                            <p className="text-sm text-muted-foreground truncate mt-1">
-                              {room.lastMessage.content}
-                            </p>
+                            <div className="overflow-x-auto max-w-[200px]">
+                              <p
+                                className="text-sm text-muted-foreground truncate mt-1"
+                                title={room.lastMessage.content}
+                              >
+                                {room.lastMessage.content}
+                              </p>
+                            </div>
                           )}
-
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1 truncate min-w-0">
                             {formatTime(room.lastMessage?.timestamp || room.createdAt)}
                           </p>
                         </div>
@@ -842,7 +848,9 @@ export const ChatboxAdmin = () => {
                           {showAvatar && !isOwnMessage && (
                             <Avatar className="h-8 w-8">
                               <AvatarFallback>
-                                {message.senderId === 'system-ai-bot' ? '🤖' : (message.senderName?.charAt(0) || 'U')}
+                                {message.senderId === 'system-ai-bot'
+                                  ? '🤖'
+                                  : message.senderName?.charAt(0) || 'U'}
                               </AvatarFallback>
                             </Avatar>
                           )}

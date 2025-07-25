@@ -53,7 +53,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   const closeChat = useCallback(() => {
     setIsOpen(false);
     setIsMinimized(false);
-    
+
     // Abort any ongoing streaming
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -62,7 +62,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
 
   // Toggle minimize
   const toggleMinimize = useCallback(() => {
-    setIsMinimized(prev => {
+    setIsMinimized((prev) => {
       const newMinimized = !prev;
       if (!newMinimized) {
         setTimeout(scrollToBottom, 300);
@@ -77,36 +77,42 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   }, []);
 
   // Add message
-  const addMessage = useCallback((content: string, isUser: boolean, isError: boolean = false): string => {
-    const messageId = generateMessageId();
-    const newMessage: AIMessage = {
-      id: messageId,
-      content,
-      isUser,
-      timestamp: new Date(),
-      isError
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    scrollToBottom();
-    return messageId;
-  }, [generateMessageId, scrollToBottom]);
+  const addMessage = useCallback(
+    (content: string, isUser: boolean, isError: boolean = false): string => {
+      const messageId = generateMessageId();
+      const newMessage: AIMessage = {
+        id: messageId,
+        content,
+        isUser,
+        timestamp: new Date(),
+        isError,
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+      scrollToBottom();
+      return messageId;
+    },
+    [generateMessageId, scrollToBottom]
+  );
 
   // Update streaming message
-  const updateStreamingMessage = useCallback((messageId: string, content: string, isComplete: boolean = false) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId 
-        ? { ...msg, content, isStreaming: !isComplete }
-        : msg
-    ));
-    
-    if (isComplete) {
-      setIsStreaming(false);
-      setStreamingMessageId(null);
-    }
-    
-    scrollToBottom();
-  }, [scrollToBottom]);
+  const updateStreamingMessage = useCallback(
+    (messageId: string, content: string, isComplete: boolean = false) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, content, isStreaming: !isComplete } : msg
+        )
+      );
+
+      if (isComplete) {
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+      }
+
+      scrollToBottom();
+    },
+    [scrollToBottom]
+  );
 
   // Send message with streaming AI response
   const sendMessage = useCallback(async () => {
@@ -114,11 +120,11 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
 
     const messageContent = newMessage.trim();
     setNewMessage('');
-    
+
     try {
       // Add user message
       addMessage(messageContent, true);
-      
+
       // Add AI placeholder message
       const aiMessageId = addMessage('', false);
       setIsStreaming(true);
@@ -129,17 +135,18 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
 
       // Call AI chat API
       const aiResponse = await chatService.processSimpleAIChat(messageContent);
-      
+
       // Update AI message with response
       updateStreamingMessage(aiMessageId, aiResponse, true);
 
       // Mark streaming as complete
       setIsStreaming(false);
       setStreamingMessageId(null);
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('[AICustomerChatBox] Error sending message:', error);
-      
+
       if (error.name === 'AbortError') {
         // Request was aborted
         if (streamingMessageId) {
@@ -150,7 +157,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
         addMessage('Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.', false, true);
         toast.error('Không thể gửi tin nhắn. Vui lòng thử lại.');
       }
-      
+
       setIsStreaming(false);
       setStreamingMessageId(null);
     } finally {
@@ -159,18 +166,21 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   }, [newMessage, isStreaming, addMessage, updateStreamingMessage, streamingMessageId]);
 
   // Handle key press
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }, [sendMessage]);
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    },
+    [sendMessage]
+  );
 
   // Format timestamp
   const formatTimestamp = useCallback((timestamp: Date | string | number) => {
     try {
       let messageDate: Date;
-      
+
       // Handle different timestamp formats
       if (timestamp instanceof Date) {
         messageDate = timestamp;
@@ -180,43 +190,43 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
         messageDate = new Date(timestamp);
       } else {
         console.warn('Invalid timestamp format:', timestamp);
-        return new Date().toLocaleTimeString('vi-VN', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        return new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
         });
       }
-      
+
       // Check if the date is valid
       if (isNaN(messageDate.getTime())) {
         console.warn('Invalid date created from timestamp:', timestamp);
-        return new Date().toLocaleTimeString('vi-VN', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        return new Date().toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
         });
       }
-      
+
       const now = new Date();
       const isToday = messageDate.toDateString() === now.toDateString();
-      
+
       if (isToday) {
-        return messageDate.toLocaleTimeString('vi-VN', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        return messageDate.toLocaleTimeString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
         });
       } else {
-        return messageDate.toLocaleDateString('vi-VN', { 
-          day: '2-digit', 
+        return messageDate.toLocaleDateString('vi-VN', {
+          day: '2-digit',
           month: '2-digit',
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
         });
       }
     } catch (error) {
       console.error('Error formatting timestamp:', error, 'Original timestamp:', timestamp);
       // Return current time as fallback
-      return new Date().toLocaleTimeString('vi-VN', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return new Date().toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
       });
     }
   }, []);
@@ -291,9 +301,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                     AI Assistant
                     <Sparkles className="h-3 w-3 ml-1" />
                   </h3>
-                  <p className="text-xs text-purple-100">
-                    Trợ lý thông minh
-                  </p>
+                  <p className="text-xs text-purple-100">Trợ lý thông minh</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -303,7 +311,11 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                   onClick={toggleMinimize}
                   className="h-8 w-8 p-0 text-white hover:bg-white hover:bg-opacity-20"
                 >
-                  {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                  {isMinimized ? (
+                    <Maximize2 className="h-4 w-4" />
+                  ) : (
+                    <Minimize2 className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -333,9 +345,11 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                           key={message.id}
                           className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                         >
-                          <div className={`flex items-start space-x-2 max-w-[85%] ${
-                            message.isUser ? 'flex-row-reverse space-x-reverse' : 'flex-row'
-                          }`}>
+                          <div
+                            className={`flex items-start space-x-2 max-w-[85%] ${
+                              message.isUser ? 'flex-row-reverse space-x-reverse' : 'flex-row'
+                            }`}
+                          >
                             <Avatar className="h-6 w-6 flex-shrink-0">
                               {message.isUser ? (
                                 <div className="h-6 w-6 bg-blue-500 rounded-full flex items-center justify-center">
@@ -347,45 +361,61 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                                 </div>
                               )}
                             </Avatar>
-                            <Card className={`${
-                              message.isUser
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : message.isError
-                                ? 'bg-red-50 text-red-800 border-red-200'
-                                : 'bg-gradient-to-r from-purple-50 to-blue-50 text-gray-800 border-purple-200'
-                            }`}>
+                            <Card
+                              className={`${
+                                message.isUser
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : message.isError
+                                  ? 'bg-red-50 text-red-800 border-red-200'
+                                  : 'bg-gradient-to-r from-purple-50 to-blue-50 text-gray-800 border-purple-200'
+                              }`}
+                            >
                               <CardContent className="px-3 py-2">
                                 {/* Sender info with status */}
-                                <div className={`flex items-center justify-between mb-1 ${
-                                  message.isUser ? 'flex-row-reverse' : 'flex-row'
-                                }`}>
-                                  <div className={`flex items-center gap-1 ${
+                                <div
+                                  className={`flex items-center justify-between mb-1 ${
                                     message.isUser ? 'flex-row-reverse' : 'flex-row'
-                                  }`}>
-                                    <span className={`text-xs font-medium ${
-                                      message.isUser ? 'text-blue-100' : 'text-gray-600'
-                                    }`}>
+                                  }`}
+                                >
+                                  <div
+                                    className={`flex items-center gap-1 ${
+                                      message.isUser ? 'flex-row-reverse' : 'flex-row'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`text-xs font-medium ${
+                                        message.isUser ? 'text-blue-100' : 'text-gray-600'
+                                      }`}
+                                    >
                                       {message.isUser ? 'Bạn' : 'AI Assistant'}
                                     </span>
-                                    <UserStatusBadge 
-                                      userType={message.isUser ? 'customer' : 'ai'} 
-                                      size="sm" 
+                                    <UserStatusBadge
+                                      userType={message.isUser ? 'customer' : 'ai'}
+                                      size="sm"
                                       showIcon={true}
-                                      className={message.isUser ? 'bg-blue-500 text-white border-blue-400' : ''}
+                                      className={
+                                        message.isUser
+                                          ? 'bg-blue-500 text-white border-blue-400'
+                                          : ''
+                                      }
                                     />
                                   </div>
-                                  <span className={`text-xs ${
-                                    message.isUser ? 'text-blue-100' : 'text-gray-500'
-                                  }`}>
+                                  <span
+                                    className={`text-xs ${
+                                      message.isUser ? 'text-blue-100' : 'text-gray-500'
+                                    }`}
+                                  >
                                     {formatTimestamp(message.timestamp)}
                                   </span>
                                 </div>
-                                
+
                                 {/* Message content */}
                                 <p className="text-sm break-words whitespace-pre-wrap">
                                   {message.content}
                                   {message.isStreaming && (
-                                    <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse">|</span>
+                                    <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse">
+                                      |
+                                    </span>
                                   )}
                                 </p>
                               </CardContent>
@@ -393,7 +423,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                           </div>
                         </div>
                       ))}
-                      
+
                       <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
@@ -405,8 +435,14 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                         <div className="flex items-center space-x-2">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            <div
+                              className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                              style={{ animationDelay: '0.1s' }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                              style={{ animationDelay: '0.2s' }}
+                            ></div>
                           </div>
                           <span className="text-sm text-gray-600">AI đang trả lời...</span>
                         </div>
@@ -420,7 +456,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                         </Button>
                       </div>
                     )}
-                    
+
                     <div className="flex space-x-2">
                       <Input
                         value={newMessage}
@@ -443,7 +479,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                         )}
                       </Button>
                     </div>
-                    
+
                     <div className="flex items-center justify-center mt-2">
                       <p className="text-xs text-gray-500 flex items-center">
                         <Sparkles className="h-3 w-3 mr-1" />
