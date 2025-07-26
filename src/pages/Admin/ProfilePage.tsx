@@ -2,6 +2,7 @@
 import { useEffect, useState, ChangeEvent } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
+import { useFaceAuthStatus } from '@/hooks/use-face-auth-status';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -27,6 +28,7 @@ const ProfilePage = () => {
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceError, setFaceError] = useState('');
   const { t } = useTranslation();
+  const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
 
   useEffect(() => {
     // Lấy userId từ localStorage
@@ -54,7 +56,10 @@ const ProfilePage = () => {
         setPreviewUrl(user.avatar || user.avatarUrl || '');
       })
       .finally(() => setLoading(false));
-  }, []);
+
+    // Note: Identity and FaceRecognition realtime updates not available
+    // No IdentityHub or FaceRecognitionHub implemented yet
+  }, [refetchFaceAuth]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -185,9 +190,11 @@ const ProfilePage = () => {
                       setFaceError('');
                       try {
                         const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-                        await updateFaceAPI(account.userId, file, [0]);
+                        await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
                         toast.success(t('updateFaceSuccess'));
                         setShowFaceModal(false);
+                        // Refetch face auth status after successful update
+                        await refetchFaceAuth();
                       } catch (e: any) {
                         let msg = t('updateFaceFailed');
                         if (e?.response?.data?.message) {

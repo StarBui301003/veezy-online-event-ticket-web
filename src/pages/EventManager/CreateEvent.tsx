@@ -96,7 +96,7 @@ export default function CreateEventForm() {
     fetchCategories();
     
     // Connect to EventHub and listen for category changes
-    connectEventHub('http://localhost:5004/notificationHub');
+    connectEventHub();
     onEvent('OnCategoryCreated', () => {
       fetchCategories(); // Reload categories when new category is created
     });

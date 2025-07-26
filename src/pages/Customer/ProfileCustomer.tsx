@@ -15,6 +15,7 @@ import {
   uploadUserAvatarAPI,
   updateFaceAPI,
 } from '@/services/Admin/user.service';
+import { useFaceAuthStatus } from '@/hooks/use-face-auth-status';
 import { NO_AVATAR } from '@/assets/img';
 import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
@@ -28,7 +29,7 @@ import {
 import { getOrderHistoryByCustomerId } from '@/services/order.service';
 import { getTicketsByOrderId, getMyAttendances } from '@/services/ticketIssued.service';
 import OrderHistory from '@/components/Customer/OrderHistory';
-import { connectIdentityHub, onIdentity, connectTicketHub, onTicket } from '@/services/signalr.service';
+import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
 import type { User } from '@/types/auth';
@@ -57,6 +58,7 @@ const ProfileCustomer = () => {
   const [faceError, setFaceError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [tab, setTab] = useState('info');
+  const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
 
   // Lịch sử mua vé
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -87,33 +89,9 @@ const ProfileCustomer = () => {
     const token = localStorage.getItem('accessToken');
     
     if (accountObj?.userId) {
-      // Connect to IdentityHub for profile updates
-      connectIdentityHub('http://localhost:5001/notificationHub', token || undefined);
-      
       // Connect to TicketHub for order/ticket updates
-      connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+      connectTicketHub(token || undefined);
       
-      // Listen for profile updates
-      onIdentity('UserProfileUpdated', (data: any) => {
-        console.log('👤 Profile updated:', data);
-        if (data.userId === accountObj.userId) {
-          // Reload user data
-          getUserByIdAPI(accountObj.userId).then(setAccount).catch(console.error);
-          toast.success('Thông tin cá nhân đã được cập nhật');
-        }
-      });
-
-      onIdentity('UserAvatarUpdated', (data: any) => {
-        console.log('🖼️ Avatar updated:', data);
-        if (data.userId === accountObj.userId) {
-          getUserByIdAPI(accountObj.userId).then((user) => {
-            setAccount(user);
-            setPreviewUrl(user.avatarUrl || '');
-          }).catch(console.error);
-          toast.success('Ảnh đại diện đã được cập nhật');
-        }
-      });
-
       // Listen for order/ticket updates
       onTicket('OrderCreated', (data: any) => {
         console.log('🎫 Order created:', data);
@@ -758,16 +736,51 @@ const ProfileCustomer = () => {
             )}
             <FaceCapture
               onCapture={async ({ image }) => {
+                console.log('[FaceUpdate] Face capture initiated...', {
+                  imageType: image.type,
+                  imageSize: image.size,
+                  userId: account.userId,
+                  hasFaceAuth,
+                  hasPassword: !!facePassword
+                });
+                
                 setFaceError('');
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-                  await updateFaceAPI(account.userId, file, [0]);
+                  console.log('[FaceUpdate] File created for upload:', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    fileType: file.type
+                  });
+                  
+                  console.log('[FaceUpdate] Calling updateFaceAPI...', {
+                    userId: account.userId,
+                    hasExistingFaceAuth: hasFaceAuth,
+                    password: facePassword ? '[PROVIDED]' : '[NOT PROVIDED]'
+                  });
+                  
+                  await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
+                  
+                  console.log('[FaceUpdate] Face update successful!');
                   toast.success('Face updated successfully!');
                   setShowFaceModal(false);
+                  
+                  // Refetch face auth status after successful update
+                  console.log('[FaceUpdate] Refetching face auth status...');
+                  await refetchFaceAuth();
+                  console.log('[FaceUpdate] Face auth status refetched successfully');
                 } catch (e: unknown) {
+                  console.error('[FaceUpdate] Face update failed:', {
+                    error: e,
+                    errorType: typeof e,
+                    isAxiosError: e && typeof e === 'object' && 'response' in e
+                  });
+                  
                   let msg = 'Face update failed!';
                   if (typeof e === 'object' && e && 'response' in e && typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === 'string') {
                     const m = (e as { response: { data: { message: string } } }).response.data.message;
+                    console.log('[FaceUpdate] Backend error message:', m);
+                    
                     if (
                       m.includes('already been registered') ||
                       m.includes('Liveness check failed') ||
@@ -777,12 +790,20 @@ const ProfileCustomer = () => {
                       msg = m;
                     }
                   }
+                  
+                  console.log('[FaceUpdate] Final error message:', msg);
                   setFaceError(msg);
                   toast.error(msg);
                 }
               }}
-              onError={(err) => setFaceError(err)}
-              onCancel={() => setShowFaceModal(false)}
+              onError={(err) => {
+                console.error('[FaceUpdate] Face capture error:', err);
+                setFaceError(err);
+              }}
+              onCancel={() => {
+                console.log('[FaceUpdate] Face capture cancelled by user');
+                setShowFaceModal(false);
+              }}
             />
           </div>
         </div>

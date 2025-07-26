@@ -87,7 +87,7 @@ export default function EventTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectAnalyticsHub();
     
     // Listen for real-time event analytics updates
     onAnalytics('OnEventAnalytics', (data: any) => {

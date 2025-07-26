@@ -143,7 +143,7 @@ export default function EventListWithTicketManager() {
   );
 
   // Log số lượng sự kiện
-  console.log("Tổng sự kiện:", filteredEvents.length, "Sự kiện trang này:", pagedEvents.length, "Trang:", eventPage, "/", totalEventPages);
+  // Pagination logging removed for production
 
   // Load tickets when event selected
   useEffect(() => {

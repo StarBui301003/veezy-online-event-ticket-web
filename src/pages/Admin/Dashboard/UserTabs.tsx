@@ -74,7 +74,7 @@ export default function UserTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectAnalyticsHub();
     
     // Listen for real-time user analytics updates
     onAnalytics('OnUserAnalytics', (data: any) => {

@@ -37,6 +37,9 @@ export function FundTabs() {
 
   useEffect(() => {
     fetchPendingCount();
+
+    // Note: Fund realtime updates not available in current backend
+    // No FundHub implemented yet - will refresh data manually
   }, []);
 
   // Khi đổi tab, update query param

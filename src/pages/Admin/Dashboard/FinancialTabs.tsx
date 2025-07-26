@@ -102,7 +102,7 @@ export default function FinancialTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectAnalyticsHub();
     
     // Listen for real-time financial analytics updates
     onAnalytics('OnFinancialAnalytics', (data: any) => {

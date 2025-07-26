@@ -55,6 +55,9 @@ const EditNews: React.FC = () => {
         navigate('/event-manager/news');
       })
       .finally(() => setLoading(false));
+
+    // Note: News realtime updates not available in current backend  
+    // No NewsHub implemented yet
     // eslint-disable-next-line
   }, [newsId]);
 

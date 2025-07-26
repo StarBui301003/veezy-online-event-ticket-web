@@ -24,7 +24,7 @@ const ConfirmOrderPage = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      connectTicketHub('http://localhost:5005/notificationHub', token);
+      connectTicketHub(token);
       
       // Listen for real-time order updates
       onTicket('OrderCreated', (data: any) => {

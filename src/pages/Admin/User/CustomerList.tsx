@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getCustomerUsers } from '@/services/Admin/user.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 import type { User } from '@/types/auth';
 import type { PaginatedUserResponse } from '@/types/Admin/user';
 
@@ -69,24 +68,6 @@ export const CustomerList = () => {
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
-    
-    // Listen for real-time user updates
-    onIdentity('UserCreated', (data: any) => {
-      console.log('👤 Customer created:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('UserUpdated', (data: any) => {
-      console.log('👤 Customer updated:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('UserDeleted', (data: any) => {
-      console.log('👤 Customer deleted:', data);
-      reloadUsers();
-    });
-
     // Initial data load
     reloadUsers();
   // eslint-disable-next-line react-hooks/exhaustive-deps

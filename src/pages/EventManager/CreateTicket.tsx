@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   FaTicketAlt,
@@ -11,6 +11,8 @@ import {
 import { createTicket } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
+import { connectTicketHub, onTicket } from "@/services/signalr.service";
+import { toast } from "react-toastify";
 
 const defaultTicket = {
   name: '',
@@ -31,6 +33,26 @@ export default function CreateTicket() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBankError, setShowBankError] = useState(false);
+
+  // Setup realtime connection for ticket creation
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    connectTicketHub(token || undefined);
+    
+    // Listen for ticket creation confirmations
+    onTicket('TicketCreated', (data: any) => {
+      if (data.eventId === eventId) {
+        toast.success('Vé đã được tạo thành công!');
+        navigate(`/event-manager/events/${eventId}/tickets`);
+      }
+    });
+
+    onTicket('TicketCreateFailed', (data: any) => {
+      if (data.eventId === eventId) {
+        toast.error('Không thể tạo vé. Vui lòng thử lại!');
+      }
+    });
+  }, [eventId, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;

@@ -26,7 +26,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { chatService } from '@/services/chat.service';
+import { connectChatHub, onChat, disconnectChatHub, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
 interface AIMessage {
   id: string;
@@ -39,9 +41,15 @@ interface AIMessage {
 
 interface AICustomerChatBoxProps {
   className?: string;
+  onTransferToAdmin?: (adminRoomId: string) => void; // Callback khi user chuyển sang admin
+  showTransferButton?: boolean; // Hiển thị nút chuyển sang admin
 }
 
-export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className = '' }) => {
+export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ 
+  className = '', 
+  onTransferToAdmin, 
+  showTransferButton = true 
+}) => {
   // State management
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -52,10 +60,33 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   const [editingMessage, setEditingMessage] = useState<AIMessage | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  
+  // AI Integration state
+  const [aiRoomId, setAiRoomId] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [hasTransferred, setHasTransferred] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Initialize AI room when chat opens
+  const initializeAIRoom = useCallback(async () => {
+    try {
+      const aiRoom = await chatService.createOrGetAIChatRoom();
+      setAiRoomId(aiRoom.roomId);
+      
+      // Join SignalR room for real-time updates
+      try {
+        await joinChatRoom(aiRoom.roomId);
+        console.log('Joined AI chat room:', aiRoom.roomId);
+      } catch (signalRError) {
+        console.error('Failed to join SignalR room:', signalRError);
+      }
+    } catch (error) {
+      console.error('Failed to initialize AI room:', error);
+    }
+  }, []);
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -68,7 +99,9 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   const openChat = useCallback(() => {
     setIsOpen(true);
     setTimeout(scrollToBottom, 300);
-  }, [scrollToBottom]);
+    // Initialize AI room when opening chat
+    initializeAIRoom();
+  }, [scrollToBottom, initializeAIRoom]);
 
   // Close chat
   const closeChat = useCallback(() => {
@@ -204,15 +237,31 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
       addMessage(messageContent, true);
 
       // Add AI placeholder message
-      const aiMessageId = addMessage('', false);
+      const aiMessageId = addMessage('AI đang suy nghĩ...', false);
       setIsStreaming(true);
       setStreamingMessageId(aiMessageId);
 
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
 
-      // Call AI chat API
-      const aiResponse = await chatService.processSimpleAIChat(messageContent);
+      let aiResponse: string = '';
+
+      // Kiểm tra nếu đã có AI room thì sử dụng AI room integration
+      if (aiRoomId) {
+        try {
+          console.log('🤖 Sending AI message with room context:', aiRoomId);
+          const response = await chatService.sendAIMessage(aiRoomId, messageContent);
+          aiResponse = response.content || 'AI không thể trả lời lúc này.';
+        } catch (roomError) {
+          console.warn('⚠️ AI room integration failed, falling back to simple chat:', roomError);
+          // Fallback to simple AI chat
+          aiResponse = await chatService.processSimpleAIChat(messageContent);
+        }
+      } else {
+        console.log('💬 Using simple AI chat (no room context)');
+        // Fallback về simple AI chat (không có room context)
+        aiResponse = await chatService.processSimpleAIChat(messageContent);
+      }
 
       // Update AI message with response
       updateStreamingMessage(aiMessageId, aiResponse, true);
@@ -223,7 +272,7 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error('[AICustomerChatBox] Error sending message:', error);
+      console.error('❌ [AICustomerChatBox] Error sending message:', error);
 
       if (error.name === 'AbortError') {
         // Request was aborted
@@ -232,7 +281,12 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
         }
       } else {
         // Add error message
-        addMessage('Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.', false, true);
+        const errorMessage = error.message || 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.';
+        if (streamingMessageId) {
+          updateStreamingMessage(streamingMessageId, errorMessage, true);
+        } else {
+          addMessage(errorMessage, false, true);
+        }
         toast.error('Không thể gửi tin nhắn. Vui lòng thử lại.');
       }
 
@@ -241,7 +295,37 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
     } finally {
       abortControllerRef.current = null;
     }
-  }, [newMessage, isStreaming, addMessage, updateStreamingMessage, streamingMessageId]);
+  }, [newMessage, isStreaming, addMessage, updateStreamingMessage, streamingMessageId, aiRoomId]);
+
+  // Transfer to admin chat
+  const handleTransferToAdmin = useCallback(async () => {
+    if (!aiRoomId || isTransferring) return;
+    
+    try {
+      setIsTransferring(true);
+      
+      // Create or get AI room first if not exists
+      const aiRoom = await chatService.createOrGetAIChatRoom();
+      setAiRoomId(aiRoom.roomId);
+      
+      // Transfer to admin
+      const adminRoom = await chatService.transferAIToAdmin(aiRoom.roomId);
+      
+      setHasTransferred(true);
+      toast.success('Đã chuyển sang chat với admin!');
+      
+      // Notify parent component
+      if (onTransferToAdmin) {
+        onTransferToAdmin(adminRoom.roomId);
+      }
+      
+    } catch (error: any) {
+      console.error('Transfer to admin failed:', error);
+      toast.error('Không thể chuyển sang admin. Vui lòng thử lại.');
+    } finally {
+      setIsTransferring(false);
+    }
+  }, [aiRoomId, isTransferring, onTransferToAdmin]);
 
   // Handle key press
   const handleKeyPress = useCallback(
@@ -323,6 +407,21 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
     }
   }, [messages, isOpen, isMinimized, scrollToBottom]);
 
+  // Helper function to get current user ID
+  const getCurrentUserId = useCallback(() => {
+    try {
+      const accountStr = localStorage.getItem('account');
+      if (accountStr) {
+        const account = JSON.parse(accountStr);
+        return account.userId;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Error parsing account from localStorage:', error);
+      return undefined;
+    }
+  }, []);
+
   // Initialize with welcome message
   useEffect(() => {
     if (messages.length === 0) {
@@ -332,6 +431,58 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
       );
     }
   }, [messages.length, addMessage]);
+
+  // SignalR connection and event handlers
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        // Get proper access token
+        const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
+        
+        // Connect to chat hub với đúng URL
+        await connectChatHub(token);
+        console.log('✅ Connected to Chat Hub');
+        
+        // Listen for AI messages
+        onChat('ReceiveAIMessage', (message: any) => {
+          console.log('📩 Received AI message:', message);
+          addMessage(message.content, false);
+        });
+
+        // Listen for transfer notifications
+        onChat('TransferToAdmin', () => {
+          console.log('🔄 Transfer to admin notification received');
+          setHasTransferred(true);
+          toast.success('Cuộc trò chuyện đã được chuyển sang admin');
+        });
+
+        // Join AI room if exists
+        if (aiRoomId) {
+          await joinChatRoom(aiRoomId);
+          console.log('🏠 Joined AI room:', aiRoomId);
+        }
+      } catch (error) {
+        console.error('❌ Failed to setup SignalR:', error);
+        // Don't block UI if SignalR fails
+      }
+    };
+
+    if (isOpen) {
+      setupSignalR();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      try {
+        if (aiRoomId) {
+          leaveChatRoom(aiRoomId);
+        }
+        disconnectChatHub();
+      } catch (error) {
+        console.error('⚠️ Error during SignalR cleanup:', error);
+      }
+    };
+  }, [isOpen, aiRoomId, addMessage]);
 
   return (
     <div className={`fixed bottom-4 left-4 z-50 ${className}`}>
@@ -379,7 +530,13 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                     AI Assistant
                     <Sparkles className="h-3 w-3 ml-1" />
                   </h3>
-                  <p className="text-xs text-purple-100">Trợ lý thông minh</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-purple-100">Trợ lý thông minh</p>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-200">Always Online</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -467,16 +624,28 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                                     >
                                       {message.isUser ? 'Bạn' : 'AI Assistant'}
                                     </span>
-                                    <UserStatusBadge
-                                      userType={message.isUser ? 'customer' : 'ai'}
-                                      size="sm"
-                                      showIcon={true}
-                                      className={
-                                        message.isUser
-                                          ? 'bg-blue-500 text-white border-blue-400'
-                                          : ''
-                                      }
-                                    />
+                                    <div className="flex items-center gap-1">
+                                      <UserStatusBadge
+                                        userType={message.isUser ? 'customer' : 'ai'}
+                                        size="sm"
+                                        showIcon={true}
+                                        className={
+                                          message.isUser
+                                            ? 'bg-blue-500 text-white border-blue-400'
+                                            : ''
+                                        }
+                                      />
+                                      {message.isUser && (
+                                        <OnlineStatusIndicator 
+                                          userId={getCurrentUserId()}
+                                          size="sm"
+                                          showText={false}
+                                        />
+                                      )}
+                                      {!message.isUser && (
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                      )}
+                                    </div>
                                   </div>
                                   
                                   <div className="flex items-center gap-2">
@@ -582,6 +751,38 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
 
                   {/* Input */}
                   <div className="p-4 border-t border-gray-200">
+                    {/* Transfer to Admin Button */}
+                    {showTransferButton && !hasTransferred && (
+                      <div className="mb-3">
+                        <Button
+                          onClick={handleTransferToAdmin}
+                          disabled={isTransferring}
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                        >
+                          {isTransferring ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
+                              Đang chuyển...
+                            </>
+                          ) : (
+                            <>
+                              👤 Chuyển sang chat với Admin
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+
+                    {hasTransferred && (
+                      <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-xs text-green-700 text-center">
+                          ✅ Đã chuyển sang chat với Admin. Bạn có thể tiếp tục chat với AI hoặc chờ Admin phản hồi.
+                        </p>
+                      </div>
+                    )}
+
                     {isStreaming && (
                       <div className="flex items-center justify-between mb-2 p-2 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
                         <div className="flex items-center space-x-2">

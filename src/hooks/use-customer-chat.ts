@@ -39,6 +39,7 @@ interface UseChatReturn {
   formatTimestamp: (timestamp: string) => string;
   isMyMessage: (message: ChatMessage) => boolean;
   isAiMessage: (message: ChatMessage) => boolean;
+  isAdminMessage: (message: ChatMessage) => boolean;
 }
 
 export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => {
@@ -113,64 +114,62 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     const currentUser = getCurrentUser();
     
     // Enhanced debug logging for this specific issue
-    console.log('[ENHANCED DEBUG] Message ownership check:', {
+    console.log('[CUSTOMER CHAT DEBUG] Message ownership check:', {
       messageId: message.messageId,
       messageSenderId: message.senderId,
       messageSenderName: message.senderName,
+      messageContent: message.content,
       currentUserStructure: currentUser,
       keysInCurrentUser: currentUser ? Object.keys(currentUser) : 'null',
       userId: currentUser?.userId,
       accountId: currentUser?.accountId,
       id: currentUser?.id,
-      matchByUserId: message.senderId === currentUser?.userId,
-      matchByAccountId: message.senderId === currentUser?.accountId,
-      matchById: message.senderId === currentUser?.id
+      username: currentUser?.username,
+      fullName: currentUser?.fullName
     });
     
-    // Use debug utils for detailed logging
-    const isMyMsg = (() => {
-      // Check if we've tracked this message as sent by us
-      if (sentMessageIds.has(message.messageId)) {
-        return true;
-      }
-      
-      // If no current user, assume false
-      if (!currentUser) {
-        return false;
-      }
-      
-      // Check by senderId with various user ID fields
-      if (message.senderId === currentUser.id || 
-          message.senderId === currentUser.accountId ||
-          message.senderId === currentUser.userId) {
-        return true;
-      }
-      
-      // Check by sender name if senderId doesn't match
-      if (message.senderName === currentUser.name || 
-          message.senderName === currentUser.fullName ||
-          message.senderName === currentUser.displayName) {
-        return true;
-      }
-      
-      // Check if message has user role indicator
-      if (message.senderName === 'Customer' || message.senderName === 'User') {
-        return true;
-      }
-      
-      // Additional check: if message doesn't have admin or AI indicators, and we have a current user, it might be ours
-      const isAdminMessage = message.senderName?.toLowerCase().includes('admin');
-      const isAIMessage = message.senderName?.toLowerCase().includes('ai') || 
-                         message.senderName?.toLowerCase().includes('bot') ||
-                         message.senderId === 'ai-assistant';
-      
-      // If it's not admin or AI, and we have current user, assume it's ours
-      if (!isAdminMessage && !isAIMessage && (currentUser.id || currentUser.accountId)) {
-        return true;
-      }
-      
+    // Use simple direct comparison like admin chatbox
+    if (!currentUser) {
+      console.log('[CUSTOMER CHAT DEBUG] No current user found');
       return false;
-    })();
+    }
+    
+    // Check if this message was sent by us using sent message tracking
+    const wasMessageSentByMe = sentMessageIds.has(message.messageId);
+    console.log('[CUSTOMER CHAT DEBUG] Sent message check:', {
+      messageId: message.messageId,
+      wasMessageSentByMe,
+      sentMessageIdsSize: sentMessageIds.size
+    });
+    
+    // If we have record of sending this message, it's definitely ours
+    if (wasMessageSentByMe) {
+      console.log('[CUSTOMER CHAT DEBUG] Message found in sent messages - definitely mine');
+      return true;
+    }
+    
+    // Try multiple possible ID matches
+    const possibleMatches = [
+      message.senderId === currentUser.userId,
+      message.senderId === currentUser.accountId,
+      message.senderId === currentUser.id,
+      // Also check by username as backup
+      message.senderName === currentUser.username,
+      message.senderName === currentUser.fullName
+    ];
+    
+    console.log('[CUSTOMER CHAT DEBUG] Possible matches:', {
+      matchByUserId: possibleMatches[0],
+      matchByAccountId: possibleMatches[1],
+      matchById: possibleMatches[2],
+      matchByUsername: possibleMatches[3],
+      matchByFullName: possibleMatches[4]
+    });
+    
+    // Message is from current user if any of the matches is true
+    const isMyMsg = possibleMatches.some(match => match);
+    
+    console.log('[CUSTOMER CHAT DEBUG] Final result:', isMyMsg);
     
     return isMyMsg;
   }, [getCurrentUser, sentMessageIds]);
@@ -181,6 +180,25 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
            message.senderName?.toLowerCase().includes('bot') ||
            message.senderId === 'ai-assistant';
   }, []);
+
+  // Check if message is from admin
+  const isAdminMessage = useCallback((message: ChatMessage) => {
+    // Check if sender name contains 'admin'
+    if (message.senderName?.toLowerCase().includes('admin')) {
+      return true;
+    }
+    
+    // Check if senderId is different from current user (likely admin)
+    const currentUser = getCurrentUser();
+    if (currentUser && message.senderId && 
+        message.senderId !== currentUser.userId && 
+        message.senderId !== currentUser.accountId && 
+        message.senderId !== currentUser.id) {
+      return true;
+    }
+    
+    return false;
+  }, [getCurrentUser]);
 
   // Show notification
   const showNotification = useCallback((message: ChatMessage) => {
@@ -210,6 +228,23 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       
       setChatRoom(room);
       
+      // Add participants to OnlineStatusContext for status tracking
+      if (room.participants) {
+        room.participants.forEach(participant => {
+          if (participant.userId) {
+            window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
+              detail: {
+                userId: participant.userId,
+                username: participant.username || participant.fullName,
+                isOnline: participant.isOnline || true,
+                lastActiveAt: new Date().toISOString()
+              }
+            }));
+            console.log('[useCustomerChat] ➕ Added participant to OnlineStatusContext:', participant.userId);
+          }
+        });
+      }
+      
       // Load messages
       const roomMessages = await chatService.getRoomMessages(room.roomId, 1, 50);
       console.log('[useCustomerChat] Messages loaded:', roomMessages);
@@ -236,7 +271,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       const token = localStorage.getItem('access_token');
       
       console.log('[useCustomerChat] Connecting to SignalR...');
-      await connectChatHub(chatHubUrl, token || undefined);
+      await connectChatHub(token || undefined);
       
       console.log('[useCustomerChat] Joining chat room:', roomId);
       await joinChatRoom(roomId);
@@ -257,11 +292,33 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     
     // Listen for new messages
     onChat('ReceiveMessage', (message: ChatMessage) => {
-      console.log('[useCustomerChat] Received new message via SignalR:', message);
+      console.log('[CUSTOMER CHAT SIGNALR] Received new message via SignalR:', message);
+      console.log('[CUSTOMER CHAT SIGNALR] Message detailed structure:', {
+        messageId: message.messageId,
+        senderId: message.senderId,
+        senderName: message.senderName,
+        content: message.content,
+        timestamp: message.timestamp,
+        roomId: message.roomId,
+        allProperties: Object.keys(message)
+      });
+      
+      const currentUser = getCurrentUser();
+      console.log('[CUSTOMER CHAT SIGNALR] Current user for comparison:', {
+        userId: currentUser?.userId,
+        accountId: currentUser?.accountId,
+        username: currentUser?.username,
+        fullName: currentUser?.fullName
+      });
+      
       setMessages(prev => {
         // Prevent duplicate messages
         const exists = prev.some(m => m.messageId === message.messageId);
-        if (exists) return prev;
+        if (exists) {
+          console.log('[CUSTOMER CHAT SIGNALR] Message already exists, skipping');
+          return prev;
+        }
+        console.log('[CUSTOMER CHAT SIGNALR] Adding new message to list');
         return [...prev, message];
       });
       
@@ -551,6 +608,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     getCurrentUser,
     formatTimestamp,
     isMyMessage,
-    isAiMessage
+    isAiMessage,
+    isAdminMessage
   };
 };

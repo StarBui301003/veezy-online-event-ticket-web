@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserStatusBadge } from '@/components/ui/user-status-badge';
 import { useCustomerChat } from '@/hooks/use-customer-chat';
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
 interface CustomerChatBoxProps {
   className?: string;
@@ -34,7 +35,8 @@ export const CustomerChatBox: React.FC<CustomerChatBoxProps> = ({ className = ''
     sendMessage: sendChatMessage,
     formatTimestamp,
     isMyMessage,
-    isAiMessage
+    isAiMessage,
+    chatRoom
   } = useCustomerChat({ enableNotifications: true });
 
   // Refs
@@ -112,9 +114,26 @@ export const CustomerChatBox: React.FC<CustomerChatBoxProps> = ({ className = ''
                 </Avatar>
                 <div>
                   <h3 className="font-semibold text-sm">Hỗ trợ khách hàng</h3>
-                  <p className="text-xs text-blue-100">
-                    {isConnected ? 'Đang kết nối' : 'Offline'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-blue-100">
+                      {isConnected ? 'Trực tuyến' : 'Offline'}
+                    </p>
+                    {/* Show admin online status from chat room participants */}
+                    {chatRoom?.participants?.length > 0 && (
+                      (() => {
+                        const adminParticipant = chatRoom.participants.find(p => 
+                          p.role === 'Admin'
+                        );
+                        return adminParticipant ? (
+                          <OnlineStatusIndicator 
+                            userId={adminParticipant.userId}
+                            size="sm"
+                            showText={true}
+                          />
+                        ) : null;
+                      })()
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -201,11 +220,20 @@ export const CustomerChatBox: React.FC<CustomerChatBoxProps> = ({ className = ''
                                         <span className="text-xs font-medium text-gray-600">
                                           {message.senderName || 'Admin'}
                                         </span>
-                                        <UserStatusBadge 
-                                          userType="admin" 
-                                          size="sm" 
-                                          showIcon={true}
-                                        />
+                                        <div className="flex items-center gap-1">
+                                          <UserStatusBadge 
+                                            userType="admin" 
+                                            size="sm" 
+                                            showIcon={true}
+                                          />
+                                          {message.senderId && (
+                                            <OnlineStatusIndicator 
+                                              userId={message.senderId}
+                                              size="sm"
+                                              showText={false}
+                                            />
+                                          )}
+                                        </div>
                                       </div>
                                     )}
                                     {isAiMessage(message) && (
