@@ -16,6 +16,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import type { User } from '@/types/auth';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 
 // Extend User type for event followers to include eventName
 type EventFollower = User & { eventName?: string };
@@ -65,6 +66,34 @@ export default function ProfileEventManager() {
       setLoading(false);
       return;
     }
+
+    // Connect to IdentityHub for real-time profile updates
+    const token = localStorage.getItem('accessToken');
+    connectIdentityHub('http://localhost:5001/notificationHub', token || undefined);
+    
+    // Listen for profile updates
+    onIdentity('UserProfileUpdated', (data: any) => {
+      console.log('👤 Event Manager profile updated:', data);
+      if (data.userId === userId) {
+        // Reload user data
+        getUserByIdAPI(userId).then((user) => {
+          setAccount(user);
+          setForm({ ...user });
+        }).catch(console.error);
+      }
+    });
+
+    onIdentity('UserAvatarUpdated', (data: any) => {
+      console.log('🖼️ Event Manager avatar updated:', data);
+      if (data.userId === userId) {
+        getUserByIdAPI(userId).then((user) => {
+          setAccount(user);
+          setForm({ ...user });
+          setPreviewUrl(user.avatarUrl || '');
+        }).catch(console.error);
+      }
+    });
+
     setLoading(true);
     getUserByIdAPI(userId)
       .then((user) => {

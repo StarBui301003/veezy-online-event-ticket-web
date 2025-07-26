@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getEventManagerUsers } from '@/services/Admin/user.service';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 import type { User } from '@/types/auth';
 import type { PaginatedUserResponse } from '@/types/Admin/user';
 
@@ -64,6 +65,31 @@ export const EventManagerList = () => {
       })
       .finally(() => setLoading(false));
   };
+
+  // Connect to IdentityHub for real-time updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/hubs/notifications');
+    
+    // Listen for real-time event manager updates
+    onIdentity('EventManagerCreated', (data: any) => {
+      console.log('👤 Event Manager created:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('EventManagerUpdated', (data: any) => {
+      console.log('👤 Event Manager updated:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('EventManagerDeleted', (data: any) => {
+      console.log('👤 Event Manager deleted:', data);
+      reloadUsers();
+    });
+
+    // Initial data load
+    reloadUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     reloadUsers();

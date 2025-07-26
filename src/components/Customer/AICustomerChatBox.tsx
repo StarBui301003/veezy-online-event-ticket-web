@@ -1,5 +1,17 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2, Sparkles, User } from 'lucide-react';
+import { 
+  Bot, 
+  Send, 
+  X, 
+  Minimize2, 
+  Maximize2, 
+  Sparkles, 
+  User, 
+  MoreVertical, 
+  Edit3, 
+  Trash2, 
+  Check 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +19,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { UserStatusBadge } from '@/components/ui/user-status-badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { chatService } from '@/services/chat.service';
 import { toast } from 'react-toastify';
 
@@ -31,6 +49,9 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   const [newMessage, setNewMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<AIMessage | null>(null);
+  const [editingContent, setEditingContent] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,6 +95,63 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
   // Generate message ID
   const generateMessageId = useCallback(() => {
     return Math.random().toString(36).substr(2, 9);
+  }, []);
+
+  // Handle edit message
+  const handleEdit = useCallback((message: AIMessage) => {
+    setEditingMessage(message);
+    setEditingContent(message.content);
+    setIsEditing(false);
+  }, []);
+
+  // Save edited message
+  const saveEditedMessage = useCallback(async () => {
+    if (!editingMessage || !editingContent.trim()) return;
+
+    try {
+      setIsEditing(true);
+
+      // Update local state
+      setMessages(prev => prev.map(msg => 
+        msg.id === editingMessage.id 
+          ? { ...msg, content: editingContent.trim() }
+          : msg
+      ));
+
+      setEditingMessage(null);
+      setEditingContent('');
+      toast.success('Tin nhắn đã được cập nhật');
+    } catch (error: any) {
+      console.error('❌ Error updating message:', error);
+      toast.error('Không thể cập nhật tin nhắn');
+    } finally {
+      setIsEditing(false);
+    }
+  }, [editingMessage, editingContent]);
+
+  // Cancel edit
+  const cancelEdit = useCallback(() => {
+    setEditingMessage(null);
+    setEditingContent('');
+    setIsEditing(false);
+  }, []);
+
+  // Delete message
+  const deleteMessage = useCallback(async (messageId: string) => {
+    // Confirm deletion
+    if (!window.confirm('Bạn có chắc chắn muốn xóa tin nhắn này?')) {
+      return;
+    }
+
+    try {
+      // Update local state
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      
+      toast.success('Tin nhắn đã được xóa');
+    } catch (error: any) {
+      console.error('❌ Error deleting message:', error);
+      toast.error('Không thể xóa tin nhắn');
+    }
   }, []);
 
   // Add message
@@ -368,10 +446,10 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                                   : message.isError
                                   ? 'bg-red-50 text-red-800 border-red-200'
                                   : 'bg-gradient-to-r from-purple-50 to-blue-50 text-gray-800 border-purple-200'
-                              }`}
+                              } relative group`}
                             >
                               <CardContent className="px-3 py-2">
-                                {/* Sender info with status */}
+                                {/* Sender info with status and actions */}
                                 <div
                                   className={`flex items-center justify-between mb-1 ${
                                     message.isUser ? 'flex-row-reverse' : 'flex-row'
@@ -400,24 +478,98 @@ export const AICustomerChatBox: React.FC<AICustomerChatBoxProps> = ({ className 
                                       }
                                     />
                                   </div>
-                                  <span
-                                    className={`text-xs ${
-                                      message.isUser ? 'text-blue-100' : 'text-gray-500'
-                                    }`}
-                                  >
-                                    {formatTimestamp(message.timestamp)}
-                                  </span>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-xs ${
+                                        message.isUser ? 'text-blue-100' : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {formatTimestamp(message.timestamp)}
+                                    </span>
+                                    
+                                    {/* Actions dropdown - only for user messages */}
+                                    {message.isUser && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 text-white hover:text-white hover:bg-blue-700 bg-black/20 backdrop-blur-sm rounded-full shadow-lg border border-white/30"
+                                          >
+                                            <MoreVertical className="h-3 w-3" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => handleEdit(message)}>
+                                            <Edit3 className="h-4 w-4 mr-2" />
+                                            Chỉnh sửa
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem 
+                                            onClick={() => deleteMessage(message.id)}
+                                            className="text-red-600 hover:text-red-700"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Xóa
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Message content */}
-                                <p className="text-sm break-words whitespace-pre-wrap">
-                                  {message.content}
-                                  {message.isStreaming && (
-                                    <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse">
-                                      |
-                                    </span>
-                                  )}
-                                </p>
+                                {editingMessage?.id === message.id ? (
+                                  /* Edit mode */
+                                  <div className="space-y-2">
+                                    <Input
+                                      value={editingContent}
+                                      onChange={(e) => setEditingContent(e.target.value)}
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          saveEditedMessage();
+                                        }
+                                        if (e.key === 'Escape') {
+                                          cancelEdit();
+                                        }
+                                      }}
+                                      className="text-sm bg-blue-500 text-white placeholder:text-blue-200 border-blue-400"
+                                      placeholder="Chỉnh sửa tin nhắn..."
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        onClick={saveEditedMessage}
+                                        disabled={isEditing || !editingContent.trim()}
+                                        className="h-6 px-2 text-xs bg-blue-700 hover:bg-blue-800"
+                                      >
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Lưu
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={cancelEdit}
+                                        className="h-6 px-2 text-xs text-blue-600 border-blue-400 hover:bg-blue-50"
+                                      >
+                                        <X className="h-3 w-3 mr-1" />
+                                        Hủy
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Normal mode */
+                                  <p className="text-sm break-words whitespace-pre-wrap">
+                                    {message.content}
+                                    {message.isStreaming && (
+                                      <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse">
+                                        |
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
                               </CardContent>
                             </Card>
                           </div>

@@ -160,6 +160,12 @@ class ChatService {
   // Get messages for a specific room
   async getRoomMessages(roomId: string, page: number = 1, limit: number = 50): Promise<ChatMessage[]> {
     try {
+      console.log('Fetching messages for roomId:', roomId);
+      
+      if (!roomId) {
+        throw new Error('Room ID is required');
+      }
+      
       const response = await axios.get(`/api/ChatMessage/room/${roomId}`, {
         params: { page, pageSize: limit }
       });
@@ -414,6 +420,41 @@ class ChatService {
       return response.data.url;
     } catch (error) {
       console.error('Error uploading attachment:', error);
+      throw error;
+    }
+  }
+
+  // Create user-event manager chat room
+  async createUserEventManagerRoom(eventId: string): Promise<ChatRoom> {
+    try {
+      const response = await axios.post(`/api/chatroom/User-EventManager`, { eventId });
+      console.log('Raw backend response:', response.data);
+      
+      // Transform the response to match our ChatRoom interface
+      const backendRoom = response.data;
+      const transformedRoom: ChatRoom = {
+        roomId: backendRoom.id || backendRoom.roomId, // Backend uses 'id'
+        roomName: backendRoom.name || backendRoom.roomName,
+        participants: (backendRoom.participants || []).map((p: any) => ({
+          userId: p.userId,
+          username: p.userName || p.username,
+          fullName: p.userName || p.fullName || p.username,
+          avatar: p.avatarUrl || p.avatar,
+          isOnline: p.isOnline || false,
+          role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
+        })),
+        lastMessage: backendRoom.lastMessage,
+        unreadCount: backendRoom.unreadCount || 0,
+        roomType: backendRoom.type || backendRoom.roomType || 'Support',
+        createdAt: backendRoom.createdAt,
+        createdByUserId: backendRoom.createdByUserId,
+        createdByUserName: backendRoom.createdByUserName
+      };
+      
+      console.log('Transformed room:', transformedRoom);
+      return transformedRoom;
+    } catch (error) {
+      console.error('Error creating user-event manager room:', error);
       throw error;
     }
   }

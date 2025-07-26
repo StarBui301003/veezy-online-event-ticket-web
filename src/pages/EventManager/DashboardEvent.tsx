@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { addDays, format } from 'date-fns';
 
 
@@ -7,6 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 
 import DashboardSummaryCards from './components/DashboardSummaryCards';
 import RevenueChartSection from './components/RevenueChartSection';
@@ -49,6 +50,33 @@ export default function EventManagerDashboard() {
     CustomEndDate: format(dateRange[0].endDate, 'yyyy-MM-dd'),
     GroupBy: groupBy,
   };
+
+  // Connect to AnalyticsHub for real-time updates
+  useEffect(() => {
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    
+    // Listen for real-time dashboard updates
+    onAnalytics('OnEventManagerDashboard', (data: any) => {
+      console.log('📊 Received real-time event manager dashboard data:', data);
+      // Trigger re-render of child components that use analytics data
+      window.dispatchEvent(new CustomEvent('analytics-updated', { detail: data }));
+    });
+
+    onAnalytics('OnEventManagerRealtimeOverview', (data: any) => {
+      console.log('📊 Received real-time event manager overview:', data);
+      window.dispatchEvent(new CustomEvent('analytics-overview-updated', { detail: data }));
+    });
+
+    onAnalytics('OnEventManagerRevenue', (data: any) => {
+      console.log('📊 Received real-time revenue data:', data);
+      window.dispatchEvent(new CustomEvent('revenue-updated', { detail: data }));
+    });
+
+    onAnalytics('OnEventManagerTicketStats', (data: any) => {
+      console.log('📊 Received real-time ticket stats:', data);
+      window.dispatchEvent(new CustomEvent('ticket-stats-updated', { detail: data }));
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8">

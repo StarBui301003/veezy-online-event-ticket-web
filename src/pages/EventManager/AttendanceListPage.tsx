@@ -4,6 +4,7 @@ import { Users, Download, Calendar, Clock, UserCheck, Search, Filter, RefreshCw 
 import { exportAttendanceCheckin } from '@/services/Event Manager/attendance.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { getAttendanceByEvent } from '@/services/Event Manager/attendance.service';
+import { connectTicketHub, onTicket } from '@/services/signalr.service';
 
 
 const AttendanceListPage = () => {
@@ -38,6 +39,31 @@ const AttendanceListPage = () => {
         if (accObj?.userId) setEventManagerId(accObj.userId);
       } catch { /* ignore parse error */ }
     }
+  }, []);
+
+  // Connect to TicketHub for real-time attendance updates
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      connectTicketHub('http://localhost:5005/notificationHub', token);
+      
+      // Listen for real-time attendance updates
+      onTicket('AttendanceCheckedIn', (data: any) => {
+        console.log('✅ Attendance checked in:', data);
+        loadAttendances();
+      });
+      
+      onTicket('AttendanceUpdated', (data: any) => {
+        console.log('📝 Attendance updated:', data);
+        loadAttendances();
+      });
+      
+      onTicket('TicketIssued', (data: any) => {
+        console.log('🎫 Ticket issued:', data);
+        loadAttendances();
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Only define loadAttendances once

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, Calendar, MapPin, Clock, Sparkles, RefreshCw, CheckCircle, Search, Filter, Brain, Zap, Activity, BarChart3, Target, Cpu, Database, Globe } from 'lucide-react';
 import { getEventAttendancePrediction } from '@/services/Event Manager/attendancePrediction.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
+import { connectAnalyticsHub, onAnalytics, connectEventHub, onEvent } from "@/services/signalr.service";
 
 const EventAttendancePredictor = () => {
   const [events, setEvents] = useState([]);
@@ -13,10 +14,10 @@ const EventAttendancePredictor = () => {
   const [prediction, setPrediction] = useState(null);
   // Removed unused animateCards state
 
-  useEffect(() => {
-    // Lấy danh sách sự kiện đã duyệt của tôi
-    getMyApprovedEvents().then(res => {
-      // Chuẩn hóa lấy mảng event
+  // Load events function
+  const loadEvents = async () => {
+    try {
+      const res = await getMyApprovedEvents();
       let myEvents = [];
       if (Array.isArray(res)) {
         myEvents = res;
@@ -26,7 +27,32 @@ const EventAttendancePredictor = () => {
         myEvents = res.data;
       }
       setEvents(myEvents);
-    }).catch(() => setEvents([]));
+    } catch {
+      setEvents([]);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  // SignalR real-time updates
+  useEffect(() => {
+    connectAnalyticsHub('http://localhost:5005/notificationHub');
+    connectEventHub('http://localhost:5004/notificationHub');
+
+    // Listen for event updates
+    onEvent('EventCreated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventUpdated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventApproved', () => {
+      loadEvents();
+    });
   }, []);
 
   useEffect(() => {
@@ -48,6 +74,41 @@ const EventAttendancePredictor = () => {
       // setAnimateCards removed
     }
   };
+
+  // SignalR real-time updates for predictions
+  useEffect(() => {
+    connectAnalyticsHub('http://localhost:5005/notificationHub');
+    connectEventHub('http://localhost:5004/notificationHub');
+
+    // Listen for analytics updates
+    onAnalytics('PredictionUpdated', () => {
+      if (selectedEvent) {
+        handlePredict();
+      }
+    });
+
+    onAnalytics('AnalyticsUpdated', () => {
+      if (selectedEvent) {
+        handlePredict();
+      }
+    });
+
+    // Listen for event updates
+    onEvent('EventCreated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventUpdated', () => {
+      loadEvents();
+      if (selectedEvent) {
+        handlePredict();
+      }
+    });
+
+    onEvent('EventApproved', () => {
+      loadEvents();
+    });
+  }, [selectedEvent]);
 
   const formatNumber = (num) => {
     return num ? num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0';

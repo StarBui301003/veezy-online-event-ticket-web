@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAdminUsers } from '@/services/Admin/user.service';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 import type { User } from '@/types/auth';
 import type { PaginatedUserResponse } from '@/types/Admin/user';
 import {
@@ -65,6 +66,31 @@ export const AdminList = () => {
       })
       .finally(() => setLoading(false));
   };
+
+  // Connect to IdentityHub for real-time updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/hubs/notifications');
+    
+    // Listen for real-time admin user updates
+    onIdentity('AdminCreated', (data: any) => {
+      console.log('👤 Admin created:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('AdminUpdated', (data: any) => {
+      console.log('👤 Admin updated:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('AdminDeleted', (data: any) => {
+      console.log('👤 Admin deleted:', data);
+      reloadUsers();
+    });
+
+    // Initial data load
+    reloadUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     reloadUsers();

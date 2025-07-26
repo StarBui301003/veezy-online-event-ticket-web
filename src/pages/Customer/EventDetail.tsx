@@ -40,6 +40,7 @@ import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow
 import { followEvent, unfollowEvent } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
 import { EventChatAssistant } from '@/components/Customer/EventChatAssistant';
+import { EventManagerChatBox } from '@/components/Customer/EventManagerChatBox';
 import { NO_IMAGE } from '@/assets/img';
 
 import 'swiper/css';
@@ -738,6 +739,12 @@ const EventDetail = () => {
             <div className="mt-8">
               <EventChatAssistant eventId={event.eventId} eventName={event.eventName} />
             </div>
+
+            {/* ====== EVENT MANAGER CHATBOX ====== */}
+            <EventManagerChatBox 
+              eventId={event.eventId} 
+              eventName={event.eventName}
+            />
           </motion.div>
           {/* Right Column: Tickets & Order */}
           <motion.div
