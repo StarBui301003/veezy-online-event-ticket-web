@@ -15,6 +15,7 @@ import {
   Legend,
   Cell,
 } from 'recharts';
+import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 import type {
   EventApprovalTrendItem,
   EventByCategory,
@@ -52,7 +53,8 @@ export default function EventTabs() {
   const [topEvents, setTopEvents] = useState<EventTopPerformingEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  // Real-time data reload function
+  const reloadData = () => {
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -81,6 +83,26 @@ export default function EventTabs() {
         setTopEvents(res.data.topPerformingEvents || []);
       })
       .finally(() => setLoading(false));
+  };
+
+  // Connect to AnalyticsHub for real-time updates
+  useEffect(() => {
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    
+    // Listen for real-time event analytics updates
+    onAnalytics('OnEventAnalytics', (data: any) => {
+      console.log('📊 Received real-time event analytics:', data);
+      reloadData();
+    });
+
+    // Initial data load
+    reloadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    reloadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   return (

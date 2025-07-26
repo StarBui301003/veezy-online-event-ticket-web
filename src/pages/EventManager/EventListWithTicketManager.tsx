@@ -3,6 +3,7 @@ import { getMyEvents, getTicketsByEvent, deleteTicket } from "@/services/Event M
 import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
+import { connectEventHub, onEvent, connectTicketHub, onTicket } from "@/services/signalr.service";
 
 interface Event {
   eventId: string;
@@ -44,21 +45,82 @@ export default function EventListWithTicketManager() {
   const navigate = useNavigate();
 
   // Load events
-    useEffect(() => {
-    (async () => {
-      setLoadingEvents(true);
-      try {
-        // Gọi với pageSize lớn để lấy đủ sự kiện
-        const data = await getMyEvents(1, 100);
-        const items = Array.isArray(data?.items) ? data.items : [];
-        const approved = items.filter(ev => ev.isApproved === 1);
-        setEvents(approved);
-        setFilteredEvents(approved);
-      } finally {
-        setLoadingEvents(false);
-      }
-    })();
+  const loadEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const data = await getMyEvents(1, 100);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const approved = items.filter(ev => ev.isApproved === 1);
+      setEvents(approved);
+      setFilteredEvents(approved);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  // Load tickets for selected event
+  const loadTicketsForEvent = async (eventId: string) => {
+    setLoadingTickets(true);
+    try {
+      const data = await getTicketsByEvent(eventId);
+      setTickets(data);
+      setFilteredTickets(data);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
   }, []);
+
+  // SignalR real-time updates
+  useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
+    connectTicketHub('http://localhost:5003/notificationHub');
+
+    // Listen for real-time event updates
+    onEvent('EventCreated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventUpdated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventDeleted', () => {
+      loadEvents();
+    });
+
+    onEvent('EventApproved', () => {
+      loadEvents();
+    });
+
+    // Listen for real-time ticket updates
+    onTicket('TicketCreated', () => {
+      if (selectedEvent) {
+        loadTicketsForEvent(selectedEvent.eventId);
+      }
+    });
+
+    onTicket('TicketUpdated', () => {
+      if (selectedEvent) {
+        loadTicketsForEvent(selectedEvent.eventId);
+      }
+    });
+
+    onTicket('TicketDeleted', () => {
+      if (selectedEvent) {
+        loadTicketsForEvent(selectedEvent.eventId);
+      }
+    });
+
+    onTicket('TicketIssued', () => {
+      if (selectedEvent) {
+        loadTicketsForEvent(selectedEvent.eventId);
+      }
+    });
+  }, [selectedEvent]);
 
   // Tìm kiếm sự kiện realtime
   useEffect(() => {

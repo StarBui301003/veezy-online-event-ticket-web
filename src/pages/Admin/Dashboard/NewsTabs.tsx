@@ -19,6 +19,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from 'recharts';
+import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 import type {
   NewsApprovalTrendItem,
   NewsByEvent,
@@ -112,7 +113,8 @@ export default function NewsTabs() {
   const [newsByAuthor, setNewsByAuthor] = useState<NewsByAuthor[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  // Real-time data reload function
+  const reloadData = () => {
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -141,6 +143,26 @@ export default function NewsTabs() {
         setNewsByAuthor(res.data.newsByAuthor || []);
       })
       .finally(() => setLoading(false));
+  };
+
+  // Connect to AnalyticsHub for real-time updates
+  useEffect(() => {
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    
+    // Listen for real-time news analytics updates
+    onAnalytics('OnNewsAnalytics', (data: any) => {
+      console.log('📰 Received real-time news analytics:', data);
+      reloadData();
+    });
+
+    // Initial data load
+    reloadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    reloadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   return (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCollaboratorUsers } from '@/services/Admin/user.service';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 import type { User } from '@/types/auth';
 import type { PaginatedUserResponse } from '@/types/Admin/user';
 import {
@@ -63,6 +64,31 @@ export const CollaboratorList = () => {
       })
       .finally(() => setLoading(false));
   };
+
+  // Connect to IdentityHub for real-time updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/hubs/notifications');
+    
+    // Listen for real-time collaborator updates
+    onIdentity('CollaboratorCreated', (data: any) => {
+      console.log('👤 Collaborator created:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('CollaboratorUpdated', (data: any) => {
+      console.log('👤 Collaborator updated:', data);
+      reloadUsers();
+    });
+    
+    onIdentity('CollaboratorDeleted', (data: any) => {
+      console.log('👤 Collaborator deleted:', data);
+      reloadUsers();
+    });
+
+    // Initial data load
+    reloadUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     reloadUsers();

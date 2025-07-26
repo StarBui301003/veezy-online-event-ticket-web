@@ -3,6 +3,7 @@ import { Check, ArrowLeft, Loader2, AlertCircle, Mail, Star, Settings } from 'lu
 import { getUserNotifications, markAllNotificationsRead } from '@/services/notification.service';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { connectNotificationHub, onNotification } from "@/services/signalr.service";
 
 interface Notification {
   notificationId: string;
@@ -31,14 +32,45 @@ export default function AllNotificationsPage() {
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const userId = accountStr ? (() => { try { return JSON.parse(accountStr).userId; } catch { return null; } })() : null;
 
-  useEffect(() => {
+  // Load notifications function
+  const loadNotifications = async () => {
     if (!userId) return;
     setNotifLoading(true);
-    // Lấy tất cả thông báo, không phân trang (giả sử limit lớn)
-    getUserNotifications(userId, 1, 1000).then(res => {
+    try {
+      const res = await getUserNotifications(userId, 1, 1000);
       const items = res.data?.data?.items || [];
       setNotifications(items);
-    }).finally(() => setNotifLoading(false));
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, [userId]);
+
+  // SignalR real-time updates
+  useEffect(() => {
+    if (!userId) return;
+    
+    connectNotificationHub('http://localhost:5006/notificationHub');
+    
+    // Listen for new notifications
+    onNotification('NotificationCreated', () => {
+      loadNotifications();
+    });
+
+    onNotification('NotificationUpdated', () => {
+      loadNotifications();
+    });
+
+    onNotification('NotificationRead', () => {
+      loadNotifications();
+    });
+
+    onNotification('AllNotificationsRead', () => {
+      loadNotifications();
+    });
   }, [userId]);
 
   const handleReadAll = async () => {

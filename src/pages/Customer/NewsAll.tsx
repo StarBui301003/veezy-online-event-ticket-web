@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllNewsHome } from '@/services/Event Manager/event.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -26,11 +27,6 @@ const NewsAll: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchNews(page);
-    // eslint-disable-next-line
-  }, [page]);
-
   const fetchNews = async (pageNum: number) => {
     setLoading(true);
     try {
@@ -45,6 +41,42 @@ const NewsAll: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Connect to NewsHub for real-time updates
+  useEffect(() => {
+    connectNewsHub('http://localhost:5004/newsHub');
+    
+    // Listen for real-time news updates
+    onNews('NewsCreated', (data: any) => {
+      console.log('📰 News created:', data);
+      fetchNews(1); // Refresh to first page when new news is created
+      setPage(1);
+    });
+    
+    onNews('NewsUpdated', (data: any) => {
+      console.log('📰 News updated:', data);
+      fetchNews(page);
+    });
+    
+    onNews('NewsApproved', (data: any) => {
+      console.log('📰 News approved:', data);
+      fetchNews(page);
+    });
+    
+    onNews('NewsDeleted', (data: any) => {
+      console.log('📰 News deleted:', data);
+      fetchNews(page);
+    });
+
+    // Initial data load
+    fetchNews(page);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchNews(page);
+    // eslint-disable-next-line
+  }, [page]);
 
   return (
     <div className="relative min-h-screen w-full" style={{

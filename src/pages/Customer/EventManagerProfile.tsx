@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { getAllEvents } from '@/services/Event Manager/event.service';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 import { NO_AVATAR } from '@/assets/img';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ReportModal from '@/components/Customer/ReportModal';
@@ -61,13 +62,15 @@ const EventManagerProfile = () => {
     { key: 'news', label: t('news') },
   ];
 
-  useEffect(() => {
+  // Function to reload profile data
+  const reloadProfileData = () => {
     if (!id) return;
     setLoading(true);
     getUserByIdAPI(id)
       .then(setInfo)
       .catch(() => setInfo(null))
       .finally(() => setLoading(false));
+    
     setLoadingEvents(true);
     getAllEvents(1, 100)
       .then((all) => {
@@ -75,6 +78,30 @@ const EventManagerProfile = () => {
       })
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
+  };
+
+  // Connect to IdentityHub for real-time profile updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/notificationHub');
+    
+    // Listen for real-time profile updates
+    onIdentity('UserProfileUpdated', (data: any) => {
+      console.log('👤 Event Manager profile updated:', data);
+      if (data.userId === id) {
+        reloadProfileData();
+      }
+    });
+    
+    onIdentity('UserAvatarUpdated', (data: any) => {
+      console.log('👤 Event Manager avatar updated:', data);
+      if (data.userId === id) {
+        reloadProfileData();
+      }
+    });
+
+    // Initial data load
+    reloadProfileData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {

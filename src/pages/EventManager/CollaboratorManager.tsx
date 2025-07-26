@@ -5,6 +5,7 @@ import { FaCalendarAlt } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import noPicture from '@/assets/img/no-picture-available.png';
 import { useTranslation } from 'react-i18next';
+import { connectIdentityHub, onIdentity, connectEventHub, onEvent } from "@/services/signalr.service";
 
 interface Event {
   eventId: string;
@@ -39,30 +40,96 @@ export default function CollaboratorManager() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
+  // Load functions
+  const loadCollaborators = async () => {
     setLoadingCollabs(true);
-    getCollaboratorsByEventManager()
-      .then((data) => setCollaborators(Array.isArray(data) ? data : []))
-      .catch(() => toast.error(t('errorLoadingCollaborators')))
-      .finally(() => setLoadingCollabs(false));
+    try {
+      const data = await getCollaboratorsByEventManager();
+      setCollaborators(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error(t('errorLoadingCollaborators'));
+    } finally {
+      setLoadingCollabs(false);
+    }
+  };
+
+  const loadEvents = async () => {
+    setLoadingEvents(true);
+    try {
+      const data = await getMyApprovedEvents(1, 100);
+      setEvents(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error(t('errorLoadingEvents'));
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
+  const loadAssignedCollaborators = async (eventId: string) => {
+    try {
+      const data = await getCollaboratorsForEvent(eventId);
+      setAssignedCollaborators(Array.isArray(data) ? data : []);
+    } catch {
+      setAssignedCollaborators([]);
+    }
+  };
+
+  useEffect(() => {
+    loadCollaborators();
   }, []);
 
   useEffect(() => {
-    setLoadingEvents(true);
-    getMyApprovedEvents(1, 100)
-      .then((data) => setEvents(Array.isArray(data) ? data : []))
-      .catch(() => toast.error(t('errorLoadingEvents')))
-      .finally(() => setLoadingEvents(false));
+    loadEvents();
   }, []);
+
+  // SignalR real-time updates
+  useEffect(() => {
+    connectIdentityHub('http://localhost:5001/notificationHub');
+    connectEventHub('http://localhost:5004/notificationHub');
+
+    // Listen for collaborator updates
+    onIdentity('UserRegistered', () => {
+      loadCollaborators();
+    });
+
+    onIdentity('UserUpdated', () => {
+      loadCollaborators();
+    });
+
+    onIdentity('CollaboratorAdded', () => {
+      loadCollaborators();
+      if (selectedEvent) {
+        loadAssignedCollaborators(selectedEvent.eventId);
+      }
+    });
+
+    onIdentity('CollaboratorRemoved', () => {
+      loadCollaborators();
+      if (selectedEvent) {
+        loadAssignedCollaborators(selectedEvent.eventId);
+      }
+    });
+
+    // Listen for event updates
+    onEvent('EventCreated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventUpdated', () => {
+      loadEvents();
+    });
+
+    onEvent('EventApproved', () => {
+      loadEvents();
+    });
+  }, [selectedEvent]);
 
   useEffect(() => {
     if (!selectedEvent) {
       setAssignedCollaborators([]);
       return;
     }
-    getCollaboratorsForEvent(selectedEvent.eventId)
-      .then((data) => setAssignedCollaborators(Array.isArray(data) ? data : []))
-      .catch(() => setAssignedCollaborators([]));
+    loadAssignedCollaborators(selectedEvent.eventId);
   }, [selectedEvent]);
 
   const filteredCollaborators = searchCollaborator.trim()

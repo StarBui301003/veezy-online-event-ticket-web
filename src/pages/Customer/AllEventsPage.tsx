@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getHomeEvents } from '@/services/Event Manager/event.service';
+import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { StageBackground } from '@/components/StageBackground';
 import { useTranslation } from 'react-i18next';
 
@@ -22,7 +23,8 @@ const AllEventsPage = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  // Function to reload events
+  const reloadEvents = () => {
     setLoading(true);
     getHomeEvents()
       .then((fetchedEvents) => {
@@ -33,6 +35,36 @@ const AllEventsPage = () => {
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
+  };
+
+  // Connect to EventHub for real-time updates
+  useEffect(() => {
+    connectEventHub('http://localhost:5004/notificationHub');
+    
+    // Listen for real-time event updates
+    onEvent('EventCreated', (data: any) => {
+      console.log('🎉 Event created:', data);
+      reloadEvents();
+    });
+    
+    onEvent('EventUpdated', (data: any) => {
+      console.log('🎉 Event updated:', data);
+      reloadEvents();
+    });
+    
+    onEvent('EventApproved', (data: any) => {
+      console.log('🎉 Event approved:', data);
+      reloadEvents();
+    });
+    
+    onEvent('EventCancelled', (data: any) => {
+      console.log('🎉 Event cancelled:', data);
+      reloadEvents();
+    });
+
+    // Initial data load
+    reloadEvents();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

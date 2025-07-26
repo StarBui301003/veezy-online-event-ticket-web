@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { createOrder, createVnPayPayment, useDiscountCode, getOrderById } from '@/services/Event Manager/event.service';
+import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import type { CheckoutData, OrderInfo, CheckoutItem } from '@/types/checkout';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +19,48 @@ const ConfirmOrderPage = () => {
   const [waitingPayment, setWaitingPayment] = useState(false);
   const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
+
+  // Connect to TicketHub for real-time order updates
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      connectTicketHub('http://localhost:5005/notificationHub', token);
+      
+      // Listen for real-time order updates
+      onTicket('OrderCreated', (data: any) => {
+        console.log('🎫 Order created:', data);
+        // Update order info if it matches current order
+        if (data.orderId && orderInfo?.orderId === data.orderId) {
+          setOrderInfo(data);
+        }
+      });
+      
+      onTicket('OrderUpdated', (data: any) => {
+        console.log('🎫 Order updated:', data);
+        // Update order info if it matches current order
+        if (data.orderId && orderInfo?.orderId === data.orderId) {
+          setOrderInfo(data);
+        }
+      });
+      
+      onTicket('PaymentCompleted', (data: any) => {
+        console.log('🎫 Payment completed:', data);
+        // Redirect to success page if payment is completed
+        if (data.orderId && orderInfo?.orderId === data.orderId) {
+          navigate('/customer/payment-success');
+        }
+      });
+      
+      onTicket('PaymentFailed', (data: any) => {
+        console.log('🎫 Payment failed:', data);
+        // Redirect to failed page if payment failed
+        if (data.orderId && orderInfo?.orderId === data.orderId) {
+          navigate('/customer/payment-failed');
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderInfo?.orderId, navigate]);
 
   useEffect(() => {
     try {

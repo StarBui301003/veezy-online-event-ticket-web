@@ -28,6 +28,7 @@ import {
 import { getOrderHistoryByCustomerId } from '@/services/order.service';
 import { getTicketsByOrderId, getMyAttendances } from '@/services/ticketIssued.service';
 import OrderHistory from '@/components/Customer/OrderHistory';
+import { connectIdentityHub, onIdentity, connectTicketHub, onTicket } from '@/services/signalr.service';
 import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
 import type { User } from '@/types/auth';
@@ -78,6 +79,96 @@ const ProfileCustomer = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Connect to SignalR hubs for real-time updates
+  useEffect(() => {
+    const accStr = localStorage.getItem('account');
+    const accountObj = accStr ? JSON.parse(accStr) : null;
+    const token = localStorage.getItem('accessToken');
+    
+    if (accountObj?.userId) {
+      // Connect to IdentityHub for profile updates
+      connectIdentityHub('http://localhost:5001/notificationHub', token || undefined);
+      
+      // Connect to TicketHub for order/ticket updates
+      connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+      
+      // Listen for profile updates
+      onIdentity('UserProfileUpdated', (data: any) => {
+        console.log('👤 Profile updated:', data);
+        if (data.userId === accountObj.userId) {
+          // Reload user data
+          getUserByIdAPI(accountObj.userId).then(setAccount).catch(console.error);
+          toast.success('Thông tin cá nhân đã được cập nhật');
+        }
+      });
+
+      onIdentity('UserAvatarUpdated', (data: any) => {
+        console.log('🖼️ Avatar updated:', data);
+        if (data.userId === accountObj.userId) {
+          getUserByIdAPI(accountObj.userId).then((user) => {
+            setAccount(user);
+            setPreviewUrl(user.avatarUrl || '');
+          }).catch(console.error);
+          toast.success('Ảnh đại diện đã được cập nhật');
+        }
+      });
+
+      // Listen for order/ticket updates
+      onTicket('OrderCreated', (data: any) => {
+        console.log('🎫 Order created:', data);
+        if (data.customerId === accountObj.userId) {
+          // Reload order history
+          loadOrderHistory(accountObj.userId);
+          toast.info('Đơn hàng mới đã được tạo');
+        }
+      });
+
+      onTicket('OrderStatusChanged', (data: any) => {
+        console.log('🎫 Order status changed:', data);
+        if (data.customerId === accountObj.userId) {
+          loadOrderHistory(accountObj.userId);
+          toast.info('Trạng thái đơn hàng đã thay đổi');
+        }
+      });
+
+      onTicket('TicketIssued', (data: any) => {
+        console.log('🎫 Ticket issued:', data);
+        // Reload tickets and attendances
+        loadTicketsAndAttendances(accountObj.userId);
+        toast.success('Vé đã được phát hành');
+      });
+    }
+  }, []);
+
+  // Load order history function
+  const loadOrderHistory = async (userId: string) => {
+    setOrdersLoading(true);
+    try {
+      const orders = await getOrderHistoryByCustomerId(userId);
+      setOrders(orders || []);
+    } catch (error) {
+      console.error('Error loading order history:', error);
+      setOrdersError('Failed to load order history');
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Load tickets and attendances function
+  const loadTicketsAndAttendances = async (_userId: string) => {
+    // Load attendances
+    setAttendancesLoading(true);
+    try {
+      const attendanceData = await getMyAttendances();
+      setAttendances(attendanceData || []);
+    } catch (error) {
+      console.error('Error loading attendances:', error);
+      setAttendancesError('Failed to load attendance history');
+    } finally {
+      setAttendancesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
