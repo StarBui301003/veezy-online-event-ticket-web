@@ -58,6 +58,8 @@ import NewsAll from './pages/Customer/NewsAll';
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 import ReportCommentPage from './pages/Customer/ReportCommentPage';
 import PaymentFailedPage from './pages/Customer/PaymentFailedPage';
+import userActivityService from './services/user-activity.service';
+import { OnlineStatusProvider } from './contexts/OnlineStatusContext';
 import { useEffect } from 'react';
 import {
   connectNotificationHub,
@@ -95,6 +97,8 @@ import { ChatboxAdmin } from './pages/Admin/Chatbox/ChatboxAdmin';
 import EventReviews from './pages/EventManager/EventReviews';
 import EventAttendancePredictor from '@/pages/EventManager/EventAttendancePredictor';
 import { FundTabs } from './pages/Admin/Fund/FundTabs';
+import { NotificationProvider } from './contexts/NotificationContext';
+import GlobalNotificationManager from './components/common/GlobalNotificationManager';
 
 function App() {
   useEffect(() => {
@@ -123,116 +127,105 @@ function App() {
 
     // 1. NotificationService - Port 5003
     const token = localStorage.getItem('access_token');
-    console.log('JWT Token:', token ? 'exists' : 'not found');
+
+    // Initialize user activity tracking if user is logged in
+    if (token) {
+      userActivityService.initializeActivityTracking();
+    }
 
     // Decode JWT to check claims
     if (token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('JWT Payload:', payload);
-        console.log(
-          'Role claim in JWT:',
-          payload.role ||
-            payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-            'not found'
-        );
+        JSON.parse(atob(token.split('.')[1]));
       } catch (e) {
         console.error('Failed to decode JWT:', e);
       }
     }
 
-    connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined)
+    connectNotificationHub(token || undefined)
       .then(() => {
-        console.log('Connected to NotificationService SignalR (Port 5003)');
-
         // Join admin group if user is admin
         joinAdminGroup();
 
-        onNotification('ReceiveNotification', (data) => {
-          console.log('NotificationService:', data);
-          // Handle real-time notifications
-        });
-        // Remove global ReceiveAdminNotification handler to avoid conflicts with AdminNotificationList component
-        // The AdminNotificationList component will handle this event
+        // Note: Individual notification handling is now managed by NotificationContext
+        // We only keep global logging and admin-specific events here
 
-        // Only handle other admin events at global level for logging
-        onNotification('AdminNotificationRead', (data) => {
-          console.log('AdminNotificationRead:', data);
+        // Only handle admin events at global level for logging
+        onNotification('AdminNotificationRead', () => {
+          // Admin notification read handled
         });
         onNotification('AdminAllNotificationsRead', () => {
-          console.log('AdminAllNotificationsRead');
+          // All admin notifications marked as read
         });
-        onNotification('AdminNotificationDeleted', (data) => {
-          console.log('AdminNotificationDeleted:', data);
+        onNotification('AdminNotificationDeleted', () => {
+          // Admin notification deleted
         });
       })
       .catch((err) => {
-        console.error('Failed to connect to NotificationService:', err);
+        console.error('[App] Failed to connect to NotificationService:', err);
       });
     // 2. EventService - NotificationHub for Events real-time (Port 5004)
-    connectEventHub('http://localhost:5004/notificationHub').then(() => {
-      console.log('Connected to EventService SignalR (Port 5004)');
-      onEvent('OnEventCreated', (data) => {
-        console.log('OnEventCreated:', data);
+    connectEventHub(token || undefined).then(() => {
+      onEvent('OnEventCreated', () => {
+        // Event created
       });
-      onEvent('OnNewsUnhidden', (data) => {
-        console.log('OnNewsUnhidden:', data);
+      onEvent('OnNewsUnhidden', () => {
+        // News unhidden
       });
-      onEvent('OnEventUpdated', (data) => {
-        console.log('OnEventUpdated:', data);
+      onEvent('OnEventUpdated', () => {
+        // Event updated
       });
-      onEvent('OnEventDeleted', (data) => {
-        console.log('OnEventDeleted:', data);
+      onEvent('OnEventDeleted', () => {
+        // Event deleted
       });
-      onEvent('OnEventApproved', (data) => {
-        console.log('OnEventApproved:', data);
+      onEvent('OnEventApproved', () => {
+        // Event approved
       });
-      onEvent('OnEventCancelled', (data) => {
-        console.log('OnEventCancelled:', data);
+      onEvent('OnEventCancelled', () => {
+        // Event cancelled
       });
-      onEvent('OnEventHidden', (data) => {
-        console.log('OnEventHidden:', data);
+      onEvent('OnEventHidden', () => {
+        // Event hidden
       });
-      onEvent('OnEventShown', (data) => {
-        console.log('OnEventShown:', data);
+      onEvent('OnEventShown', () => {
+        // Event shown
       });
-      onEvent('OnManagerAdded', (data) => {
-        console.log('OnManagerAdded:', data);
+      onEvent('OnManagerAdded', () => {
+        // Manager added
       });
-      onEvent('OnCollaboratorAdded', (data) => {
-        console.log('OnCollaboratorAdded:', data);
+      onEvent('OnCollaboratorAdded', () => {
+        // Collaborator added
       });
-      onEvent('OnManagerRemoved', (data) => {
-        console.log('OnManagerRemoved:', data);
+      onEvent('OnManagerRemoved', () => {
+        // Manager removed
       });
-      onEvent('OnCollaboratorRemoved', (data) => {
-        console.log('OnCollaboratorRemoved:', data);
+      onEvent('OnCollaboratorRemoved', () => {
+        // Collaborator removed
       });
-      onEvent('OnTicketSoldIncremented', (data) => {
-        console.log('OnTicketSoldIncremented:', data);
+      onEvent('OnTicketSoldIncremented', () => {
+        // Ticket sold incremented
       });
-      onEvent('OnTicketSoldDecremented', (data) => {
-        console.log('OnTicketSoldDecremented:', data);
+      onEvent('OnTicketSoldDecremented', () => {
+        // Ticket sold decremented
       });
-      onEvent('OnEventNotificationSent', (data) => {
-        console.log('OnEventNotificationSent:', data);
+      onEvent('OnEventNotificationSent', () => {
+        // Event notification sent
       });
       // Category events
-      onEvent('OnCategoryCreated', (data) => {
-        console.log('OnCategoryCreated:', data);
+      onEvent('OnCategoryCreated', () => {
+        // Category created
       });
-      onEvent('OnCategoryUpdated', (data) => {
-        console.log('OnCategoryUpdated:', data);
+      onEvent('OnCategoryUpdated', () => {
+        // Category updated
       });
-      onEvent('OnCategoryDeleted', (data) => {
-        console.log('OnCategoryDeleted:', data);
+      onEvent('OnCategoryDeleted', () => {
+        // Category deleted
       });
     });
 
     // 3. TicketService - Port 5005
-    connectTicketHub('http://localhost:5005/notificationHub')
+    connectTicketHub(token || undefined)
       .then(() => {
-        console.log('Connected to TicketService SignalR (Port 5005)');
         onTicket('OnOrderCreated', (data) => {
           console.log('OnOrderCreated:', data);
         });
@@ -254,9 +247,8 @@ function App() {
       });
 
     // 4. IdentityService - Port 5001
-    connectIdentityHub('http://localhost:5001/hubs/notifications')
+    connectIdentityHub(token || undefined)
       .then(() => {
-        console.log('Connected to IdentityService SignalR (Port 5001)');
         onIdentity('UserProfileUpdated', (data) => {
           console.log('UserProfileUpdated:', data);
         });
@@ -278,9 +270,8 @@ function App() {
       });
 
     // 5. EventService - NewsHub for News real-time (Port 5004)
-    connectNewsHub('http://localhost:5004/newsHub')
+    connectNewsHub(token || undefined)
       .then(() => {
-        console.log('Connected to NewsHub SignalR (Port 5004)');
         onNews('OnNewsCreated', (data) => {
           console.log('OnNewsCreated:', data);
         });
@@ -296,9 +287,8 @@ function App() {
       });
 
     // 6. EventService - CommentHub for Comments real-time (Port 5004)
-    connectCommentHub('http://localhost:5004/commentHub')
+    connectCommentHub(token || undefined)
       .then(() => {
-        console.log('Connected to CommentHub SignalR (Port 5004)');
         onComment('OnCommentCreated', (data) => {
           console.log('OnCommentCreated:', data);
         });
@@ -314,9 +304,8 @@ function App() {
       });
 
     // 7. AnalyticsService - Port 5006 (Optional - may not always be running)
-    connectAnalyticsHub('http://localhost:5006/analyticsHub')
+    connectAnalyticsHub(token || undefined)
       .then(() => {
-        console.log('Connected to AnalyticsHub SignalR (Port 5006)');
         onAnalytics('OnEventManagerRealtimeOverview', (data) => {
           console.log('OnEventManagerRealtimeOverview:', data);
         });
@@ -330,9 +319,8 @@ function App() {
       });
 
     // 8. ChatService - Port 5007
-    connectChatHub('http://localhost:5007/chatHub', token || undefined)
+    connectChatHub(token || undefined)
       .then(() => {
-        console.log('Connected to ChatHub SignalR (Port 5007)');
         onChat('ReceiveMessage', (data) => {
           console.log('ReceiveMessage:', data);
         });
@@ -362,6 +350,10 @@ function App() {
       disconnectCommentHub();
       disconnectAnalyticsHub();
       disconnectChatHub();
+      
+      // Stop user activity tracking
+      userActivityService.stopActivityTracking();
+      console.log('🔴 User activity tracking stopped');
     };
   }, []);
   const router = createBrowserRouter([
@@ -827,21 +819,51 @@ function App() {
       element: <VerifyRegister />,
     },
   ]);
+
+  // Get current user info for components
+  const getUserInfo = () => {
+    try {
+      const accountStr = localStorage.getItem('account');
+      if (accountStr) {
+        const account = JSON.parse(accountStr);
+        return {
+          userId: account.userId,
+          role: account.role,
+          isAuthenticated: !!account.userId
+        };
+      }
+    } catch (error) {
+      console.error('[App] Error parsing account from localStorage:', error);
+    }
+    return { userId: undefined, role: undefined, isAuthenticated: false };
+  };
+
+  const { userId, role, isAuthenticated } = getUserInfo();
+
   return (
     <LoadingProvider>
-      <RouterProvider router={router} />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
+      <OnlineStatusProvider>
+        <NotificationProvider userId={userId}>
+          <GlobalNotificationManager 
+            userId={userId}
+            userRole={role}
+            isAuthenticated={isAuthenticated}
+          />
+          <RouterProvider router={router} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
+        </NotificationProvider>
+      </OnlineStatusProvider>
     </LoadingProvider>
   );
 }

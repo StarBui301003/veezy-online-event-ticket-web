@@ -147,7 +147,7 @@ export default function NewsTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectAnalyticsHub();
     
     // Listen for real-time news analytics updates
     onAnalytics('OnNewsAnalytics', (data: any) => {

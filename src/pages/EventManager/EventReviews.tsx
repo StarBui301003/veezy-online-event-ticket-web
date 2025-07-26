@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { MessageCircle, TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle, XCircle, Brain, Zap, Sparkles, Activity, Eye, Search, Filter, RefreshCw } from 'lucide-react';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { analyzeEventSentiment } from '@/services/Event Manager/sentiment.service';
+import { connectAnalyticsHub, onAnalytics } from "@/services/signalr.service";
+import { toast } from "react-toastify";
 
 const EventReviews = () => {
   const { t } = useTranslation();
@@ -27,10 +29,24 @@ const EventReviews = () => {
       }
     };
     fetchEvents();
-  }, []);
+
+    // Setup realtime connections for analytics
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    connectAnalyticsHub(token || undefined);
+    
+    // Note: Comment realtime updates not available - no CommentHub implemented
+    // onComment functions removed
+    
+    // Listen for analytics updates
+    onAnalytics('SentimentAnalyzed', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        toast.success('Phân tích cảm xúc đã được cập nhật!');
+        // Optionally refresh the sentiment data
+      }
+    });
+  }, [selectedEvent]);
 
   const analyzeSentiment = useCallback(async () => {
-    console.log('[DEBUG] Click analyzeSentiment, selectedEvent:', selectedEvent);
     if (!selectedEvent) return;
     setLoading(true);
     setSentimentData(null);
@@ -38,7 +54,6 @@ const EventReviews = () => {
     setAnimateCards(false);
     try {
       const res = await analyzeEventSentiment(selectedEvent);
-      console.log('[DEBUG] API response:', res);
       const api = res.data || {};
       const overall = api.overall_sentiment || {};
       // Map negative reviews with score

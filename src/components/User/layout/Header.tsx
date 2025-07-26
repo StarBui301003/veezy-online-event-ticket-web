@@ -1,5 +1,5 @@
 
-import { useNotifications } from '@/hooks/useNotifications';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
 import { Button } from '../../ui/button';
@@ -67,16 +67,7 @@ export const Header = () => {
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
-  const {
-    notifications,
-    notifLoading,
-    notifHasUnread,
-    notifHasMore,
-    notifRef,
-    handleReadNotification,
-    handleReadAll,
-    handleLoadMore,
-  } = useNotifications({ userId, maxNotifications: 30, language: i18nInstance.language });
+  const { unreadCount } = useRealtimeNotifications();
 
 
   useEffect(() => {
@@ -318,21 +309,16 @@ export const Header = () => {
                   title={t('notification')}
                 >
                   <Bell className="text-purple-500 text-xl" />
-                  {notifHasUnread && (
+                  {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                   )}
                 </button>
                 {notifDropdown && (
                   <NotificationDropdown
-                    notifications={notifications}
-                    notifLoading={notifLoading}
-                    notifHasMore={notifHasMore}
-                    notifRef={notifRef}
-                    onReadNotification={n => handleReadNotification(n, url => { navigate(url); setNotifDropdown(false); })}
-                    onReadAll={handleReadAll}
-                    onLoadMore={handleLoadMore}
+                    userId={userId}
                     onViewAll={() => { setNotifDropdown(false); navigate('/all-notifications'); }}
                     t={t}
+                    onRedirect={(url) => { navigate(url); setNotifDropdown(false); }}
                   />
                 )}
               </div>

@@ -148,7 +148,7 @@ export default function EditEvent() {
     fetchEventAndCategories();
     
     // Connect to EventHub and listen for category changes
-    connectEventHub('http://localhost:5004/notificationHub');
+    connectEventHub();
     onEvent('OnCategoryCreated', fetchCategories);
     onEvent('OnCategoryUpdated', fetchCategories);
     onEvent('OnCategoryDeleted', fetchCategories);

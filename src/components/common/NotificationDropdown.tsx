@@ -1,49 +1,64 @@
 
-import { Loader2, ExternalLink, Check, Bell } from 'lucide-react';
+import { ExternalLink, Check, Bell } from 'lucide-react';
 import { getNotificationIcon } from '../common/getNotificationIcon';
 import type { Notification } from '@/hooks/useNotifications';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 interface NotificationDropdownProps {
-  notifications: Notification[];
-  notifLoading: boolean;
-  notifHasMore: boolean;
-  notifRef: React.RefObject<HTMLDivElement>;
-  onReadNotification: (n: Notification) => void;
-  onReadAll: () => void;
-  onLoadMore: () => void;
+  userId?: string;
   onViewAll: () => void;
   t: (key: string) => string;
+  onRedirect?: (url: string) => void;
 }
 
 export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
-  notifications,
-  notifLoading,
-  notifHasMore,
-  notifRef,
-  onReadNotification,
-  onReadAll,
-  onLoadMore,
+  userId,
   onViewAll,
   t,
+  onRedirect,
 }) => {
+  const { 
+    notifications, 
+    unreadCount, 
+    markAllAsRead, 
+    onNotificationClick 
+  } = useRealtimeNotifications();
+
+  const handleMarkAllAsRead = async () => {
+    if (userId) {
+      await markAllAsRead(userId);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (userId) {
+      await onNotificationClick(
+        notification.notificationId, 
+        userId, 
+        notification.redirectUrl,
+        onRedirect
+      );
+    }
+  };
+
   return (
-    <div className="absolute right-0 z-50 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in slide-in-from-top-2 duration-200" ref={notifRef}>
+    <div className="absolute right-0 z-50 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in slide-in-from-top-2 duration-200">
       {/* Header */}
       <div className="relative p-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bell className="w-5 h-5" />
             <h3 className="font-semibold text-lg">{t('notification') || 'Thông báo'}</h3>
-            {notifications.filter(n => !n.isRead).length > 0 && (
+            {unreadCount > 0 && (
               <span className="px-2 py-1 bg-white/20 text-xs rounded-full font-medium">
-                {notifications.filter(n => !n.isRead).length} {t('new') || 'mới'}
+                {unreadCount} {t('new') || 'mới'}
               </span>
             )}
           </div>
           <button
             className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
-            onClick={onReadAll}
-            disabled={notifications.length === 0 || notifications.every(n => n.isRead)}
+            onClick={handleMarkAllAsRead}
+            disabled={notifications.length === 0 || unreadCount === 0}
           >
             <Check className="w-3 h-3" />
             {t('markAllRead') || 'Đọc tất cả'}
@@ -54,12 +69,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
       {/* Notifications List */}
       <div className="max-h-80 overflow-y-auto">
-        {notifLoading && notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-500 mb-2" />
-            <p className="text-gray-500 text-sm">{t('loading') || 'Đang tải...'}</p>
-          </div>
-        ) : notifications.length === 0 ? (
+        {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Bell className="w-12 h-12 text-gray-300 mb-3" />
             <p className="text-gray-500 font-medium">{t('noNotifications') || 'Không có thông báo mới'}</p>
@@ -73,7 +83,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 className={`group relative p-4 cursor-pointer transition-all duration-200 hover:bg-gray-50 ${
                   !notification.isRead ? 'bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-400' : ''
                 }`}
-                onClick={() => onReadNotification(notification)}
+                onClick={() => handleNotificationClick(notification)}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 {/* Unread indicator dot */}
@@ -120,26 +130,6 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Load More Button */}
-        {notifications.length > 0 && notifHasMore && (
-          <div className="p-3 border-t border-gray-100 bg-gray-50">
-            <button
-              className="w-full py-2 text-center text-purple-600 font-medium hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              onClick={onLoadMore}
-              disabled={notifLoading}
-            >
-              {notifLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t('loading') || 'Đang tải...'}
-                </div>
-              ) : (
-                t('loadMore') || 'Xem thêm'
-              )}
-            </button>
           </div>
         )}
       </div>

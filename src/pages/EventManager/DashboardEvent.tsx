@@ -3,7 +3,6 @@ import { addDays, format } from 'date-fns';
 
 
 import { Bell } from 'lucide-react';
-import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -24,15 +23,6 @@ export default function EventManagerDashboard() {
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
-  const {
-    notifications,
-    notifLoading,
-    notifHasMore,
-    notifRef,
-    handleReadNotification,
-    handleReadAll,
-    handleLoadMore,
-  } = useNotifications({ userId, maxNotifications: 30, language: t('lang') });
 
   // Date filter state
   const [dateRange] = useState([
@@ -53,27 +43,23 @@ export default function EventManagerDashboard() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectAnalyticsHub();
     
     // Listen for real-time dashboard updates
     onAnalytics('OnEventManagerDashboard', (data: any) => {
-      console.log('📊 Received real-time event manager dashboard data:', data);
       // Trigger re-render of child components that use analytics data
       window.dispatchEvent(new CustomEvent('analytics-updated', { detail: data }));
     });
 
     onAnalytics('OnEventManagerRealtimeOverview', (data: any) => {
-      console.log('📊 Received real-time event manager overview:', data);
       window.dispatchEvent(new CustomEvent('analytics-overview-updated', { detail: data }));
     });
 
     onAnalytics('OnEventManagerRevenue', (data: any) => {
-      console.log('📊 Received real-time revenue data:', data);
       window.dispatchEvent(new CustomEvent('revenue-updated', { detail: data }));
     });
 
     onAnalytics('OnEventManagerTicketStats', (data: any) => {
-      console.log('📊 Received real-time ticket stats:', data);
       window.dispatchEvent(new CustomEvent('ticket-stats-updated', { detail: data }));
     });
   }, []);
@@ -124,14 +110,9 @@ export default function EventManagerDashboard() {
               </button>
               {notifDropdown && (
                 <NotificationDropdown
-                  notifications={notifications}
-                  notifLoading={notifLoading}
-                  notifHasMore={notifHasMore}
-                  notifRef={notifRef}
-                  onReadNotification={n => handleReadNotification(n, url => { navigate(url); setNotifDropdown(false); })}
-                  onReadAll={handleReadAll}
-                  onLoadMore={handleLoadMore}
+                  userId={userId}
                   onViewAll={() => { setNotifDropdown(false); navigate('/event-manager/all-notifications'); }}
+                  onRedirect={(url) => { navigate(url); setNotifDropdown(false); }}
                   t={t}
                 />
               )}

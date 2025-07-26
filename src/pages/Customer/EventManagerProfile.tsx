@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { getAllEvents } from '@/services/Event Manager/event.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+
 import { NO_AVATAR } from '@/assets/img';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ReportModal from '@/components/Customer/ReportModal';
@@ -11,6 +11,7 @@ import { MoreVertical, Flag } from 'lucide-react';
 import type { User } from '@/types/auth';
 import instance from '@/services/axios.customize';
 import { useTranslation } from 'react-i18next';
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
 const EVENTS_PER_PAGE = 6;
 
@@ -80,26 +81,8 @@ const EventManagerProfile = () => {
       .finally(() => setLoadingEvents(false));
   };
 
-  // Connect to IdentityHub for real-time profile updates
+  // Initial data load
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/notificationHub');
-    
-    // Listen for real-time profile updates
-    onIdentity('UserProfileUpdated', (data: any) => {
-      console.log('👤 Event Manager profile updated:', data);
-      if (data.userId === id) {
-        reloadProfileData();
-      }
-    });
-    
-    onIdentity('UserAvatarUpdated', (data: any) => {
-      console.log('👤 Event Manager avatar updated:', data);
-      if (data.userId === id) {
-        reloadProfileData();
-      }
-    });
-
-    // Initial data load
     reloadProfileData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -173,12 +156,29 @@ const EventManagerProfile = () => {
                     alt={info.fullName || 'avatar'}
                     className="w-32 h-32 rounded-full object-cover border-4 border-purple-400 shadow-lg"
                   />
-                  <div className="absolute -bottom-2 -right-2 bg-green-500 w-6 h-6 rounded-full border-2 border-slate-800"></div>
+                  <div className="absolute -bottom-2 -right-2">
+                    <OnlineStatusIndicator 
+                      userId={info.userId}
+                      size="lg"
+                      showText={false}
+                    />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0 text-center md:text-left">
                   <div className="font-bold text-3xl md:text-4xl mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     {info.fullName || 'Event Manager'}
                   </div>
+                  
+                  {/* Online Status */}
+                  <div className="mb-4">
+                    <OnlineStatusIndicator 
+                      userId={info.userId}
+                      size="md"
+                      showText={true}
+                      className="justify-center md:justify-start"
+                    />
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-purple-300">📧 {t('email')}:</span>

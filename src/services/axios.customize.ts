@@ -64,6 +64,12 @@ instance.interceptors.response.use(
 
     // Xử lý lỗi 401 (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log('[Auth] 401 Unauthorized detected, attempting token refresh...', {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        hasRetry: originalRequest._retry
+      });
+      
       originalRequest._retry = true;
 
       // Lấy refresh token từ cookie
@@ -72,12 +78,19 @@ instance.interceptors.response.use(
         .find((row) => row.startsWith('refresh_token='))
         ?.split('=')[1];
 
+      console.log('[Auth] Refresh token check:', {
+        hasRefreshToken: !!refreshToken,
+        refreshTokenLength: refreshToken?.length || 0
+      });
+
       // Nếu không có refresh token thì reject luôn, không refresh nữa
       if (!refreshToken) {
+        console.warn('[Auth] No refresh token found, redirecting to login');
         return Promise.reject(error);
       }
 
       if (!isRefreshing) {
+        console.log('[Auth] Starting token refresh process...');
         isRefreshing = true;
         try {
           const response = await axios.post(
@@ -85,6 +98,13 @@ instance.interceptors.response.use(
             { refreshToken },
             { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
           );
+
+          console.log('[Auth] Refresh token response:', {
+            status: response.status,
+            hasData: !!response.data,
+            hasAccessToken: !!response.data?.data?.accessToken,
+            hasRefreshToken: !!response.data?.data?.refreshToken
+          });
 
           // Lấy accessToken từ response.data.data.accessToken
           const tokenData = response.data?.data;
@@ -94,11 +114,14 @@ instance.interceptors.response.use(
 
           const newAccessToken = tokenData.accessToken;
           window.localStorage.setItem('access_token', newAccessToken);
+          console.log('[Auth] New access token stored successfully');
+          
           onRefreshed(newAccessToken);
 
           // Cập nhật refresh token mới vào cookie nếu có
           if (tokenData.refreshToken) {
             document.cookie = `refresh_token=${tokenData.refreshToken}; path=/;`;
+            console.log('[Auth] New refresh token stored in cookie');
           }
 
           // Cập nhật header của request với token mới
@@ -109,9 +132,18 @@ instance.interceptors.response.use(
               originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
             }
           }
+          
+          console.log('[Auth] Retrying original request with new token');
           return instance(originalRequest);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
+          console.error('[Auth] Token refresh failed:', {
+            error: err,
+            message: err?.message,
+            status: err?.response?.status,
+            data: err?.response?.data
+          });
+          
           // Xóa sạch token và refresh token nếu lỗi refresh
           window.localStorage.clear();
           document.cookie = 'refresh_token=; Max-Age=0; path=/;';
@@ -133,6 +165,7 @@ instance.interceptors.response.use(
           return Promise.reject(err);
         } finally {
           isRefreshing = false;
+          console.log('[Auth] Token refresh process completed');
         }
       }
 

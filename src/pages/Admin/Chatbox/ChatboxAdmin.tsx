@@ -42,6 +42,7 @@ import {
 } from '@/services/chat.service';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isCurrentUserAdmin } from '@/utils/admin-utils';
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
 export const ChatboxAdmin = () => {
   // States
@@ -126,7 +127,7 @@ export const ChatboxAdmin = () => {
   useEffect(() => {
     const connectToChat = async () => {
       try {
-        console.log('Attempting to connect to ChatHub...');
+        console.log('🔗 Attempting to connect to ChatHub...');
         await connectChatHub('http://localhost:5007/chatHub');
         setIsConnected(true);
         console.log('✅ Connected to ChatHub successfully');
@@ -139,6 +140,14 @@ export const ChatboxAdmin = () => {
         // Listen for new messages
         onChat('ReceiveMessage', (messageDto: any) => {
           console.log('📩 Received SignalR message:', messageDto);
+          console.log('📩 Message DTO structure:', {
+            id: messageDto.Id,
+            roomId: messageDto.RoomId,
+            senderUserId: messageDto.SenderUserId,
+            senderUserName: messageDto.SenderUserName,
+            content: messageDto.Content,
+            createdAt: messageDto.CreatedAt
+          });
 
           // Transform backend DTO to frontend interface
           const senderId = messageDto.SenderUserId || messageDto.senderUserId;
@@ -178,14 +187,35 @@ export const ChatboxAdmin = () => {
             return prev;
           });
 
-          // Update last message in room list
-          setChatRooms((prev) =>
-            prev.map((room) =>
+          // Update last message in room list and unread count
+          console.log('🔄 About to update chat rooms list with message:', {
+            messageRoomId: message.roomId,
+            messageContent: message.content,
+            messageSenderId: message.senderId,
+            currentUserId: currentUser.userId,
+            activeRoomId: activeRoomRef.current?.roomId
+          });
+          
+          setChatRooms((prev) => {
+            console.log('🏠 Current chat rooms before update:', prev.map(r => ({ id: r.roomId, lastMsg: r.lastMessage?.content })));
+            
+            const updatedRooms = prev.map((room) =>
               room.roomId === message.roomId
-                ? { ...room, lastMessage: message, unreadCount: room.unreadCount + 1 }
+                ? { 
+                    ...room, 
+                    lastMessage: message, 
+                    // Only increase unread count if it's not the active room and not from current user
+                    unreadCount: message.senderId !== currentUser.userId && 
+                                 room.roomId !== activeRoomRef.current?.roomId 
+                                 ? room.unreadCount + 1 
+                                 : room.unreadCount 
+                  }
                 : room
-            )
-          );
+            );
+            
+            console.log('🏠 Chat rooms after update:', updatedRooms.map(r => ({ id: r.roomId, lastMsg: r.lastMessage?.content })));
+            return updatedRooms;
+          });
 
           // Show notification if message is not from current user
           if (message.senderId !== currentUser.userId) {
@@ -267,6 +297,15 @@ export const ChatboxAdmin = () => {
     fetchOnlineUsers();
 
     return () => {
+      // Leave all rooms before disconnecting
+      chatRooms.forEach(async (room) => {
+        try {
+          await leaveChatRoom(room.roomId);
+          console.log(`Left SignalR room: ${room.roomId}`);
+        } catch (error) {
+          console.error(`Failed to leave SignalR room ${room.roomId}:`, error);
+        }
+      });
       disconnectChatHub();
     };
   }, []);
@@ -331,6 +370,34 @@ export const ChatboxAdmin = () => {
           unreadCount: room.unreadCount || 0,
         }));
       setChatRooms(validatedRooms);
+
+      // Join all chat rooms via SignalR to receive real-time messages
+      console.log('🏠 Joining all chat rooms via SignalR...');
+      for (const room of validatedRooms) {
+        try {
+          await joinChatRoom(room.roomId);
+          console.log(`✅ Joined SignalR room: ${room.roomId}`);
+        } catch (error) {
+          console.error(`❌ Failed to join SignalR room ${room.roomId}:`, error);
+        }
+      }
+
+      // Add chat participants to OnlineStatusContext for testing
+      validatedRooms.forEach(room => {
+        room.participants.forEach(participant => {
+          if (participant.userId) {
+            // Emit event to add participant to context
+            window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
+              detail: {
+                userId: participant.userId,
+                username: participant.username || participant.fullName,
+                isOnline: participant.isOnline || true, // Default to online for testing
+                lastActiveAt: new Date().toISOString()
+              }
+            }));
+          }
+        });
+      });
     } catch (error: any) {
       console.error('Error fetching chat rooms:', error);
 
@@ -416,17 +483,11 @@ export const ChatboxAdmin = () => {
   // Select a chat room
   const selectRoom = async (room: ChatRoom) => {
     try {
-      // Leave previous room if any
-      if (activeRoom) {
-        await leaveChatRoom(activeRoom.roomId);
-      }
-
       setActiveRoom(room);
       activeRoomRef.current = room; // Update ref for SignalR handlers
 
-      // Join the new room via SignalR
-      await joinChatRoom(room.roomId);
-      console.log(`Joined SignalR room: ${room.roomId}`);
+      // Note: We don't need to join/leave rooms since admin joins all rooms on load
+      console.log(`Selected room: ${room.roomId} (already joined via SignalR)`);
 
       await fetchMessages(room.roomId);
 
@@ -708,9 +769,13 @@ export const ChatboxAdmin = () => {
                               )?.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          {room.participants[0]?.isOnline && (
-                            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
-                          )}
+                          <div className="absolute -bottom-1 -right-1">
+                            <OnlineStatusIndicator 
+                              userId={room.participants[0]?.userId}
+                              size="sm"
+                              showText={false}
+                            />
+                          </div>
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -796,12 +861,11 @@ export const ChatboxAdmin = () => {
                           'Unknown User'}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            activeRoom.participants[0]?.isOnline ? 'bg-green-500' : 'bg-gray-400'
-                          }`}
+                        <OnlineStatusIndicator 
+                          userId={activeRoom.participants[0]?.userId}
+                          size="sm"
+                          showText={true}
                         />
-                        {activeRoom.participants[0]?.isOnline ? 'Online' : 'Offline'}
                         {activeRoom.participants[0]?.lastSeen &&
                           !activeRoom.participants[0]?.isOnline && (
                             <span>

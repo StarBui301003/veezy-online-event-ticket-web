@@ -6,11 +6,13 @@ import { useTranslation } from 'react-i18next';
 const PaymentFailedPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  
   useEffect(() => {
     // Gửi message về opener (tab gốc)
     if (window.opener) {
       window.opener.postMessage({ type: 'PAYMENT_FAILED' }, '*');
     }
+    
     const handleUnload = () => {
       if (window.opener) {
         window.opener.postMessage({ type: 'PAYMENT_FAILED' }, '*');

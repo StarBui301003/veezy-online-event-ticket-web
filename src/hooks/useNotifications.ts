@@ -4,6 +4,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '@/services/notification.service';
+import { onNotification } from '@/services/signalr.service';
 
 export interface Notification {
   notificationId: string;
@@ -23,9 +24,10 @@ interface UseNotificationsOptions {
   userId: string | undefined;
   maxNotifications?: number;
   language?: string;
+  enableRealtime?: boolean;
 }
 
-export function useNotifications({ userId, maxNotifications = 30, language }: UseNotificationsOptions) {
+export function useNotifications({ userId, maxNotifications = 30, language, enableRealtime = true }: UseNotificationsOptions) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifHasUnread, setNotifHasUnread] = useState(false);
@@ -54,6 +56,38 @@ export function useNotifications({ userId, maxNotifications = 30, language }: Us
     fetchNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, language]);
+
+  // Setup realtime notification listening
+  useEffect(() => {
+    if (!enableRealtime || !userId) return;
+
+    console.log('[useNotifications] Setting up realtime listener for user:', userId);
+
+    const handleRealtimeNotification = (notification: Notification) => {
+      console.log('[useNotifications] Received realtime notification:', notification);
+      
+      // Add new notification to the top of the list and ensure we don't exceed maxNotifications
+      setNotifications(prev => {
+        const newNotifications = [notification, ...prev].slice(0, maxNotifications);
+        return newNotifications;
+      });
+      
+      // Update unread status
+      if (!notification.isRead) {
+        setNotifHasUnread(true);
+      }
+    };
+
+    // Listen for realtime notifications
+    onNotification('ReceiveNotification', handleRealtimeNotification);
+
+    // Cleanup: Note that onNotification doesn't return cleanup function, 
+    // but the connection should handle multiple listeners properly
+    return () => {
+      console.log('[useNotifications] Cleaning up realtime listener for user:', userId);
+      // The SignalR service should handle connection cleanup in App.tsx
+    };
+  }, [userId, enableRealtime, maxNotifications]);
 
   // Mark one notification as read
   const handleReadNotification = useCallback(async (notification: Notification, onRedirect?: (url: string) => void) => {

@@ -99,23 +99,80 @@ export const updateFaceAPI = async (
   accountId: string,
   faceImage: File,
   faceEmbedding: number[] | null,
-  password?: string
+  password?: string,
+  hasExistingFaceAuth?: boolean
 ) => {
+  console.log('[UpdateFace] Starting face update process...', {
+    accountId,
+    fileName: faceImage.name,
+    fileSize: faceImage.size,
+    fileType: faceImage.type,
+    hasPassword: !!password,
+    hasExistingFaceAuth,
+    faceEmbeddingLength: faceEmbedding?.length || 0
+  });
+
   const formData = new FormData();
   if (faceEmbedding && faceEmbedding.length > 0) {
+    console.log('[UpdateFace] Adding face embedding to form data...');
     faceEmbedding.forEach((num, idx) => {
       formData.append(`FaceEmbedding[${idx}]`, num.toString());
     });
   }
-  formData.append('AccountId', accountId);
+  
+  // Only append AccountId if user already has face authentication
+  // This helps the backend determine whether to call AI service with accountId (update) or without (enroll)
+  if (hasExistingFaceAuth !== false) {
+    console.log('[UpdateFace] Adding AccountId to form data (user has existing face auth)');
+    formData.append('AccountId', accountId);
+  } else {
+    console.log('[UpdateFace] Skipping AccountId (new face registration)');
+  }
+  
   formData.append('FaceImage', faceImage, 'face.jpg');
   if (password) {
+    console.log('[UpdateFace] Adding password to form data');
     formData.append('Password', password);
   }
-  const response = await instance.put('/api/Account/updateFace', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
+
+  console.log('[UpdateFace] Form data prepared, sending request...');
+  try {
+    const response = await instance.put('/api/Account/updateFace', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    
+    console.log('[UpdateFace] API Response received:', {
+      status: response.status,
+      flag: response.data?.flag,
+      code: response.data?.code,
+      message: response.data?.message,
+      data: response.data?.data
+    });
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('[UpdateFace] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
 };
 
+export const checkFaceAuthStatusAPI = async () => {
+  try {
+    const response = await instance.get('/api/Account/hasFaceAuth');
+    return response.data;
+  } catch (error: any) {
+    console.error('[FaceAuthStatus] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
 

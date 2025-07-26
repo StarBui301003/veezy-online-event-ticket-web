@@ -49,16 +49,14 @@ const NotificationManager = () => {
   // Connect to NotificationHub for real-time updates
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined);
+    connectNotificationHub(token || undefined);
     
     // Listen for notification status updates
     onNotification('NotificationSent', (data: any) => {
-      console.log('📧 Notification sent:', data);
       showMessage('success', t('Notification sent successfully'));
     });
 
     onNotification('NotificationFailed', (data: any) => {
-      console.log('❌ Notification failed:', data);
       showMessage('error', t('Failed to send notification'));
     });
   }, [t]);

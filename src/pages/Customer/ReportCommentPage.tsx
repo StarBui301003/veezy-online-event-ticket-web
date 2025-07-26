@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { reportComment } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
@@ -11,6 +11,10 @@ export default function ReportCommentPage() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    // No realtime connection needed for this page
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

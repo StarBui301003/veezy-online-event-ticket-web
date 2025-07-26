@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { connectTicketHub, onTicket } from '@/services/signalr.service';
 
 interface CheckoutData {
   eventName?: string;
   items?: { ticketName: string; quantity: number; ticketPrice: number }[];
   totalAmount?: number;
   orderId?: string;
+  ticketGenerated?: boolean;
 }
 
 const PaymentSuccessPage = () => {
@@ -25,8 +27,23 @@ const PaymentSuccessPage = () => {
       }
     };
     window.addEventListener('beforeunload', handleUnload);
+    
+    // Setup realtime listeners for ticket updates
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    
+    connectTicketHub(token || undefined);
+    
+    // Listen for ticket generation
+    onTicket('TicketGenerated', (data: any) => {
+      console.log('🎫 Ticket generated:', data);
+      if (data.orderId === checkout?.orderId) {
+        // Update checkout data with ticket info
+        setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
+      }
+    });
+    
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
+  }, [checkout?.orderId]);
 
   useEffect(() => {
     const data = localStorage.getItem('checkout');

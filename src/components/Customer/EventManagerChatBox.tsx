@@ -39,6 +39,7 @@ import {
   type ChatMessage,
   type ChatRoom,
 } from '@/services/chat.service';
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
 interface EventManagerChatBoxProps {
   eventId: string;
@@ -213,6 +214,21 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
         isOnline: p.isOnline,
         role: p.role,
       })) || []);
+
+      // Add participants to OnlineStatusContext for status tracking
+      room.participants.forEach(participant => {
+        if (participant.userId) {
+          window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
+            detail: {
+              userId: participant.userId,
+              username: participant.username || participant.fullName,
+              isOnline: participant.isOnline || true,
+              lastActiveAt: new Date().toISOString()
+            }
+          }));
+          console.log('➕ Added participant to OnlineStatusContext:', participant.userId);
+        }
+      });
 
       // Connect to SignalR and join room
       console.log('🔌 Connecting to SignalR...');
@@ -611,12 +627,21 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                         .filter(p => p.role === 'EventManager')
                         .slice(0, 3)
                         .map((participant) => (
-                          <Avatar key={participant.userId} className="h-6 w-6 border-2 border-white">
-                            <AvatarImage src={participant.avatarUrl} />
-                            <AvatarFallback className="text-xs">
-                              {participant.userName?.charAt(0) || 'M'}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div key={participant.userId} className="relative">
+                            <Avatar className="h-6 w-6 border-2 border-white">
+                              <AvatarImage src={participant.avatarUrl} />
+                              <AvatarFallback className="text-xs">
+                                {participant.userName?.charAt(0) || 'M'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-0.5 -right-0.5">
+                              <OnlineStatusIndicator 
+                                userId={participant.userId}
+                                size="sm"
+                                showText={false}
+                              />
+                            </div>
+                          </div>
                         ))}
                     </div>
                     {onlineParticipants.filter(p => p.role === 'EventManager').length > 3 && (

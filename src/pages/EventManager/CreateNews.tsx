@@ -51,7 +51,10 @@ const CreateNews: React.FC = () => {
       toast.error(t('loginRequiredCreateNews'));
       navigate("/login");
     }
-  }, [navigate]);
+
+    // Note: News realtime updates not available in current backend
+    // No NewsHub implemented yet
+  }, [navigate, t]);
 
   useEffect(() => {
     if (quill) {
@@ -69,9 +72,7 @@ const CreateNews: React.FC = () => {
         setIsUploading(true);
         setImagePreview(URL.createObjectURL(file));
         try {
-          console.log('Uploading image:', file.name, file.size, file.type);
           const imageUrl = await uploadNewsImage(file);
-          console.log('Image upload successful, URL:', imageUrl);
           setNewsPayload((prev) => ({ ...prev, imageUrl }));
           toast.success("Tải ảnh lên thành công!");
         } catch (error) {

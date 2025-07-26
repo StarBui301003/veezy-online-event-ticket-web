@@ -15,6 +15,8 @@ import {
 } from 'react-icons/fa';
 import type { TicketForm as BaseTicketForm } from '@/types/ticket';
 import { useTranslation } from 'react-i18next';
+import { connectTicketHub, onTicket } from "@/services/signalr.service";
+import { toast } from "react-toastify";
 
 export interface TicketFormWithId extends BaseTicketForm {
   ticketId: string;
@@ -57,6 +59,26 @@ export default function EditTicket() {
         }
       })();
     }, [eventId, ticketId]);
+
+    // Setup realtime connection for ticket updates
+    useEffect(() => {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      connectTicketHub(token || undefined);
+      
+      // Listen for ticket update confirmations
+      onTicket('TicketUpdated', (data: any) => {
+        if (data.ticketId === ticketId) {
+          toast.success('Vé đã được cập nhật thành công!');
+          navigate(`/event-manager/events/${eventId}/tickets`);
+        }
+      });
+
+      onTicket('TicketUpdateFailed', (data: any) => {
+        if (data.ticketId === ticketId) {
+          toast.error('Không thể cập nhật vé. Vui lòng thử lại!');
+        }
+      });
+    }, [eventId, ticketId, navigate]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
