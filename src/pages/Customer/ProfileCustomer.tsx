@@ -34,14 +34,12 @@ import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
 import type { User } from '@/types/auth';
 import type { AdminOrder } from '@/types/Admin/order';
-import type { TicketPayload } from '@/types/event';
 import type { Attendance } from '@/types/attendance';
 import { useTranslation } from 'react-i18next';
 
 const TABS = [
   { key: 'info', label: 'Thông tin cá nhân' },
   { key: 'orders', label: 'Lịch sử mua vé' },
-  { key: 'tickets', label: 'Vé của tôi' },
   { key: 'attendances', label: 'Lịch sử tham dự' },
 ];
 
@@ -58,6 +56,7 @@ const ProfileCustomer = () => {
   const [faceError, setFaceError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [tab, setTab] = useState('info');
+
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
 
   // Lịch sử mua vé
@@ -69,7 +68,7 @@ const ProfileCustomer = () => {
 
   // Vé của tôi
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [tickets, setTickets] = useState<TicketPayload[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketsError, setTicketsError] = useState('');
 
@@ -87,32 +86,22 @@ const ProfileCustomer = () => {
     const accStr = localStorage.getItem('account');
     const accountObj = accStr ? JSON.parse(accStr) : null;
     const token = localStorage.getItem('accessToken');
-    
+
     if (accountObj?.userId) {
-      // Connect to TicketHub for order/ticket updates
       connectTicketHub(token || undefined);
-      
-      // Listen for order/ticket updates
       onTicket('OrderCreated', (data: any) => {
-        console.log('🎫 Order created:', data);
         if (data.customerId === accountObj.userId) {
-          // Reload order history
           loadOrderHistory(accountObj.userId);
           toast.info('Đơn hàng mới đã được tạo');
         }
       });
-
       onTicket('OrderStatusChanged', (data: any) => {
-        console.log('🎫 Order status changed:', data);
         if (data.customerId === accountObj.userId) {
           loadOrderHistory(accountObj.userId);
           toast.info('Trạng thái đơn hàng đã thay đổi');
         }
       });
-
-      onTicket('TicketIssued', (data: any) => {
-        console.log('🎫 Ticket issued:', data);
-        // Reload tickets and attendances
+      onTicket('TicketIssued', () => {
         loadTicketsAndAttendances(accountObj.userId);
         toast.success('Vé đã được phát hành');
       });
@@ -126,7 +115,6 @@ const ProfileCustomer = () => {
       const orders = await getOrderHistoryByCustomerId(userId);
       setOrders(orders || []);
     } catch (error) {
-      console.error('Error loading order history:', error);
       setOrdersError('Failed to load order history');
     } finally {
       setOrdersLoading(false);
@@ -135,13 +123,11 @@ const ProfileCustomer = () => {
 
   // Load tickets and attendances function
   const loadTicketsAndAttendances = async (_userId: string) => {
-    // Load attendances
     setAttendancesLoading(true);
     try {
       const attendanceData = await getMyAttendances();
       setAttendances(attendanceData || []);
     } catch (error) {
-      console.error('Error loading attendances:', error);
       setAttendancesError('Failed to load attendance history');
     } finally {
       setAttendancesLoading(false);
@@ -155,9 +141,7 @@ const ProfileCustomer = () => {
       try {
         const accObj = JSON.parse(accStr);
         userId = accObj.userId;
-      } catch {
-        /* empty */
-      }
+      } catch { }
     }
     if (!userId) {
       setLoading(false);
@@ -190,12 +174,11 @@ const ProfileCustomer = () => {
         .catch(() => setOrdersError('Không thể tải lịch sử mua vé.'))
         .finally(() => setOrdersLoading(false));
     }
-    // eslint-disable-next-line
   }, [tab, account?.userId, ordersPage]);
 
   // Fetch tickets for selected order
   useEffect(() => {
-    if (tab === 'tickets' && selectedOrder?.orderId) {
+    if (tab === 'orders' && selectedOrder?.orderId) {
       setTicketsLoading(true);
       setTicketsError('');
       getTicketsByOrderId(selectedOrder.orderId)
@@ -224,7 +207,6 @@ const ProfileCustomer = () => {
       [name]: name === 'gender' ? Number(value) : value,
     }));
 
-    // Clear errors when user types
     if (hasFieldError(fieldErrors, name)) {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };
@@ -242,39 +224,24 @@ const ProfileCustomer = () => {
     }
   };
 
+  const handleSelectOrder = (order: AdminOrder) => {
+    setSelectedOrder(order);
+  };
+
   const handleSave = async () => {
-    // Clear previous errors
     setFieldErrors({});
-
-    // Validate all required fields
     const newFieldErrors: FieldErrors = {};
-
-    if (!form.fullName?.trim()) {
-      newFieldErrors.fullname = ['Full name is required!'];
-    }
-
-    if (!form.email?.trim()) {
-      newFieldErrors.email = ['Email is required!'];
-    }
-
-    if (!form.phone?.trim()) {
-      newFieldErrors.phone = ['Phone number is required!'];
-    }
-
-    // Validate date of birth (dob)
+    if (!form.fullName?.trim()) newFieldErrors.fullname = ['Full name is required!'];
+    if (!form.email?.trim()) newFieldErrors.email = ['Email is required!'];
+    if (!form.phone?.trim()) newFieldErrors.phone = ['Phone number is required!'];
     if (form.dob) {
       const dobValidation = validateDateOfBirth(form.dob);
-      if (!dobValidation.isValid) {
-        newFieldErrors.dob = [dobValidation.errorMessage!];
-      }
+      if (!dobValidation.isValid) newFieldErrors.dob = [dobValidation.errorMessage!];
     }
-
-    // If there are validation errors, show them and return (NO TOAST for validation errors)
     if (Object.keys(newFieldErrors).length > 0) {
       setFieldErrors(newFieldErrors);
       return;
     }
-
     setLoading(true);
     try {
       let avatarUrl = form.avatarUrl;
@@ -300,9 +267,7 @@ const ProfileCustomer = () => {
       if (updatedUser) {
         const accStr = localStorage.getItem('account');
         let acc: Partial<User> = {};
-        if (accStr) {
-          acc = JSON.parse(accStr);
-        }
+        if (accStr) acc = JSON.parse(accStr);
         const newAccount = {
           ...acc,
           ...updatedUser,
@@ -330,20 +295,13 @@ const ProfileCustomer = () => {
       window.dispatchEvent(new Event('user-updated'));
       toast.success('Profile updated successfully!');
     } catch (error: unknown) {
-      // Parse backend errors for field-specific display
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
-
-      // Set field errors for inline display (NO TOAST for field errors by default)
       setFieldErrors(backendFieldErrors);
-
-      // Show toast ONLY for general errors that couldn't be mapped to fields
       if (generalErrors.length > 0) {
         toast.error(generalErrors[0]);
       } else if (Object.keys(backendFieldErrors).length === 0) {
-        // Fallback error only if no field errors
         toast.error('Failed to update profile. Please try again.');
       }
-      // No toast for field errors - only inline red display
     } finally {
       setLoading(false);
     }
@@ -381,12 +339,28 @@ const ProfileCustomer = () => {
       </>
     );
   }
+
+  // Map ticket info with order items to get ticketName
+  const getMappedTickets = () => {
+    if (!selectedOrder || !selectedOrder.items) return [];
+    return tickets.map((t, idx) => {
+      const orderItem = selectedOrder.items.find((item: any) => item.ticketId === t.ticketId);
+      return {
+        ticketId: t.ticketId,
+        ticketName: orderItem?.ticketName || '---',
+        qrCodeUrl: t.qrCodeUrl,
+        createdAt: t.createdAt,
+        status: t.used ? 'Đã sử dụng' : 'Chưa sử dụng',
+        key: t.ticketId || `${t.eventId}-${orderItem?.ticketName || idx}`,
+      };
+    });
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-start justify-center">
         <div className="w-full max-w-7xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0">
-          {/* Sidebar inside card, flush left/top, no border radius left */}
           <aside className="w-32 md:w-36 bg-gradient-to-b from-indigo-800/90 to-slate-800/90 flex flex-col gap-2 border-r border-indigo-700/30 justify-start py-6 px-4">
             {TABS.map((t) => (
               <button
@@ -396,13 +370,15 @@ const ProfileCustomer = () => {
                     ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
                     : 'text-indigo-100 hover:bg-indigo-700/30'}
                 `}
-                onClick={() => setTab(t.key)}
+                onClick={() => {
+                  setTab(t.key);
+                  setSelectedOrder(null); // reset khi chuyển tab
+                }}
               >
                 {t.label}
               </button>
             ))}
           </aside>
-          {/* Main content: only right side has padding, more top padding for header */}
           <main className="flex-1 p-10 pt-12 flex flex-col justify-start min-h-[600px]">
             {tab === 'info' && (
               <div className="flex flex-col items-center justify-center w-full">
@@ -447,11 +423,10 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           disabled={!editMode}
                           placeholder={t('enterFullName')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'fullname')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'fullname')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                          }`}
+                            }`}
                         />
                         {getFieldError(fieldErrors, 'fullname') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -467,11 +442,10 @@ const ProfileCustomer = () => {
                           value={form.email || ''}
                           disabled={true}
                           placeholder={t('yourEmailAddress')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'email')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'email')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                          }`}
+                            }`}
                         />
                         {getFieldError(fieldErrors, 'email') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -488,11 +462,10 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           disabled={!editMode}
                           placeholder={t('enterPhoneNumber')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'phone')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'phone')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                          }`}
+                            }`}
                         />
                         {getFieldError(fieldErrors, 'phone') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -507,7 +480,6 @@ const ProfileCustomer = () => {
                           value={String(form.gender || '0')}
                           onValueChange={(val) => {
                             setForm((prev: Partial<User> | null) => ({ ...(prev || {}), gender: Number(val) }));
-                            // Clear errors when user selects
                             if (hasFieldError(fieldErrors, 'gender')) {
                               setFieldErrors((prev) => {
                                 const newErrors = { ...prev };
@@ -519,11 +491,10 @@ const ProfileCustomer = () => {
                           disabled={!editMode}
                         >
                           <SelectTrigger
-                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'gender')
+                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'gender')
                                 ? '!border-red-500 !text-white'
                                 : '!border-purple-700 !text-white'
-                            }`}
+                              }`}
                           >
                             <SelectValue
                               placeholder={t('selectGender')}
@@ -566,11 +537,10 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           disabled={!editMode}
                           placeholder={t('enterLocation')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'location')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'location')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                          }`}
+                            }`}
                         />
                         {getFieldError(fieldErrors, 'location') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -587,7 +557,6 @@ const ProfileCustomer = () => {
                           value={form.dob ? form.dob.slice(0, 10) : ''}
                           onChange={(e) => {
                             setForm((f: Partial<User> | null) => ({ ...(f || {}), dob: e.target.value }));
-                            // Clear errors when user changes date
                             if (hasFieldError(fieldErrors, 'dob')) {
                               setFieldErrors((prev) => {
                                 const newErrors = { ...prev };
@@ -595,7 +564,6 @@ const ProfileCustomer = () => {
                                 return newErrors;
                               });
                             }
-                            // Validate ngay khi user chọn ngày mới
                             if (e.target.value) {
                               const dobValidation = validateDateOfBirth(e.target.value);
                               if (!dobValidation.isValid) {
@@ -607,11 +575,10 @@ const ProfileCustomer = () => {
                             }
                           }}
                           disabled={!editMode}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'dob')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'dob')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                          }`}
+                            }`}
                           style={{
                             colorScheme: 'dark',
                           }}
@@ -676,27 +643,25 @@ const ProfileCustomer = () => {
               </div>
             )}
             {tab === 'orders' && (
-              <OrderHistory
-                orders={orders}
-                loading={ordersLoading}
-                error={ordersError}
-                page={ordersPage}
-                totalPages={ordersTotalPages}
-                onPageChange={setOrdersPage}
-                onSelectOrder={setSelectedOrder}
-              />
-            )}
-            {tab === 'tickets' && (
-              <MyTickets
-                tickets={tickets.map((t, idx) => ({
-                  ticketName: t.ticketName,
-                  key: `${t.eventId}-${t.ticketName}-${idx}`,
-                }))}
-                loading={ticketsLoading}
-                error={ticketsError}
-                selectedOrder={selectedOrder}
-                onBack={() => { setTab('orders'); setSelectedOrder(null); }}
-              />
+              selectedOrder ? (
+                <MyTickets
+                  tickets={getMappedTickets()}
+                  loading={ticketsLoading}
+                  error={ticketsError}
+                  selectedOrder={selectedOrder}
+                  onBack={() => setSelectedOrder(null)}
+                />
+              ) : (
+                <OrderHistory
+                  orders={orders}
+                  loading={ordersLoading}
+                  error={ordersError}
+                  page={ordersPage}
+                  totalPages={ordersTotalPages}
+                  onPageChange={setOrdersPage}
+                  onSelectOrder={handleSelectOrder}
+                />
+              )
             )}
             {tab === 'attendances' && (
               <AttendanceHistory
@@ -708,7 +673,7 @@ const ProfileCustomer = () => {
           </main>
         </div>
       </div>
-      {/* Face Modal giữ nguyên như cũ */}
+      {/* Face Modal */}
       {showFaceModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative mx-4">
@@ -736,51 +701,17 @@ const ProfileCustomer = () => {
             )}
             <FaceCapture
               onCapture={async ({ image }) => {
-                console.log('[FaceUpdate] Face capture initiated...', {
-                  imageType: image.type,
-                  imageSize: image.size,
-                  userId: account.userId,
-                  hasFaceAuth,
-                  hasPassword: !!facePassword
-                });
-                
                 setFaceError('');
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-                  console.log('[FaceUpdate] File created for upload:', {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type
-                  });
-                  
-                  console.log('[FaceUpdate] Calling updateFaceAPI...', {
-                    userId: account.userId,
-                    hasExistingFaceAuth: hasFaceAuth,
-                    password: facePassword ? '[PROVIDED]' : '[NOT PROVIDED]'
-                  });
-                  
                   await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
-                  
-                  console.log('[FaceUpdate] Face update successful!');
                   toast.success('Face updated successfully!');
                   setShowFaceModal(false);
-                  
-                  // Refetch face auth status after successful update
-                  console.log('[FaceUpdate] Refetching face auth status...');
                   await refetchFaceAuth();
-                  console.log('[FaceUpdate] Face auth status refetched successfully');
                 } catch (e: unknown) {
-                  console.error('[FaceUpdate] Face update failed:', {
-                    error: e,
-                    errorType: typeof e,
-                    isAxiosError: e && typeof e === 'object' && 'response' in e
-                  });
-                  
                   let msg = 'Face update failed!';
                   if (typeof e === 'object' && e && 'response' in e && typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === 'string') {
                     const m = (e as { response: { data: { message: string } } }).response.data.message;
-                    console.log('[FaceUpdate] Backend error message:', m);
-                    
                     if (
                       m.includes('already been registered') ||
                       m.includes('Liveness check failed') ||
@@ -790,18 +721,14 @@ const ProfileCustomer = () => {
                       msg = m;
                     }
                   }
-                  
-                  console.log('[FaceUpdate] Final error message:', msg);
                   setFaceError(msg);
                   toast.error(msg);
                 }
               }}
               onError={(err) => {
-                console.error('[FaceUpdate] Face capture error:', err);
                 setFaceError(err);
               }}
               onCancel={() => {
-                console.log('[FaceUpdate] Face capture cancelled by user');
                 setShowFaceModal(false);
               }}
             />
@@ -811,4 +738,5 @@ const ProfileCustomer = () => {
     </>
   );
 };
+
 export default ProfileCustomer;
