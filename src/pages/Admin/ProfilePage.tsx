@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
+import {
+  getUserByIdAPI,
+  editUserAPI,
+  uploadUserAvatarAPI,
+  updateFaceAPI,
+} from '@/services/Admin/user.service';
 import { useFaceAuthStatus } from '@/hooks/use-face-auth-status';
 import { Input } from '@/components/ui/input';
 import {
@@ -146,7 +151,7 @@ const ProfilePage = () => {
           <div className="text-gray-700 mb-6">{t('pleaseTryAgainOrContactAdmin')}</div>
           <button
             className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-            onClick={() => window.location.href = '/'}
+            onClick={() => (window.location.href = '/')}
           >
             {t('backToHome')}
           </button>
@@ -182,14 +187,20 @@ const ProfilePage = () => {
                     className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
                     onClick={() => setShowFaceModal(false)}
                     aria-label={t('close')}
-                  >×</button>
-                  <h2 className="text-xl font-bold mb-4 text-center text-black">{t('updateFace')}</h2>
+                  >
+                    ×
+                  </button>
+                  <h2 className="text-xl font-bold mb-4 text-center text-black">
+                    {t('updateFace')}
+                  </h2>
                   {faceError && <div className="text-red-500 text-center mb-2">{faceError}</div>}
                   <FaceCapture
                     onCapture={async ({ image }) => {
                       setFaceError('');
                       try {
-                        const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
+                        const file = new File([image], 'face.jpg', {
+                          type: image.type || 'image/jpeg',
+                        });
                         await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
                         toast.success(t('updateFaceSuccess'));
                         setShowFaceModal(false);
@@ -246,7 +257,9 @@ const ProfilePage = () => {
             {/* Responsive 2 columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">{t('fullName')}</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  {t('fullName')}
+                </label>
                 {editMode ? (
                   <Input
                     name="fullName"
@@ -287,7 +300,9 @@ const ProfilePage = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">{t('gender')}</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  {t('gender')}
+                </label>
                 {editMode ? (
                   <Select
                     value={String(form.gender)}
@@ -306,7 +321,11 @@ const ProfilePage = () => {
                   </Select>
                 ) : (
                   <div className="border rounded px-2 py-1 w-full bg-gray-50">
-                    {account.gender === 0 ? t('male') : account.gender === 1 ? t('female') : t('other')}
+                    {account.gender === 0
+                      ? t('male')
+                      : account.gender === 1
+                      ? t('female')
+                      : t('other')}
                   </div>
                 )}
               </div>
