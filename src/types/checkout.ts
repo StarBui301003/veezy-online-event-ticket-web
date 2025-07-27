@@ -2,6 +2,7 @@ export interface CheckoutItem {
   ticketId: string;
   ticketName: string;
   ticketPrice: number;
+  pricePerTicket?: number | string; 
   quantity: number;
 }
 

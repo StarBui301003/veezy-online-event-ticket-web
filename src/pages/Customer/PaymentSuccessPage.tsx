@@ -47,10 +47,18 @@ const PaymentSuccessPage = () => {
 
   useEffect(() => {
     const data = localStorage.getItem('checkout');
-    if (data) setCheckout(JSON.parse(data));
+    if (data) {
+      const parsedData = JSON.parse(data);
+      console.log('Checkout data from localStorage:', parsedData); // Debug log
+      setCheckout(parsedData);
+    }
   }, []);
 
-  const total = checkout?.items?.reduce((sum, item) => sum + (item.ticketPrice || 0) * (item.quantity || 0), 0) || 0;
+  // Ưu tiên sử dụng totalAmount từ checkout data, nếu không có thì tính từ items
+  const total = checkout?.totalAmount || 
+    checkout?.items?.reduce((sum, item) => sum + (item.ticketPrice || 0) * (item.quantity || 0), 0) || 0;
+
+  console.log('Final total:', total, 'from totalAmount:', checkout?.totalAmount); // Debug log
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-green-50 p-8 text-center">
@@ -64,29 +72,47 @@ const PaymentSuccessPage = () => {
       </div>
       <h2 className="text-3xl font-bold text-green-700 mb-2">{t('paymentSuccessTitle')}</h2>
       <p className="text-green-600 text-lg mb-6">{t('paymentSuccessMessage')}</p>
+      
       {checkout?.eventName && (
         <div className="text-xl font-semibold text-green-900 mb-2">🎫 {checkout.eventName}</div>
       )}
+      
       {checkout?.orderId && (
-        <div className="text-green-700 text-base mb-2">{t('orderIdLabel')}: <span className="font-bold">{checkout.orderId}</span></div>
+        <div className="text-green-700 text-base mb-2">
+          {t('orderIdLabel')}: <span className="font-bold">{checkout.orderId}</span>
+        </div>
       )}
+      
       {checkout?.items && checkout.items.length > 0 && (
         <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
           <div className="font-semibold text-green-800 mb-2">{t('ticketDetail')}</div>
           <ul className="text-left space-y-2">
             {checkout.items.map((item, idx) => (
               <li key={idx} className="flex justify-between text-green-900">
-                <span>{item.ticketName} <span className="text-green-600">x{item.quantity}</span></span>
+                <span>
+                  {item.ticketName} <span className="text-green-600">x{item.quantity}</span>
+                </span>
                 <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
               </li>
             ))}
           </ul>
           <div className="border-t border-green-100 mt-4 pt-3 flex justify-between font-bold text-green-700">
             <span>{t('totalLabel')}:</span>
-            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+            <span className="text-lg">{total.toLocaleString('vi-VN')} VNĐ</span>
           </div>
         </div>
       )}
+      
+      {/* Hiển thị total ngay cả khi không có items detail */}
+      {(!checkout?.items || checkout.items.length === 0) && checkout?.totalAmount && (
+        <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
+          <div className="flex justify-between font-bold text-green-700 text-lg">
+            <span>{t('totalLabel')}:</span>
+            <span>{checkout.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
+          </div>
+        </div>
+      )}
+      
       <button
         onClick={() => window.location.href = '/'}
         className="px-8 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-semibold rounded-lg shadow-md hover:from-green-600 hover:to-green-800 transition-all duration-300 btn-shine"
@@ -97,4 +123,4 @@ const PaymentSuccessPage = () => {
   );
 };
 
-export default PaymentSuccessPage; 
+export default PaymentSuccessPage;

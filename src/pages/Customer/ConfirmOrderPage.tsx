@@ -27,34 +27,34 @@ const ConfirmOrderPage = () => {
       connectTicketHub(token);
       
       // Listen for real-time order updates
-      onTicket('OrderCreated', (data: any) => {
+      onTicket('OrderCreated', (data: unknown) => {
         console.log('🎫 Order created:', data);
         // Update order info if it matches current order
-        if (data.orderId && orderInfo?.orderId === data.orderId) {
-          setOrderInfo(data);
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          setOrderInfo(data as OrderInfo);
         }
       });
       
-      onTicket('OrderUpdated', (data: any) => {
+      onTicket('OrderUpdated', (data: unknown) => {
         console.log('🎫 Order updated:', data);
         // Update order info if it matches current order
-        if (data.orderId && orderInfo?.orderId === data.orderId) {
-          setOrderInfo(data);
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          setOrderInfo(data as OrderInfo);
         }
       });
       
-      onTicket('PaymentCompleted', (data: any) => {
+      onTicket('PaymentCompleted', (data: unknown) => {
         console.log('🎫 Payment completed:', data);
         // Redirect to success page if payment is completed
-        if (data.orderId && orderInfo?.orderId === data.orderId) {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-success');
         }
       });
       
-      onTicket('PaymentFailed', (data: any) => {
+      onTicket('PaymentFailed', (data: unknown) => {
         console.log('🎫 Payment failed:', data);
         // Redirect to failed page if payment failed
-        if (data.orderId && orderInfo?.orderId === data.orderId) {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-failed');
         }
       });
@@ -87,39 +87,75 @@ const ConfirmOrderPage = () => {
     }
   }, [t]);
 
+  // FIX: Sửa cách tính total - ưu tiên dùng checkout.totalAmount cho face order
   const total = checkout
-    ? checkout.items.reduce((sum, item) => sum + item.ticketPrice * item.quantity, 0)
+    ? checkout.faceOrder && checkout.totalAmount 
+      ? checkout.totalAmount // Sử dụng totalAmount từ API nếu là face order
+      : checkout.items.reduce((sum, item) => {
+          // Tính từ items nếu không phải face order hoặc không có totalAmount
+          let price = 0;
+          // Ưu tiên pricePerTicket từ API response
+          if (typeof item.pricePerTicket === 'number') {
+            price = item.pricePerTicket;
+          } else if (typeof item.pricePerTicket === 'string') {
+            price = parseFloat(item.pricePerTicket) || 0;
+          } else if (typeof item.ticketPrice === 'number') {
+            price = item.ticketPrice;
+          } else if (typeof item.ticketPrice === 'string') {
+            price = parseFloat(item.ticketPrice) || 0;
+          }
+          
+          let quantity = 0;
+          if (typeof item.quantity === 'number') {
+            quantity = item.quantity;
+          } else if (typeof item.quantity === 'string') {
+            quantity = parseInt(item.quantity) || 0;
+          }
+          
+          return sum + (price * quantity);
+        }, 0)
     : 0;
 
-  const discountAmount = checkout?.discountAmount || 0;
+  // FIX: Sửa cách tính discount - ưu tiên dùng từ checkout cho face order
+  const discountAmount = checkout?.faceOrder && checkout.discountAmount 
+    ? checkout.discountAmount // Dùng discountAmount từ API response nếu là face order
+    : checkout?.discountAmount || 0;
+
   const finalTotal = total - discountAmount;
+
+  const isFaceOrderInvalid = checkout?.faceOrder && (checkout.items.length === 0 || checkout.totalAmount === 0);
 
   const handleConfirm = async () => {
     if (!checkout) return;
     setConfirming(true);
     setError(null);
     try {
-      // Gọi API tạo order (KHÔNG truyền discountCode)
-      const orderPayload = {
-        eventId: checkout.eventId,
-        customerId: checkout.customerId,
-        items: checkout.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
-      };
-      const orderRes = await createOrder(orderPayload);
-      const orderId = orderRes.orderId;
-      if (!orderId) throw new Error('Không lấy được mã đơn hàng từ server.');
-
-      // Nếu có discountCode, gọi tiếp /use và lấy lại order đã giảm giá
-      let finalOrder = orderRes;
-      if (checkout.discountCode) {
-        const useRes = await useDiscountCode(checkout.eventId, checkout.discountCode);
-        if (!useRes.flag) {
-          throw new Error(useRes.message || 'Mã giảm giá không hợp lệ hoặc không áp dụng được.');
-        }
-        // Lấy lại order đã giảm giá
+      let orderId = checkout.orderId;
+      let finalOrder = null;
+      // Nếu là order bằng khuôn mặt đã có orderId, chỉ lấy lại orderInfo
+      if (checkout.faceOrder && orderId) {
         finalOrder = await getOrderById(orderId);
+      } else {
+        // Gọi API tạo order (KHÔNG truyền discountCode)
+        const orderPayload = {
+          eventId: checkout.eventId,
+          customerId: checkout.customerId,
+          items: checkout.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
+        };
+        const orderRes = await createOrder(orderPayload);
+        orderId = orderRes.orderId;
+        if (!orderId) throw new Error('Không lấy được mã đơn hàng từ server.');
+        // Nếu có discountCode, gọi tiếp /use và lấy lại order đã giảm giá
+        finalOrder = orderRes;
+        if (checkout.discountCode) {
+          const useRes = await useDiscountCode(checkout.eventId, checkout.discountCode);
+          if (!useRes.flag) {
+            throw new Error(useRes.message || 'Mã giảm giá không hợp lệ hoặc không áp dụng được.');
+          }
+          // Lấy lại order đã giảm giá
+          finalOrder = await getOrderById(orderId);
+        }
       }
-
       setOrderInfo(finalOrder); // Lưu lại thông tin đơn hàng đã giảm giá (nếu có)
       // Gọi API tạo thanh toán VNPAY như cũ
       const payRes = await createVnPayPayment(orderId);
@@ -133,10 +169,14 @@ const ConfirmOrderPage = () => {
       handleStartPayment(paymentUrl);
       // Lưu orderId vào localStorage để callback có thể lấy
       localStorage.setItem('lastOrderId', orderId);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message || err.message || 'Có lỗi khi tạo đơn hàng/thanh toán.'
-      );
+    } catch (err: unknown) {
+      let msg = 'Có lỗi khi tạo đơn hàng/thanh toán.';
+      if (typeof err === 'object' && err && 'response' in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message) {
+        msg = (err as { response: { data: { message: string } } }).response.data.message;
+      } else if (typeof err === 'object' && err && 'message' in err && typeof (err as { message?: string }).message === 'string') {
+        msg = (err as { message: string }).message;
+      }
+      setError(msg);
     } finally {
       setConfirming(false);
     }
@@ -253,34 +293,53 @@ const ConfirmOrderPage = () => {
                 ? new Date(orderInfo.createdAt).toLocaleString('vi-VN')
                 : checkout?.eventTime}
             </div>
-            {orderInfo.discountCode && (
+            {checkout.discountCode && (
               <div className="text-sm text-amber-600 mb-2">
-                {t('discountCode')}: <b>{orderInfo.discountCode}</b>
+                {t('discountCode')}: <b>{checkout.discountCode}</b>
               </div>
             )}
           </div>
           <div className="mb-4">
             <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
             <div className="divide-y divide-gray-200">
-              {(orderInfo.items || checkout?.items || []).map((item: CheckoutItem) => (
-                <div key={item.ticketId} className="flex justify-between py-2 text-sm">
-                  <span>
-                    {item.ticketName} (x{item.quantity})
-                  </span>
-                  <span>
-                    {(item.ticketPrice
-                      ? item.ticketPrice * item.quantity
-                      : item.ticketPrice * item.quantity
-                    ).toLocaleString('vi-VN')}{' '}
-                    VNĐ
-                  </span>
-                </div>
-              ))}
+              {(orderInfo.items || checkout?.items || []).map((item: CheckoutItem) => {
+                // FIX: Xử lý price với type checking - ưu tiên pricePerTicket từ API
+                let price = 0;
+                if (typeof item.pricePerTicket === 'number') {
+                  price = item.pricePerTicket;
+                } else if (typeof item.pricePerTicket === 'string') {
+                  price = parseFloat(item.pricePerTicket) || 0;
+                } else if (typeof item.ticketPrice === 'number') {
+                  price = item.ticketPrice;
+                } else if (typeof item.ticketPrice === 'string') {
+                  price = parseFloat(item.ticketPrice) || 0;
+                }
+                
+                let quantity = 0;
+                if (typeof item.quantity === 'number') {
+                  quantity = item.quantity;
+                } else if (typeof item.quantity === 'string') {
+                  quantity = parseInt(item.quantity) || 0;
+                }
+                
+                const subtotal = price * quantity;
+                
+                return (
+                  <div key={item.ticketId} className="flex justify-between py-2 text-sm">
+                    <span>
+                      {item.ticketName} (x{quantity})
+                    </span>
+                    <span>
+                      {isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-6">
             <span>{t('total')}:</span>
-            <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+            <span>{isNaN(total) ? '0' : total.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           {discountAmount > 0 && (
             <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
@@ -290,7 +349,7 @@ const ConfirmOrderPage = () => {
           )}
           <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
             <span>{t('finalTotal')}:</span>
-            <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
+            <span>{isNaN(finalTotal) ? '0' : finalTotal.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           <div className="mb-4 text-sm text-gray-500">
             {t('orderCode')}: <b>{orderInfo.orderId}</b>
@@ -355,19 +414,42 @@ const ConfirmOrderPage = () => {
         <div className="mb-4">
           <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
           <div className="divide-y divide-gray-200">
-            {checkout.items.map((item) => (
-              <div key={item.ticketId} className="flex justify-between py-2 text-sm">
-                <span>
-                  {item.ticketName} (x{item.quantity})
-                </span>
-                <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
-              </div>
-            ))}
+            {checkout.items.map((item) => {
+              // FIX: Xử lý price với type checking - ưu tiên pricePerTicket từ API response
+              let price = 0;
+              if (typeof item.pricePerTicket === 'number') {
+                price = item.pricePerTicket;
+              } else if (typeof item.pricePerTicket === 'string') {
+                price = parseFloat(item.pricePerTicket) || 0;
+              } else if (typeof item.ticketPrice === 'number') {
+                price = item.ticketPrice;
+              } else if (typeof item.ticketPrice === 'string') {
+                price = parseFloat(item.ticketPrice) || 0;
+              }
+              
+              let quantity = 0;
+              if (typeof item.quantity === 'number') {
+                quantity = item.quantity;
+              } else if (typeof item.quantity === 'string') {
+                quantity = parseInt(item.quantity) || 0;
+              }
+              
+              const subtotal = price * quantity;
+              
+              return (
+                <div key={item.ticketId} className="flex justify-between py-2 text-sm">
+                  <span>
+                    {item.ticketName} (x{quantity})
+                  </span>
+                  <span>{isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ</span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-2">
           <span>{t('total')}:</span>
-          <span>{total.toLocaleString('vi-VN')} VNĐ</span>
+          <span>{isNaN(total) ? '0' : total.toLocaleString('vi-VN')} VNĐ</span>
         </div>
         {discountAmount > 0 && (
           <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
@@ -377,11 +459,11 @@ const ConfirmOrderPage = () => {
         )}
         <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
           <span>{t('finalTotal')}:</span>
-          <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
+          <span>{isNaN(finalTotal) ? '0' : finalTotal.toLocaleString('vi-VN')} VNĐ</span>
         </div>
         <button
           onClick={handleConfirm}
-          disabled={confirming}
+          disabled={confirming || isFaceOrderInvalid}
           className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {confirming ? (
@@ -389,8 +471,11 @@ const ConfirmOrderPage = () => {
           ) : (
             <CreditCard className="w-6 h-6 mr-2" />
           )}
-          {confirming ? t('processing') : t('pay')}
+          {isFaceOrderInvalid ? t('faceOrderInvalid') : (confirming ? t('processing') : t('pay'))}
         </button>
+        {isFaceOrderInvalid && (
+          <div className="text-red-500 mt-2">{t('faceOrderInvalidMessage')}</div>
+        )}
       </div>
     </motion.div>
   );
