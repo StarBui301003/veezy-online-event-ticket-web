@@ -9,6 +9,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { getRejectedEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import type { ApprovedEvent, PaginatedEventResponse } from '@/types/Admin/event';
 import {
   DropdownMenu,
@@ -42,6 +43,35 @@ export const RejectedEventList = () => {
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
+  // Fetch user names for createdBy and approvedBy
+  useEffect(() => {
+    if (data?.items) {
+      const userIds = new Set<string>();
+      data.items.forEach((event) => {
+        if (event.createdBy) userIds.add(event.createdBy);
+        if (event.approvedBy) userIds.add(event.approvedBy);
+      });
+
+      const fetchUserNames = async () => {
+        const names: Record<string, string> = {};
+        await Promise.all(
+          Array.from(userIds).map(async (userId) => {
+            try {
+              const user = await getUserByIdAPI(userId);
+              names[userId] = user.fullName || user.username || userId;
+            } catch {
+              names[userId] = userId;
+            }
+          })
+        );
+        setUserNames(names);
+      };
+
+      fetchUserNames();
+    }
+  }, [data]);
 
   // Fetch all categories for filter (once)
   useEffect(() => {
@@ -370,7 +400,9 @@ export const RejectedEventList = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {event.approvedBy ? event.approvedBy : 'Unknown'}
+                        {event.approvedBy
+                          ? userNames[event.approvedBy] || event.approvedBy
+                          : 'Unknown'}
                       </TableCell>
                       <TableCell
                         style={{
@@ -390,7 +422,9 @@ export const RejectedEventList = () => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {event.createdBy ? event.createdBy : 'Unknown'}
+                        {event.createdBy
+                          ? userNames[event.createdBy] || event.createdBy
+                          : 'Unknown'}
                       </TableCell>
                       <TableCell
                         style={{

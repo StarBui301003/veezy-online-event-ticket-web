@@ -192,7 +192,7 @@ export const ResolvedReportList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-green-200 hover:bg-green-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
@@ -216,7 +216,7 @@ export const ResolvedReportList = () => {
                 </TableRow>
               ) : (
                 pagedReports.map((item, idx) => (
-                  <TableRow key={item.reportId} className="hover:bg-blue-50">
+                  <TableRow key={item.reportId} className="hover:bg-green-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
                     <TableCell className="truncate max-w-[120px]">
@@ -271,7 +271,7 @@ export const ResolvedReportList = () => {
                                 className={`transition-colors rounded 
                                   ${
                                     i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}

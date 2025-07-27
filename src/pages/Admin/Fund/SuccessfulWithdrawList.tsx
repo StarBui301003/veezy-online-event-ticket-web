@@ -22,6 +22,7 @@ import {
 import FundDetailModal from './FundDetailModal';
 import { FaEye } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
+import { connectFundHub, onFund } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -33,6 +34,17 @@ export const SuccessfulWithdrawList = () => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
 
+  const refreshData = () => {
+    setLoading(true);
+    setSearch(''); // Reset search khi refresh
+    getSuccessfulWithdrawals({ pageNumber: 1, pageSize }) // Reset về trang 1
+      .then((res) => {
+        setData(res.data.data);
+        setPage(1); // Reset về trang 1
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
+
   useEffect(() => {
     setLoading(true);
     getSuccessfulWithdrawals({ pageNumber: page, pageSize })
@@ -40,6 +52,24 @@ export const SuccessfulWithdrawList = () => {
         setData(res.data.data);
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Connect to FundHub and listen for fund events
+    connectFundHub();
+
+    // Listen for fund-related events that affect successful withdrawals
+    const reloadData = () => {
+      console.log('Fund event received, refreshing successful withdrawals...');
+      refreshData();
+    };
+
+    // Listen for withdrawal status changes that might affect successful list
+    onFund('OnPaymentConfirmed', reloadData);
+    onFund('OnWithdrawalStatusChanged', reloadData);
+
+    // Cleanup function
+    return () => {
+      // Note: We don't disconnect the hub here as it might be used by other components
+    };
   }, [page, pageSize]);
 
   const items = data?.items || [];
@@ -312,6 +342,7 @@ export const SuccessfulWithdrawList = () => {
               withdrawal={selected}
               onClose={() => setSelected(null)}
               showActionButtons={false}
+              onSuccess={refreshData}
             />
           )}
         </div>

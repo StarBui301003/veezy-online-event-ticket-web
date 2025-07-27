@@ -22,16 +22,29 @@ import {
 import FundDetailModal from './FundDetailModal';
 import { FaEye } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
+import { connectFundHub, onFund } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const PendingWithdrawList = () => {
+export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
   const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
+
+  const refreshData = () => {
+    setLoading(true);
+    setSearch(''); // Reset search khi refresh
+    getPendingWithdrawals({ pageNumber: 1, pageSize }) // Reset về trang 1
+      .then((res) => {
+        setData(res.data.data);
+        setPage(1); // Reset về trang 1
+        onPendingChanged?.(); // Gọi callback cập nhật badge
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -40,6 +53,27 @@ export const PendingWithdrawList = () => {
         setData(res.data.data);
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Connect to FundHub and listen for fund events
+    connectFundHub();
+
+    // Listen for fund-related events that affect pending withdrawals
+    const reloadData = () => {
+      console.log('Fund event received, refreshing pending withdrawals...');
+      refreshData();
+    };
+
+    // Listen for withdrawal status changes
+    onFund('OnWithdrawalRequested', reloadData);
+    onFund('OnWithdrawalStatusChanged', reloadData);
+    onFund('OnWithdrawalApproved', reloadData);
+    onFund('OnWithdrawalRejected', reloadData);
+    onFund('OnPaymentConfirmed', reloadData);
+
+    // Cleanup function
+    return () => {
+      // Note: We don't disconnect the hub here as it might be used by other components
+    };
   }, [page, pageSize]);
 
   const items = data?.items || [];
@@ -315,6 +349,7 @@ export const PendingWithdrawList = () => {
               withdrawal={selected}
               onClose={() => setSelected(null)}
               showActionButtons={true}
+              onSuccess={refreshData}
             />
           )}
         </div>

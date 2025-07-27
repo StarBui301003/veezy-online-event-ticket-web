@@ -33,6 +33,11 @@ export async function cancelEvent(eventId: string) {
   return res.data;
 }
 
+export async function getCompletedEvents(params?: { page?: number; pageSize?: number }) {
+  const res = await instance.get<EventListResponse>('/api/Event/completedEvents', { params });
+  return res.data;
+}
+
 // Duyệt hoặc từ chối event (approve/reject) với enum
 export async function approvedRejectEvent(
   eventId: string,
@@ -106,5 +111,17 @@ export async function showEvent(eventId: string) {
 
 export async function deleteEvent(eventId: string) {
   const res = await instance.delete(`/api/Event/${eventId}`);
+  return res.data;
+}
+
+// Enable withdrawal for event
+export async function enableWithdrawal(eventId: string) {
+  const res = await instance.post(`/api/Event/${eventId}/enable-withdrawal`);
+  return res.data;
+}
+
+// Disable withdrawal for event
+export async function disableWithdrawal(eventId: string) {
+  const res = await instance.post(`/api/Event/${eventId}/disable-withdrawal`);
   return res.data;
 }

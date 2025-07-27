@@ -22,16 +22,29 @@ import {
 import FundDetailModal from './FundDetailModal';
 import { FaEye } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
+import { connectFundHub, onFund } from '@/services/signalr.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const AllWithdrawRequests = () => {
+export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
   const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
+
+  const refreshData = () => {
+    setLoading(true);
+    setSearch(''); // Reset search khi refresh
+    getAllWithdrawalRequests({ pageNumber: 1, pageSize }) // Reset về trang 1
+      .then((res) => {
+        setData(res.data.data);
+        setPage(1); // Reset về trang 1
+        onPendingChanged?.(); // Gọi callback cập nhật badge
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -40,6 +53,29 @@ export const AllWithdrawRequests = () => {
         setData(res.data.data);
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Connect to FundHub and listen for fund events
+    connectFundHub();
+
+    // Listen for fund-related events that affect all withdrawal requests
+    const reloadData = () => {
+      console.log('Fund event received, refreshing all withdrawal requests...');
+      refreshData();
+    };
+
+    // Listen for all withdrawal status changes
+    onFund('OnWithdrawalRequested', reloadData);
+    onFund('OnWithdrawalStatusChanged', reloadData);
+    onFund('OnWithdrawalApproved', reloadData);
+    onFund('OnWithdrawalRejected', reloadData);
+    onFund('OnPaymentConfirmed', reloadData);
+    onFund('OnFundCreated', reloadData);
+    onFund('OnBalanceUpdated', reloadData);
+
+    // Cleanup function
+    return () => {
+      // Note: We don't disconnect the hub here as it might be used by other components
+    };
   }, [page, pageSize]);
 
   const items = data?.items || [];
@@ -178,12 +214,6 @@ export const AllWithdrawRequests = () => {
                 )}
               </div>
             </div>
-            {/* Nút Enable Withdrawal bên phải */}
-            <div className="flex justify-end">
-              <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
-                Enable Withdrawal
-              </button>
-            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
@@ -316,6 +346,7 @@ export const AllWithdrawRequests = () => {
               withdrawal={selected}
               onClose={() => setSelected(null)}
               showActionButtons={false}
+              onSuccess={refreshData}
             />
           )}
         </div>

@@ -15,6 +15,7 @@ interface Props {
   onClose: () => void;
   showActionButtons?: boolean;
   showConfirmPaymentButton?: boolean;
+  onSuccess?: () => void;
 }
 
 const FundDetailModal = ({
@@ -22,6 +23,7 @@ const FundDetailModal = ({
   onClose,
   showActionButtons = true,
   showConfirmPaymentButton = false,
+  onSuccess,
 }: Props) => {
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [reason, setReason] = useState('');
@@ -43,7 +45,13 @@ const FundDetailModal = ({
       }
       setActionType(null);
       setReason('');
-      onClose();
+      // Gọi callback để refresh danh sách trước khi đóng modal
+      onSuccess?.();
+      toast.success('List refreshed successfully');
+      // Đóng modal sau khi refresh
+      setTimeout(() => {
+        onClose();
+      }, 100);
     } catch {
       toast.error('Action failed');
     } finally {

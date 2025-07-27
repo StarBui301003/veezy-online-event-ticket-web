@@ -16,6 +16,7 @@ import {
   deleteEvent,
   cancelEvent,
 } from '@/services/Admin/event.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import {
   DropdownMenu,
@@ -53,10 +54,39 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
 
   // Filter state
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+
+  // Fetch user names for createdBy and approvedBy
+  useEffect(() => {
+    if (data?.items) {
+      const userIds = new Set<string>();
+      data.items.forEach((event) => {
+        if (event.createdBy) userIds.add(event.createdBy);
+        if (event.approvedBy) userIds.add(event.approvedBy);
+      });
+
+      const fetchUserNames = async () => {
+        const names: Record<string, string> = {};
+        await Promise.all(
+          Array.from(userIds).map(async (userId) => {
+            try {
+              const user = await getUserByIdAPI(userId);
+              names[userId] = user.fullName || user.username || userId;
+            } catch {
+              names[userId] = userId;
+            }
+          })
+        );
+        setUserNames(names);
+      };
+
+      fetchUserNames();
+    }
+  }, [data]);
 
   // Fetch all categories for filter
   useEffect(() => {
@@ -485,16 +515,14 @@ export const ApprovedEventList = ({ onLoadingChange }: ApprovedEventListProps) =
                     </TableCell>
                     <TableCell className="text-center">
                       {event.approvedBy
-                        ? event.approvedBy // Không dùng biến không dùng
+                        ? userNames[event.approvedBy] || event.approvedBy
                         : 'Unknown'}
                     </TableCell>
                     <TableCell>
                       {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
                     </TableCell>
                     <TableCell>
-                      {event.createdBy
-                        ? event.createdBy // Không dùng biến không dùng
-                        : 'Unknown'}
+                      {event.createdBy ? userNames[event.createdBy] || event.createdBy : 'Unknown'}
                     </TableCell>
                     <TableCell>
                       {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
