@@ -114,14 +114,3 @@ export async function deleteEvent(eventId: string) {
   return res.data;
 }
 
-// Enable withdrawal for event
-export async function enableWithdrawal(eventId: string) {
-  const res = await instance.post(`/api/Event/${eventId}/enable-withdrawal`);
-  return res.data;
-}
-
-// Disable withdrawal for event
-export async function disableWithdrawal(eventId: string) {
-  const res = await instance.post(`/api/Event/${eventId}/disable-withdrawal`);
-  return res.data;
-}
