@@ -7,6 +7,7 @@ import { SuccessfulWithdrawList } from './SuccessfulWithdrawList';
 import { AllWithdrawRequests } from './AllWithdrawRequests';
 import { FaClock, FaCog, FaCheckCircle, FaList } from 'react-icons/fa';
 import { getPendingWithdrawals } from '@/services/Admin/fund.service';
+import { connectFundHub, onFund } from '@/services/signalr.service';
 
 const TABS = [
   { label: 'All', value: 'all', icon: <FaList className="w-4 h-4" /> },
@@ -35,11 +36,36 @@ export function FundTabs() {
       .catch(() => setPendingCount(0));
   };
 
+  // Hàm này sẽ được truyền xuống các tab con
+  const handlePendingChanged = () => {
+    fetchPendingCount();
+  };
+
   useEffect(() => {
     fetchPendingCount();
 
-    // Note: Fund realtime updates not available in current backend
-    // No FundHub implemented yet - will refresh data manually
+    // Connect to FundHub and listen for fund events
+    connectFundHub();
+
+    // Listen for fund-related events
+    const reloadPendingCount = () => {
+      console.log('Fund event received, refreshing pending count...');
+      fetchPendingCount();
+    };
+
+    // Listen for withdrawal status changes
+    onFund('OnWithdrawalRequested', reloadPendingCount);
+    onFund('OnWithdrawalStatusChanged', reloadPendingCount);
+    onFund('OnWithdrawalApproved', reloadPendingCount);
+    onFund('OnWithdrawalRejected', reloadPendingCount);
+    onFund('OnPaymentConfirmed', reloadPendingCount);
+    onFund('OnFundCreated', reloadPendingCount);
+    onFund('OnBalanceUpdated', reloadPendingCount);
+
+    // Cleanup function
+    return () => {
+      // Note: We don't disconnect the hub here as it might be used by other components
+    };
   }, []);
 
   // Khi đổi tab, update query param
@@ -116,13 +142,19 @@ export function FundTabs() {
         </TabsList>
         <div>
           <TabsContent value="all">
-            {loadedTabs.includes('all') && <AllWithdrawRequests />}
+            {loadedTabs.includes('all') && (
+              <AllWithdrawRequests onPendingChanged={handlePendingChanged} />
+            )}
           </TabsContent>
           <TabsContent value="pending">
-            {loadedTabs.includes('pending') && <PendingWithdrawList />}
+            {loadedTabs.includes('pending') && (
+              <PendingWithdrawList onPendingChanged={handlePendingChanged} />
+            )}
           </TabsContent>
           <TabsContent value="processing">
-            {loadedTabs.includes('processing') && <ProcessingWithdrawList />}
+            {loadedTabs.includes('processing') && (
+              <ProcessingWithdrawList onPendingChanged={handlePendingChanged} />
+            )}
           </TabsContent>
           <TabsContent value="successful">
             {loadedTabs.includes('successful') && <SuccessfulWithdrawList />}

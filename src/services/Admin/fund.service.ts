@@ -39,12 +39,3 @@ export async function rejectWithdrawal(transactionId: string, payload: { Reason:
     return instance.post(`/api/Fund/withdrawal/${transactionId}/reject`, payload);
 }
 
-// Cho phép rút tiền cho sự kiện
-export async function enableWithdrawal(eventId: string) {
-    return instance.post(`/api/Fund/event/${eventId}/enable-withdrawal`);
-}
-
-// Tắt rút tiền cho sự kiện
-export async function disableWithdrawal(eventId: string) {
-    return instance.post(`/api/Fund/event/${eventId}/disable-withdrawal`);
-}

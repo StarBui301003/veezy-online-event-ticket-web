@@ -29,6 +29,9 @@ export interface ApprovedEvent {
   createdBy: string;
   createdAt: string;
   bankAccount: string;
+  isWithdrawEnabled?: boolean;
+  completedAt?: string;
+  IsWithdrawalEnabled?: boolean; // Field từ API response
 }
 
 export interface EventListResponse {
