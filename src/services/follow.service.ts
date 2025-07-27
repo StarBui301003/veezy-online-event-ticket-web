@@ -39,3 +39,9 @@ export async function checkUserFollowEventManager(followingAccountId: string) {
   const response = await instance.get(`/api/Follow/check/${followingAccountId}`);
   return response.data?.data;
 } 
+// Kiểm tra user hiện tại đã theo dõi event này chưa (dùng followingEventByUserId)
+export async function checkFollowEventByList(userId: string, eventId: string) {
+  const response = await instance.get(`/api/Follow/followingEventByUserId?userId=${userId}&page=1&pageSize=100`);
+  const items = response.data?.data?.items || [];
+  return items.some((item: any) => item.eventId === eventId);
+}

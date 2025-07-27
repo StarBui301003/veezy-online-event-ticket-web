@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +14,7 @@ import {
   PlusCircle,
   MoreVertical,
   Flag,
+  Camera,
 } from 'lucide-react';
 import {
   getEventById,
@@ -34,10 +34,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
-import { Camera } from 'lucide-react';
 import { connectCommentHub, onComment } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
-import { followEvent, unfollowEvent } from '@/services/follow.service';
+import { followEvent, unfollowEvent, checkFollowEventByList } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
 import { EventChatAssistant } from '@/components/Customer/EventChatAssistant';
 import { EventManagerChatBox } from '@/components/Customer/EventManagerChatBox';
@@ -48,6 +47,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
 import { Pagination, Navigation } from 'swiper/modules';
+
 interface EventDetailData {
   eventId: string;
   eventName: string;
@@ -133,7 +133,6 @@ const EventDetail = () => {
     const accStr = localStorage.getItem('account');
     if (accStr) {
       const accObj = JSON.parse(accStr);
-      // Nếu là LoginResponse lưu thẳng, lấy account.userId
       if (accObj.account && accObj.account.userId) {
         customerId = accObj.account.userId;
       } else if (accObj.userId) {
@@ -192,9 +191,17 @@ const EventDetail = () => {
     fetchTicketData();
   }, [eventId]);
 
+  // ================== FIX: Kiểm tra trạng thái đã follow khi vào trang ==================
+  useEffect(() => {
+    if (!eventId || !customerId) return;
+    checkFollowEventByList(customerId, eventId)
+      .then((isFollowed) => setIsFollowingEvent(!!isFollowed))
+      .catch(() => setIsFollowingEvent(false));
+  }, [eventId, customerId]);
+  // =======================================================================================
+
   useEffect(() => {
     setLoadingEvents(true);
-    // Kiểm tra đăng nhập
     const accStr = localStorage.getItem('account');
     let isLoggedIn = false;
     if (accStr) {
@@ -207,7 +214,6 @@ const EventDetail = () => {
     }
     const fetchEvents = async () => {
       if (isLoggedIn) {
-        // Nếu đã đăng nhập, gọi AI recommend
         try {
           const res = await getAIRecommendedEvents();
           const aiEvents = (res.data || []).filter((event: EventData) => event.eventId !== eventId);
@@ -227,7 +233,6 @@ const EventDetail = () => {
           setLoadingEvents(false);
         }
       } else {
-        // Nếu chưa đăng nhập, gọi getHomeEvents như cũ
         getHomeEvents()
           .then((fetchedEvents) => {
             const activeEvents = (fetchedEvents || []).filter(
@@ -244,12 +249,7 @@ const EventDetail = () => {
 
   useEffect(() => {
     connectCommentHub('http://localhost:5004/commentHub');
-    // Lắng nghe realtime SignalR cho comment
-    const reloadComment = () => {
-      // Nếu có component CommentSection, nên expose hàm refetch comment qua ref hoặc context
-      // Hoặc có thể reload toàn bộ trang nếu cần
-      // window.location.reload();
-    };
+    const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
     onComment('OnCommentUpdated', reloadComment);
     onComment('OnCommentDeleted', reloadComment);
@@ -285,6 +285,7 @@ const EventDetail = () => {
   };
 
   const handleCreateOrder = async () => {
+    console.log('[DEBUG] handleCreateOrder called');
     if (!eventId || Object.keys(selectedTickets).length === 0) {
       toast.warn(t('pleaseSelectAtLeastOneTicket'));
       return;
@@ -293,8 +294,6 @@ const EventDetail = () => {
       toast.error(t('customerInfoNotFound'));
       return;
     }
-
-    // Kiểm tra giới hạn maxTicketsPerOrder cho từng vé
     for (const ticket of tickets) {
       const selected = selectedTickets[ticket.ticketId];
       if (selected) {
@@ -305,8 +304,6 @@ const EventDetail = () => {
         }
       }
     }
-
-    // Lưu thông tin checkout vào localStorage
     const checkoutData = {
       eventId,
       eventName: event?.eventName || '',
@@ -372,10 +369,11 @@ const EventDetail = () => {
 
   // Thêm hàm xử lý order bằng khuôn mặt
   const handleOrderWithFace = async ({ image }: { image: Blob }) => {
+    console.log('[DEBUG] handleOrderWithFace called', { faceLoading });
+    if (faceLoading) return; // Prevent duplicate submissions
     setFaceLoading(true);
     setFaceError('');
     try {
-      // Validate GUID
       const guidRegex =
         /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
       if (!eventId || !guidRegex.test(eventId)) {
@@ -397,7 +395,6 @@ const EventDetail = () => {
         ticketId: st.ticketId,
         quantity: st.quantity,
       }));
-      // Kiểm tra tất cả ticketId phải là GUID hợp lệ
       for (const item of items) {
         if (!guidRegex.test(item.ticketId)) {
           toast.error(t('invalidTicketId', { ticketId: item.ticketId }));
@@ -406,13 +403,6 @@ const EventDetail = () => {
         }
       }
       const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-      console.log('DEBUG FACE ORDER PAYLOAD', {
-        eventId,
-        customerId,
-        items,
-        discountCode: discountCode.trim() || undefined,
-        faceImage: file,
-      });
       const res = await createOrderWithFace({
         eventId,
         customerId,
@@ -420,47 +410,57 @@ const EventDetail = () => {
         faceImage: file,
         discountCode: discountCode.trim() || undefined,
       });
-      if (res && res.success && res.data) {
-        // Lấy orderId an toàn
-        let orderId = '';
-        if (
-          'orderId' in res.data &&
-          typeof (res.data as unknown as { orderId?: unknown }).orderId === 'string'
-        ) {
-          orderId = (res.data as { orderId?: unknown }).orderId as string;
-        } else if ('items' in res.data && Array.isArray((res.data as { items?: unknown }).items)) {
-          const itemsArr = (res.data as { items?: unknown }).items as unknown[];
-          const found = itemsArr.find(
-            (item) => typeof (item as { orderId?: unknown }).orderId === 'string'
-          );
-          if (found) orderId = (found as { orderId: string }).orderId;
-        }
-        // Lưu thông tin checkout vào localStorage (giống flow thường)
-        const checkoutData = {
-          eventId,
-          eventName: event?.eventName || '',
-          eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${
-            event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
-          }`,
-          customerId,
-          items: Object.values(selectedTickets).map((st) => ({
-            ticketId: st.ticketId,
-            ticketName: st.ticketName,
-            ticketPrice: st.ticketPrice,
-            quantity: st.quantity,
-          })),
-          discountCode: discountCode.trim() || undefined,
-          discountAmount: appliedDiscount,
-          orderId,
-          faceOrder: true,
-        };
-        localStorage.setItem('checkout', JSON.stringify(checkoutData));
-        toast.success(t('faceOrderSuccess'));
-        setShowFaceModal(false);
-        navigate('/confirm-order');
-      } else {
-        throw new Error(res?.message || t('faceOrderFailed'));
+      if (!res || res.success === false) {
+        // Show backend error message if present
+        const msg = res?.message || t('faceOrderFailed');
+        setFaceError(msg);
+        toast.error(msg);
+        setFaceLoading(false);
+        return;
       }
+      let orderId = '';
+      if (
+        'orderId' in res.data &&
+        typeof (res.data as unknown as { orderId?: unknown }).orderId === 'string'
+      ) {
+        orderId = (res.data as { orderId?: unknown }).orderId as string;
+      } else if ('items' in res.data && Array.isArray((res.data as { items?: unknown }).items)) {
+        const itemsArr = (res.data as { items?: unknown }).items as unknown[];
+        const found = itemsArr.find(
+          (item) => typeof (item as { orderId?: unknown }).orderId === 'string'
+        );
+        if (found) orderId = (found as { orderId: string }).orderId;
+      }
+      if (!orderId) {
+        // Show backend message if present, else fallback
+        const msg = res?.message || t('faceOrderFailed');
+        setFaceError(msg);
+        toast.error(msg);
+        setFaceLoading(false);
+        return;
+      }
+      const checkoutData = {
+        eventId,
+        eventName: event?.eventName || '',
+        eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${
+          event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
+        }`,
+        customerId,
+        items: Object.values(selectedTickets).map((st) => ({
+          ticketId: st.ticketId,
+          ticketName: st.ticketName,
+          ticketPrice: st.ticketPrice,
+          quantity: st.quantity,
+        })),
+        discountCode: discountCode.trim() || undefined,
+        discountAmount: appliedDiscount,
+        orderId,
+        faceOrder: true,
+      };
+      localStorage.setItem('checkout', JSON.stringify(checkoutData));
+      toast.success(t('faceOrderSuccess'));
+      setShowFaceModal(false);
+      navigate('/confirm-order');
     } catch (e: unknown) {
       const msg =
         typeof e === 'object' && e && 'message' in e
@@ -479,10 +479,14 @@ const EventDetail = () => {
     try {
       if (isFollowingEvent) {
         await unfollowEvent(event.eventId);
-        setIsFollowingEvent(false);
+        // Sau khi unfollow, kiểm tra lại trạng thái từ backend
+        const res = await checkFollowEventByList(customerId, event.eventId);
+        setIsFollowingEvent(!!res);
       } else {
         await followEvent(event.eventId);
-        setIsFollowingEvent(true);
+        // Sau khi follow, kiểm tra lại trạng thái từ backend
+        const res = await checkFollowEventByList(customerId, event.eventId);
+        setIsFollowingEvent(!!res);
       }
     } finally {
       setLoadingFollowEvent(false);
@@ -635,7 +639,7 @@ const EventDetail = () => {
                       ${
                         isFollowingEvent
                           ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300'
-                          : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
+                          : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-600'
                       }
                     `}
                   >
