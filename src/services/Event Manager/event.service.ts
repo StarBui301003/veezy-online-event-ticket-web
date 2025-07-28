@@ -405,28 +405,30 @@ export async function createOrderWithFace({ eventId, customerId, items, faceImag
   const formData = new FormData();
   formData.append('EventId', eventId);
   formData.append('CustomerId', customerId);
-  // Gửi từng item theo dạng Items[0].TicketId, Items[0].Quantity
-  items.forEach((item, idx) => {
-    formData.append(`Items[${idx}].TicketId`, item.ticketId);
-    formData.append(`Items[${idx}].Quantity`, item.quantity.toString());
+  
+  // Fix: Send each item separately instead of JSON.stringify
+  items.forEach((item, index) => {
+    formData.append(`Items[${index}].ticketId`, item.ticketId);
+    formData.append(`Items[${index}].quantity`, item.quantity.toString());
   });
-  // Gửi thêm cả chuỗi JSON cho Items
-  formData.append('Items', JSON.stringify(items));
+  
   formData.append('FaceImage', faceImage);
+  
   if (faceEmbedding && Array.isArray(faceEmbedding)) {
-    faceEmbedding.forEach((num) => {
-      formData.append('FaceEmbedding', String(num));
+    faceEmbedding.forEach((num, index) => {
+      formData.append(`FaceEmbedding[${index}]`, String(num));
     });
   }
+  
   if (discountCode) {
     formData.append('DiscountCode', discountCode);
   }
+  
   const response = await instance.post('/api/Order/createOrderWithFace', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 }
-
 // === Payment APIs ===
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

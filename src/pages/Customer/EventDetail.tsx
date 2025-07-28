@@ -23,6 +23,7 @@ import {
   createOrderWithFace,
   getHomeEvents,
   getAIRecommendedEvents,
+  getOrderById,
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import CommentSection from '@/components/Customer/CommentSection';
@@ -367,7 +368,7 @@ const EventDetail = () => {
 
   const isEventEnded = event && new Date() > new Date(event.endAt);
 
-  // Thêm hàm xử lý order bằng khuôn mặt
+  // Thêm hàm xử lý order bằng khuôn mặt - ĐÃ SỬA
   const handleOrderWithFace = async ({ image }: { image: Blob }) => {
     console.log('[DEBUG] handleOrderWithFace called', { faceLoading });
     if (faceLoading) return; // Prevent duplicate submissions
@@ -410,6 +411,7 @@ const EventDetail = () => {
         faceImage: file,
         discountCode: discountCode.trim() || undefined,
       });
+      
       if (!res || res.success === false) {
         // Show backend error message if present
         const msg = res?.message || t('faceOrderFailed');
@@ -418,24 +420,27 @@ const EventDetail = () => {
         setFaceLoading(false);
         return;
       }
+
+      // FIX: Đơn giản hóa việc lấy orderId
       let orderId = '';
-      if (
-        'orderId' in res.data &&
-        typeof (res.data as unknown as { orderId?: unknown }).orderId === 'string'
-      ) {
-        orderId = (res.data as { orderId?: unknown }).orderId as string;
-      } else if ('items' in res.data && Array.isArray((res.data as { items?: unknown }).items)) {
-        const itemsArr = (res.data as { items?: unknown }).items as unknown[];
-        const found = itemsArr.find(
-          (item) => typeof (item as { orderId?: unknown }).orderId === 'string'
-        );
-        if (found) orderId = (found as { orderId: string }).orderId;
+      if (res.success && res.data && res.data.orderId) {
+        orderId = res.data.orderId;
       }
+
       if (!orderId) {
         // Show backend message if present, else fallback
         const msg = res?.message || t('faceOrderFailed');
         setFaceError(msg);
         toast.error(msg);
+        setFaceLoading(false);
+        return;
+      }
+      
+      // Lấy lại thông tin order thực tế từ server
+      const orderInfo = await getOrderById(orderId);
+      if (!orderInfo || !orderInfo.items || orderInfo.items.length === 0 || orderInfo.totalAmount === 0) {
+        setFaceError(t('faceOrderFailed'));
+        toast.error(t('faceOrderFailed'));
         setFaceLoading(false);
         return;
       }
@@ -446,16 +451,12 @@ const EventDetail = () => {
           event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
         }`,
         customerId,
-        items: Object.values(selectedTickets).map((st) => ({
-          ticketId: st.ticketId,
-          ticketName: st.ticketName,
-          ticketPrice: st.ticketPrice,
-          quantity: st.quantity,
-        })),
-        discountCode: discountCode.trim() || undefined,
-        discountAmount: appliedDiscount,
+        items: orderInfo.items, // Lưu items từ order thực tế
+        discountCode: orderInfo.discountCode,
+        discountAmount: orderInfo.discountAmount || 0,
         orderId,
         faceOrder: true,
+        totalAmount: orderInfo.totalAmount,
       };
       localStorage.setItem('checkout', JSON.stringify(checkoutData));
       toast.success(t('faceOrderSuccess'));
