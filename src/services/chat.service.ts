@@ -579,6 +579,63 @@ class ChatService {
       throw error;
     }
   }
+
+  // Get event manager chat rooms
+  async getEventManagerChatRooms(): Promise<ChatRoom[]> {
+    try {
+      const response = await axios.get('/api/ChatRoom/eventmanager/rooms');
+      const rooms = response.data;
+      
+      return rooms.map((room: any) => ({
+        roomId: room.roomId,
+        roomName: room.roomName,
+        participants: room.participants.map((p: any) => ({
+          userId: p.userId,
+          username: p.userName,
+          fullName: p.userName,
+          avatarUrl: p.avatarUrl,
+          isOnline: false, // Will be updated via SignalR
+          role: p.role as 'Customer' | 'EventManager' | 'Admin'
+        })),
+        lastMessage: undefined, // Will be loaded separately
+        unreadCount: 0, // Will be calculated
+        roomType: 'Support' as const,
+        createdAt: room.createdAt,
+        createdByUserId: room.participants[0]?.userId,
+        createdByUserName: room.participants[0]?.userName
+      }));
+    } catch (error) {
+      console.error('Error fetching event manager chat rooms:', error);
+      throw error;
+    }
+  }
+
+  // Get all event chat rooms (for specific event)
+  async getEventChatRooms(eventId: string): Promise<ChatRoom[]> {
+    try {
+      const response = await axios.get(`/api/ChatRoom/event/${eventId}`);
+      return response.data.map((room: any) => this.transformChatRoom(room));
+    } catch (error) {
+      console.error('Error fetching event chat rooms:', error);
+      throw error;
+    }
+  }
+
+  // Get event chat room (for specific event) - legacy method for backward compatibility
+  async getEventChatRoom(eventId: string): Promise<ChatRoom[]> {
+    return this.getEventChatRooms(eventId);
+  }
+
+  // Check access to event chat room
+  async checkEventChatRoomAccess(eventId: string): Promise<boolean> {
+    try {
+      const response = await axios.get(`/api/ChatRoom/event/${eventId}/access`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking event chat room access:', error);
+      return false;
+    }
+  }
 }
 
 export const chatService = new ChatService();
