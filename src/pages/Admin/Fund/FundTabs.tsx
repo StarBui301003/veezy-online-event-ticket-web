@@ -44,8 +44,9 @@ export function FundTabs() {
   useEffect(() => {
     fetchPendingCount();
 
-    // Connect to FundHub and listen for fund events
-    connectFundHub();
+    // Luôn truyền token khi connectFundHub
+    const token = localStorage.getItem('access_token');
+    connectFundHub('http://localhost:5005/fundHub', token);
 
     // Listen for fund-related events
     const reloadPendingCount = () => {
@@ -53,7 +54,6 @@ export function FundTabs() {
       fetchPendingCount();
     };
 
-    // Listen for withdrawal status changes
     onFund('OnWithdrawalRequested', reloadPendingCount);
     onFund('OnWithdrawalStatusChanged', reloadPendingCount);
     onFund('OnWithdrawalApproved', reloadPendingCount);

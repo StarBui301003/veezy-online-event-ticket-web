@@ -178,7 +178,7 @@ export const OverviewTabs = () => {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub();
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
     
     // Listen for real-time analytics updates
     onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {

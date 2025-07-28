@@ -66,6 +66,7 @@ export function EventManagerLayout() {
     tickets: false,
     analytics: false,
     content: false,
+    chatSupport: false,
   });
   const [loading, setLoading] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -324,7 +325,8 @@ export function EventManagerLayout() {
                     <NavItem to="news" icon={FaNewspaper} isActive={isActiveRoute('/event-manager/news')}>
                       {t('newsManagement')}
                     </NavItem>
-                    <NavItem to="chat" icon={FaComments} isActive={isActiveRoute('/event-manager/chat')}>
+                    {/* Direct Chat Support navigation */}
+                    <NavItem to="chat-support" icon={FaComments} isActive={isActiveRoute('/event-manager/chat-support')}>
                       {t('chatSupport')}
                     </NavItem>
                     <NavItem to="notification-manager" icon={FaBell} isActive={isActiveRoute('/event-manager/notification-manager')}>

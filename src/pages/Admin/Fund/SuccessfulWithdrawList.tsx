@@ -53,8 +53,9 @@ export const SuccessfulWithdrawList = () => {
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
 
-    // Connect to FundHub and listen for fund events
-    connectFundHub();
+    // Connect to FundHub và truyền token
+    const token = localStorage.getItem('access_token');
+    connectFundHub('http://localhost:5005/fundHub', token);
 
     // Listen for fund-related events that affect successful withdrawals
     const reloadData = () => {
