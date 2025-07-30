@@ -679,7 +679,17 @@
   "cancel": "Hủy",
   "paymentFailedTitle": "Thanh Toán Thất Bại",
   "paymentFailedMessage": "Có Lỗi Xảy Ra Trong Quá Trình Thanh Toán. Vui Lòng Thử Lại Hoặc Liên Hệ Hỗ Trợ.",
-  "backToHomepage": "Về Trang Chủ"
+  "backToHomepage": "Về Trang Chủ",
+  "loadingEventDetails": "Đang tải chi tiết sự kiện...",
+  "eventNotFound": "Không tìm thấy sự kiện",
+  "eventDetails": "Chi tiết sự kiện",
+  "eventDescription": "Mô tả sự kiện",
+  "tags": "Từ khóa",
+  "noTags": "Không có từ khóa",
+  "active": "Hoạt động",
+  "inactive": "Không hoạt động",
+  "createdBy": "Tạo bởi",
+  "approvedBy": "Duyệt bởi"
   ,
   "event_manager": {
     "create_collaborator": {

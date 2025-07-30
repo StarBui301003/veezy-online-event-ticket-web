@@ -316,7 +316,7 @@ export const LoginPage = () => {
 
   return (
     <>
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,_#091D4B_50%,_#0B1736_50%)] min-h-screen w-full" />
+      <div className="absolute inset-0 -z-10  bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] min-h-screen w-full" />
       {/* Back to Home button */}
       <div
         className="fixed top-6 left-6 z-20 flex items-center gap-2 bg-white text-[#091D4B] px-4 py-2 rounded-full shadow cursor-pointer hover:bg-blue-50 transition"

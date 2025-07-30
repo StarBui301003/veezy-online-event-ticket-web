@@ -89,7 +89,7 @@ export const DiscountCodeList = () => {
 
   const discountTypeMap: Record<number, string> = {
     0: 'Percentage',
-    1: 'Fixed',
+    1: 'Amount',
     3: 'Other',
   };
 

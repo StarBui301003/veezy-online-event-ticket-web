@@ -995,7 +995,16 @@
   "paymentFailedTitle": "Payment Failed",
   "paymentFailedMessage": "An Error Occurred During Payment. Please Try Again Or Contact Support.",
   "backToHomepage": "Back To Homepage",
-  "sentimentAnalysis": "Sentiment Analysis"
+  "sentimentAnalysis": "Sentiment Analysis",
+  "loadingEventDetails": "Loading event details...",
+  "eventNotFound": "Event not found",
+  "eventDescription": "Event Description",
+  "tags": "Tags",
+  "noTags": "No tags",
+  "active": "Active",
+  "inactive": "Inactive",
+  "createdBy": "Created By",
+  "approvedBy": "Approved By"
   ,
   "event_manager": {
     "create_collaborator": {
