@@ -719,8 +719,8 @@
   "email": "support@veezy.vn",
   "website": "www.veezy.vn",
   "address": "TP. Hồ Chí Minh, Việt Nam",
-      "createNewCollaborator": "Tạo Cộng Tác Viên Mới",
-      "createAccountAndAddToEvent": "Tạo Tài Khoản Và Thêm Vào Sự Kiện",
+  "createNewCollaborator": "Tạo Cộng Tác Viên Mới",
+  "createAccountAndAddToEvent": "Tạo Tài Khoản Và Thêm Vào Sự Kiện",
       "username": "Tên Đăng Nhập",
       "enterUsername": "Nhập Tên Đăng Nhập",
       "email": "Email",
@@ -754,5 +754,5 @@
       "errorPasswordLength": "Mật Khẩu Phải Tối Thiểu 6 Ký Tự",
       "errorFullNameRequired": "Họ Và Tên Bắt Buộc",
       "errorDateOfBirthRequired": "Ngày Sinh Bắt Buộc"
-  
+    
 }

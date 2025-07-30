@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 
-interface DatePickerProps {
+interface DatePickerRegisterProps {
   startYear?: number;
   endYear?: number;
   selectedDate?: Date;
@@ -20,7 +20,7 @@ interface DatePickerProps {
   className?: string;
 }
 
-export function DatePicker({
+export function DatePickerRegister({
   startYear = getYear(new Date()) - 100,
   endYear = getYear(new Date()) + 100,
   selectedDate,
@@ -28,7 +28,7 @@ export function DatePicker({
   disabled,
   error,
   className,
-}: DatePickerProps) {
+}: DatePickerRegisterProps) {
   const [date, setDate] = React.useState<Date>(selectedDate || new Date());
 
   // Update date when selectedDate prop changes
@@ -81,11 +81,11 @@ export function DatePicker({
           <Button
             variant={'outline'}
             className={cn(
-              'w-full justify-start text-left font-normal bg-white border hover:bg-gray-50 rounded',
-              !date && 'text-muted-foreground',
+              'w-full justify-start text-left font-normal rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 hover:bg-white/10',
+              !date && 'text-[#A1A1AA]',
               error
                 ? 'border-red-500 focus:border-red-500'
-                : 'border-gray-300 focus:border-gray-300',
+                : 'border-transparent focus:border-blue-400',
               className
             )}
           >
@@ -135,7 +135,7 @@ export function DatePicker({
           </div>
         </PopoverContent>
       </Popover>
-      {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
+      {error && <div className="text-red-400 text-xs mt-1 ml-2">{error}</div>}
     </div>
   );
 }

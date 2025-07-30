@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePickerRegister } from '@/components/ui/date-picker-register';
 import { useEffect, useState, useRef } from 'react';
 import { format } from 'date-fns-tz';
 import { Link, useNavigate } from 'react-router-dom';
@@ -233,7 +234,7 @@ export const Register = () => {
         />
       )}
 
-      <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
+      <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] w-full h-full" />
 
       <div className="text-white flex items-center justify-center relative min-h-screen py-8">
         <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl mx-4 p-6 md:p-8 lg:p-10 w-full max-w-2xl flex flex-col items-center justify-center">
@@ -447,13 +448,10 @@ export const Register = () => {
                 {/* Date of Birth */}
                 <div className="w-full">
                   <label className="block text-xs text-white/50 ml-1 mb-1">Date of Birth</label>
-                  <input
-                    name="dateofbirth"
-                    type="date"
-                    value={date ? format(date, 'yyyy-MM-dd') : ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setDate(val ? new Date(val) : undefined);
+                  <DatePickerRegister
+                    selectedDate={date}
+                    onDateChange={(selectedDate) => {
+                      setDate(selectedDate);
                       if (hasFieldError(fieldErrors, 'dateofbirth')) {
                         setFieldErrors((prev) => {
                           const newErrors = { ...prev };
@@ -462,20 +460,9 @@ export const Register = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                      hasFieldError(fieldErrors, 'dateofbirth')
-                        ? '!border-red-500 !text-white'
-                        : '!border-purple-700 !text-white'
-                    }`}
-                    style={{
-                      colorScheme: 'dark',
-                    }}
+                    error={getFieldError(fieldErrors, 'dateofbirth')}
+                    className="w-full"
                   />
-                  {getFieldError(fieldErrors, 'dateofbirth') && (
-                    <div className="text-red-400 text-xs mt-1 ml-2">
-                      {getFieldError(fieldErrors, 'dateofbirth')}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

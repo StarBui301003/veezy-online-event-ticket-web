@@ -98,7 +98,7 @@ export const VerifyRegister = () => {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200 to-blue-400">
+    <div className="fixed inset-0 flex items-center justify-center  bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f]">
       <form
         onSubmit={handleSubmit}
         className="bg-white rounded-2xl p-16 rounded-lg shadow-lg w-full max-w-3xl min-h-[400px] space-y-4 relative"

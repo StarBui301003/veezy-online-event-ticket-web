@@ -1016,8 +1016,19 @@
   "paymentFailedMessage": "An Error Occurred During Payment. Please Try Again Or Contact Support.",
   "backToHomepage": "Back To Homepage",
   "sentimentAnalysis": "Sentiment Analysis",
-  
-    "createNewCollaborator": "Create New Collaborator",
+  "loadingEventDetails": "Loading event details...",
+  "eventNotFound": "Event not found",
+  "eventDescription": "Event Description",
+  "tags": "Tags",
+  "noTags": "No tags",
+  "active": "Active",
+  "inactive": "Inactive",
+  "createdBy": "Created By",
+  "approvedBy": "Approved By"
+  ,
+  "event_manager": {
+    "create_collaborator": {
+      "createNewCollaborator": "Create New Collaborator",
       "createAccountAndAddToEvent": "Create Account And Add To Event",
       "username": "Username",
       "enterUsername": "Enter Username",
@@ -1052,6 +1063,6 @@
       "errorPasswordLength": "Password Must Be At Least 6 Characters",
       "errorFullNameRequired": "Full Name Is Required",
       "errorDateOfBirthRequired": "Date Of Birth Is Required"
-    
-  
+    }
+  }
 }

@@ -7,11 +7,24 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { Report } from '@/types/Admin/report';
+import type { ApprovedEvent } from '@/types/Admin/event';
+import type { News } from '@/types/Admin/news';
 import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
+import { getEventById } from '@/services/Admin/event.service';
+import { getNewsById } from '@/services/Admin/news.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from '@/components/ui/table';
 
 interface Props {
   report: Report;
@@ -35,9 +48,93 @@ const ReportDetailModal = ({
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [eventData, setEventData] = useState<ApprovedEvent | null>(null);
+  const [newsData, setNewsData] = useState<News | null>(null);
+  const [eventLoading, setEventLoading] = useState(false);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const { t } = useTranslation();
 
   const isPending = report.status === 0;
+  const isEventTarget = report.targetType === 1; // 1 = Event theo targetTypeMap
+  const isNewsTarget = report.targetType === 0; // 0 = News theo targetTypeMap
+
+  // Fetch event data if target type is event
+  useEffect(() => {
+    if (isEventTarget && report.targetId) {
+      setEventLoading(true);
+      getEventById(report.targetId)
+        .then((event) => {
+          setEventData(event);
+          // Fetch user names for createdBy and approvedBy
+          const userIds = new Set<string>();
+          if (event.createdBy) userIds.add(event.createdBy);
+          if (event.approvedBy) userIds.add(event.approvedBy);
+
+          const fetchUserNames = async () => {
+            const names: Record<string, string> = {};
+            await Promise.all(
+              Array.from(userIds).map(async (userId) => {
+                try {
+                  const user = await getUserByIdAPI(userId);
+                  names[userId] = user.fullName || user.username || userId;
+                } catch {
+                  names[userId] = userId;
+                }
+              })
+            );
+            setUserNames(names);
+          };
+
+          fetchUserNames();
+        })
+        .catch((error) => {
+          console.error('Failed to fetch event data:', error);
+          toast.error('Failed to load event details');
+        })
+        .finally(() => {
+          setEventLoading(false);
+        });
+    }
+  }, [isEventTarget, report.targetId]);
+
+  // Fetch news data if target type is news
+  useEffect(() => {
+    if (isNewsTarget && report.targetId) {
+      setNewsLoading(true);
+      getNewsById(report.targetId)
+        .then((news) => {
+          setNewsData(news);
+          // Fetch user names for authorId
+          const userIds = new Set<string>();
+          if (news.authorId) userIds.add(news.authorId);
+
+          const fetchUserNames = async () => {
+            const names: Record<string, string> = {};
+            await Promise.all(
+              Array.from(userIds).map(async (userId) => {
+                try {
+                  const user = await getUserByIdAPI(userId);
+                  names[userId] = user.fullName || user.username || userId;
+                } catch {
+                  names[userId] = userId;
+                }
+              })
+            );
+            setUserNames(names);
+          };
+
+          fetchUserNames();
+        })
+        .catch((error) => {
+          console.error('Failed to fetch news data:', error);
+          toast.error('Failed to load news details');
+        })
+        .finally(() => {
+          setNewsLoading(false);
+        });
+    }
+  }, [isNewsTarget, report.targetId]);
 
   const handleAction = async (type: 'approve' | 'reject') => {
     setActionType(type);
@@ -82,7 +179,7 @@ const ReportDetailModal = ({
 
   return (
     <Dialog open={!!report} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-7xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>{t('reportDetail')}</DialogTitle>
@@ -198,6 +295,260 @@ const ReportDetailModal = ({
               />
             </div>
           </div>
+
+          {/* Event Details Table - chỉ hiển thị khi target type là event */}
+          {isEventTarget && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
+                {t('eventDetails')}
+              </h3>
+              {eventLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-gray-600">{t('loadingEventDetails')}</p>
+                </div>
+              ) : eventData ? (
+                <div className="overflow-x-auto">
+                  <Table className="min-w-full border border-gray-200 rounded-lg">
+                    <TableHeader>
+                      <TableRow className="bg-blue-50 hover:bg-blue-50">
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          {t('eventName')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          {t('location')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('startDate')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('endDate')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('status')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('createdBy')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('approvedBy')}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="text-center py-3">
+                          <div className="font-medium text-gray-900">{eventData.eventName}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">{eventData.eventLocation || 'N/A'}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {eventData.startAt
+                              ? new Date(eventData.startAt).toLocaleDateString('vi-VN')
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {eventData.endAt
+                              ? new Date(eventData.endAt).toLocaleDateString('vi-VN')
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              eventData.isActive
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {eventData.isActive ? t('active') : t('inactive')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {eventData.createdBy
+                              ? userNames[eventData.createdBy] || eventData.createdBy
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {eventData.approvedBy
+                              ? userNames[eventData.approvedBy] || eventData.approvedBy
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+                  {/* Additional Event Information */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">
+                        {t('eventDescription')}
+                      </label>
+                      <div className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700 max-h-80 overflow-y-auto">
+                        {eventData.eventDescription || t('noDescription')}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">{t('tags')}</label>
+                      <div className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700">
+                        {eventData.tags && eventData.tags.length > 0
+                          ? eventData.tags.join(', ')
+                          : t('noTags')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>{t('eventNotFound')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* News Details Table - chỉ hiển thị khi target type là news */}
+          {isNewsTarget && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
+                {t('newsDetails')}
+              </h3>
+              {newsLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-gray-600">{t('loadingNewsDetails')}</p>
+                </div>
+              ) : newsData ? (
+                <div className="overflow-x-auto">
+                  <Table className="min-w-full border border-gray-200 rounded-lg">
+                    <TableHeader>
+                      <TableRow className="bg-blue-50 hover:bg-blue-50">
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '20%' }}
+                        >
+                          {t('newsTitle')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          {t('author')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '12%' }}
+                        >
+                          {t('status')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          {t('createdAt')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          {t('updatedAt')}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="text-center py-3">
+                          <div className="font-medium text-gray-900">{newsData.newsTitle}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {newsData.authorId
+                              ? userNames[newsData.authorId] || newsData.authorId
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              newsData.status
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {newsData.status ? t('active') : t('inactive')}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {newsData.createdAt
+                              ? new Date(newsData.createdAt).toLocaleDateString('vi-VN')
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {newsData.updatedAt
+                              ? new Date(newsData.updatedAt).toLocaleDateString('vi-VN')
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+                  {/* Additional News Information */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">
+                        {t('newsDescription')}
+                      </label>
+                      <div className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700 max-h-20 overflow-y-auto">
+                        {newsData.newsDescription || t('noDescription')}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">{t('newsContent')}</label>
+                      <div className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700 max-h-20 overflow-y-auto">
+                        {newsData.newsContent || t('noContent')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>{t('newsNotFound')}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="p-4">
           <DialogFooter>
@@ -237,16 +588,16 @@ const ReportDetailModal = ({
                 }}
               >
                 <label className="text-sm font-medium">
-                  {actionType === 'approve'
-                    ? t('enterApprovalReason')
-                    : t('enterRejectionReason')}
+                  {actionType === 'approve' ? t('enterApprovalReason') : t('enterRejectionReason')}
                 </label>
                 <input
                   className="border rounded px-2 py-1"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder={
-                    actionType === 'approve' ? t('approvalReasonPlaceholder') : t('rejectionReasonPlaceholder')
+                    actionType === 'approve'
+                      ? t('approvalReasonPlaceholder')
+                      : t('rejectionReasonPlaceholder')
                   }
                   required
                   disabled={loading}

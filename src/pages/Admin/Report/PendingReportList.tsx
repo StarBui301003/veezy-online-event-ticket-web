@@ -240,7 +240,9 @@ export const PendingReportList = ({
                 <TableHead style={{ width: '20%' }}>Reason</TableHead>
                 <TableHead style={{ width: '7%' }}>Status</TableHead>
                 <TableHead style={{ width: '5%' }}>Created At</TableHead>
-                <TableHead style={{ width: '7%' }}>Updated At</TableHead>
+                <TableHead className="text-center" style={{ width: '7%' }}>
+                  Updated At
+                </TableHead>
                 <TableHead style={{ width: '20%' }} className="text-center">
                   Action
                 </TableHead>
