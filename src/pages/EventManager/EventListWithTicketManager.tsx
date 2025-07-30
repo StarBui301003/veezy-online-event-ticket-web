@@ -4,6 +4,7 @@ import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { connectEventHub, onEvent, connectTicketHub, onTicket } from "@/services/signalr.service";
+import EventChatSupportButton from '@/components/EventManager/EventChatSupportButton';
 
 interface Event {
   eventId: string;
@@ -251,6 +252,16 @@ export default function EventListWithTicketManager() {
                   >
                     <FaPlus className="inline mr-2" /> {t("createNewTicket")}
                   </button>
+                  
+                  {/* Chat Support Button */}
+                  <div className="mt-2" onClick={e => e.stopPropagation()}>
+                    <EventChatSupportButton
+                      eventId={event.eventId}
+                      eventName={event.eventName}
+                      variant="inline"
+                      className="w-full"
+                    />
+                  </div>
                 </div>
               ))}
               {/* Phân trang sự kiện */}
