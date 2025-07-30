@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 interface UseChatOptions {
   autoConnect?: boolean;
   enableNotifications?: boolean;
+  onDebug?: (event: string, data?: any) => void;
 }
 
 interface UseChatReturn {
@@ -43,7 +44,7 @@ interface UseChatReturn {
 }
 
 export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => {
-  const { autoConnect = false, enableNotifications = true } = options;
+  const { autoConnect = false, enableNotifications = true, onDebug } = options;
   
   // State management
   const [isOpen, setIsOpen] = useState(false);
@@ -73,34 +74,41 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const chatHubUrl = `${config.gatewayUrl}/chatHub`;
+  // Use the correct ChatHub URL (port 5007) as backend is running there
+  const chatHubUrl = 'http://localhost:5007/chatHub';
   const signalRSetupRef = useRef(false);
 
   // Get current user info with fallback
   const getCurrentUser = useCallback(() => {
+    const debugUser = (account, source) => {
+      console.log('[CUSTOMER CHAT DEBUG][getCurrentUser] Source:', source, '| User:', account);
+      if (onDebug) onDebug('getCurrentUser', { source, account });
+    };
     // Try to get from localStorage first
     let accountStr = localStorage.getItem('account');
     let account = accountStr ? JSON.parse(accountStr) : null;
-    
+    if (account) debugUser(account, 'localStorage');
     // If not found, try session storage as backup
     if (!account) {
       accountStr = sessionStorage.getItem('account');
       account = accountStr ? JSON.parse(accountStr) : null;
+      if (account) debugUser(account, 'sessionStorage');
     }
     
     // If still not found, try to get from chat session storage
     if (!account) {
       accountStr = sessionStorage.getItem('chatUser');
       account = accountStr ? JSON.parse(accountStr) : null;
+      if (account) debugUser(account, 'chatUser');
     }
     
     // Save to session storage for future use if found
     if (account && !sessionStorage.getItem('chatUser')) {
       sessionStorage.setItem('chatUser', JSON.stringify(account));
     }
-    
+    if (!account) debugUser(null, 'not found');
     return account;
-  }, []);
+  }, [onDebug]);
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -222,10 +230,11 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     try {
       setIsLoading(true);
       console.log('[useCustomerChat] Initializing chat room with admin...');
+      if (onDebug) onDebug('initializeChatRoom:start');
       
       const room = await chatService.createChatWithAdmin();
       console.log('[useCustomerChat] Chat room created/retrieved:', room);
-      
+      if (onDebug) onDebug('initializeChatRoom:room', room);
       setChatRoom(room);
       
       // Add participants to OnlineStatusContext for status tracking
@@ -247,12 +256,12 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       
       // Load messages
       const roomMessages = await chatService.getRoomMessages(room.roomId, 1, 50);
-      console.log('[useCustomerChat] Messages loaded:', roomMessages);
-      
+      if (onDebug) onDebug('initializeChatRoom:messages', roomMessages);
       setMessages(roomMessages);
       setUnreadCount(room.unreadCount || 0);
       setCurrentPage(1);
       setHasMoreMessages(roomMessages.length >= 50);
+      if (onDebug) onDebug('initializeChatRoom:roomId', room.roomId);
       
       return room.roomId;
     } catch (error) {
@@ -262,46 +271,41 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [onDebug]);
 
   // Connect to SignalR
   const connectToSignalR = useCallback(async (roomId: string) => {
     try {
       setIsConnecting(true);
       const token = localStorage.getItem('access_token');
-      
-      console.log('[useCustomerChat] Connecting to SignalR...');
-      await connectChatHub(token || undefined);
-      
+      const url = chatHubUrl;
+      console.log('[useCustomerChat] Connecting to SignalR at:', url);
+      if (onDebug) onDebug('connectToSignalR:start', { url, roomId });
+      await connectChatHub(url, token || undefined);
       console.log('[useCustomerChat] Joining chat room:', roomId);
+      if (onDebug) onDebug('connectToSignalR:joinRoom', { roomId });
       await joinChatRoom(roomId);
-      
       setIsConnected(true);
       console.log('[useCustomerChat] SignalR connected and joined room');
+      if (onDebug) onDebug('connectToSignalR:connected', { roomId });
     } catch (error) {
       console.error('[useCustomerChat] SignalR connection error:', error);
+      if (onDebug) onDebug('connectToSignalR:error', error);
       toast.error('Kết nối realtime thất bại. Chat vẫn hoạt động nhưng không realtime.');
     } finally {
       setIsConnecting(false);
     }
-  }, [chatHubUrl]);
+  }, [chatHubUrl, onDebug]);
 
   // Setup SignalR event handlers
   const setupSignalREvents = useCallback(() => {
     if (signalRSetupRef.current) return;
+    if (onDebug) onDebug('setupSignalREvents:start');
     
-    // Listen for new messages
-    onChat('ReceiveMessage', (message: ChatMessage) => {
+    // Listen for new messages (support both 'ReceiveMessage' and 'receivemessage')
+    const handleReceiveMessage = (message: ChatMessage) => {
       console.log('[CUSTOMER CHAT SIGNALR] Received new message via SignalR:', message);
-      console.log('[CUSTOMER CHAT SIGNALR] Message detailed structure:', {
-        messageId: message.messageId,
-        senderId: message.senderId,
-        senderName: message.senderName,
-        content: message.content,
-        timestamp: message.timestamp,
-        roomId: message.roomId,
-        allProperties: Object.keys(message)
-      });
+      if (onDebug) onDebug('ReceiveMessage', message);
       
       const currentUser = getCurrentUser();
       console.log('[CUSTOMER CHAT SIGNALR] Current user for comparison:', {
@@ -310,7 +314,17 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
         username: currentUser?.username,
         fullName: currentUser?.fullName
       });
+      if (onDebug) onDebug('ReceiveMessage:currentUser', currentUser);
       
+      // If any critical field is missing, reload all messages for the room
+      if (!message.senderName || !message.messageId || !message.content || !message.timestamp || !message.senderId || !message.roomId) {
+        if (chatRoom?.roomId) {
+          chatService.getRoomMessages(chatRoom.roomId, 1, 50).then(roomMessages => {
+            setMessages(roomMessages);
+          });
+        }
+        return;
+      }
       setMessages(prev => {
         // Prevent duplicate messages
         const exists = prev.some(m => m.messageId === message.messageId);
@@ -321,18 +335,17 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
         console.log('[CUSTOMER CHAT SIGNALR] Adding new message to list');
         return [...prev, message];
       });
-      
       // Show notification
       showNotification(message);
-      
       // Increase unread count if chat is minimized or closed
       if (isMinimized || !isOpen) {
         setUnreadCount(prev => prev + 1);
       }
-      
       // Auto-scroll to bottom
       scrollToBottom();
-    });
+    };
+    onChat('ReceiveMessage', handleReceiveMessage);
+    onChat('receivemessage', handleReceiveMessage);
 
     // Listen for message deleted
     onChat('MessageDeleted', ({ messageId }: { messageId: string }) => {
@@ -394,7 +407,8 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
 
     signalRSetupRef.current = true;
     console.log('[useCustomerChat] SignalR event handlers set up');
-  }, [isMinimized, isOpen, scrollToBottom, getCurrentUser, showNotification]);
+    if (onDebug) onDebug('setupSignalREvents:done');
+  }, [isMinimized, isOpen, scrollToBottom, getCurrentUser, showNotification, onDebug]);
 
   // Open chat
   const openChat = useCallback(async () => {

@@ -47,24 +47,20 @@ const NewsAll: React.FC = () => {
     connectNewsHub('http://localhost:5004/newsHub');
     
     // Listen for real-time news updates
-    onNews('NewsCreated', (data: any) => {
-      console.log('📰 News created:', data);
+    onNews('NewsCreated', () => {
       fetchNews(1); // Refresh to first page when new news is created
       setPage(1);
     });
     
-    onNews('NewsUpdated', (data: any) => {
-      console.log('📰 News updated:', data);
+    onNews('NewsUpdated', () => {
       fetchNews(page);
     });
     
-    onNews('NewsApproved', (data: any) => {
-      console.log('📰 News approved:', data);
+    onNews('NewsApproved', () => {
       fetchNews(page);
     });
     
-    onNews('NewsDeleted', (data: any) => {
-      console.log('📰 News deleted:', data);
+    onNews('NewsDeleted', () => {
       fetchNews(page);
     });
 

@@ -713,10 +713,11 @@ const ProfileCustomer = () => {
                   if (typeof e === 'object' && e && 'response' in e && typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === 'string') {
                     const m = (e as { response: { data: { message: string } } }).response.data.message;
                     if (
-                      m.includes('already been registered') ||
+                      m.includes('This face is already registered to another account') ||
                       m.includes('Liveness check failed') ||
-                      m.includes('No face could be detected') ||
-                      m.includes('Multiple faces detected')
+                      m.includes('No face detected in photo') ||
+                      m.includes('Multiple faces detected') ||
+                      m.includes('Fake detected. Please use live photo')
                     ) {
                       msg = m;
                     }

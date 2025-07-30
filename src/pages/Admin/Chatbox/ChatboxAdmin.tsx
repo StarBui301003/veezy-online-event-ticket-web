@@ -33,6 +33,7 @@ import {
   disconnectChatHub,
   joinChatRoom,
   leaveChatRoom,
+  connections
 } from '@/services/signalr.service';
 import {
   chatService,
@@ -44,21 +45,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 
-export const ChatboxAdmin = () => {
-  // States
-  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-  const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+const ChatboxAdmin = () => {
+  // State for room mode (ai/human) and permission to switch
+  const [roomMode, setRoomMode] = useState<'ai' | 'human'>('ai');
+  const [canSwitchMode, setCanSwitchMode] = useState(false);
+// ...existing code...
+// States
+const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
+const [messages, setMessages] = useState<ChatMessage[]>([]);
+const [newMessage, setNewMessage] = useState('');
+const [searchQuery, setSearchQuery] = useState('');
+const [loading, setLoading] = useState(true);
+const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
+const [isConnected, setIsConnected] = useState(false);
 
-  // Reply and Edit states
-  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+// Reply and Edit states
+const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+const [editingContent, setEditingContent] = useState('');
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -88,6 +93,41 @@ export const ChatboxAdmin = () => {
   };
 
   const currentUser = getCurrentUser();
+
+  // Listen for mode changes from SignalR
+  useEffect(() => {
+    const handleModeChanged = (payload: any) => {
+      if (payload && payload.roomId && payload.mode) {
+        // Update mode for active room if it matches
+        if (activeRoom?.roomId === payload.roomId) {
+          setRoomMode(payload.mode);
+        }
+        // Update mode for the room in chatRooms list
+        setChatRooms((prevRooms) =>
+          prevRooms.map((room) =>
+            room.roomId === payload.roomId
+              ? { ...room, mode: payload.mode }
+              : room
+          )
+        );
+      }
+    };
+    onChat('OnModeChanged', handleModeChanged);
+    return () => {
+      // TODO: offChat('OnModeChanged', handleModeChanged) if offChat is implemented
+    };
+  }, [activeRoom?.roomId]);
+
+  // Sync initial mode from activeRoom
+  useEffect(() => {
+    console.log('[ModeDebug] activeRoom:', activeRoom);
+    if (activeRoom && activeRoom.mode) {
+      console.log('[ModeDebug] Setting roomMode from activeRoom.mode:', activeRoom.mode);
+      setRoomMode(activeRoom.mode);
+    }
+    // Admin can always switch mode
+    setCanSwitchMode(!!activeRoom);
+  }, [activeRoom]);
 
   // Scroll to bottom of messages
   const scrollToBottom = (force: boolean = false) => {
@@ -355,20 +395,33 @@ export const ChatboxAdmin = () => {
       }
 
       const rooms = await chatService.getAdminChatRooms();
-      // Validate and sanitize room data
+      console.log('[ModeDebug] Raw rooms from backend:', rooms);
+      // Validate and sanitize room data, and ensure mode is always normalized
       const validatedRooms = rooms
         .filter((room) => room && room.roomId)
-        .map((room) => ({
-          ...room,
-          roomName: room.roomName || 'Unnamed Room',
-          createdByUserName: room.createdByUserName || 'Unknown User',
-          participants: (room.participants || []).map((p) => ({
-            ...p,
-            fullName: p?.fullName || 'Unknown User',
-          })),
-          lastMessage: room.lastMessage || null,
-          unreadCount: room.unreadCount || 0,
-        }));
+        .map((room) => {
+          // Support both string and numeric mode from backend
+          let normalizedMode: 'ai' | 'human' = 'ai';
+          if (typeof room.mode === 'string') {
+            normalizedMode = room.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+          } else if (typeof room.mode === 'number') {
+            normalizedMode = room.mode === 1 ? 'human' : 'ai';
+          }
+          console.log(`[ModeDebug] Room ${room.roomId} mode from backend:`, room.mode, '=> normalized:', normalizedMode);
+          return {
+            ...room,
+            roomName: room.roomName || 'Unnamed Room',
+            createdByUserName: room.createdByUserName || 'Unknown User',
+            participants: (room.participants || []).map((p) => ({
+              ...p,
+              fullName: p?.fullName || 'Unknown User',
+            })),
+            lastMessage: room.lastMessage || null,
+            unreadCount: room.unreadCount || 0,
+            mode: normalizedMode,
+          };
+        });
+      console.log('[ModeDebug] Validated rooms after normalization:', validatedRooms);
       setChatRooms(validatedRooms);
 
       // Join all chat rooms via SignalR to receive real-time messages
@@ -483,8 +536,16 @@ export const ChatboxAdmin = () => {
   // Select a chat room
   const selectRoom = async (room: ChatRoom) => {
     try {
-      setActiveRoom(room);
-      activeRoomRef.current = room; // Update ref for SignalR handlers
+      // Always normalize mode when selecting room
+      let normalizedMode: 'ai' | 'human' = 'ai';
+      if (typeof room.mode === 'string') {
+        normalizedMode = room.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+      } else if (typeof room.mode === 'number') {
+        normalizedMode = room.mode === 1 ? 'human' : 'ai';
+      }
+      const normalizedRoom = { ...room, mode: normalizedMode };
+      setActiveRoom(normalizedRoom);
+      activeRoomRef.current = normalizedRoom; // Update ref for SignalR handlers
 
       // Note: We don't need to join/leave rooms since admin joins all rooms on load
       console.log(`Selected room: ${room.roomId} (already joined via SignalR)`);
@@ -872,6 +933,50 @@ export const ChatboxAdmin = () => {
                               • Last seen {formatTime(activeRoom.participants[0].lastSeen)}
                             </span>
                           )}
+                        {/* Hiển thị trạng thái AI/human */}
+                        <span className={`text-xs px-2 py-1 rounded ${roomMode === 'ai' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{roomMode === 'ai' ? 'AI' : 'Human Support'}
+                          <span style={{fontSize:10,marginLeft:4,color:'#888'}}>({roomMode})</span>
+                        </span>
+                        {/* Mode switch button for admin */}
+                        {canSwitchMode && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-2 text-xs"
+                            onClick={async () => {
+                              if (!activeRoom?.roomId) {
+                                toast.error('No active room ID');
+                                return;
+                              }
+                              const nextMode = roomMode === 'ai' ? 'Human' : 'AI';
+                              try {
+                                // Sử dụng chatService để chuyển mode
+                                const data = await chatService.switchRoomMode(activeRoom.roomId, nextMode);
+                                if (data && data.mode) {
+                                  setRoomMode(data.mode.toLowerCase() === 'human' ? 'human' : 'ai');
+                                } else {
+                                  setRoomMode(nextMode.toLowerCase() === 'human' ? 'human' : 'ai');
+                                }
+                                toast.success(
+                                  nextMode === 'Human'
+                                    ? 'Switched to human support'
+                                    : 'Switched to AI support'
+                                );
+                              } catch (err: any) {
+                                console.error('[ModeSwitch] Error switching mode:', err);
+                                toast.error(
+                                  (err && err.message)
+                                    ? err.message
+                                    : (nextMode === 'Human'
+                                        ? 'Failed to switch to human support'
+                                        : 'Failed to switch to AI support')
+                                );
+                              }
+                            }}
+                          >
+                            {roomMode === 'ai' ? 'Switch to Human Support' : 'Switch to AI Support'}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1189,3 +1294,5 @@ export const ChatboxAdmin = () => {
     </div>
   );
 };
+
+export default ChatboxAdmin;

@@ -568,10 +568,11 @@ export default function ProfileEventManager() {
                   if ((e as any)?.response?.data?.message) {
                     const m = (e as any).response.data.message;
                     if (
-                      m.includes('already been registered') ||
+                     m.includes('This face is already registered to another account') ||
                       m.includes('Liveness check failed') ||
-                      m.includes('No face could be detected') ||
-                      m.includes('Multiple faces detected')
+                      m.includes('No face detected in photo') ||
+                      m.includes('Multiple faces detected') ||
+                      m.includes('Fake detected. Please use live photo')
                     ) {
                       msg = m;
                     }

@@ -286,7 +286,7 @@ const EventDetail = () => {
   };
 
   const handleCreateOrder = async () => {
-    console.log('[DEBUG] handleCreateOrder called');
+    // ...removed log...
     if (!eventId || Object.keys(selectedTickets).length === 0) {
       toast.warn(t('pleaseSelectAtLeastOneTicket'));
       return;
@@ -370,7 +370,7 @@ const EventDetail = () => {
 
   // Thêm hàm xử lý order bằng khuôn mặt - ĐÃ SỬA
   const handleOrderWithFace = async ({ image }: { image: Blob }) => {
-    console.log('[DEBUG] handleOrderWithFace called', { faceLoading });
+    // ...removed log...
     if (faceLoading) return; // Prevent duplicate submissions
     setFaceLoading(true);
     setFaceError('');
@@ -423,8 +423,14 @@ const EventDetail = () => {
 
       // FIX: Đơn giản hóa việc lấy orderId
       let orderId = '';
-      if (res.success && res.data && res.data.orderId) {
-        orderId = res.data.orderId;
+      if (
+        res.success &&
+        res.data &&
+        typeof res.data === 'object' &&
+        'orderId' in res.data &&
+        typeof (res.data as any).orderId === 'string'
+      ) {
+        orderId = (res.data as any).orderId;
       }
 
       if (!orderId) {

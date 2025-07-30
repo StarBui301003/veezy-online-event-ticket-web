@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HubConnectionBuilder, HubConnection, LogLevel } from '@microsoft/signalr';
 
-let connections: Record<string, HubConnection | null> = {
+export let connections: Record<string, HubConnection | null> = {
   notification: null,
   event: null,
   ticket: null,
@@ -30,8 +30,13 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
   return connection.start();
 }
 
+
 export function onHubEvent(hubType: keyof typeof connections, event: string, callback: (...args: any[]) => void) {
   connections[hubType]?.on(event, callback);
+}
+
+export function offHubEvent(hubType: keyof typeof connections, event: string, callback: (...args: any[]) => void) {
+  connections[hubType]?.off(event, callback);
 }
 
 export function disconnectHub(hubType: keyof typeof connections) {
@@ -92,6 +97,7 @@ export const disconnectCommentHub = () => disconnectHub('comment');
 
 export const connectAnalyticsHub = (url: string, token?: string) => connectHub('analytics', url, token);
 export const onAnalytics = (event: string, cb: (...args: any[]) => void) => onHubEvent('analytics', event, cb);
+export const offAnalytics = (event: string, cb: (...args: any[]) => void) => offHubEvent('analytics', event, cb);
 export const disconnectAnalyticsHub = () => {
   if (connections.analytics) {
     connections.analytics.stop();

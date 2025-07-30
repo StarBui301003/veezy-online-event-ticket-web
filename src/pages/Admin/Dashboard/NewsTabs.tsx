@@ -19,7 +19,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type {
   NewsApprovalTrendItem,
   NewsByEvent,
@@ -138,9 +138,9 @@ export default function NewsTabs() {
     }
     getNewAnalytics(params)
       .then((res: AdminNewsAnalyticsResponse) => {
-        setApprovalTrend(res.data.approvalMetrics.approvalTrend || []);
-        setNewsByEvent(res.data.newsByEvent || []);
-        setNewsByAuthor(res.data.newsByAuthor || []);
+        setApprovalTrend(Array.isArray(res.data?.approvalMetrics?.approvalTrend) ? res.data.approvalMetrics.approvalTrend : []);
+        setNewsByEvent(Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : []);
+        setNewsByAuthor(Array.isArray(res.data?.newsByAuthor) ? res.data.newsByAuthor : []);
       })
       .finally(() => setLoading(false));
   };
@@ -148,16 +148,40 @@ export default function NewsTabs() {
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
     connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    
-    // Listen for real-time news analytics updates
-    onAnalytics('OnNewsAnalytics', (data: any) => {
-      console.log('📰 Received real-time news analytics:', data);
-      reloadData();
-    });
+
+    // Handler reference for cleanup
+    const handler = (data: any) => {
+      if (document.visibilityState !== 'visible') return;
+      // Defensive: always ensure arrays
+      const safeApprovalTrend = Array.isArray(data.approvalTrend) ? data.approvalTrend : [];
+      const safeNewsByEvent = Array.isArray(data.newsByEvent) ? data.newsByEvent : [];
+      const safeNewsByAuthor = Array.isArray(data.newsByAuthor) ? data.newsByAuthor : [];
+      // Only update if data is actually different
+      let changed = false;
+      if (JSON.stringify(safeApprovalTrend) !== JSON.stringify(approvalTrend)) {
+        setApprovalTrend(safeApprovalTrend);
+        changed = true;
+      }
+      if (JSON.stringify(safeNewsByEvent) !== JSON.stringify(newsByEvent)) {
+        setNewsByEvent(safeNewsByEvent);
+        changed = true;
+      }
+      if (JSON.stringify(safeNewsByAuthor) !== JSON.stringify(newsByAuthor)) {
+        setNewsByAuthor(safeNewsByAuthor);
+        changed = true;
+      }
+      // If nothing changed, do nothing (keeps initial data)
+    };
+    onAnalytics('OnNewsAnalytics', handler);
 
     // Initial data load
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Cleanup to avoid duplicate listeners
+    return () => {
+      offAnalytics('OnNewsAnalytics', handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -206,7 +230,7 @@ export default function NewsTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
             </div>
-          ) : approvalTrend.length === 1 ? (
+          ) : Array.isArray(approvalTrend) && approvalTrend.length === 1 ? (
             <div className="flex flex-row items-center justify-center h-[260px] gap-6">
               {/* Chart bên trái */}
               <RadialBarChart

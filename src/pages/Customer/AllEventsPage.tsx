@@ -43,22 +43,22 @@ const AllEventsPage = () => {
     
     // Listen for real-time event updates
     onEvent('EventCreated', (data: any) => {
-      console.log('🎉 Event created:', data);
+      // ...removed log...
       reloadEvents();
     });
     
     onEvent('EventUpdated', (data: any) => {
-      console.log('🎉 Event updated:', data);
+      // ...removed log...
       reloadEvents();
     });
     
     onEvent('EventApproved', (data: any) => {
-      console.log('🎉 Event approved:', data);
+      // ...removed log...
       reloadEvents();
     });
     
     onEvent('EventCancelled', (data: any) => {
-      console.log('🎉 Event cancelled:', data);
+      // ...removed log...
       reloadEvents();
     });
 

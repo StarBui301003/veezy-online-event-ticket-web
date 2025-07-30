@@ -1,7 +1,97 @@
+
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from './axios.customize';
 import { isCurrentUserAdmin } from '@/utils/admin-utils';
+
+// Types
+export interface ChatUser {
+  userId: string;
+  username: string;
+  fullName: string;
+  avatar?: string;
+  isOnline: boolean;
+  lastSeen?: string;
+  role: 'Customer' | 'EventManager' | 'Admin';
+}
+
+export interface ChatMessage {
+  messageId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  createdAt: string; // Backend field name
+  isRead: boolean;
+  messageType: 'Text' | 'Image' | 'File';
+  attachmentUrl?: string;
+  roomId?: string; // Add roomId for SignalR messages
+  isDeleted?: boolean; // For soft delete
+  isEdited?: boolean; // For edited messages
+  replyToMessageId?: string; // For reply functionality
+  replyToMessage?: ChatMessage; // The message being replied to
+}
+
+export interface ChatRoom {
+  roomId: string;
+  roomName: string;
+  participants: ChatUser[];
+  lastMessage?: ChatMessage;
+  unreadCount: number;
+  roomType: 'Direct' | 'Group' | 'Support';
+  createdAt: string;
+  createdByUserId?: string;
+  createdByUserName?: string;
+  mode?: 'ai' | 'human'; // Add mode for AI/Human support
+}
+
+// Backend DTO interface for mapping
+interface ChatRoomResponseDto {
+  id: string;
+  name: string;
+  participants: ChatParticipantDto[];
+  lastMessage?: ChatMessage;
+  unreadCount: number;
+  type: 'Direct' | 'Group' | 'Support';
+  createdAt: string;
+  createdByUserId: string;
+  createdByUserName: string;
+  mode?: string; // Add mode from backend
+}
+
+interface ChatParticipantDto {
+  userId: string;
+  userName: string;
+  avatarUrl?: string;
+  joinedAt: string;
+  isOnline: boolean;
+  role: string;
+}
+
+export interface CreateMessageRequest {
+  roomId: string;
+  content: string;
+  type?: number; // Backend expects 'Type' as integer (0 = Text, 1 = Image, 2 = File)
+  messageType?: 'Text' | 'Image' | 'File'; // Frontend convenience field
+  attachmentUrl?: string;
+  mentionedUserIds?: string[];
+  attachments?: any[];
+  replyToMessageId?: string;
+}
+
+export interface CreateRoomRequest {
+  roomName: string;
+  roomType: 'Direct' | 'Group' | 'Support';
+  participantIds: string[];
+}
+
+// API Service
+// Chỉ giữ lại 1 class ChatService duy nhất bên dưới (dòng 191 trở đi)
+
+// ...existing code...
+
+// XÓA đoạn duplicate phía trên, chỉ giữ lại class ChatService từ dòng 191 trở đi
 
 // Types
 export interface ChatUser {
@@ -84,6 +174,19 @@ export interface CreateRoomRequest {
 
 // API Service
 class ChatService {
+  // Chuyển mode phòng chat (AI/Human)
+  async switchRoomMode(roomId: string, mode: 'AI' | 'Human'): Promise<any> {
+    try {
+      const response = await axios.put(`/api/ChatRoom/${roomId}/mode`, JSON.stringify(mode), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return response.data;
+    } catch (error: any) {
+      // Ưu tiên trả về message rõ ràng nếu có
+      const msg = error?.response?.data?.message || error?.message || 'Failed to switch mode';
+      throw new Error(msg);
+    }
+  }
   // Sử dụng Gateway thay vì gọi trực tiếp tới ChatService
   // Chỉ SignalR mới gọi trực tiếp tới service (port 5007)
 
@@ -105,7 +208,8 @@ class ChatService {
       roomType: dto.type,
       createdAt: dto.createdAt,
       createdByUserId: dto.createdByUserId,
-      createdByUserName: dto.createdByUserName
+      createdByUserName: dto.createdByUserName,
+      mode: dto.mode ? (dto.mode.toLowerCase() === 'human' ? 'human' : 'ai') : 'ai',
     };
   }
 
@@ -637,6 +741,7 @@ class ChatService {
     }
   }
 }
+
 
 export const chatService = new ChatService();
 export default chatService;

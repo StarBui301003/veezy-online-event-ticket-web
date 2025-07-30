@@ -35,7 +35,7 @@ const PaymentSuccessPage = () => {
     
     // Listen for ticket generation
     onTicket('TicketGenerated', (data: any) => {
-      console.log('🎫 Ticket generated:', data);
+      // ...removed log...
       if (data.orderId === checkout?.orderId) {
         // Update checkout data with ticket info
         setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
@@ -49,7 +49,7 @@ const PaymentSuccessPage = () => {
     const data = localStorage.getItem('checkout');
     if (data) {
       const parsedData = JSON.parse(data);
-      console.log('Checkout data from localStorage:', parsedData); // Debug log
+      // ...removed log...
       setCheckout(parsedData);
     }
   }, []);
@@ -58,7 +58,7 @@ const PaymentSuccessPage = () => {
   const total = checkout?.totalAmount || 
     checkout?.items?.reduce((sum, item) => sum + (item.ticketPrice || 0) * (item.quantity || 0), 0) || 0;
 
-  console.log('Final total:', total, 'from totalAmount:', checkout?.totalAmount); // Debug log
+  // ...removed log...
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-green-50 p-8 text-center">
