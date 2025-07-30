@@ -1,4 +1,3 @@
-
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
@@ -27,33 +26,35 @@ import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
-  // Helper: get userId from localStorage
-  const getUserId = () => {
-    const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-    if (!accStr) return null;
-    try {
-      const acc = JSON.parse(accStr);
-      return acc.userId || acc.accountId || null;
-    } catch {
-      return null;
-    }
-  };
+import { searchEvents } from '@/services/search.service';
 
-  // Helper: update language in user config
-  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
-    i18n.changeLanguage(lang);
-    const userId = getUserId();
-    if (!userId) return;
-    try {
-      const res = await getUserConfig(userId);
-      if (res?.data) {
-        const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
-        await updateUserConfig(userId, newConfig);
-      }
-    } catch {
-      // ignore error
+// Helper: get userId from localStorage
+const getUserId = () => {
+  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+  if (!accStr) return null;
+  try {
+    const acc = JSON.parse(accStr);
+    return acc.userId || acc.accountId || null;
+  } catch {
+    return null;
+  }
+};
+
+// Helper: update language in user config
+const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+  i18n.changeLanguage(lang);
+  const userId = getUserId();
+  if (!userId) return;
+  try {
+    const res = await getUserConfig(userId);
+    if (res?.data) {
+      const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
+      await updateUserConfig(userId, newConfig);
     }
-  };
+  } catch {
+    // ignore error
+  }
+};
 
 export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -69,6 +70,50 @@ export const Header = () => {
   const userId = accountObj?.userId || accountObj?.accountId;
   const { unreadCount } = useRealtimeNotifications();
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    imageUrl: string;
+    date: string;
+  }>>([]);
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = await searchEvents(searchTerm);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    }
+  };
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setSearchResults([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
@@ -149,31 +194,59 @@ export const Header = () => {
             <img className="sm:h-10 sm:w-[115px] w-[92px] h-[32px]" src={LOGO} alt="Logo" />
           </Link>
           {/* Navigation */}
-          <div className="sm:flex sm:gap-x-12 hidden">
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('home')}
+          <div className="sm:flex sm:gap-x-8 hidden items-center">
+            <Link to="/" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('Home')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('category')}
+            <Link to="/events" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('Event')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('shows')}
+            <Link to="/news" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('News')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('about')}
-            </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('contact')}
+            <Link to="/terms-of-use" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+              {t('Terms of Use')}
             </Link>
           </div>
           {/* desktop search bar */}
-          <div className="flex w-full max-w-sm items-center min-w-70 border bg-white rounded-[46px] ml-16">
+          <div className="search-container flex w-full max-w-sm items-center min-w-70 border bg-white rounded-[46px] ml-16 relative">
             <CiSearch className="size-5 text-neutral-60 ml-[17px]" strokeWidth={1.2} />
             <Input
               type="text"
               placeholder={t('search_placeholder')}
               className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-neutral-40 shadow-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                {searchResults.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/event/${item.id}`}
+                    className="block p-3 hover:bg-gray-100 border-b border-gray-100"
+                    onClick={() => setSearchResults([])}
+                  >
+                    <div className="flex items-center">
+                      {item.imageUrl && (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          className="w-12 h-12 object-cover rounded mr-3"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(item.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mr-14 flex items-center gap-4 relative">
@@ -316,7 +389,7 @@ export const Header = () => {
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
-                    onViewAll={() => { setNotifDropdown(false); navigate('/all-notifications'); }}
+                    onViewAll={() => { setNotifDropdown(false); navigate('/notifications'); }}
                     t={t}
                     onRedirect={(url) => { navigate(url); setNotifDropdown(false); }}
                   />

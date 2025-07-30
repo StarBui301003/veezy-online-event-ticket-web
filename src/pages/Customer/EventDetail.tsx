@@ -280,7 +280,9 @@ const EventDetail = () => {
   const calculateTotalAmount = () => {
     return Object.values(selectedTickets).reduce((total, item) => {
       const price =
-        typeof item.ticketPrice === 'number' ? item.ticketPrice : Number(item.ticketPrice) || 0;
+        typeof item.ticketPrice === 'number'
+          ? item.ticketPrice
+          : Number(item.ticketPrice) || 0;
       return total + price * item.quantity;
     }, 0);
   };
@@ -338,12 +340,17 @@ const EventDetail = () => {
       setAppliedDiscount(0);
       return;
     }
+    
     setValidatingDiscount(true);
     setDiscountValidation(null);
     setAppliedDiscount(0);
+    
     try {
-      const orderAmount = calculateTotalAmount();
+      // FIX: Use the subtotal (before any discount) as orderAmount for validation
+      const orderAmount = calculateTotalAmount(); // This is the subtotal before discount
+      
       const res = await validateDiscountCode(String(eventId), discountCode.trim(), orderAmount);
+      
       if (res && res.flag && res.data) {
         setDiscountValidation({
           success: true,
@@ -924,27 +931,55 @@ const EventDetail = () => {
                     </motion.div>
                   </div>
                   <div className="mb-4">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className="border border-purple-300 rounded px-3 py-2 text-sm w-56 max-w-xs text-black"
-                        placeholder={t('enterDiscountCode')}
-                        value={discountCode}
-                        onChange={(e) => {
-                          setDiscountCode(e.target.value);
-                          setDiscountValidation(null);
-                          setAppliedDiscount(0);
-                        }}
-                        disabled={validatingDiscount}
-                      />
+                    <div className="flex gap-2 mb-1">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          className={`w-full border rounded px-3 py-2 text-sm ${
+                            discountValidation
+                              ? discountValidation.success
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-red-500 bg-red-50 text-red-700'
+                              : 'border-purple-300 text-gray-900'
+                          } transition-colors`}
+                          placeholder={t('enterDiscountCode')}
+                          value={discountCode}
+                          onChange={(e) => {
+                            setDiscountCode(e.target.value);
+                            // Clear validation state when user starts typing
+                            if (discountValidation) {
+                              setDiscountValidation(null);
+                              setAppliedDiscount(0);
+                            }
+                          }}
+                          disabled={validatingDiscount}
+                        />
+                        {discountValidation && (
+                          <div
+                            className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                              discountValidation.success ? 'text-green-500' : 'text-red-500'
+                            }`}
+                          >
+                            {discountValidation.success ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : (
+                              <AlertCircle className="w-5 h-5" />
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="button"
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded disabled:opacity-60"
+                        className={`px-4 py-2 rounded font-medium transition-colors ${
+                          validatingDiscount || !discountCode.trim()
+                            ? 'bg-gray-300 cursor-not-allowed'
+                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                        }`}
                         onClick={handleValidateDiscount}
                         disabled={validatingDiscount || !discountCode.trim()}
                       >
                         {validatingDiscount ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin mx-2" />
                         ) : (
                           t('applyDiscount')
                         )}
@@ -952,14 +987,27 @@ const EventDetail = () => {
                     </div>
                     {discountValidation && (
                       <div
-                        className={`mt-2 text-sm ${
-                          discountValidation.success ? 'text-green-400' : 'text-red-400'
+                        className={`text-sm mt-1 px-2 py-1 rounded ${
+                          discountValidation.success
+                            ? 'text-green-700 bg-green-100'
+                            : 'text-red-700 bg-red-100'
                         }`}
                       >
-                        {discountValidation.message}
-                        {discountValidation.success && appliedDiscount > 0 && (
-                          <span> (-{appliedDiscount.toLocaleString('vi-VN')} VNĐ)</span>
-                        )}
+                        <div className="flex items-start">
+                          {discountValidation.success ? (
+                            <CheckCircle className="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" />
+                          )}
+                          <span>
+                            {discountValidation.message}
+                            {discountValidation.success && appliedDiscount > 0 && (
+                              <span className="font-semibold ml-1">
+                                (-{appliedDiscount.toLocaleString('vi-VN')} VNĐ)
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

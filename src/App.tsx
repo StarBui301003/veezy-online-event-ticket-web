@@ -44,6 +44,7 @@ import { CommentList } from './pages/Admin/Comment/CommentList';
 import { NewsListTabs } from './pages/Admin/News/NewListTabs';
 import UserListTabs from './pages/Admin/User/UserListTabs';
 import NewsDetail from './pages/Customer/NewsDetail';
+import TermsOfUse from './pages/Customer/TermsOfUse';
 // Import new dashboard pages
 import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
 import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
@@ -53,6 +54,7 @@ import ChatSupportManager from './pages/EventManager/ChatSupportManager';
 import { Users, Eye, ChartBar } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
+import AllNotificationsPage from './pages/EventManager/AllNotificationsPage';
 
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 import ReportCommentPage from './pages/Customer/ReportCommentPage';
@@ -206,10 +208,30 @@ function App() {
           element: <EventDetail />,
         },
         {
-          path: 'news/:newsId',
-          element: <NewsDetail />,
+          path: 'news',
+          children: [
+            {
+              index: true,
+              element: <NewsAll />,
+            },
+            {
+              path: 'all',
+              element: <NewsAll />,
+            },
+            {
+              path: ':newsId',
+              element: <NewsDetail />,
+            },
+          ],
         },
-
+        {
+          path: 'terms-of-use',
+          element: <TermsOfUse />,
+        },
+        {
+          path: 'report/comment/:commentId',
+          element: <ReportCommentPage />,
+        },
         {
           path: 'events',
           element: <AllEventsPage />,
@@ -254,6 +276,14 @@ function App() {
         {
           path: 'event-manager/:id',
           element: <EventManagerProfile />,
+        },
+        {
+          path: 'notifications',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <AllNotificationsPage />
+            </ProtectedRoute>
+          ),
         },
       ],
     },
@@ -610,6 +640,14 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <ChatSupportManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'notifications',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <AllNotificationsPage />
             </ProtectedRoute>
           ),
         },

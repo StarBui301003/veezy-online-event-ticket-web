@@ -317,6 +317,7 @@ interface OrderItemPayload {
 }
 
 export interface CreateOrderPayload {
+  orderAmount: number;
   eventId: string;
   customerId: string; // Assuming you get customerId from auth context or similar
   items: OrderItemPayload[];
@@ -373,9 +374,28 @@ export async function getOrders(pageNumber: number = 1, pageSize: number = 10): 
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   try {
-    const response = await instance.post("/api/Order", payload);
-    // Assuming the API returns the created order directly in response.data for a successful POST
-    // or in response.data.data if it follows the GET structure. Adjust as per actual API.
+    // Calculate the base order amount from items (before discount)
+    const baseOrderAmount = payload.items.reduce((sum, item) => {
+      const price = (item as any).pricePerTicket || (item as any).ticketPrice || (item as any).price || 0;
+      const quantity = item.quantity || 1;
+      return sum + (price * quantity);
+    }, 0);
+
+    // Ensure we have a valid order amount
+    if (baseOrderAmount <= 0) {
+      throw new Error('Tổng tiền đơn hàng phải lớn hơn 0');
+    }
+
+    // Create the final payload with the correct orderAmount (before discount)
+    const finalPayload = {
+      ...payload,
+      orderAmount: baseOrderAmount // Always use the calculated base amount (before discount)
+    };
+
+    console.log('Creating order with payload:', finalPayload); // Debug log
+
+    const response = await instance.post("/api/Order", finalPayload);
+    
     return response.data?.data || response.data;
   } catch (error) {
     console.error("Failed to create order", error);
@@ -744,14 +764,7 @@ export async function comparePerformance(currentPeriod: number, comparisonPeriod
   return response.data;
 }
 
-// Export Dashboard PDF
-export async function exportDashboardPDF(dashboardData: unknown) {
-  const response = await instance.post(`${ANALYTICS_PREFIX}/dashboard/export/pdf`, {
-    dashboardData,
-    exportFormat: "pdf"
-  }, { responseType: 'blob' });
-  return response.data;
-}
+
 
 // Export Analytics Excel
 export async function exportAnalyticsExcel(
@@ -775,9 +788,32 @@ export async function exportAnalyticsExcel(
 
 // Lấy sự kiện trang chủ (chỉ sự kiện active)
 export async function getHomeEvents() {
-  const response = await instance.get('/api/Event/home');
-  // Trả về mảng sự kiện, có thể là response.data.data hoặc response.data tuỳ backend
-  return Array.isArray(response.data?.data) ? response.data.data : response.data;
+  try {
+    console.log('Fetching home events...');
+    const response = await instance.get('/api/Event/home');
+    console.log('Home events API response:', response);
+    
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      console.log('Returning direct array from response.data');
+      return response.data;
+    } else if (Array.isArray(response.data?.data)) {
+      console.log('Returning array from response.data.data');
+      return response.data.data;
+    } else if (response.data?.items) {
+      console.log('Returning items from response.data.items');
+      return response.data.items;
+    } else if (response.data?.data?.items) {
+      console.log('Returning items from response.data.data.items');
+      return response.data.data.items;
+    }
+    
+    console.warn('Unexpected API response structure:', response.data);
+    return [];
+  } catch (error) {
+    console.error('Error fetching home events:', error);
+    return [];
+  }
 }
 
 // === AI Recommend Events ===

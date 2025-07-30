@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Ticket, Download, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getEventManagerDashboard, exportDashboardPDF, exportAnalyticsExcel } from '@/services/Event Manager/event.service';
+import { getEventManagerDashboard, exportAnalyticsExcel } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { Dialog } from '@/components/ui/dialog';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -114,16 +114,7 @@ export default function TicketSalesDashboard() {
         toast.error(t('ticketSalesDashboard.noDataToExport'));
         return;
       }
-      if (type === 'pdf') {
-        const blob = await exportDashboardPDF(dash.data);
-        const url = window.URL.createObjectURL(new Blob([blob]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'dashboard.pdf');
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode?.removeChild(link);
-      } else {
+      if (type === 'excel') {
         const blob = await exportAnalyticsExcel('dashboard', dash.data, filter, 0);
         let fileName = 'analytics.xlsx';
         if (blob && blob.type === 'text/csv') {
@@ -189,10 +180,6 @@ export default function TicketSalesDashboard() {
             <p className="text-lg text-gray-300">{t('ticketSalesDashboard.analyzingTicketPerformance')}</p>
           </div>
           <div className="flex gap-4">
-            <Button onClick={() => handleExport('pdf')} disabled={loading} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-6 py-3 rounded-xl">
-              <Download className="mr-2" size={20} />
-              {t('ticketSalesDashboard.exportPDF')}
-            </Button>
             <Button onClick={() => handleExport('excel')} disabled={loading} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl">
               <Download className="mr-2" size={20} />
               {t('ticketSalesDashboard.exportExcel')}

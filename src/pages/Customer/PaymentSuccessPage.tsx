@@ -9,6 +9,8 @@ interface CheckoutData {
   totalAmount?: number;
   orderId?: string;
   ticketGenerated?: boolean;
+  discountAmount?: number;
+  discountCode?: string;
 }
 
 const PaymentSuccessPage = () => {
@@ -54,11 +56,25 @@ const PaymentSuccessPage = () => {
     }
   }, []);
 
-  // Ưu tiên sử dụng totalAmount từ checkout data, nếu không có thì tính từ items
-  const total = checkout?.totalAmount || 
-    checkout?.items?.reduce((sum, item) => sum + (item.ticketPrice || 0) * (item.quantity || 0), 0) || 0;
+  // Calculate subtotal from items
+  const subtotal = checkout?.items?.reduce((sum, item) => {
+    return sum + (item.ticketPrice || 0) * (item.quantity || 1);
+  }, 0) || 0;
 
-  console.log('Final total:', total, 'from totalAmount:', checkout?.totalAmount); // Debug log
+  // Get discount amount from checkout or default to 0
+  const discountAmount = checkout?.discountAmount || 0;
+  
+  // Calculate final total (subtotal - discount)
+  const finalTotal = (checkout?.totalAmount !== undefined) 
+    ? checkout.totalAmount 
+    : Math.max(0, subtotal - discountAmount);
+
+  console.log('Payment details:', { 
+    subtotal, 
+    discountAmount, 
+    finalTotal, 
+    checkoutTotal: checkout?.totalAmount 
+  });
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-green-50 p-8 text-center">
@@ -78,40 +94,54 @@ const PaymentSuccessPage = () => {
       )}
       
       {checkout?.orderId && (
-        <div className="text-green-700 text-base mb-2">
+        <div className="text-green-700 text-base mb-6">
           {t('orderIdLabel')}: <span className="font-bold">{checkout.orderId}</span>
         </div>
       )}
       
-      {checkout?.items && checkout.items.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
-          <div className="font-semibold text-green-800 mb-2">{t('ticketDetail')}</div>
-          <ul className="text-left space-y-2">
-            {checkout.items.map((item, idx) => (
-              <li key={idx} className="flex justify-between text-green-900">
-                <span>
-                  {item.ticketName} <span className="text-green-600">x{item.quantity}</span>
-                </span>
-                <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
-              </li>
-            ))}
-          </ul>
-          <div className="border-t border-green-100 mt-4 pt-3 flex justify-between font-bold text-green-700">
-            <span>{t('totalLabel')}:</span>
-            <span className="text-lg">{total.toLocaleString('vi-VN')} VNĐ</span>
+      <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 w-full max-w-md">
+        {/* Display ticket details if available */}
+        {checkout?.items && checkout.items.length > 0 && (
+          <>
+            <div className="font-semibold text-green-800 mb-3">{t('ticketDetail')}</div>
+            <ul className="text-left space-y-2 mb-4">
+              {checkout.items.map((item, idx) => (
+                <li key={idx} className="flex justify-between text-green-900">
+                  <span>
+                    {item.ticketName} <span className="text-green-600">x{item.quantity}</span>
+                  </span>
+                  <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        
+        {/* Order summary */}
+        <div className="border-t border-gray-200 pt-3 space-y-2">
+          {/* Subtotal */}
+          <div className="flex justify-between text-gray-700">
+            <span>{t('subtotal')}:</span>
+            <span>{subtotal.toLocaleString('vi-VN')} VNĐ</span>
+          </div>
+          
+          {/* Discount */}
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-red-600">
+              <div>
+                {t('discount')}: {checkout?.discountCode && `(${checkout.discountCode})`}
+              </div>
+              <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
+            </div>
+          )}
+          
+          {/* Total */}
+          <div className="flex justify-between font-bold text-lg text-green-700 pt-2 border-t border-gray-200 mt-2">
+            <span>{t('finalTotal')}:</span>
+            <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
           </div>
         </div>
-      )}
-      
-      {/* Hiển thị total ngay cả khi không có items detail */}
-      {(!checkout?.items || checkout.items.length === 0) && checkout?.totalAmount && (
-        <div className="bg-white rounded-xl shadow-md border border-green-200 px-6 py-4 mb-6 max-w-md mx-auto w-full">
-          <div className="flex justify-between font-bold text-green-700 text-lg">
-            <span>{t('totalLabel')}:</span>
-            <span>{checkout.totalAmount.toLocaleString('vi-VN')} VNĐ</span>
-          </div>
-        </div>
-      )}
+      </div>
       
       <button
         onClick={() => window.location.href = '/'}

@@ -1,6 +1,6 @@
 export interface Attendance {
   attendanceId: string;
   eventName: string;
-  attendedAt: string;
+  checkedInAt: string;
   status: 'attended' | 'not_attended';
 } 

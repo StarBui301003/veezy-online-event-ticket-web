@@ -346,8 +346,10 @@ const ProfileCustomer = () => {
     return tickets.map((t, idx) => {
       const orderItem = selectedOrder.items.find((item: any) => item.ticketId === t.ticketId);
       return {
+        ...t,  // Spread all existing ticket properties
         ticketId: t.ticketId,
         ticketName: orderItem?.ticketName || '---',
+        qrCode: t.qrCode,  // Make sure qrCode is included from the original ticket
         qrCodeUrl: t.qrCodeUrl,
         createdAt: t.createdAt,
         status: t.used ? 'Đã sử dụng' : 'Chưa sử dụng',
@@ -368,8 +370,8 @@ const ProfileCustomer = () => {
                 className={`w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2
                   ${tab === t.key
                     ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
-                    : 'text-indigo-100 hover:bg-indigo-700/30'}
-                `}
+                    : 'text-indigo-100 hover:bg-indigo-700/30'
+                  }`}
                 onClick={() => {
                   setTab(t.key);
                   setSelectedOrder(null); // reset khi chuyển tab

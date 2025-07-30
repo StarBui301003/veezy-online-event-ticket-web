@@ -1,4 +1,3 @@
-
 import { ExternalLink, Check, Bell } from 'lucide-react';
 import { getNotificationIcon } from '../common/getNotificationIcon';
 import type { Notification } from '@/hooks/useNotifications';
@@ -20,13 +19,18 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const { 
     notifications, 
     unreadCount, 
-    markAllAsRead, 
+    markAllAsRead,
     onNotificationClick 
   } = useRealtimeNotifications();
 
   const handleMarkAllAsRead = async () => {
     if (userId) {
-      await markAllAsRead(userId);
+      try {
+        await markAllAsRead(userId);
+        // The NotificationContext will update the UI state
+      } catch (error) {
+        console.error('Failed to mark all as read:', error);
+      }
     }
   };
 

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Check, ArrowLeft, Loader2, AlertCircle, Mail, Star, Settings } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Loader2, Bell, BellOff } from 'lucide-react';
 import { getUserNotifications, markAllNotificationsRead } from '@/services/notification.service';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { connectNotificationHub, onNotification } from "@/services/signalr.service";
+import { format } from 'date-fns';
 
 interface Notification {
   notificationId: string;
@@ -19,182 +20,281 @@ interface Notification {
   readAtVietnam?: string;
 }
 
-
-
 export default function AllNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notifLoading, setNotifLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
-
-  // Lấy userId từ localStorage (giả định giống các nơi khác)
+  
+  const isEventManager = location.pathname.startsWith('/event-manager');
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  const userId = accountStr ? (() => { try { return JSON.parse(accountStr).userId; } catch { return null; } })() : null;
+  const userId = accountStr ? (() => { 
+    try { 
+      const account = JSON.parse(accountStr);
+      return account.userId || account.accountId; 
+    } catch { 
+      return null; 
+    } 
+  })() : null;
 
-  // Load notifications function
   const loadNotifications = async () => {
-    if (!userId) return;
-    setNotifLoading(true);
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
     try {
-      const res = await getUserNotifications(userId, 1, 1000);
-      const items = res.data?.data?.items || [];
-      setNotifications(items);
+      const res = await getUserNotifications(userId, 1, 100);
+      
+      if (res?.data?.success) {
+        const items = Array.isArray(res.data.data?.items) 
+          ? res.data.data.items 
+          : Array.isArray(res.data.data)
+            ? res.data.data
+            : [];
+        
+        const processedItems = items.map(item => ({
+          notificationId: item.notificationId || item.id || '',
+          userId: item.userId || '',
+          notificationTitle: item.notificationTitle || item.title || 'No Title',
+          notificationMessage: item.notificationMessage || item.message || 'No message',
+          notificationType: item.notificationType || 0,
+          isRead: item.isRead || false,
+          redirectUrl: item.redirectUrl || '',
+          createdAt: item.createdAt || new Date().toISOString(),
+          createdAtVietnam: item.createdAtVietnam || new Date().toLocaleString('vi-VN')
+        }));
+        
+        const sortedItems = [...processedItems].sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
+        setNotifications(sortedItems);
+      } else {
+        console.error('Failed to load notifications:', res?.data?.message || 'No success response');
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      setNotifications([]);
     } finally {
-      setNotifLoading(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadNotifications();
-  }, [userId]);
-
-  // SignalR real-time updates
-  useEffect(() => {
-    if (!userId) return;
+  const handleMarkAllAsRead = async () => {
+    if (!userId || notifications.length === 0) return;
     
-    connectNotificationHub('http://localhost:5006/notificationHub');
-    
-    // Listen for new notifications
-    onNotification('NotificationCreated', () => {
-      loadNotifications();
-    });
-
-    onNotification('NotificationUpdated', () => {
-      loadNotifications();
-    });
-
-    onNotification('NotificationRead', () => {
-      loadNotifications();
-    });
-
-    onNotification('AllNotificationsRead', () => {
-      loadNotifications();
-    });
-  }, [userId]);
-
-  const handleReadAll = async () => {
-    if (userId) {
-      setMarkingRead(true);
-      await markAllNotificationsRead(userId);
-      const res = await getUserNotifications(userId, 1, 1000);
-      const items = res.data?.data?.items || [];
-      setNotifications(items.map(item => ({ ...item, isRead: true })));
+    setMarkingRead(true);
+    try {
+      const response = await markAllNotificationsRead(userId);
+      
+      if (response?.data?.success) {
+        setNotifications(prev => 
+          prev.map(n => ({
+            ...n, 
+            isRead: true,
+            readAt: new Date().toISOString(),
+            readAtVietnam: new Date().toLocaleString('vi-VN')
+          }))
+        );
+      } else {
+        console.error('Failed to mark all as read:', response?.data?.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    } finally {
       setMarkingRead(false);
     }
   };
 
-
-  const getNotificationIcon = (type: number) => {
-    switch (type) {
-      case 1: return <Star className="w-4 h-4 text-yellow-400" />;
-      case 2: return <Settings className="w-4 h-4 text-blue-400" />;
-      case 3: return <AlertCircle className="w-4 h-4 text-orange-400" />;
-      default: return <Mail className="w-4 h-4 text-purple-400" />;
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.redirectUrl) {
+      navigate(notification.redirectUrl);
     }
   };
 
+  const formatNotificationDate = (date: string) => {
+    return format(new Date(date), 'PPpp');
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadAndSubscribe = async () => {
+      await loadNotifications();
+      
+      // Connect to SignalR hub
+      connectNotificationHub();
+      
+      // Subscribe to notifications
+      onNotification('ReceiveNotification', (newNotification: Notification) => {
+        if (!isMounted) return;
+        
+        setNotifications(prev => [{
+          ...newNotification,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          createdAtVietnam: new Date().toLocaleString('vi-VN')
+        }, ...prev]);
+      });
+    };
+    
+    loadAndSubscribe().catch(console.error);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      // No need to stop the connection here as it's managed by the signalr service
+    };
+  }, [userId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  const unreadCount = notifications.filter(notification => !notification.isRead).length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Main content */}
-      <div className="max-w-4xl mx-auto p-6 pt-8">
-        {/* Action buttons below header */}
-        <div className="flex items-center mb-6 gap-4 mt-16">
-          <div className="flex-1">
-            <button
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20"
+    <div className={`min-h-screen ${isEventManager ? 'bg-gray-900 text-gray-100' : 'bg-gray-50'}`}>
+      <div className={`max-w-4xl mx-auto p-4 sm:p-6 ${isEventManager ? 'pt-20' : ''}`}>
+        {/* Header */}
+        <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
+          isEventManager ? 'bg-gray-800' : 'bg-white shadow-sm'
+        }`}>
+          <div className="flex items-center space-x-4">
+            <button 
               onClick={() => navigate(-1)}
+              className={`p-2 rounded-full ${
+                isEventManager 
+                  ? 'hover:bg-gray-700 text-gray-300' 
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}
             >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-sm font-medium">{t('Back')}</span>
+              <ArrowLeft className="w-5 h-5" />
             </button>
-          </div>
-          <button
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-lg hover:shadow-purple-500/25"
-            onClick={handleReadAll}
-            disabled={markingRead || notifications.length === 0 || notifications.every(n => n.isRead)}
-          >
-            {markingRead ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Check className="w-4 h-4" />
+            <h1 className="text-xl font-semibold">
+              {t('notifications')}
+            </h1>
+            {unreadCount > 0 && (
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                isEventManager 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {unreadCount} {t('new')}
+              </span>
             )}
-            {t('Mark All As Read')}
-          </button>
+          </div>
+          
+          {notifications.length > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={markingRead || unreadCount === 0}
+              className={`px-3 py-1.5 rounded-md text-sm flex items-center ${
+                isEventManager
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-700'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300'
+              }`}
+            >
+              {markingRead ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              {t('markAllAsRead')}
+            </button>
+          )}
         </div>
-        <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-          {/* Notifications list */}
-          <div className="max-h-[600px] overflow-y-auto">
-            {notifLoading && notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-400 mb-4" />
-                <p className="text-white/60">{t('Loading Notifications')}</p>
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <p className="text-white/60 text-lg">{t('No Notifications')}</p>
-                <p className="text-white/40 text-sm mt-2">{t('New Notifications Will Appear Here')}</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {notifications.map((notification, index) => (
-                  <div
-                    key={notification.notificationId}
-                    className={`group relative px-6 py-4 transition-all duration-200 cursor-pointer hover:bg-white/5 ${
-                      !notification.isRead ? 'bg-gradient-to-r from-purple-600/10 to-transparent' : ''
-                    }`}
-                    onClick={() => {
-                      if (notification.redirectUrl) window.location.href = notification.redirectUrl;
-                    }}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    {/* Unread indicator */}
-                    {!notification.isRead && (
-                      <div className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    )}
 
-                    <div className="flex items-start gap-4">
-                      {/* Icon */}
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.notificationType)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className={`font-semibold mb-1 line-clamp-2 ${
-                          !notification.isRead ? 'text-white' : 'text-white/80'
-                        }`}>
-                          {notification.notificationTitle}
-                        </h3>
-                        <p className={`text-sm mb-2 line-clamp-2 ${
-                          !notification.isRead ? 'text-white/80' : 'text-white/60'
-                        }`}>
-                          {notification.notificationMessage}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-white/50">
-                          <span>{notification.createdAtVietnam || notification.createdAt}</span>
-                          {!notification.isRead && (
-                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full">
-                              {t('New')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Arrow indicator */}
-                      {notification.redirectUrl && (
-                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                            <ArrowLeft className="w-3 h-3 text-white/60 rotate-180" />
-                          </div>
-                        </div>
-                      )}
+        {/* Notifications List */}
+        <div className={`rounded-xl overflow-hidden ${
+          isEventManager 
+            ? 'bg-gray-800 border border-gray-700' 
+            : 'bg-white shadow-sm border border-gray-200'
+        }`}>
+          {notifications.length === 0 ? (
+            <div className="text-center py-16 px-4">
+              <BellOff className={`w-14 h-14 mx-auto mb-4 ${
+                isEventManager ? 'text-gray-600' : 'text-gray-300'
+              }`} />
+              <h3 className={`text-lg font-medium mb-1 ${
+                isEventManager ? 'text-gray-200' : 'text-gray-900'
+              }`}>
+                {t('noNotifications')}
+              </h3>
+              <p className={isEventManager ? 'text-gray-400' : 'text-gray-500'}>
+                {t('noNotificationsDescription')}
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              {notifications.map((notification) => (
+                <li 
+                  key={notification.notificationId}
+                  className={`p-4 cursor-pointer transition-colors ${
+                    isEventManager 
+                      ? 'hover:bg-gray-750' 
+                      : 'hover:bg-gray-50'
+                  } ${
+                    !notification.isRead 
+                      ? isEventManager 
+                        ? 'bg-gray-750' 
+                        : 'bg-blue-50'
+                      : ''
+                  }`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className="flex items-start">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                      notification.isRead 
+                        ? isEventManager 
+                          ? 'bg-gray-700' 
+                          : 'bg-gray-100'
+                        : 'bg-blue-100 dark:bg-blue-900/50'
+                    }`}>
+                      <Bell className={`h-5 w-5 ${
+                        notification.isRead 
+                          ? isEventManager 
+                            ? 'text-gray-400' 
+                            : 'text-gray-400'
+                          : 'text-blue-600 dark:text-blue-400'
+                      }`} />
                     </div>
+                    <div className="ml-3 flex-1">
+                      <p className={`text-sm ${
+                        !notification.isRead 
+                          ? 'font-semibold text-gray-900 dark:text-white' 
+                          : 'text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {notification.notificationTitle}
+                      </p>
+                      <p className={`mt-1 text-sm ${
+                        isEventManager ? 'text-gray-300' : 'text-gray-600'
+                      }`}>
+                        {notification.notificationMessage}
+                      </p>
+                      <div className={`mt-1 text-xs ${
+                        isEventManager ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {formatNotificationDate(notification.createdAt)}
+                      </div>
+                    </div>
+                    {!notification.isRead && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
