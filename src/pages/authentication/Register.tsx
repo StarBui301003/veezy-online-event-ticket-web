@@ -262,7 +262,7 @@ export const Register = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)]
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)]
                        py-2 px-3 w-full ${
                          hasFieldError(fieldErrors, 'username') ? 'border-red-500' : ''
                        }`}
@@ -290,7 +290,7 @@ export const Register = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full ${
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full placeholder:text-white/50 ${
                       hasFieldError(fieldErrors, 'email') ? 'border-red-500' : ''
                     }`}
                   />
@@ -322,7 +322,7 @@ export const Register = () => {
                           });
                         }
                       }}
-                      className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
+                      className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
                         hasFieldError(fieldErrors, 'password') ? 'border-red-500' : ''
                       }`}
                     />
@@ -360,7 +360,7 @@ export const Register = () => {
                           });
                         }
                       }}
-                      className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
+                      className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 pr-10 w-full ${
                         hasFieldError(fieldErrors, 'confirmpassword') ? 'border-red-500' : ''
                       }`}
                     />
@@ -407,7 +407,7 @@ export const Register = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full ${
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full ${
                       hasFieldError(fieldErrors, 'fullname') ? 'border-red-500' : ''
                     }`}
                   />
@@ -434,7 +434,7 @@ export const Register = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full ${
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 w-full ${
                       hasFieldError(fieldErrors, 'phone') ? 'border-red-500' : ''
                     }`}
                   />

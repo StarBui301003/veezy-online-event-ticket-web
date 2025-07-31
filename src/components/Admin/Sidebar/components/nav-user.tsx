@@ -44,8 +44,7 @@ export function NavUser() {
       if (!accStr) return;
       try {
         const acc = JSON.parse(accStr);
-        const avatarUrl = acc.avatar || acc.avatarUrl || '';
-        console.log('NavUser - Avatar URL:', avatarUrl); // Debug log
+        const avatarUrl = acc.avatar || '';
         setUser({
           name: acc.fullName || acc.username || '',
           username: acc.username || '',

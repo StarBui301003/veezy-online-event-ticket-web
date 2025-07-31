@@ -5,7 +5,8 @@ import { PendingWithdrawList } from './PendingWithdrawList';
 import { ProcessingWithdrawList } from './ProcessingWithdrawList';
 import { SuccessfulWithdrawList } from './SuccessfulWithdrawList';
 import { AllWithdrawRequests } from './AllWithdrawRequests';
-import { FaClock, FaCog, FaCheckCircle, FaList } from 'react-icons/fa';
+import { RejectedWithdrawList } from './RejectedWithdrawList';
+import { FaClock, FaCog, FaCheckCircle, FaList, FaTimesCircle } from 'react-icons/fa';
 import { getPendingWithdrawals } from '@/services/Admin/fund.service';
 import { connectFundHub, onFund } from '@/services/signalr.service';
 
@@ -14,6 +15,7 @@ const TABS = [
   { label: 'Pending', value: 'pending', icon: <FaClock className="w-4 h-4" /> },
   { label: 'Processing', value: 'processing', icon: <FaCog className="w-4 h-4" /> },
   { label: 'Successful', value: 'successful', icon: <FaCheckCircle className="w-4 h-4" /> },
+  { label: 'Rejected', value: 'rejected', icon: <FaTimesCircle className="w-4 h-4" /> },
 ];
 
 export function FundTabs() {
@@ -42,8 +44,6 @@ export function FundTabs() {
   };
 
   useEffect(() => {
-    fetchPendingCount();
-
     // Luôn truyền token khi connectFundHub
     const token = localStorage.getItem('access_token');
     connectFundHub('http://localhost:5005/fundHub', token);
@@ -66,6 +66,10 @@ export function FundTabs() {
     return () => {
       // Note: We don't disconnect the hub here as it might be used by other components
     };
+  }, []);
+
+  useEffect(() => {
+    fetchPendingCount();
   }, []);
 
   // Khi đổi tab, update query param
@@ -100,7 +104,7 @@ export function FundTabs() {
   return (
     <div className="p-6">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full p-0">
-        <TabsList className="flex w-[500px] items-center rounded-[99px] py-4 gap-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] border">
+        <TabsList className="flex w-[600px] items-center rounded-[99px] py-4 gap-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] border">
           {TABS.map((t) => {
             let activeClass = '';
             let hoverClass = '';
@@ -116,6 +120,10 @@ export function FundTabs() {
               activeClass =
                 '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 shadow-lg shadow-green-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center border border-green-600';
               hoverClass = 'hover:bg-green-100 text-green-700 border border-transparent';
+            } else if (t.value === 'rejected') {
+              activeClass =
+                '!text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 shadow-lg shadow-red-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center border border-red-600';
+              hoverClass = 'hover:bg-red-100 text-red-700 border border-transparent';
             } else if (t.value === 'all') {
               activeClass =
                 '!text-white bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-gray-300 shadow-lg shadow-gray-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center border border-gray-600';
@@ -158,6 +166,11 @@ export function FundTabs() {
           </TabsContent>
           <TabsContent value="successful">
             {loadedTabs.includes('successful') && <SuccessfulWithdrawList />}
+          </TabsContent>
+          <TabsContent value="rejected">
+            {loadedTabs.includes('rejected') && (
+              <RejectedWithdrawList onPendingChanged={handlePendingChanged} />
+            )}
           </TabsContent>
         </div>
       </Tabs>

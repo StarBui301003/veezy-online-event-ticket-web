@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
-import { getCollaboratorUsers } from '@/services/Admin/user.service';
+import { getCollaboratorsWithFilter, UserFilterParams } from '@/services/Admin/user.service';
 import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
-import type { User } from '@/types/auth';
-import type { PaginatedUserResponse } from '@/types/Admin/user';
+import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
   TableHeader,
@@ -26,83 +26,131 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { MdOutlineEdit } from 'react-icons/md';
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
 import EditUserModal from '@/pages/Admin/User/EditUserModal';
+import { useTranslation } from 'react-i18next';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CollaboratorList = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const { t } = useTranslation();
+  const [users, setUsers] = useState<UserAccountResponse[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [userPage, setUserPage] = useState(1);
-  const [userPageSize, setUserPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [viewUser, setViewUser] = useState<User | null>(null);
-  const [editUser, setEditUser] = useState<User | null>(null);
+  const [viewUser, setViewUser] = useState<UserAccountResponse | null>(null);
+  const [editUser, setEditUser] = useState<UserAccountResponse | null>(null);
 
-  const [userSearch, setUserSearch] = useState('');
+  // Search state
+  const [collaboratorSearch, setCollaboratorSearch] = useState('');
 
-  const reloadUsers = () => {
+  // Filter state
+  const [filters, setFilters] = useState<UserFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortDescending: true,
+  });
+
+  // Sort state
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  const fetchUsers = async () => {
     setLoading(true);
-    getCollaboratorUsers(userPage, userPageSize)
-      .then((res: PaginatedUserResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setUsers(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-        } else {
-          setUsers([]);
-          setTotalItems(0);
-          setTotalPages(1);
-        }
-      })
-      .finally(() => setLoading(false));
+    try {
+      const params: Omit<UserFilterParams, 'role'> = {
+        searchTerm: collaboratorSearch || filters.searchTerm,
+        isActive: filters.isActive,
+        isOnline: filters.isOnline,
+        isEmailVerified: filters.isEmailVerified,
+        page: filters.page,
+        pageSize: filters.pageSize,
+        sortBy: sortBy || filters.sortBy,
+        sortDescending: sortDescending,
+      };
+
+      const response = await getCollaboratorsWithFilter(params);
+      if (response.flag) {
+        setUsers(response.data.items);
+        setTotalItems(response.data.totalItems);
+        setTotalPages(response.data.totalPages);
+        // Don't update filters here to avoid infinite loop
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
     connectIdentityHub('http://localhost:5001/hubs/notifications');
-    
+
     // Listen for real-time collaborator updates
     onIdentity('CollaboratorCreated', (data: any) => {
       console.log('👤 Collaborator created:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('CollaboratorUpdated', (data: any) => {
-      console.log('👤 Collaborator updated:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('CollaboratorDeleted', (data: any) => {
-      console.log('👤 Collaborator deleted:', data);
-      reloadUsers();
+      fetchUsers();
     });
 
-    // Initial data load
-    reloadUsers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    onIdentity('CollaboratorUpdated', (data: any) => {
+      console.log('👤 Collaborator updated:', data);
+      fetchUsers();
+    });
+
+    onIdentity('CollaboratorDeleted', (data: any) => {
+      console.log('👤 Collaborator deleted:', data);
+      fetchUsers();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    reloadUsers();
+    fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userPage, userPageSize]);
+  }, [filters, collaboratorSearch, sortBy, sortDescending]);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      !userSearch ||
-      user.fullName.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
-      user.email.toLowerCase().includes(userSearch.trim().toLowerCase()) ||
-      (user.phone && user.phone.toLowerCase().includes(userSearch.trim().toLowerCase()))
-  );
-  const pagedUsers = filteredUsers;
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(column);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-blue-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-blue-600" />
+    );
+  };
+
+  const updateFilter = (key: keyof UserFilterParams, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      page: 1, // Reset to first page when filters change
+    }));
+  };
 
   return (
     <div className="p-3">
@@ -114,12 +162,14 @@ export const CollaboratorList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            reloadUsers();
+            fetchUsers();
           }}
           title="Edit Collaborator"
+          disableEmail
         />
       )}
-      <div className="overflow-x-auto">
+
+      <div className="overflow-x-auto mb-10">
         <div className="p-4 bg-white rounded-xl shadow">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             <div className="flex-1 flex items-center gap-2">
@@ -154,14 +204,14 @@ export const CollaboratorList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by full name, email, or phone..."
-                  value={userSearch}
+                  placeholder={t('search')}
+                  value={collaboratorSearch}
                   onChange={(e) => {
-                    setUserSearch(e.target.value);
-                    setUserPage(1);
+                    setCollaboratorSearch(e.target.value);
+                    setFilters((prev) => ({ ...prev, page: 1 }));
                   }}
                 />
-                {userSearch && (
+                {collaboratorSearch && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -176,8 +226,8 @@ export const CollaboratorList = () => {
                       justifyContent: 'center',
                     }}
                     onClick={() => {
-                      setUserSearch('');
-                      setUserPage(1);
+                      setCollaboratorSearch('');
+                      setFilters((prev) => ({ ...prev, page: 1 }));
                     }}
                     tabIndex={-1}
                     type="button"
@@ -188,83 +238,316 @@ export const CollaboratorList = () => {
                 )}
               </div>
             </div>
+            <div className="flex justify-end gap-2">
+              {/* Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1 text-sm font-semibold">Status</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Active</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Inactive</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1 text-sm font-semibold">Online Status</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Online</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Offline</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1 text-sm font-semibold">Email Verified</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Verified</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Not Verified</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-          <Table className="min-w-full">
+
+          <Table>
             <TableHeader>
-              <TableRow className="bg-purple-300/70 hover:bg-purple-300/70">
-                <TableHead className="pl-4" style={{ width: '10%' }}>
-                  #
+              <TableRow className="bg-blue-200 hover:bg-blue-200">
+                <TableHead className="text-center" style={{ width: '5%' }}>
+                  <div
+                    className="flex items-center justify-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('')}
+                  >
+                    #{getSortIcon('')}
+                  </div>
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>Full Name</TableHead>
-                <TableHead style={{ width: '15%' }}>Phone</TableHead>
-                <TableHead style={{ width: '25%' }}>Email</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('fullname')}
+                  >
+                    Name
+                    {getSortIcon('fullname')}
+                  </div>
+                </TableHead>
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('username')}
+                  >
+                    Username
+                    {getSortIcon('username')}
+                  </div>
+                </TableHead>
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('email')}
+                  >
+                    Email
+                    {getSortIcon('email')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Status
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Online
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Email Verified
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center justify-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('createdat')}
+                  >
+                    Created At
+                    {getSortIcon('createdat')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No users found.
-                  </TableCell>
-                </TableRow>
+              {users.length === 0 ? (
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={9} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
-                pagedUsers.map((user, idx) => (
-                  <TableRow key={user.userId} className="hover:bg-purple-100">
-                    <TableCell className="pl-4">
-                      {(userPage - 1) * userPageSize + idx + 1}
-                    </TableCell>
-                    <TableCell>{user.fullName}</TableCell>
-                    <TableCell>
-                      {user.phone || <span className="text-gray-400">N/A</span>}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell className="text-center flex items-center justify-center gap-2">
-                      <button
-                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                        title="Edit"
-                        onClick={() => setEditUser(user)}
-                      >
-                        <MdOutlineEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
-                        onClick={() => setViewUser(user)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {users.map((user, idx) => (
+                    <TableRow key={user.userId} className="hover:bg-blue-50">
+                      <TableCell className="text-center">
+                        {(filters.page - 1) * filters.pageSize + idx + 1}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.fullName}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.username}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.email}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isActive
+                              ? 'border-green-500 bg-green-500 text-white hover:bg-green-600 hover:text-white hover:border-green-500'
+                              : 'border-red-500 bg-red-500 text-white hover:bg-red-600 hover:text-white hover:border-red-500'
+                          }`}
+                        >
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isOnline
+                              ? 'border-blue-500 bg-blue-500 text-white hover:bg-blue-600 hover:text-white hover:border-blue-500'
+                              : 'border-gray-500 bg-gray-500 text-white hover:bg-gray-600 hover:text-white hover:border-gray-500'
+                          }`}
+                        >
+                          {user.isOnline ? 'Online' : 'Offline'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isEmailVerified
+                              ? 'border-green-500 bg-green-500 text-white hover:bg-green-600 hover:text-white hover:border-green-500'
+                              : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-600 hover:text-white hover:border-yellow-500'
+                          }`}
+                        >
+                          {user.isEmailVerified ? 'Verified' : 'Not Verified'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-center flex items-center justify-center gap-2">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setViewUser(user)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
+                          title="Edit"
+                          onClick={() => setEditUser(user)}
+                        >
+                          <MdOutlineEdit className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from({ length: Math.max(0, 5 - users.length) }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={9} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setUserPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={userPage === 1}
-                              className={userPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => handlePageChange(Math.max(1, filters.page - 1))}
+                              aria-disabled={filters.page === 1}
+                              className={filters.page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
                             <PaginationItem key={i}>
                               <PaginationLink
-                                isActive={i === userPage}
-                                onClick={() => setUserPage(i)}
+                                isActive={i === filters.page}
+                                onClick={() => handlePageChange(i)}
                                 className={`transition-colors rounded 
                                   ${
-                                    i === userPage
-                                      ? 'bg-purple-500 text-white border hover:bg-purple-700 hover:text-white'
+                                    i === filters.page
+                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
                                       : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                   }
                                   px-2 py-1 mx-0.5`}
+                                style={{
+                                  minWidth: 32,
+                                  textAlign: 'center',
+                                  fontWeight: i === filters.page ? 700 : 400,
+                                  cursor: i === filters.page ? 'default' : 'pointer',
+                                }}
                               >
                                 {i}
                               </PaginationLink>
@@ -272,10 +555,12 @@ export const CollaboratorList = () => {
                           ))}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setUserPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={userPage === totalPages}
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, filters.page + 1))
+                              }
+                              aria-disabled={filters.page === totalPages}
                               className={
-                                userPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.page === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -286,46 +571,23 @@ export const CollaboratorList = () => {
                       <span className="text-sm text-gray-700">
                         {totalItems === 0
                           ? '0-0 of 0'
-                          : `${(userPage - 1) * userPageSize + 1}-${Math.min(
-                              userPage * userPageSize,
+                          : `${(filters.page - 1) * filters.pageSize + 1}-${Math.min(
+                              filters.page * filters.pageSize,
                               totalItems
                             )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {userPageSize}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => {
-                                setUserPageSize(size);
-                                setUserPage(1);
-                              }}
-                              className={size === userPageSize ? 'font-bold bg-primary/10' : ''}
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <select
+                        className="border rounded px-2 py-1 text-sm bg-white"
+                        value={filters.pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

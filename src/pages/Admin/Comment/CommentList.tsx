@@ -19,7 +19,6 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import { getCommentsByPaginate } from '@/services/Admin/comment.service';
-import { getEventById } from '@/services/Admin/event.service';
 import type { Comment, PaginatedCommentResponse } from '@/types/Admin/comment';
 import { FaEye } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
@@ -32,8 +31,7 @@ export const CommentList = () => {
   const [data, setData] = useState<PaginatedCommentResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [eventNames, setEventNames] = useState<Record<string, string>>({});
+  const [pageSize, setPageSize] = useState(5);
   const [viewComment, setViewComment] = useState<Comment | null>(null);
   const [showAnalyzeModal, setShowAnalyzeModal] = useState(false);
   const [search, setSearch] = useState('');
@@ -83,28 +81,6 @@ export const CommentList = () => {
       .finally(() => setTimeout(() => setLoading(false), 500));
   };
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      const eventIds = Array.from(
-        new Set((data?.items || []).map((c) => c.eventId).filter(Boolean))
-      );
-      const eventMap: Record<string, string> = {};
-
-      await Promise.all([
-        ...eventIds.map(async (id) => {
-          try {
-            const res = await getEventById(id);
-            eventMap[id] = res.eventName || id;
-          } catch {
-            eventMap[id] = id;
-          }
-        }),
-      ]);
-      setEventNames(eventMap);
-    };
-    if ((data?.items || []).length > 0) fetchEvents();
-  }, [data]);
-
   const pagedComments = data?.items || [];
   // Lọc theo commentId nếu có search
   const filteredComments = search
@@ -120,7 +96,7 @@ export const CommentList = () => {
       {viewComment && (
         <CommentDetailModal
           comment={viewComment}
-          eventName={eventNames[viewComment.eventId]}
+          eventName={viewComment.eventName}
           onClose={() => setViewComment(null)}
           onDelete={refreshComments}
         />
@@ -234,7 +210,7 @@ export const CommentList = () => {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="min-h-[400px]">
               {filteredComments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-4 text-gray-500">
@@ -242,39 +218,59 @@ export const CommentList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredComments.map((comment, idx) => (
-                  <TableRow key={comment.commentId} className="hover:bg-blue-50">
-                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
+                <>
+                  {filteredComments.map((comment, idx) => (
+                    <TableRow key={comment.commentId} className="hover:bg-blue-50">
+                      <TableCell className="text-center">
+                        {(page - 1) * pageSize + idx + 1}
+                      </TableCell>
 
-                    <TableCell className="text-center">
-                      {comment.fullName || 'Unknown User'}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {eventNames[comment.eventId] || comment.eventId || 'Unknown Event'}
-                    </TableCell>
-                    <TableCell className="text-left max-w-[200px] truncate" title={comment.content}>
-                      {comment.content.length > 50
-                        ? comment.content.slice(0, 50) + '...'
-                        : comment.content}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
-                    </TableCell>
-                    <TableCell className="text-center flex items-center justify-center gap-2">
-                      {/* Nút xem chi tiết */}
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title={t('view')}
-                        onClick={() => setViewComment(comment)}
+                      <TableCell className="text-center">
+                        {comment.fullName || 'Unknown User'}
+                      </TableCell>
+                      <TableCell className="text-left max-w-[200px]">
+                        <div className="truncate" title={comment.eventName || 'Unknown Event'}>
+                          {comment.eventName || 'Unknown Event'}
+                        </div>
+                      </TableCell>
+                      <TableCell
+                        className="text-left max-w-[200px] truncate"
+                        title={comment.content}
                       >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        {comment.content.length > 50
+                          ? comment.content.slice(0, 50) + '...'
+                          : comment.content}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
+                      </TableCell>
+                      <TableCell className="text-center flex items-center justify-center gap-2">
+                        {/* Nút xem chi tiết */}
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title={t('view')}
+                          onClick={() => setViewComment(comment)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(0, 5 - filteredComments.length),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={8} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>

@@ -12,8 +12,8 @@ export interface DiscountCodeResponse {
       maximum: number;
       maxUsage: number;
       usedCount: number;
-      expiredAt: string;  
-      createdAt: string;  
+      expiredAt: string;
+      createdAt: string;
       isExpired: boolean;
       isAvailable: boolean;
       remainingUsage: number;
@@ -32,19 +32,19 @@ export interface DiscountCodeCreateInput {
   eventId: string;
   code: string;
   discountType: number;
-  value: number;
-  minimum: number;
-  maximum: number;
+  value: number | null;
+  minimum: number | null;
+  maximum: number | null;
   maxUsage: number;
-  expiredAt: string; 
+  expiredAt: string;
 }
 
 export interface DiscountCodeUpdateInput {
   code: string;
   discountType: number;
-  value: number;
-  minimum: number;
-  maximum: number;
+  value: number | null;
+  minimum: number | null;
+  maximum: number | null;
   maxUsage: number;
   expiredAt: string;
 }

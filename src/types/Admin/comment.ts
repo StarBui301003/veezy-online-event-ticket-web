@@ -2,6 +2,7 @@
 export interface Comment {
   commentId: string; // Guid
   eventId: string;
+  eventName: string; // Added eventName property
   userId: string;
   content: string;
   createdAt: string; // ISO date

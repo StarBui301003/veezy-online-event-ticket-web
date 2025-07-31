@@ -19,16 +19,21 @@ export interface ApprovedEvent {
   endAt: string;
   tags: string[];
   categoryIds: string[];
+  categoryName: string[]; // Added category names
   contents: EventContent[];
   isApproved: EventApproveStatus;
   approvedBy: string;
+  approvedByName: string; // Added approved by name
   approvedAt: string;
   rejectionReason: string | null;
   isActive: boolean;
   isCancelled: boolean;
   createdBy: string;
+  createByName: string; // Added created by name
   createdAt: string;
   bankAccount: string;
+  bankAccountName: string; // Added bank account name
+  bankName: string; // Added bank name
   isWithdrawEnabled?: boolean;
   completedAt?: string;
   IsWithdrawalEnabled?: boolean; // Field từ API response

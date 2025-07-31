@@ -419,8 +419,8 @@ export const LoginPage = () => {
                       });
                     }
                   }}
-                  className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 ${
-                    hasFieldError(fieldErrors, 'username') ? 'border-red-500 border-2' : ''
+                  className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 placeholder:text-white/50 text-lg ${
+                    hasFieldError(fieldErrors, 'username') ? 'border-red-500' : ''
                   }`}
                   autoComplete="username"
                   autoFocus
@@ -451,8 +451,8 @@ export const LoginPage = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 pr-12 ${
-                      hasFieldError(fieldErrors, 'password') ? 'border-red-500 border-2' : ''
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 pr-12 placeholder:text-white/50 text-lg ${
+                      hasFieldError(fieldErrors, 'password') ? 'border-red-500' : ''
                     }`}
                     autoComplete="current-password"
                     onKeyDown={(e) => {

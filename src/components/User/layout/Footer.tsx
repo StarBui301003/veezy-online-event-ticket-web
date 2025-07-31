@@ -19,15 +19,9 @@ export const Footer = () => {
                 <FaMapMarkerAlt className="mt-1 text-lg text-white" />
                 <div>
                   <p className="font-semibold">Address</p>
-                  <p className="text-sm">123 Concert Street, District 1, HCMC</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FaPhoneAlt className="mt-1 text-lg text-white" />
-                <div>
-                  <p className="font-semibold">Hotline</p>
-                  <p className="text-sm">1900 123 456</p>
+                  <p className="text-sm">
+                    600 Nguyen Van Cu Noi Dai Street, Binh Thuy Ward, Can Tho City
+                  </p>
                 </div>
               </div>
 
@@ -36,14 +30,6 @@ export const Footer = () => {
                 <div>
                   <p className="font-semibold">Email</p>
                   <p className="text-sm">support@vezzy.com</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FaPhoneAlt className="mt-1 text-lg text-white" />
-                <div>
-                  <p className="font-semibold">Customer Care</p>
-                  <p className="text-sm">+84 987 654 321</p>
                 </div>
               </div>
             </div>
@@ -59,23 +45,17 @@ export const Footer = () => {
             <Link to="/" className="hover:underline">
               Home
             </Link>
-            <Link to="/" className="hover:underline">
-              Category
+            <Link to="/events" className="hover:underline">
+              Event
             </Link>
-            <Link to="/" className="hover:underline">
-              About
-            </Link>
-            <Link to="/" className="hover:underline">
-              Contact
+            <Link to="/news" className="hover:underline">
+              News
             </Link>
           </div>
 
           <div className="flex gap-6 text-xs text-white/70">
-            <Link to="/" className="hover:underline">
-              Terms of Service
-            </Link>
-            <Link to="/" className="hover:underline">
-              Privacy Policy
+            <Link to="/terms-of-use" className="hover:underline">
+              Terms of User
             </Link>
           </div>
         </div>

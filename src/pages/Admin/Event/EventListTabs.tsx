@@ -33,7 +33,9 @@ export default function EventListTabs() {
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingPage, setPendingPage] = useState(1);
-  const [pendingPageSize, setPendingPageSize] = useState(10);
+  const [pendingPageSize, setPendingPageSize] = useState(5);
+  const [approvedPage, setApprovedPage] = useState(1);
+  const [approvedPageSize, setApprovedPageSize] = useState(5);
 
   const fetchPendingCount = () => {
     getPendingEvents()
@@ -45,7 +47,6 @@ export default function EventListTabs() {
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    fetchPendingCount();
     // Lắng nghe realtime SignalR cho event
     const reloadEvent = () => fetchPendingCount();
     onEvent('OnEventCreated', reloadEvent);
@@ -55,6 +56,10 @@ export default function EventListTabs() {
     onEvent('OnEventCancelled', reloadEvent);
     onEvent('OnEventHidden', reloadEvent);
     onEvent('OnEventShown', reloadEvent);
+  }, []);
+
+  useEffect(() => {
+    fetchPendingCount();
   }, []);
 
   // Khi đổi tab, update query param
@@ -165,7 +170,14 @@ export default function EventListTabs() {
 
         <div>
           <TabsContent value="approved">
-            {loadedTabs.includes('approved') && <ApprovedEventList />}
+            {loadedTabs.includes('approved') && (
+              <ApprovedEventList
+                page={approvedPage}
+                pageSize={approvedPageSize}
+                setPage={setApprovedPage}
+                setPageSize={setApprovedPageSize}
+              />
+            )}
           </TabsContent>
           <TabsContent value="pending">
             {loadedTabs.includes('pending') && (

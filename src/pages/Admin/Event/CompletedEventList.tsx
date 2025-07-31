@@ -51,7 +51,7 @@ export const CompletedEventList = ({ onLoadingChange }: CompletedEventListProps)
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
 
@@ -434,9 +434,9 @@ export const CompletedEventList = ({ onLoadingChange }: CompletedEventListProps)
                 <TableHead style={{ width: '15%' }} className="text-center">
                   Approved By
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>Approved At</TableHead>
+                <TableHead style={{ width: '10%' }}>Approved At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
-                <TableHead style={{ width: '20%' }}>Created At</TableHead>
+                <TableHead style={{ width: '10%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
@@ -508,6 +508,12 @@ export const CompletedEventList = ({ onLoadingChange }: CompletedEventListProps)
                   </TableRow>
                 ))
               )}
+              {/* Add empty rows to maintain table height */}
+              {Array.from({ length: Math.max(0, 5 - filteredEvents.length) }, (_, idx) => (
+                <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                  <TableCell colSpan={9} className="border-0"></TableCell>
+                </TableRow>
+              ))}
             </TableBody>
             <TableFooter>
               <TableRow>

@@ -6,7 +6,12 @@ import { getAllEvents } from '@/services/Event Manager/event.service';
 import { NO_AVATAR } from '@/assets/img';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import ReportModal from '@/components/Customer/ReportModal';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { MoreVertical, Flag } from 'lucide-react';
 import type { User } from '@/types/auth';
 import instance from '@/services/axios.customize';
@@ -71,11 +76,15 @@ const EventManagerProfile = () => {
       .then(setInfo)
       .catch(() => setInfo(null))
       .finally(() => setLoading(false));
-    
+
     setLoadingEvents(true);
     getAllEvents(1, 100)
       .then((all) => {
-        setEvents((all || []).filter((ev: EventItem) => ev.createdBy === id && ev.isApproved === 1 && !ev.isCancelled));
+        setEvents(
+          (all || []).filter(
+            (ev: EventItem) => ev.createdBy === id && ev.isApproved === 1 && !ev.isCancelled
+          )
+        );
       })
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
@@ -84,13 +93,14 @@ const EventManagerProfile = () => {
   // Initial data load
   useEffect(() => {
     reloadProfileData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (tab === 'news' && id) {
       setLoadingNews(true);
-      instance.get(`/api/News/byAuthor`, { params: { authorId: id, page: 1, pageSize: 20 } })
+      instance
+        .get(`/api/News/byAuthor`, { params: { authorId: id, page: 1, pageSize: 20 } })
         .then((res) => {
           const items = res.data?.data?.items;
           setNews(Array.isArray(items) ? items : []);
@@ -104,7 +114,8 @@ const EventManagerProfile = () => {
   const pagedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
 
   if (loading) return <SpinnerOverlay show={true} />;
-  if (!info) return <div className="text-center text-red-500 py-20">{t('eventManagerNotFound')}</div>;
+  if (!info)
+    return <div className="text-center text-red-500 py-20">{t('eventManagerNotFound')}</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white pt-24 pb-12">
@@ -114,7 +125,11 @@ const EventManagerProfile = () => {
           {TABS.map((t) => (
             <button
               key={t.key}
-              className={`text-left px-4 py-2 rounded-lg font-semibold transition-all ${tab === t.key ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow' : 'text-purple-200 hover:bg-slate-700'}`}
+              className={`text-left px-4 py-2 rounded-lg font-semibold transition-all ${
+                tab === t.key
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow'
+                  : 'text-purple-200 hover:bg-slate-700'
+              }`}
               onClick={() => setTab(t.key as 'info' | 'events' | 'news')}
             >
               {t.label}
@@ -137,7 +152,7 @@ const EventManagerProfile = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onSelect={e => {
+                        onSelect={(e) => {
                           e.preventDefault();
                           setTimeout(() => setReportModal(true), 10);
                         }}
@@ -157,28 +172,24 @@ const EventManagerProfile = () => {
                     className="w-32 h-32 rounded-full object-cover border-4 border-purple-400 shadow-lg"
                   />
                   <div className="absolute -bottom-2 -right-2">
-                    <OnlineStatusIndicator 
-                      userId={info.userId}
-                      size="lg"
-                      showText={false}
-                    />
+                    <OnlineStatusIndicator userId={info.userId} size="lg" showText={false} />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0 text-center md:text-left">
                   <div className="font-bold text-3xl md:text-4xl mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                     {info.fullName || 'Event Manager'}
                   </div>
-                  
+
                   {/* Online Status */}
                   <div className="mb-4">
-                    <OnlineStatusIndicator 
+                    <OnlineStatusIndicator
                       userId={info.userId}
                       size="md"
                       showText={true}
                       className="justify-center md:justify-start"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="text-purple-300">📧 {t('email')}:</span>
@@ -242,21 +253,27 @@ const EventManagerProfile = () => {
                             <div className="text-purple-400 text-sm mt-1">📅</div>
                             <div className="text-sm text-gray-300">
                               <div className="font-medium">{t('startAt')}:</div>
-                              <div className="text-purple-300">{new Date(event.startAt).toLocaleString('vi-VN')}</div>
+                              <div className="text-purple-300">
+                                {new Date(event.startAt).toLocaleString('vi-VN')}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <div className="text-pink-400 text-sm mt-1">🏁</div>
                             <div className="text-sm text-gray-300">
                               <div className="font-medium">{t('endAt')}:</div>
-                              <div className="text-pink-300">{new Date(event.endAt).toLocaleString('vi-VN')}</div>
+                              <div className="text-pink-300">
+                                {new Date(event.endAt).toLocaleString('vi-VN')}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-start gap-3">
                             <div className="text-yellow-400 text-sm mt-1">📍</div>
                             <div className="text-sm text-gray-300">
                               <div className="font-medium">{t('eventLocation')}:</div>
-                              <div className="text-yellow-300 line-clamp-2">{event.eventLocation}</div>
+                              <div className="text-yellow-300 line-clamp-2">
+                                {event.eventLocation}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -264,11 +281,23 @@ const EventManagerProfile = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-green-400 text-xs font-medium">{t('ongoing')}</span>
+                            <span className="text-green-400 text-xs font-medium">
+                              {t('ongoing')}
+                            </span>
                           </div>
                           <div className="text-purple-400 group-hover:text-purple-300 transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                              />
                             </svg>
                           </div>
                         </div>
@@ -287,7 +316,9 @@ const EventManagerProfile = () => {
                       >
                         &lt; {t('previous')}
                       </button>
-                      <span className="px-4 py-2 text-purple-300 font-bold">{page} / {totalPages}</span>
+                      <span className="px-4 py-2 text-purple-300 font-bold">
+                        {page} / {totalPages}
+                      </span>
                       <button
                         className="px-4 py-2 rounded-full bg-slate-700 text-white font-semibold disabled:opacity-50"
                         onClick={() => setPage(page + 1)}
@@ -324,12 +355,34 @@ const EventManagerProfile = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {news.map((n, idx) => (
-                    <div key={n.newsId || idx} className="bg-slate-800/80 rounded-xl p-6 shadow border border-purple-700/30">
-                      {n.imageUrl && <img src={n.imageUrl} alt={n.newsTitle} className="w-full h-40 object-cover rounded mb-3" />}
-                      <div className="font-bold text-lg text-white mb-2 line-clamp-2">{n.newsTitle || t('noTitle')}</div>
-                      <div className="text-slate-300 text-sm mb-2 line-clamp-3">{n.newsDescription || n.newsContent?.slice(0, 100) + '...' || t('noDescription')}</div>
-                      <div className="text-xs text-purple-400 mb-1">{n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : ''}</div>
-                      <a href={`/news/${n.newsId}`} className="text-blue-400 hover:underline text-sm">{t('viewDetails')}</a>
+                    <div
+                      key={n.newsId || idx}
+                      className="bg-slate-800/80 rounded-xl p-6 shadow border border-purple-700/30"
+                    >
+                      {n.imageUrl && (
+                        <img
+                          src={n.imageUrl}
+                          alt={n.newsTitle}
+                          className="w-full h-40 object-cover rounded mb-3"
+                        />
+                      )}
+                      <div className="font-bold text-lg text-white mb-2 line-clamp-2">
+                        {n.newsTitle || t('noTitle')}
+                      </div>
+                      <div className="text-slate-300 text-sm mb-2 line-clamp-3">
+                        {n.newsDescription ||
+                          n.newsContent?.slice(0, 100) + '...' ||
+                          t('noDescription')}
+                      </div>
+                      <div className="text-xs text-purple-400 mb-1">
+                        {n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : ''}
+                      </div>
+                      <a
+                        href={`/news/${n.newsId}`}
+                        className="text-blue-400 hover:underline text-sm"
+                      >
+                        {t('viewDetails')}
+                      </a>
                     </div>
                   ))}
                 </div>

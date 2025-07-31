@@ -9,6 +9,7 @@ import type { WithdrawalRequestDto } from '@/types/Admin/fund';
 import { useState } from 'react';
 import { approveWithdrawal, rejectWithdrawal, confirmPayment } from '@/services/Admin/fund.service';
 import { toast } from 'react-toastify';
+import { formatCurrency } from '@/utils/format';
 
 interface Props {
   withdrawal: WithdrawalRequestDto;
@@ -70,22 +71,6 @@ const FundDetailModal = ({
         <div className="space-y-2 max-h-[50vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Transaction ID</label>
-              <input
-                value={withdrawal.transactionId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Event ID</label>
-              <input
-                value={withdrawal.eventId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
-            <div>
               <label className="block text-xs text-gray-500 mb-1">Event Name</label>
               <input
                 value={withdrawal.eventName}
@@ -120,19 +105,12 @@ const FundDetailModal = ({
             <div>
               <label className="block text-xs text-gray-500 mb-1">Amount</label>
               <input
-                value={withdrawal.amount}
+                value={formatCurrency(withdrawal.amount)}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Transaction Description</label>
-              <input
-                value={withdrawal.transactionDescription}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
+
             <div>
               <label className="block text-xs text-gray-500 mb-1">Status</label>
               <input
@@ -159,14 +137,7 @@ const FundDetailModal = ({
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Initiated By Account ID</label>
-              <input
-                value={withdrawal.initiatedByAccountId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
+
             <div>
               <label className="block text-xs text-gray-500 mb-1">Initiated By Name</label>
               <input
@@ -183,7 +154,18 @@ const FundDetailModal = ({
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
+
             <div className="md:col-span-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Transaction Description</label>
+                <textarea
+                  value={withdrawal.transactionDescription}
+                  readOnly
+                  rows={5}
+                  className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 resize-none overflow-y-auto"
+                  style={{ minHeight: '120px', maxHeight: '120px' }}
+                />
+              </div>
               <label className="block text-xs text-gray-500 mb-1">Notes</label>
               <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px]">
                 {withdrawal.notes ? (

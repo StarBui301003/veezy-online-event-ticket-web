@@ -24,6 +24,7 @@ import {
   createFieldChangeHandler,
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
+import { formatCurrency } from '@/utils/format';
 
 interface Props {
   open: boolean;
@@ -36,9 +37,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
     eventId: '',
     code: '',
     discountType: 0,
-    value: 0,
-    minimum: 0,
-    maximum: 0,
+    value: null,
+    minimum: null,
+    maximum: null,
     maxUsage: 1,
     expiredAt: '',
   });
@@ -97,7 +98,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   const handleValueChange = createFieldChangeHandler(
     'value',
     (value: string) => {
-      setForm((prev) => ({ ...prev, value: Number(value) }));
+      setForm((prev) => ({ ...prev, value: value === '' ? null : Number(value) }));
     },
     clearFieldError
   );
@@ -105,7 +106,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   const handleMinimumChange = createFieldChangeHandler(
     'minimum',
     (value: string) => {
-      setForm((prev) => ({ ...prev, minimum: Number(value) }));
+      setForm((prev) => ({ ...prev, minimum: value === '' ? null : Number(value) }));
       // Clear maximum error as well since they're related
       clearFieldError('maximum');
     },
@@ -115,7 +116,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   const handleMaximumChange = createFieldChangeHandler(
     'maximum',
     (value: string) => {
-      setForm((prev) => ({ ...prev, maximum: Number(value) }));
+      setForm((prev) => ({ ...prev, maximum: value === '' ? null : Number(value) }));
       // Clear minimum error as well since they're related
       clearFieldError('minimum');
     },
@@ -148,7 +149,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
 
     setLoading(true);
     try {
-      // Build payload, only include fields if > 0
+      // Build payload, only include fields if they have values
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         eventId: form.eventId,
@@ -157,8 +158,8 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
         value: form.value,
         expiredAt: form.expiredAt,
       };
-      if (form.minimum > 0) payload.minimum = form.minimum;
-      if (form.maximum > 0) payload.maximum = form.maximum;
+      if (form.minimum !== null && form.minimum !== undefined) payload.minimum = form.minimum;
+      if (form.maximum !== null && form.maximum !== undefined) payload.maximum = form.maximum;
       if (form.maxUsage > 0 && form.maxUsage !== 2147483647) payload.maxUsage = form.maxUsage;
 
       await createDiscountCode(payload);
@@ -167,9 +168,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
         eventId: '',
         code: '',
         discountType: 0,
-        value: 0,
-        minimum: 0,
-        maximum: 0,
+        value: null,
+        minimum: null,
+        maximum: null,
         maxUsage: 1,
         expiredAt: '',
       });
@@ -265,14 +266,16 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               className={getErrorClass('value', 'border px-3 py-2 rounded w-full')}
               name="value"
               type="number"
-              value={form.value}
+              value={form.value || ''}
               onChange={handleValueChange}
               disabled={loading}
               min={0}
               max={form.discountType === 0 ? 100 : undefined}
               step={form.discountType === 0 ? 1 : 1000}
               placeholder={
-                form.discountType === 0 ? 'Enter percentage (1-100)' : 'Enter amount (VND)'
+                form.discountType === 0
+                  ? 'Enter percentage (1-100)'
+                  : `Enter amount (e.g., ${formatCurrency(50000)})`
               }
             />
             {getFieldError('value') && (
@@ -288,37 +291,39 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               className={getErrorClass('minimum', 'border px-3 py-2 rounded w-full')}
               name="minimum"
               type="number"
-              value={form.minimum}
+              value={form.minimum || ''}
               onChange={handleMinimumChange}
               disabled={loading}
               min={0}
               step={1000}
-              placeholder="Minimum order amount to apply discount"
+              placeholder={`Minimum order amount (e.g., ${formatCurrency(100000)})`}
             />
             {getFieldError('minimum') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('minimum')}</div>
             )}
           </div>
 
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Maximum Discount (VND) <span className="text-gray-400">- Optional</span>
-            </label>
-            <input
-              className={getErrorClass('maximum', 'border px-3 py-2 rounded w-full')}
-              name="maximum"
-              type="number"
-              value={form.maximum}
-              onChange={handleMaximumChange}
-              disabled={loading}
-              min={0}
-              step={1000}
-              placeholder="Maximum discount amount"
-            />
-            {getFieldError('maximum') && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
-            )}
-          </div>
+          {form.discountType !== 1 && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">
+                Maximum Discount (VND) <span className="text-gray-400">- Optional</span>
+              </label>
+              <input
+                className={getErrorClass('maximum', 'border px-3 py-2 rounded w-full')}
+                name="maximum"
+                type="number"
+                value={form.maximum || ''}
+                onChange={handleMaximumChange}
+                disabled={loading}
+                min={0}
+                step={1000}
+                placeholder={`Maximum discount amount (e.g., ${formatCurrency(50000)})`}
+              />
+              {getFieldError('maximum') && (
+                <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Max Usage</label>

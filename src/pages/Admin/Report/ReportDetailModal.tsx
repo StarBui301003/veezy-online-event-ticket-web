@@ -13,10 +13,11 @@ import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
 import { getEventById } from '@/services/Admin/event.service';
 import { getNewsById } from '@/services/Admin/news.service';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
+// import { getUserByIdAPI } from '@/services/Admin/user.service'; // No longer needed
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableHeader,
@@ -31,7 +32,6 @@ interface Props {
   reporterName?: string;
   onClose: () => void;
   targetTypeMap?: Record<number, string>;
-  statusMap?: Record<number, string>;
   showNote?: boolean;
   onActionDone?: () => void; // callback reload
 }
@@ -41,7 +41,6 @@ const ReportDetailModal = ({
   reporterName,
   onClose,
   targetTypeMap,
-  statusMap,
   showNote = false,
   onActionDone,
 }: Props) => {
@@ -52,12 +51,45 @@ const ReportDetailModal = ({
   const [newsData, setNewsData] = useState<News | null>(null);
   const [eventLoading, setEventLoading] = useState(false);
   const [newsLoading, setNewsLoading] = useState(false);
-  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  // const [userNames, setUserNames] = useState<Record<string, string>>({}); // No longer needed
   const { t } = useTranslation();
 
   const isPending = report.status === 0;
   const isEventTarget = report.targetType === 1; // 1 = Event theo targetTypeMap
   const isNewsTarget = report.targetType === 0; // 0 = News theo targetTypeMap
+
+  const getStatusBadge = (status: string | number) => {
+    const statusStr = status.toString();
+    switch (statusStr) {
+      case '0':
+      case 'Pending':
+        return (
+          <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
+            Pending
+          </Badge>
+        );
+      case '1':
+      case 'Resolved':
+        return (
+          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
+            Resolved
+          </Badge>
+        );
+      case '2':
+      case 'Rejected':
+        return (
+          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
+            Rejected
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
+            Other
+          </Badge>
+        );
+    }
+  };
 
   // Fetch event data if target type is event
   useEffect(() => {
@@ -66,27 +98,7 @@ const ReportDetailModal = ({
       getEventById(report.targetId)
         .then((event) => {
           setEventData(event);
-          // Fetch user names for createdBy and approvedBy
-          const userIds = new Set<string>();
-          if (event.createdBy) userIds.add(event.createdBy);
-          if (event.approvedBy) userIds.add(event.approvedBy);
-
-          const fetchUserNames = async () => {
-            const names: Record<string, string> = {};
-            await Promise.all(
-              Array.from(userIds).map(async (userId) => {
-                try {
-                  const user = await getUserByIdAPI(userId);
-                  names[userId] = user.fullName || user.username || userId;
-                } catch {
-                  names[userId] = userId;
-                }
-              })
-            );
-            setUserNames(names);
-          };
-
-          fetchUserNames();
+          // No longer need to fetch user names since they should be included in the response
         })
         .catch((error) => {
           console.error('Failed to fetch event data:', error);
@@ -105,26 +117,7 @@ const ReportDetailModal = ({
       getNewsById(report.targetId)
         .then((news) => {
           setNewsData(news);
-          // Fetch user names for authorId
-          const userIds = new Set<string>();
-          if (news.authorId) userIds.add(news.authorId);
-
-          const fetchUserNames = async () => {
-            const names: Record<string, string> = {};
-            await Promise.all(
-              Array.from(userIds).map(async (userId) => {
-                try {
-                  const user = await getUserByIdAPI(userId);
-                  names[userId] = user.fullName || user.username || userId;
-                } catch {
-                  names[userId] = userId;
-                }
-              })
-            );
-            setUserNames(names);
-          };
-
-          fetchUserNames();
+          // No longer need to fetch user names since they should be included in the response
         })
         .catch((error) => {
           console.error('Failed to fetch news data:', error);
@@ -179,7 +172,7 @@ const ReportDetailModal = ({
 
   return (
     <Dialog open={!!report} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-3xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>{t('reportDetail')}</DialogTitle>
@@ -187,22 +180,6 @@ const ReportDetailModal = ({
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('reportId')}</label>
-              <input
-                value={report.reportId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('targetId')}</label>
-              <input
-                value={report.targetId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('targetType')}</label>
               <input
@@ -221,11 +198,9 @@ const ReportDetailModal = ({
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
-              <input
-                value={statusMap?.[report.status] ?? report.status}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
+              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 flex items-center justify-center">
+                {getStatusBadge(report.status)}
+              </div>
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('reason')}</label>
@@ -270,7 +245,7 @@ const ReportDetailModal = ({
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : 'N/A'
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
@@ -288,7 +263,7 @@ const ReportDetailModal = ({
                         month: '2-digit',
                         year: 'numeric',
                       })
-                    : 'unknown'
+                    : 'N/A'
                 }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
@@ -390,18 +365,10 @@ const ReportDetailModal = ({
                           </div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {eventData.createdBy
-                              ? userNames[eventData.createdBy] || eventData.createdBy
-                              : 'N/A'}
-                          </div>
+                          <div className="text-gray-700">{eventData.createdBy || 'N/A'}</div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {eventData.approvedBy
-                              ? userNames[eventData.approvedBy] || eventData.approvedBy
-                              : 'N/A'}
-                          </div>
+                          <div className="text-gray-700">{eventData.approvedBy || 'N/A'}</div>
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -489,11 +456,7 @@ const ReportDetailModal = ({
                           <div className="font-medium text-gray-900">{newsData.newsTitle}</div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {newsData.authorId
-                              ? userNames[newsData.authorId] || newsData.authorId
-                              : 'N/A'}
-                          </div>
+                          <div className="text-gray-700">{newsData.authorId || 'N/A'}</div>
                         </TableCell>
                         <TableCell className="text-center py-3">
                           <div

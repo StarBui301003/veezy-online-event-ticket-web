@@ -129,7 +129,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-5xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>Event Details</DialogTitle>
@@ -180,14 +180,7 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
           )}
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Event ID</label>
-              <input
-                value={event.eventId ?? 'unknown'}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
+          
             <div>
               <label className="block text-xs text-gray-500 mb-1">Name</label>
               <input

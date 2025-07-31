@@ -30,7 +30,7 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
@@ -57,8 +57,6 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
   useEffect(() => {
     if (activeTab !== 'rejected') return;
     connectNewsHub('http://localhost:5004/newsHub');
-    fetchData();
-
     // Lắng nghe realtime SignalR cho news
     const reload = () => fetchData();
     onNews('OnNewsCreated', reload);
@@ -68,6 +66,11 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     onNews('OnNewsRejected', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'rejected') return;
+    fetchData();
   }, [activeTab, page, pageSize]);
 
   useEffect(() => {
@@ -197,21 +200,20 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
                 </TableRow>
               ) : (
                 pagedNews.map((item, idx) => (
-                  <TableRow key={item.newsId} className="hover:bg-red-100/60">
+                  <TableRow key={item.newsId} className="hover:bg-red-50">
                     <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
                     <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                       {item.newsTitle}
                     </TableCell>
-                    <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-                      {authorNames[item.authorId] || item.authorId || 'unknown'}
+                    <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      {item.newsContent}
                     </TableCell>
                     <TableCell className="text-center">
-                      {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                      {authorNames[item.authorId] || item.authorId || 'Unknown'}
                     </TableCell>
                     <TableCell className="text-center">
-                      {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
+                      {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
                     </TableCell>
-
                     <TableCell className="text-center flex items-center justify-center gap-2">
                       <button
                         className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
@@ -224,6 +226,12 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
                   </TableRow>
                 ))
               )}
+              {/* Add empty rows to maintain table height */}
+              {Array.from({ length: Math.max(0, 5 - pagedNews.length) }, (_, idx) => (
+                <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                  <TableCell colSpan={6} className="border-0"></TableCell>
+                </TableRow>
+              ))}
             </TableBody>
             <TableFooter>
               <TableRow>

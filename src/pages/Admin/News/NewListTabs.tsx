@@ -25,9 +25,9 @@ export function NewsListTabs() {
 
   const fetchPendingCount = () => {
     import('@/services/Admin/news.service').then(({ getPendingNews }) => {
-      getPendingNews()
+      getPendingNews(1, 1)
         .then((res) => {
-          setPendingCount(res.data?.items?.length || 0);
+          setPendingCount(res.data?.totalItems || 0);
         })
         .catch(() => setPendingCount(0));
     });
@@ -35,7 +35,6 @@ export function NewsListTabs() {
 
   useEffect(() => {
     connectNewsHub('http://localhost:5004/newsHub');
-    fetchPendingCount();
     // Lắng nghe realtime SignalR cho news
     const reloadNews = () => fetchPendingCount();
     onNews('OnNewsCreated', reloadNews);
@@ -45,6 +44,9 @@ export function NewsListTabs() {
     onNews('OnNewsRejected', reloadNews);
     onNews('OnNewsHidden', reloadNews);
     onNews('OnNewsUnhidden', reloadNews);
+
+    // Initial fetch pending count
+    fetchPendingCount();
   }, []);
 
   // Khi đổi tab, update query param

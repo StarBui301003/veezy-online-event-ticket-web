@@ -10,7 +10,7 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import { getCanceledEvents, getCategoryById, deleteEvent } from '@/services/Admin/event.service';
+import { getCanceledEvents, deleteEvent } from '@/services/Admin/event.service';
 import type { ApprovedEvent, PaginatedEventResponse } from '@/types/Admin/event';
 import {
   DropdownMenu,
@@ -29,10 +29,8 @@ import {
 import { FaEye, FaRegTrashAlt } from 'react-icons/fa';
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { Category } from '@/types/Admin/category';
 import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -40,62 +38,20 @@ export const CanceledEventList = () => {
   const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(5);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
-  const [usernames, setUsernames] = useState<Record<string, string>>({});
 
   // Fetch all categories for filter (once)
   useEffect(() => {
     (async () => {
       const res = await getCanceledEvents({ page: 1, pageSize: 1000 });
-      const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
-      const ids = Array.from(
-        new Set(
-          res.data.items
-            .flatMap((event: ApprovedEvent) => event.categoryIds || [])
-            .filter(isValidCategoryId)
-        )
+      const categoryNames = Array.from(
+        new Set(res.data.items.flatMap((event: ApprovedEvent) => event.categoryName || []))
       );
-      const cats: Category[] = [];
-      await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const cat = await getCategoryById(id);
-            cats.push(cat);
-          } catch (err: unknown) {
-            cats.push({
-              categoryId: id,
-              categoryName: 'unknown',
-              categoryDescription: '',
-            });
-          }
-        })
-      );
-      setAllCategories(cats);
-
-      // Fetch all userIds (createdBy, approvedBy)
-      const allUserIds = Array.from(
-        new Set(
-          res.data.items
-            .flatMap((event: ApprovedEvent) => [event.createdBy, event.approvedBy])
-            .filter(Boolean)
-        )
-      );
-      const usernameMap: Record<string, string> = {};
-      await Promise.all(
-        allUserIds.map(async (id) => {
-          try {
-            const user = await getUserByIdAPI(id);
-            usernameMap[id] = user.fullName || user.username || user.accountId || id;
-          } catch {
-            usernameMap[id] = id;
-          }
-        })
-      );
-      setUsernames(usernameMap);
+      setAllCategories(categoryNames);
     })();
   }, []);
 
@@ -275,14 +231,14 @@ export const CanceledEventList = () => {
                   {allCategories.length === 0 && (
                     <div className="px-2 py-1 text-gray-500">No categories</div>
                   )}
-                  {allCategories.map((cat) => (
+                  {allCategories.map((categoryName) => (
                     <DropdownMenuItem
-                      key={cat.categoryId}
+                      key={categoryName}
                       onSelect={() => {
                         setSelectedCategoryIds((prev) =>
-                          prev.includes(cat.categoryId)
-                            ? prev.filter((id) => id !== cat.categoryId)
-                            : [...prev, cat.categoryId]
+                          prev.includes(categoryName)
+                            ? prev.filter((name) => name !== categoryName)
+                            : [...prev, categoryName]
                         );
                         setPage(1);
                       }}
@@ -290,11 +246,11 @@ export const CanceledEventList = () => {
                     >
                       <input
                         type="checkbox"
-                        checked={selectedCategoryIds.includes(cat.categoryId)}
+                        checked={selectedCategoryIds.includes(categoryName)}
                         readOnly
                         className="mr-2"
                       />
-                      <span>{cat.categoryName}</span>
+                      <span>{categoryName}</span>
                     </DropdownMenuItem>
                   ))}
                   <div className="flex gap-2 px-2 py-2">
@@ -326,9 +282,9 @@ export const CanceledEventList = () => {
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
                 <TableHead style={{ width: '15%' }}>Canceled By</TableHead>
-                <TableHead style={{ width: '20%' }}>Canceled At</TableHead>
+                <TableHead style={{ width: '10%' }}>Canceled At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
-                <TableHead style={{ width: '20%' }}>Created At</TableHead>
+                <TableHead style={{ width: '10%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
@@ -361,14 +317,8 @@ export const CanceledEventList = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {event.categoryIds && event.categoryIds.length > 0
-                        ? event.categoryIds
-                            .map(
-                              (id) =>
-                                allCategories.find((cat) => cat.categoryId === id)?.categoryName ||
-                                id
-                            )
-                            .join(', ')
+                      {event.categoryName && event.categoryName.length > 0
+                        ? event.categoryName.join(', ')
                         : 'Unknown'}
                     </TableCell>
                     <TableCell
@@ -379,9 +329,7 @@ export const CanceledEventList = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {event.approvedBy
-                        ? usernames[event.approvedBy] || event.approvedBy
-                        : 'Unknown'}
+                      {event.approvedByName || 'Unknown'}
                     </TableCell>
                     <TableCell>
                       {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
@@ -394,7 +342,7 @@ export const CanceledEventList = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {event.createdBy ? usernames[event.createdBy] || event.createdBy : 'Unknown'}
+                      {event.createByName || 'Unknown'}
                     </TableCell>
                     <TableCell>
                       {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
@@ -417,6 +365,12 @@ export const CanceledEventList = () => {
                   </TableRow>
                 ))
               )}
+              {/* Add empty rows to maintain table height */}
+              {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
+                <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                  <TableCell colSpan={8} className="border-0"></TableCell>
+                </TableRow>
+              ))}
             </TableBody>
             <TableFooter>
               <TableRow>

@@ -31,7 +31,7 @@ export const PaymentListAdmin = () => {
   const [data, setData] = useState<AdminPaymentListResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   useEffect(() => {

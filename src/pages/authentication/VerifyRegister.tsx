@@ -120,7 +120,7 @@ export const VerifyRegister = () => {
 
         <Input
           type="text"
-          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none placeholder:text-white/50"
           placeholder="Enter verification code"
           value={code}
           onChange={(e) => setCode(e.target.value)}

@@ -37,7 +37,7 @@ export const CategoryList = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -49,8 +49,6 @@ export const CategoryList = () => {
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    reloadList(page, pageSize);
-
     // Lắng nghe realtime SignalR cho category
     const reload = () => reloadList(page, pageSize);
     onEvent('OnCategoryCreated', reload);
@@ -211,7 +209,7 @@ export const CategoryList = () => {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="min-h-[400px]">
               {pagedCategories.filter(
                 (cat) =>
                   !search || cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
@@ -222,44 +220,65 @@ export const CategoryList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedCategories
-                  .filter(
-                    (cat) =>
-                      !search ||
-                      cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
-                  )
-                  .map((cat, idx) => (
-                    <TableRow key={cat.categoryId} className="hover:bg-blue-50">
-                      <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
-                      <TableCell>{cat.categoryName}</TableCell>
-                      <TableCell className="truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {cat.categoryDescription}
-                      </TableCell>
-                      <TableCell className="text-center flex items-center justify-center gap-2">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title={t('viewDetails')}
-                          onClick={() => setViewCategory(cat)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                          title={t('edit')}
-                          onClick={() => setEditCategory(cat)}
-                        >
-                          <MdOutlineEdit className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                          title={t('delete')}
-                          onClick={() => handleDelete(cat)}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                <>
+                  {pagedCategories
+                    .filter(
+                      (cat) =>
+                        !search ||
+                        cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
+                    )
+                    .map((cat, idx) => (
+                      <TableRow key={cat.categoryId} className="hover:bg-blue-50">
+                        <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
+                        <TableCell>{cat.categoryName}</TableCell>
+                        <TableCell className="truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                          {cat.categoryDescription}
+                        </TableCell>
+                        <TableCell className="text-center flex items-center justify-center gap-2">
+                          <button
+                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                            title={t('viewDetails')}
+                            onClick={() => setViewCategory(cat)}
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+                            title={t('edit')}
+                            onClick={() => setEditCategory(cat)}
+                          >
+                            <MdOutlineEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+                            title={t('delete')}
+                            onClick={() => handleDelete(cat)}
+                          >
+                            <FaRegTrashAlt className="w-4 h-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(
+                        0,
+                        5 -
+                          pagedCategories.filter(
+                            (cat) =>
+                              !search ||
+                              cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
+                          ).length
+                      ),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={4} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>

@@ -71,14 +71,16 @@ export const Header = () => {
   const { unreadCount } = useRealtimeNotifications();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{
-    id: string;
-    name: string;
-    description: string;
-    type: string;
-    imageUrl: string;
-    date: string;
-  }>>([]);
+  const [searchResults, setSearchResults] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      type: string;
+      imageUrl: string;
+      date: string;
+    }>
+  >([]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -124,14 +126,10 @@ export const Header = () => {
         try {
           const acc = JSON.parse(accStr);
           setAccount(acc);
-          // Ưu tiên avatar từ localStorage (avatar, avatarUrl)
-          setAvatar(
-            acc.avatar && acc.avatar.trim() !== ''
-              ? acc.avatar
-              : acc.avatarUrl && acc.avatarUrl.trim() !== ''
-              ? acc.avatarUrl
-              : undefined
-          );
+          // Logic giống nav-user: chỉ đọc avatar field
+          const avatarUrl = acc.avatar || '';
+          setAvatar(avatarUrl || undefined);
+
           // Gọi API lấy user
           if (acc.userId) {
             getUserAPI(acc.userId)
@@ -150,13 +148,22 @@ export const Header = () => {
 
     fetchAccountAndUser();
 
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      if (event.detail?.avatarUrl !== undefined) {
+        console.log('Header - Avatar Updated:', event.detail.avatarUrl);
+        setAvatar(event.detail.avatarUrl);
+      }
+    };
+
     window.addEventListener('user-updated', fetchAccountAndUser);
     window.addEventListener('storage', fetchAccountAndUser);
+    window.addEventListener('avatar-updated', handleAvatarUpdate as EventListener);
 
     return () => {
       window.removeEventListener('scroll', changeBlur);
       window.removeEventListener('user-updated', fetchAccountAndUser);
       window.removeEventListener('storage', fetchAccountAndUser);
+      window.removeEventListener('avatar-updated', handleAvatarUpdate as EventListener);
     };
   }, []);
 
@@ -195,16 +202,28 @@ export const Header = () => {
           </Link>
           {/* Navigation */}
           <div className="sm:flex sm:gap-x-8 hidden items-center">
-            <Link to="/" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+            <Link
+              to="/"
+              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
               {t('Home')}
             </Link>
-            <Link to="/events" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+            <Link
+              to="/events"
+              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
               {t('Event')}
             </Link>
-            <Link to="/news" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+            <Link
+              to="/news"
+              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
               {t('News')}
             </Link>
-            <Link to="/terms-of-use" className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
+            <Link
+              to="/terms-of-use"
+              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
               {t('Terms of Use')}
             </Link>
           </div>
@@ -230,8 +249,8 @@ export const Header = () => {
                   >
                     <div className="flex items-center">
                       {item.imageUrl && (
-                        <img 
-                          src={item.imageUrl} 
+                        <img
+                          src={item.imageUrl}
                           alt={item.name}
                           className="w-12 h-12 object-cover rounded mr-3"
                         />
@@ -261,12 +280,8 @@ export const Header = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-32">
-                <DropdownMenuItem onClick={() => handleChangeLanguage('vi')}>
-                  VN
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleChangeLanguage('en')}>
-                  EN
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleChangeLanguage('vi')}>VN</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleChangeLanguage('en')}>EN</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -389,9 +404,15 @@ export const Header = () => {
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
-                    onViewAll={() => { setNotifDropdown(false); navigate('/notifications'); }}
+                    onViewAll={() => {
+                      setNotifDropdown(false);
+                      navigate('/notifications');
+                    }}
                     t={t}
-                    onRedirect={(url) => { navigate(url); setNotifDropdown(false); }}
+                    onRedirect={(url) => {
+                      navigate(url);
+                      setNotifDropdown(false);
+                    }}
                   />
                 )}
               </div>

@@ -38,31 +38,12 @@ export const OrderListAdmin = () => {
   const [data, setData] = useState<AdminOrderListResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    setLoading(true);
-    getOrdersAdmin({ page: page, pageSize: pageSize })
-      .then((res) => {
-        if (res && res.data) {
-          setData({
-            ...res.data,
-            pageSize: pageSize,
-          });
-        } else {
-          setData(null);
-        }
-      })
-      .catch(() => {
-        setData(null);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-
     // Lắng nghe realtime SignalR cho order
     const reload = () => {
       setLoading(true);
@@ -87,6 +68,27 @@ export const OrderListAdmin = () => {
     onEvent('OnOrderCreated', reload);
     onEvent('OnOrderUpdated', reload);
     onEvent('OnOrderDeleted', reload);
+  }, [page, pageSize]);
+
+  useEffect(() => {
+    setLoading(true);
+    getOrdersAdmin({ page: page, pageSize: pageSize })
+      .then((res) => {
+        if (res && res.data) {
+          setData({
+            ...res.data,
+            pageSize: pageSize,
+          });
+        } else {
+          setData(null);
+        }
+      })
+      .catch(() => {
+        setData(null);
+      })
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   }, [page, pageSize]);
 
   const items = data?.items || [];
@@ -156,29 +158,71 @@ export const OrderListAdmin = () => {
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                                style={{
-                                  minWidth: 32,
-                                  textAlign: 'center',
-                                  fontWeight: i === page ? 700 : 400,
-                                  cursor: i === page ? 'default' : 'pointer',
-                                }}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = page - 1; i <= page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === page}
+                                    onClick={() => setPage(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === page
+                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === page ? 700 : 400,
+                                      cursor: item === page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

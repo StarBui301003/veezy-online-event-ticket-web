@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
+import type { UserAccountResponse } from '@/types/Admin/user';
 import { editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
 import {
   Select,
@@ -18,31 +19,93 @@ import {
 import { FaSpinner } from 'react-icons/fa';
 import { NO_AVATAR } from '@/assets/img';
 import { useTranslation } from 'react-i18next';
+import { validateEditUserForm } from '@/utils/validation';
+import {
+  useAdminValidation,
+  createFieldChangeHandler,
+  createCustomChangeHandler,
+} from '@/hooks/use-admin-validation';
 
 interface Props {
-  user: User;
+  user: User | UserAccountResponse;
   onClose: () => void;
-  onUpdated?: (user: User) => void;
+  onUpdated?: (user: User | UserAccountResponse) => void;
   disableEmail?: boolean; // Cho phép disable email input nếu cần
   title?: string;
 }
 
-export const EditUserModal = ({
-  user,
-  onClose,
-  onUpdated,
-  disableEmail = false,
-}: Props) => {
-  const [form, setForm] = useState<User>({ ...user });
+export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }: Props) => {
+  // Check if user is UserAccountResponse (has accountId property)
+  const isUserAccountResponse = 'accountId' in user;
+
+  // Convert UserAccountResponse to User format for editing
+  const userForEdit: User = isUserAccountResponse
+    ? {
+        userId: user.userId,
+        accountId: user.accountId,
+        fullName: user.fullName,
+        phone: user.phone || '',
+        email: user.email,
+        avatarUrl: user.avatarUrl || '',
+        gender: typeof user.gender === 'string' ? parseInt(user.gender) : user.gender,
+        dob: user.dob || '',
+        location: user.location || '',
+        createdAt: user.createdAt,
+      }
+    : user;
+
+  const [form, setForm] = useState<User>({ ...userForEdit });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(user.avatarUrl || '');
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  // Use validation hook
+  const { validateForm, handleApiError, getFieldError, clearFieldError } = useAdminValidation({
+    showToastOnValidation: false, // Only show inline errors, no toast for validation
+    showToastOnApiError: true, // Keep toast for API errors
+  });
+
+  // Field change handlers with error clearing
+  const handleFullNameChange = createFieldChangeHandler(
+    'fullName',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, fullName: value }));
+    },
+    clearFieldError
+  );
+
+  const handleEmailChange = createFieldChangeHandler(
+    'email',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, email: value }));
+    },
+    clearFieldError
+  );
+
+  const handlePhoneChange = createFieldChangeHandler(
+    'phone',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, phone: value }));
+    },
+    clearFieldError
+  );
+
+  const handleGenderChange = createCustomChangeHandler(
+    'gender',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, gender: Number(value) as 0 | 1 | 2 }));
+    },
+    clearFieldError
+  );
+
+  const handleDobChange = createFieldChangeHandler(
+    'dob',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, dob: value }));
+    },
+    clearFieldError
+  );
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +116,13 @@ export const EditUserModal = ({
   };
 
   const handleEdit = async () => {
+    // Validate form using comprehensive validation
+    const isValid = validateForm(form, validateEditUserForm);
+
+    if (!isValid) {
+      return;
+    }
+
     setLoading(true);
     try {
       await editUserAPI(form.userId, {
@@ -66,9 +136,28 @@ export const EditUserModal = ({
       if (avatarFile instanceof File) {
         await uploadUserAvatarAPI(form.userId, avatarFile);
       }
-      if (onUpdated) onUpdated(form);
+      if (onUpdated) {
+        if (isUserAccountResponse) {
+          // Convert back to UserAccountResponse format
+          const updatedUserAccount: UserAccountResponse = {
+            ...(user as UserAccountResponse),
+            fullName: form.fullName,
+            email: form.email,
+            phone: form.phone,
+            location: form.location,
+            dob: form.dob,
+            gender: form.gender.toString(),
+            avatarUrl: avatarFile ? previewUrl : user.avatarUrl,
+          };
+          onUpdated(updatedUserAccount);
+        } else {
+          onUpdated(form);
+        }
+      }
       onClose();
       setAvatarFile(null);
+    } catch (error: unknown) {
+      handleApiError(error);
     } finally {
       setLoading(false);
     }
@@ -109,13 +198,18 @@ export const EditUserModal = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">{t('fullName')}</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                {t('fullName')}
+              </label>
               <input
                 name="fullName"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 value={form.fullName}
-                onChange={handleInputChange}
+                onChange={handleFullNameChange}
               />
+              {getFieldError('fullName') && (
+                <p className="text-red-500 text-xs mt-1">{getFieldError('fullName')}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">{t('email')}</label>
@@ -123,9 +217,12 @@ export const EditUserModal = ({
                 name="email"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 value={form.email}
-                onChange={handleInputChange}
+                onChange={handleEmailChange}
                 disabled={disableEmail}
               />
+              {getFieldError('email') && (
+                <p className="text-red-500 text-xs mt-1">{getFieldError('email')}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">{t('phone')}</label>
@@ -133,15 +230,15 @@ export const EditUserModal = ({
                 name="phone"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 value={form.phone}
-                onChange={handleInputChange}
+                onChange={handlePhoneChange}
               />
+              {getFieldError('phone') && (
+                <p className="text-red-500 text-xs mt-1">{getFieldError('phone')}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">{t('gender')}</label>
-              <Select
-                value={String(form.gender)}
-                onValueChange={(val) => setForm((prev) => ({ ...prev, gender: Number(val) }))}
-              >
+              <Select value={String(form.gender)} onValueChange={handleGenderChange}>
                 <SelectTrigger className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300">
                   <SelectValue />
                 </SelectTrigger>
@@ -153,14 +250,19 @@ export const EditUserModal = ({
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">{t('dateOfBirth')}</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                {t('dateOfBirth')}
+              </label>
               <input
                 name="dob"
                 type="date"
                 className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
                 value={form.dob ? form.dob.slice(0, 10) : ''}
-                onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                onChange={handleDobChange}
               />
+              {getFieldError('dob') && (
+                <p className="text-red-500 text-xs mt-1">{getFieldError('dob')}</p>
+              )}
             </div>
           </div>
         </div>

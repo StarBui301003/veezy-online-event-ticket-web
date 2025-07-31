@@ -67,7 +67,7 @@ export const ResetRequestForm = () => {
 
         <Input
           type="email"
-          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none placeholder:text-white/50"
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

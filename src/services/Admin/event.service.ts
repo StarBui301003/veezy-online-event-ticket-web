@@ -7,6 +7,63 @@ import instance from '@/services/axios.customize';
 import type { EventApproveStatus } from '@/types/Admin/event';
 import { Category } from '@/types/Admin/category';
 import type { PaginatedCategoryResponse } from '@/types/Admin/category';
+import qs from 'qs';
+
+// New filter interface for events
+export interface EventFilterParams {
+  // Pagination parameters
+  page?: number;
+  pageSize?: number;
+
+  // Search and filter parameters
+  searchTerm?: string;
+  createdByFullName?: string;
+  categoryIds?: string[];
+  location?: string;
+  startFrom?: string;
+  startTo?: string;
+  endFrom?: string;
+  endTo?: string;
+  createdBy?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+}
+
+// New comprehensive event filter functions
+export async function getPendingEventsWithFilter(params: EventFilterParams) {
+  console.log('🚀 API Call - getPendingEventsWithFilter:', params);
+  const res = await instance.get<EventListResponse>('/api/Event/pending', {
+    params,
+    paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
+  });
+  console.log('📥 API Response - getPendingEventsWithFilter:', res.data);
+  return res.data;
+}
+
+export async function getApprovedEventsWithFilter(params: EventFilterParams) {
+  console.log('🚀 API Call - getApprovedEventsWithFilter:', params);
+  const res = await instance.get<EventListResponse>('/api/Event/approved', {
+    params,
+    paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
+  });
+  console.log('📥 API Response - getApprovedEventsWithFilter:', res.data);
+  return res.data;
+}
+
+export async function getRejectedEventsWithFilter(params: EventFilterParams) {
+  const res = await instance.get<EventListResponse>('/api/Event/rejected', { params });
+  return res.data;
+}
+
+export async function getCanceledEventsWithFilter(params: EventFilterParams) {
+  const res = await instance.get<EventListResponse>('/api/Event/canceled', { params });
+  return res.data;
+}
+
+export async function getCompletedEventsWithFilter(params: EventFilterParams) {
+  const res = await instance.get<EventListResponse>('/api/Event/completedEvents', { params });
+  return res.data;
+}
 
 export async function getApprovedEvents(params?: { page?: number; pageSize?: number }) {
   const res = await instance.get<EventListResponse>('/api/Event/approved', { params });

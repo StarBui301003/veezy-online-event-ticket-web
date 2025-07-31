@@ -81,7 +81,7 @@ export function DatePickerRegister({
           <Button
             variant={'outline'}
             className={cn(
-              'w-full justify-start text-left font-normal rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 hover:bg-white/10',
+              'w-full justify-start text-left font-normal rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-[#A1A1AA] placeholder:text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 hover:bg-white/10',
               !date && 'text-[#A1A1AA]',
               error
                 ? 'border-red-500 focus:border-red-500'
@@ -90,7 +90,11 @@ export function DatePickerRegister({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, 'PPP') : <span>Pick a date</span>}
+            {date ? (
+              <span className="text-white/50">{format(date, 'PPP')}</span>
+            ) : (
+              <span className="text-white/50">Pick a date</span>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded">
@@ -131,6 +135,7 @@ export function DatePickerRegister({
               onMonthChange={setDate}
               className="rounded"
               disabled={disabled}
+              defaultMonth={new Date()}
             />
           </div>
         </PopoverContent>

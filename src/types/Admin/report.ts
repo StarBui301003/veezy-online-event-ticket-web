@@ -1,8 +1,10 @@
 export interface Report {
   reportId: string;
   targetId: string;
+  targetName: string;
   targetType: number;
   reporterId: string;
+  reporterName: string;
   reason: string;
   description: string | null;
   status: number;

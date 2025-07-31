@@ -168,18 +168,25 @@ const ProfilePage = () => {
         if (accStr) {
           acc = JSON.parse(accStr);
         }
+        // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+        const finalAvatarUrl = updatedUser.avatarUrl || avatarUrl;
+
         const newAccount = {
           ...acc,
           ...updatedUser,
-          avatar: avatarUrl, // Sử dụng avatarUrl từ upload
+          avatar: finalAvatarUrl, // Sử dụng avatarUrl từ updatedUser hoặc upload
           fullName: updatedUser.fullName,
           email: updatedUser.email,
           username: updatedUser.username || acc.username,
         };
+        // Xóa avatarUrl field để chỉ sử dụng avatar
+        delete newAccount.avatarUrl;
         localStorage.setItem('account', JSON.stringify(newAccount));
       }
 
-      setAccount({ ...form, avatar: avatarUrl });
+      // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+      const finalAvatarUrl = updatedUser?.avatarUrl || avatarUrl;
+      setAccount({ ...form, avatar: finalAvatarUrl });
       setAvatarFile(null);
 
       // Dispatch event để cập nhật layout ngay lập tức

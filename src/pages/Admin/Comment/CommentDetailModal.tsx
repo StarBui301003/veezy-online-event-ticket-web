@@ -66,14 +66,6 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
         <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Comment ID</label>
-              <input
-                value={comment.commentId}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
-            <div>
               <label className="block text-xs text-gray-500 mb-1">User</label>
               <input
                 value={comment.fullName || 'Unknown User'}
@@ -81,7 +73,7 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
             </div>
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-xs text-gray-500 mb-1">Event</label>
               <input
                 value={eventName || comment.eventId || 'Unknown Event'}

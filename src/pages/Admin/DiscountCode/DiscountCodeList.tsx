@@ -32,6 +32,7 @@ import { getDiscountCodes, deleteDiscountCode } from '@/services/Admin/discountC
 import DiscountCodeDetailModal from '@/pages/Admin/DiscountCode/DiscountCodeDetailModal';
 import CreateDiscountCodeModal from '@/pages/Admin/DiscountCode/CreateDiscountCodeModal';
 import EditDiscountCodeModal from '@/pages/Admin/DiscountCode/EditDiscountCodeModal';
+import { formatDiscountValue, formatMinMaxAmount, getDiscountTypeLabel } from '@/utils/format';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -39,7 +40,7 @@ export const DiscountCodeList = () => {
   const [discountData, setDiscountData] = useState<DiscountCodeResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [showCreateModal, setShowCreateModal] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editDiscount, setEditDiscount] = useState<
@@ -52,7 +53,6 @@ export const DiscountCodeList = () => {
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    reloadList();
 
     // Lắng nghe realtime SignalR cho discount code
     const reload = () => reloadList();
@@ -62,9 +62,14 @@ export const DiscountCodeList = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reload when page or pageSize changes (including initial load)
+  useEffect(() => {
+    reloadList();
+  }, [page, pageSize]);
+
   const reloadList = () => {
     setLoading(true);
-    getDiscountCodes()
+    getDiscountCodes({ page, pageSize })
       .then((res) => setDiscountData(res.data))
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
@@ -72,8 +77,7 @@ export const DiscountCodeList = () => {
   };
 
   const items = discountData?.items || [];
-  const pagedItems = items.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const totalPages = discountData?.totalPages || 1;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDelete = async (item: any) => {
@@ -85,12 +89,6 @@ export const DiscountCodeList = () => {
     } catch {
       toast.error('Cannot delete this discount code!');
     }
-  };
-
-  const discountTypeMap: Record<number, string> = {
-    0: 'Percentage',
-    1: 'Amount',
-    3: 'Other',
   };
 
   // Khi mở modal chi tiết, không nên set loading cho list
@@ -230,8 +228,8 @@ export const DiscountCodeList = () => {
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {pagedItems.filter(
+            <TableBody className="min-h-[400px]">
+              {items.filter(
                 (item) => !search || item.code.toLowerCase().includes(search.trim().toLowerCase())
               ).length === 0 ? (
                 <TableRow>
@@ -240,65 +238,92 @@ export const DiscountCodeList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedItems
-                  .filter(
-                    (item) =>
-                      !search || item.code.toLowerCase().includes(search.trim().toLowerCase())
-                  )
-                  .map((item, idx) => (
-                    <TableRow key={item.discountId} className="hover:bg-blue-50">
-                      <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
-                      <TableCell className="text-center">{item.code}</TableCell>
-                      <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">
-                        {discountTypeMap[item.discountType] ?? item.discountType}
-                      </TableCell>
-                      <TableCell className="text-center">{item.value}</TableCell>
-                      <TableCell className="text-center">{item.minimum}</TableCell>
-                      <TableCell className="text-center">{item.maximum}</TableCell>
+                <>
+                  {items
+                    .filter(
+                      (item) =>
+                        !search || item.code.toLowerCase().includes(search.trim().toLowerCase())
+                    )
+                    .map((item, idx) => (
+                      <TableRow key={item.discountId} className="hover:bg-blue-50">
+                        <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
+                        <TableCell className="text-center">{item.code}</TableCell>
+                        <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">
+                          {getDiscountTypeLabel(item.discountType)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatDiscountValue(item.value, item.discountType)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatMinMaxAmount(item.minimum)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {formatMinMaxAmount(item.maximum)}
+                        </TableCell>
 
-                      <TableCell className="text-center">
-                        {new Date(item.expiredAt).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {new Date(item.createdAt).toLocaleString()}
-                      </TableCell>
+                        <TableCell className="text-center">
+                          {new Date(item.expiredAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {new Date(item.createdAt).toLocaleString()}
+                        </TableCell>
 
-                      <TableCell className="text-center flex items-center justify-center gap-2">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title="View details"
-                          onClick={() => setViewDiscount(item)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                          title="Edit"
-                          onClick={() =>
-                            setEditDiscount({
-                              discountId: item.discountId,
-                              code: item.code,
-                              discountType: item.discountType,
-                              value: item.value,
-                              minimum: item.minimum,
-                              maximum: item.maximum,
-                              maxUsage: item.maxUsage,
-                              expiredAt: item.expiredAt,
-                            })
-                          }
-                        >
-                          <MdOutlineEdit className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                          title="Delete"
-                          onClick={() => handleDelete(item)}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        <TableCell className="text-center flex items-center justify-center gap-2">
+                          <button
+                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                            title="View details"
+                            onClick={() => setViewDiscount(item)}
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+                            title="Edit"
+                            onClick={() =>
+                              setEditDiscount({
+                                discountId: item.discountId,
+                                code: item.code,
+                                discountType: item.discountType,
+                                value: item.value,
+                                minimum: item.minimum,
+                                maximum: item.maximum,
+                                maxUsage: item.maxUsage,
+                                expiredAt: item.expiredAt,
+                              })
+                            }
+                          >
+                            <MdOutlineEdit className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+                            title="Delete"
+                            onClick={() => handleDelete(item)}
+                          >
+                            <FaRegTrashAlt className="w-4 h-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(
+                        0,
+                        5 -
+                          items.filter(
+                            (item) =>
+                              !search ||
+                              item.code.toLowerCase().includes(search.trim().toLowerCase())
+                          ).length
+                      ),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={11} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>
@@ -346,12 +371,12 @@ export const DiscountCodeList = () => {
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {items.length === 0
+                        {discountData?.totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
                               page * pageSize,
-                              items.length
-                            )} of ${items.length}`}
+                              discountData?.totalItems || 0
+                            )} of ${discountData?.totalItems || 0}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <DropdownMenu>

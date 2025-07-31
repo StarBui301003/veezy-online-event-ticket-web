@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, CheckCircle, AlertCircle, Clock, Plus } from 'lucide-react';
-import { CreateNotificationModal } from './CreateNotificationModal';
+import { Bell, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   getPersonalNotifications,
@@ -178,7 +177,6 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -340,14 +338,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
               </Badge>
             )}
           </CardTitle>
-          <button
-            type="button"
-            className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-            onClick={() => setOpenCreateModal(true)}
-          >
-            <Plus className="w-4 h-4" />
-            Create Notification
-          </button>
+          {/* Removed Create Notification button */}
         </div>
         {/* Filter trạng thái */}
         <div className="flex items-center gap-2">{/* Removed filter status */}</div>
@@ -501,7 +492,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
                       ? '0 of 0'
                       : `${startIdx}-${endIdx} of ${totalItems}`}
                   </span>
-                  <span className="text-sm text-gray-700">Rows per page</span>
+
                   <select
                     className="border rounded px-2 py-1 text-sm bg-white"
                     value={pageSize}
@@ -522,11 +513,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
           </>
         )}
       </CardContent>
-      <CreateNotificationModal
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        onCreated={fetchNotifications}
-      />
+      {/* Removed CreateNotificationModal */}
     </Card>
   );
 };

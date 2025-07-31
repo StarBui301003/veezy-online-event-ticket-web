@@ -72,15 +72,15 @@ const ApprovedNewsDetailModal = ({ news, onClose }: Props) => {
             </div>
           </div>
           {/* Info fields */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">{t('title')}</label>
+            <input
+              value={news.newsTitle ?? 'unknown'}
+              readOnly
+              className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('title')}</label>
-              <input
-                value={news.newsTitle ?? 'unknown'}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('authorName')}</label>
               <input

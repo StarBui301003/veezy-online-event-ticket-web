@@ -38,7 +38,7 @@ export const RejectedEventList = () => {
   const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -333,9 +333,9 @@ export const RejectedEventList = () => {
                 <TableHead style={{ width: '20%' }}>Event Name</TableHead>
                 <TableHead style={{ width: '10%' }}>Category</TableHead>
                 <TableHead style={{ width: '15%' }}>Rejected By</TableHead>
-                <TableHead style={{ width: '20%' }}>Rejected At</TableHead>
+                <TableHead style={{ width: '10%' }}>Rejected At</TableHead>
                 <TableHead style={{ width: '15%' }}>Created By</TableHead>
-                <TableHead style={{ width: '20%' }}>Created At</TableHead>
+                <TableHead style={{ width: '10%' }}>Created At</TableHead>
                 <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
@@ -346,113 +346,144 @@ export const RejectedEventList = () => {
                   event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
                   (event.createdBy?.toLowerCase() || '').includes(search.trim().toLowerCase())
               ).length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No approved events found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                items
-                  .filter(
-                    (event) =>
-                      !search ||
-                      event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
-                      (event.createdBy?.toLowerCase() || '').includes(search.trim().toLowerCase())
-                  )
-                  .map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-red-100/60">
-                      <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.eventName}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 100,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.categoryIds && event.categoryIds.length > 0
-                          ? event.categoryIds
-                              .map(
-                                (id) =>
-                                  allCategories.find((cat) => cat.categoryId === id)
-                                    ?.categoryName || id
-                              )
-                              .join(', ')
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 100,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.approvedBy
-                          ? userNames[event.approvedBy] || event.approvedBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 180,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.approvedAt ? new Date(event.approvedAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 120,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.createdBy
-                          ? userNames[event.createdBy] || event.createdBy
-                          : 'Unknown'}
-                      </TableCell>
-                      <TableCell
-                        style={{
-                          maxWidth: 180,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-center  justify-center flex items-center">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          onClick={() => setSelectedEvent(event)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
-                          title="Delete"
-                          onClick={() => handleDelete(event)}
-                        >
-                          <FaRegTrashAlt className="w-4 h-4" />
-                        </button>
-                      </TableCell>
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={8} className="border-0"></TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                </>
+              ) : (
+                <>
+                  {items
+                    .filter(
+                      (event) =>
+                        !search ||
+                        event.eventName?.toLowerCase().includes(search.trim().toLowerCase()) ||
+                        (event.createdBy?.toLowerCase() || '').includes(search.trim().toLowerCase())
+                    )
+                    .map((event, idx) => (
+                      <TableRow key={event.eventId} className="hover:bg-red-100/60">
+                        <TableCell className="text-center">
+                          {(page - 1) * pageSize + idx + 1}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 200,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.eventName}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 100,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.categoryIds && event.categoryIds.length > 0
+                            ? event.categoryIds
+                                .map(
+                                  (id) =>
+                                    allCategories.find((cat) => cat.categoryId === id)
+                                      ?.categoryName || id
+                                )
+                                .join(', ')
+                            : 'Unknown'}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 100,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.approvedBy
+                            ? userNames[event.approvedBy] || event.approvedBy
+                            : 'Unknown'}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 180,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.approvedAt
+                            ? new Date(event.approvedAt).toLocaleString()
+                            : 'Unknown'}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 120,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.createdBy
+                            ? userNames[event.createdBy] || event.createdBy
+                            : 'Unknown'}
+                        </TableCell>
+                        <TableCell
+                          style={{
+                            maxWidth: 180,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
+                        </TableCell>
+                        <TableCell className="text-center  justify-center flex items-center">
+                          <button
+                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                            onClick={() => setSelectedEvent(event)}
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 ml-2"
+                            title="Delete"
+                            onClick={() => handleDelete(event)}
+                          >
+                            <FaRegTrashAlt className="w-4 h-4" />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(
+                        0,
+                        5 -
+                          items.filter(
+                            (event) =>
+                              !search ||
+                              event.eventName
+                                ?.toLowerCase()
+                                .includes(search.trim().toLowerCase()) ||
+                              (event.createdBy?.toLowerCase() || '').includes(
+                                search.trim().toLowerCase()
+                              )
+                          ).length
+                      ),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={8} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>

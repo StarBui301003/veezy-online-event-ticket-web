@@ -7,8 +7,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import type { ApprovedEvent, AdminTicket } from '@/types/Admin/event';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
-import { getCategoryById, getTicketsByEventAdmin } from '@/services/Admin/event.service';
+import { getTicketsByEventAdmin } from '@/services/Admin/event.service';
 import { NO_IMAGE } from '@/assets/img';
 
 interface Props {
@@ -17,40 +16,8 @@ interface Props {
 }
 
 export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
-  const [createdByName, setCreatedByName] = useState<string>('unknown');
-  const [approvedByName, setApprovedByName] = useState<string>('unknown');
-  const [categoryNames, setCategoryNames] = useState<string[]>([]);
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
-
-  useEffect(() => {
-    if (event.createdBy) {
-      getUserByIdAPI(event.createdBy)
-        .then((user) => setCreatedByName(user.fullName || user.username || 'unknown'))
-        .catch(() => setCreatedByName('unknown'));
-    }
-    if (event.approvedBy) {
-      getUserByIdAPI(event.approvedBy)
-        .then((user) => setApprovedByName(user.fullName || user.username || 'unknown'))
-        .catch(() => setApprovedByName('unknown'));
-    }
-    if (event.categoryIds && event.categoryIds.length > 0) {
-      const isValidCategoryId = (id: string) => !!id && /^[0-9a-fA-F-]{36}$/.test(id);
-      Promise.all(
-        event.categoryIds.map(async (id) => {
-          if (!isValidCategoryId(id)) return 'unknown';
-          try {
-            const cat = await getCategoryById(id);
-            return cat.categoryName || id;
-          } catch {
-            return 'unknown';
-          }
-        })
-      ).then(setCategoryNames);
-    } else {
-      setCategoryNames([]);
-    }
-  }, [event.createdBy, event.approvedBy, event.categoryIds]);
 
   useEffect(() => {
     setLoadingTickets(true);
@@ -69,7 +36,7 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-5xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>Event Details</DialogTitle>
@@ -121,14 +88,6 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Event ID</label>
-              <input
-                value={event.eventId ?? 'unknown'}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
-            </div>
-            <div>
               <label className="block text-xs text-gray-500 mb-1">Name</label>
               <input
                 value={event.eventName ?? 'unknown'}
@@ -147,7 +106,11 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             <div>
               <label className="block text-xs text-gray-500 mb-1">Category</label>
               <input
-                value={categoryNames.length > 0 ? categoryNames.join(', ') : 'unknown'}
+                value={
+                  event.categoryName && event.categoryName.length > 0
+                    ? event.categoryName.join(', ')
+                    : 'unknown'
+                }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
@@ -226,7 +189,7 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             <div>
               <label className="block text-xs text-gray-500 mb-1">Approved By</label>
               <input
-                value={event.approvedBy ? approvedByName : 'unknown'}
+                value={event.approvedByName || 'unknown'}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
@@ -252,7 +215,7 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             <div>
               <label className="block text-xs text-gray-500 mb-1">Created By</label>
               <input
-                value={event.createdBy ? createdByName : 'unknown'}
+                value={event.createByName || 'unknown'}
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />

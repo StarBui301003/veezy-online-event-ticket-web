@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, CheckCircle, Trash2, Eye, AlertCircle, Calendar, Clock } from 'lucide-react';
+import { Bell, CheckCircle, Trash2, Eye, AlertCircle, Calendar, Clock, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   getAdminNotifications,
@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
+import { CreateNotificationModal } from './CreateNotificationModal';
 
 interface AdminNotificationListProps {
   className?: string;
@@ -158,6 +159,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
+  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -359,6 +361,14 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                 <SelectItem value="read">Read</SelectItem>
               </SelectContent>
             </Select>
+            <button
+              type="button"
+              className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+              onClick={() => setOpenCreateModal(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Create Notification
+            </button>
           </div>
           {unreadCount > 0 && (
             <TooltipProvider>
@@ -568,6 +578,11 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
           </>
         )}
       </CardContent>
+      <CreateNotificationModal
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        onCreated={fetchNotifications}
+      />
     </Card>
   );
 };
