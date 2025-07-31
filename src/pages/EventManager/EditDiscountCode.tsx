@@ -1,39 +1,35 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getEventById } from "@/services/Event Manager/event.service";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import instance from "@/services/axios.customize";
-import { AxiosError } from "axios";
+import { getDiscountCodeById, updateDiscountCode } from "@/services/Event Manager/event.service";
+import { format, parseISO } from "date-fns";
 import { useTranslation } from 'react-i18next';
-import { connectEventHub, onEvent } from "@/services/signalr.service";
 
-interface Event {
+interface DiscountCode {
+  discountId: string;
   eventId: string;
   eventName: string;
-}
-
-interface CreateDiscountCodeData {
-  eventId: string;
   code: string;
   discountType: number;
   value: number;
   minimum: number;
   maximum: number;
   maxUsage: number;
+  usedCount: number;
   expiredAt: string;
+  isExpired: boolean;
 }
 
-export default function CreateDiscountCode() {
+export default function EditDiscountCode() {
   const { t } = useTranslation();
-  const { eventId } = useParams();
+  const { discountId } = useParams<{ discountId: string }>();
   const navigate = useNavigate();
-  const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState<CreateDiscountCodeData>({
-    eventId: eventId || "",
+  const [discountCode, setDiscountCode] = useState<DiscountCode | null>(null);
+  const [formData, setFormData] = useState({
     code: "",
     discountType: 0,
     value: 0,
@@ -44,67 +40,62 @@ export default function CreateDiscountCode() {
   });
 
   useEffect(() => {
-    const fetchEvent = async () => {
-      if (!eventId) {
-        toast.error(t("eventIdRequired"));
+    const fetchDiscountCode = async () => {
+      if (!discountId) {
+        toast.error(t("discountCodeIdRequired"));
         navigate("/event-manager/discount-codes");
         return;
       }
 
       try {
-        const data = await getEventById(eventId);
+        const data = await getDiscountCodeById(discountId);
         if (!data) {
-          toast.error(t("eventNotFound"));
+          toast.error(t("discountCodeNotFound"));
           navigate("/event-manager/discount-codes");
           return;
         }
-        setEvent(data);
+        
+        setDiscountCode(data);
+        setFormData({
+          code: data.code,
+          discountType: data.discountType,
+          value: data.value,
+          minimum: data.minimum,
+          maximum: data.maximum,
+          maxUsage: data.maxUsage,
+          expiredAt: format(parseISO(data.expiredAt), "yyyy-MM-dd'T'HH:mm"),
+        });
       } catch (err) {
-        console.error("Failed to load event:", err);
-        toast.error(t("failedToLoadEventDetails"));
+        console.error("Failed to load discount code:", err);
+        toast.error(t("failedToLoadDiscountCode"));
         navigate("/event-manager/discount-codes");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvent();
-  }, [eventId, navigate, t]);
-
-  // Setup realtime connection for discount code creation
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectEventHub(token || undefined);
-    
-    // Listen for discount code creation confirmations
-    onEvent('DiscountCodeCreated', (data: any) => {
-      if (data.eventId === eventId) {
-        toast.success('Mã giảm giá đã được tạo thành công!');
-        navigate(`/event-manager/discount-codes`);
-      }
-    });
-
-    onEvent('DiscountCodeCreateFailed', (data: any) => {
-      if (data.eventId === eventId) {
-        toast.error('Không thể tạo mã giảm giá. Vui lòng thử lại!');
-      }
-    });
-  }, [eventId, navigate]);
+    fetchDiscountCode();
+  }, [discountId, navigate, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
+    if (!discountId || !discountCode) {
+      toast.error(t("invalidDiscountCode"));
+      return;
+    }
+
+    // Validation
     if (!formData.code.trim()) {
       toast.error(t("discountCodeRequired"));
       return;
     }
     if (formData.value <= 0) {
-      toast.error(t("discountValueMustBeGreaterThan0"));
+      toast.error(t("discountValueMustBePositive"));
       return;
     }
     if (formData.discountType === 0 && formData.value > 100) {
-      toast.error(t("percentageDiscountCannotExceed100"));
+      toast.error(t("percentageCannotExceed100"));
       return;
     }
     if (!formData.expiredAt) {
@@ -115,26 +106,14 @@ export default function CreateDiscountCode() {
     setLoading(true);
 
     try {
-      const response = await instance.post("/api/DiscountCode", formData);
-      if (response.data) {
-        toast.success(t("discountCodeCreatedSuccessfully"));
+      const response = await updateDiscountCode(discountId, formData);
+      if (response) {
+        toast.success(t("discountCodeUpdated"));
         navigate("/event-manager/discount-codes");
-      } else {
-        throw new Error("No response data");
       }
     } catch (err) {
-      console.error("Failed to create discount code:", err);
-      if (err instanceof AxiosError) {
-        if (err.response?.status === 404) {
-          toast.error(t("eventNotFound"));
-        } else if (err.response?.status === 400) {
-          toast.error(err.response.data?.message || t("invalidDiscountCodeData"));
-        } else {
-          toast.error(t("failedToCreateDiscountCode"));
-        }
-      } else {
-        toast.error(t("anUnexpectedErrorOccurred"));
-      }
+      console.error("Failed to update discount code:", err);
+      toast.error(t("failedToUpdateDiscountCode"));
     } finally {
       setLoading(false);
     }
@@ -143,7 +122,15 @@ export default function CreateDiscountCode() {
   if (loading) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]">
-        <div className="text-white text-xl">{t("loading")}</div>
+        <div className="text-white text-xl">{t("loading")}...</div>
+      </div>
+    );
+  }
+
+  if (!discountCode) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]">
+        <div className="text-white text-xl">{t("discountCodeNotFound")}</div>
       </div>
     );
   }
@@ -152,13 +139,12 @@ export default function CreateDiscountCode() {
     <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] py-10">
       <div className="w-full max-w-2xl mx-auto bg-[#2d0036]/80 rounded-2xl shadow-2xl p-8">
         <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent mb-6 uppercase tracking-wide text-center">
-          {t("createDiscountCode")}
+          {t("editDiscountCode")}
         </h2>
-        {event && (
-          <h3 className="text-xl font-bold text-yellow-300 mb-6 text-center">
-            {t("forEvent")}: <span className="text-pink-200">{event.eventName}</span>
-          </h3>
-        )}
+        
+        <h3 className="text-xl font-bold text-yellow-300 mb-6 text-center">
+          {t("forEvent")}: <span className="text-pink-200">{discountCode.eventName}</span>
+        </h3>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -169,10 +155,9 @@ export default function CreateDiscountCode() {
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               className="bg-[#1a0022]/80 border-pink-500/30 text-white"
-              placeholder={t("enterDiscountCode")}
+              placeholder="SUMMER20"
               required
             />
-            <p className="text-xs text-pink-200/70">{t("enterUniqueCodeForYourDiscount")}</p>
           </div>
 
           <div className="space-y-2">
@@ -184,83 +169,71 @@ export default function CreateDiscountCode() {
               className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white"
               required
             >
-              <option value={0}>{t("percentageDiscount")}</option>
-              <option value={1}>{t("fixedAmountDiscount")}</option>
+              <option value={0}>{t("percentage")}</option>
+              <option value={1}>{t("fixedAmount")}</option>
             </select>
-            <p className="text-xs text-pink-200/70">
-              {formData.discountType === 0 
-                ? t("discountWillBeAppliedAsAPercentageOfTheTotalAmount") 
-                : t("discountWillBeAppliedAsAFixedAmount")}
-            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="value" className="text-white">
-              {formData.discountType === 0 ? t("discountPercentage") : t("discountAmount")}
+              {formData.discountType === 0 ? t("percentage") : t("fixedAmount")}
             </Label>
             <Input
               id="value"
               type="number"
               min="0"
               step={formData.discountType === 0 ? "0.01" : "1"}
-              value={formData.value || ""}
+              value={formData.value}
               onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
               className="bg-[#1a0022]/80 border-pink-500/30 text-white"
-              placeholder={formData.discountType === 0 ? t("enterPercentage0100") : t("enterAmount")}
               required
             />
-            <p className="text-xs text-pink-200/70">
-              {formData.discountType === 0 
-                ? t("enterAValueBetween0And100") 
-                : t("enterTheFixedAmountToBeDiscounted")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="minimum" className="text-white">{t("minimumOrderAmount")}</Label>
+            <Label htmlFor="minimum" className="text-white">{t("minOrderAmount")}</Label>
             <Input
               id="minimum"
               type="number"
               min="0"
-              value={formData.minimum || ""}
+              value={formData.minimum}
               onChange={(e) => setFormData({ ...formData, minimum: Number(e.target.value) })}
               className="bg-[#1a0022]/80 border-pink-500/30 text-white"
-              placeholder={t("enterMinimumOrderAmount")}
               required
             />
-            <p className="text-xs text-pink-200/70">{t("minimumOrderAmountRequiredToApplyThisDiscount")}</p>
           </div>
 
           {formData.discountType === 0 && (
             <div className="space-y-2">
-              <Label htmlFor="maximum" className="text-white">{t("maximumDiscountAmount")}</Label>
+              <Label htmlFor="maximum" className="text-white">{t("maxDiscountAmount")}</Label>
               <Input
                 id="maximum"
                 type="number"
                 min="0"
-                value={formData.maximum || ""}
+                value={formData.maximum}
                 onChange={(e) => setFormData({ ...formData, maximum: Number(e.target.value) })}
                 className="bg-[#1a0022]/80 border-pink-500/30 text-white"
-                placeholder={t("enterMaximumDiscountAmount0ForNoLimit")}
                 required
               />
-              <p className="text-xs text-pink-200/70">{t("maximumAmountThatCanBeDiscounted0ForNoLimit")}</p>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="maxUsage" className="text-white">{t("maximumUsage")}</Label>
+            <Label htmlFor="maxUsage" className="text-white">{t("maxUsage")}</Label>
             <Input
               id="maxUsage"
               type="number"
               min="1"
-              value={formData.maxUsage || ""}
-              onChange={(e) => setFormData({ ...formData, maxUsage: Number(e.target.value) })}
+              value={formData.maxUsage === 2147483647 ? "" : formData.maxUsage}
+              onChange={(e) => setFormData({ 
+                ...formData, 
+                maxUsage: e.target.value ? Number(e.target.value) : 2147483647 
+              })}
               className="bg-[#1a0022]/80 border-pink-500/30 text-white"
-              placeholder={t("enterMaximumUsageCount")}
-              required
             />
-            <p className="text-xs text-pink-200/70">{t("maximumNumberOfTimesThisCodeCanBeUsed")}</p>
+            <p className="text-xs text-pink-200">
+              {t("leaveBlankForUnlimited")}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -270,19 +243,23 @@ export default function CreateDiscountCode() {
               type="datetime-local"
               value={formData.expiredAt}
               onChange={(e) => setFormData({ ...formData, expiredAt: e.target.value })}
-              className="bg-[#1a0022]/80 border-pink-500/30 text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              className="bg-[#1a0022]/80 border-pink-500/30 text-white [&::-webkit-calendar-picker-indicator]:invert"
               required
             />
-            <p className="text-xs text-pink-200/70">{t("whenThisDiscountCodeWillExpire")}</p>
+            {discountCode.isExpired && (
+              <p className="text-xs text-red-400">
+                {t("currentlyExpired")}
+              </p>
+            )}
           </div>
 
-          <div className="flex gap-4 pt-4">
+          <div className="pt-4 flex gap-4">
             <Button
               type="submit"
               className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
               disabled={loading}
             >
-              {loading ? t("creating") : t("createDiscountCode")}
+              {loading ? t("updating") : t("updateDiscountCode")}
             </Button>
             <Button
               type="button"
@@ -296,4 +273,4 @@ export default function CreateDiscountCode() {
       </div>
     </div>
   );
-} 
+}

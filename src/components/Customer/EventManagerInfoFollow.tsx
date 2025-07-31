@@ -20,19 +20,41 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!eventManagerId) return;
+    if (!eventManagerId) {
+      console.error('No eventManagerId provided to EventManagerInfoFollow');
+      return;
+    }
     setLoading(true);
+    console.log('Fetching user info for ID:', eventManagerId);
+    
     getUserByIdAPI(eventManagerId)
-      .then(setInfo)
-      .catch(() => setInfo(null))
+      .then(userInfo => {
+        console.log('Fetched user info:', userInfo);
+        setInfo(userInfo);
+      })
+      .catch(error => {
+        console.error('Error fetching user info:', error);
+        setInfo(null);
+      })
       .finally(() => setLoading(false));
   }, [eventManagerId]);
 
   useEffect(() => {
-    if (!info?.accountId) return;
+    if (!info?.accountId) {
+      console.log('No accountId available for follow check');
+      return;
+    }
+    console.log('Checking follow status for accountId:', info.accountId);
+    
     checkFollowEventManager(info.accountId)
-      .then(res => setIsFollowing(!!res))
-      .catch(() => setIsFollowing(false));
+      .then(res => {
+        console.log('Follow status:', res);
+        setIsFollowing(!!res);
+      })
+      .catch(error => {
+        console.error('Error checking follow status:', error);
+        setIsFollowing(false);
+      });
   }, [info?.accountId]);
 
   const handleFollow = async () => {
@@ -46,11 +68,31 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
         await followEventManager(info.accountId);
         setIsFollowing(true);
       }
-    } catch {
-      // handle error (toast...)
+    } catch (error) {
+      console.error('Error handling follow:', error);
     } finally {
       setFollowLoading(false);
     }
+  };
+
+  const handleNavigateToProfile = () => {
+    if (!info) {
+      console.error('User info is not available');
+      return;
+    }
+    
+    // Try to use userId first, fallback to accountId if needed
+    const userId = info.userId || info.accountId || eventManagerId;
+    
+    if (!userId) {
+      console.error('No valid user ID available for navigation');
+      console.log('Available user info:', info);
+      return;
+    }
+    
+    console.log('Navigating to profile with ID:', userId);
+    navigate(`/event-manager/${userId}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading || !info) return null;
@@ -78,12 +120,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               src={info.avatarUrl || NO_AVATAR}
               alt={info.fullName || 'avatar'}
               className="relative w-16 h-16 rounded-full object-cover cursor-pointer border-2 border-white/20 backdrop-blur-sm transform hover:scale-110 transition-all duration-300 shadow-xl"
-              onClick={() => {
-                if (info.userId) {
-                  navigate(`/event-manager/${info.userId}`);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
+              onClick={handleNavigateToProfile}
             />
             <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300"></div>
           </div>
@@ -91,12 +128,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
           <div className="flex-1 min-w-0">
             <div
               className="font-bold text-lg text-white cursor-pointer truncate hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-purple-400 hover:to-pink-400 transition-all duration-300 transform hover:scale-105"
-              onClick={() => {
-                if (info.userId) {
-                  navigate(`/event-manager/${info.userId}`);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
+              onClick={handleNavigateToProfile}
             >
               {info.fullName || 'Event Manager'}
             </div>

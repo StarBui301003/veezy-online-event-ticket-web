@@ -45,26 +45,11 @@ export default function TicketSalesDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterRevenueMin, setFilterRevenueMin] = useState('');
-  const [filterRevenueMax, setFilterRevenueMax] = useState('');
-  const [filterTicketsMin, setFilterTicketsMin] = useState('');
-  const [filterTicketsMax, setFilterTicketsMax] = useState('');
 
   useEffect(() => {
     fetchSalesData(selectedPeriod);
     // eslint-disable-next-line
-  }, [
-    selectedPeriod,
-    filterDateFrom,
-    filterDateTo,
-    filterRevenueMin,
-    filterRevenueMax,
-    filterTicketsMin,
-    filterTicketsMax,
-  ]);
+  }, [selectedPeriod]);
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
@@ -107,8 +92,6 @@ export default function TicketSalesDashboard() {
         period,
         groupBy: 1,
       };
-      if (filterDateFrom) filter.customStartDate = filterDateFrom;
-      if (filterDateTo) filter.customEndDate = filterDateTo;
       const dash = await getEventManagerDashboard({ period });
       if (!dash.data) {
         toast.error(t('ticketSalesDashboard.noDataToExport'));
@@ -136,11 +119,11 @@ export default function TicketSalesDashboard() {
   };
 
   const totalRevenue = salesData
-    .filter(item => item.status === 4)
+    .filter(item => item.status === 5)
     .reduce((sum, item) => sum + (item.revenue || 0), 0);
 
   const totalTickets = salesData
-    .filter(item => item.status === 4)
+    .filter(item => item.status === 5)
     .reduce((sum, item) => sum + (item.ticketsSold || 0), 0);
 
   const formatCurrency = (amount: number) => {
@@ -150,17 +133,10 @@ export default function TicketSalesDashboard() {
     }).format(amount);
   };
 
-  // Chỉ hiện trạng thái 4 và giữ các filter khác
   const filteredSalesData = salesData.filter(item => {
-    if (item.status !== 4) return false;
+    if (item.status !== 5) return false;
     const nameMatch = item.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-    const dateFromMatch = filterDateFrom ? (item.eventDate && new Date(item.eventDate) >= new Date(filterDateFrom)) : true;
-    const dateToMatch = filterDateTo ? (item.eventDate && new Date(item.eventDate) <= new Date(filterDateTo)) : true;
-    const revenueMinMatch = filterRevenueMin ? (item.revenue || 0) >= Number(filterRevenueMin) : true;
-    const revenueMaxMatch = filterRevenueMax ? (item.revenue || 0) <= Number(filterRevenueMax) : true;
-    const ticketsMinMatch = filterTicketsMin ? (item.ticketsSold || 0) >= Number(filterTicketsMin) : true;
-    const ticketsMaxMatch = filterTicketsMax ? (item.ticketsSold || 0) <= Number(filterTicketsMax) : true;
-    return nameMatch && dateFromMatch && dateToMatch && revenueMinMatch && revenueMaxMatch && ticketsMinMatch && ticketsMaxMatch;
+    return nameMatch;
   });
 
   return (
@@ -244,7 +220,7 @@ export default function TicketSalesDashboard() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <h2 className="text-2xl font-bold text-green-300">{t('ticketSalesDashboard.ticketSalesDetailsByEvent')}</h2>
             <div className="flex flex-1 flex-col md:flex-row md:items-center md:justify-end gap-2">
-              <div className="flex gap-2 mb-2 md:mb-0">
+              <div className="flex gap-2">
                 {['week', 'month', 'quarter', 'year'].map((period) => (
                   <Button
                     key={period}
@@ -270,58 +246,9 @@ export default function TicketSalesDashboard() {
                   onChange={e => setSearchTerm(e.target.value)}
                   className="px-4 py-2 rounded-lg border border-green-400 bg-[#1a0022] text-white focus:outline-none focus:ring-2 focus:ring-green-500 w-full max-w-xs"
                 />
-                <Button variant="outline" onClick={() => setAdvancedOpen(true)} className="border-green-400 text-green-300 flex items-center gap-1">
-                  <Search size={16} /> {t('ticketSalesDashboard.advancedSearch')}
-                </Button>
               </div>
             </div>
           </div>
-
-          {/* Advanced Search Modal */}
-          <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
-            <DialogContent className="bg-[#1a0022] text-white max-w-lg w-full rounded-xl p-6">
-              <DialogTitle className="text-lg font-bold mb-4">{t('ticketSalesDashboard.advancedSearch')}</DialogTitle>
-              <div className="flex flex-col gap-4">
-                {/* Các filter khác vẫn giữ nguyên nhưng không dùng filterStatus nữa */}
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.fromDate')}</label>
-                    <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.toDate')}</label>
-                    <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.minRevenue')}</label>
-                    <input type="number" min="0" value={filterRevenueMin} onChange={e => setFilterRevenueMin(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.maxRevenue')}</label>
-                    <input type="number" min="0" value={filterRevenueMax} onChange={e => setFilterRevenueMax(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.minTicketsSold')}</label>
-                    <input type="number" min="0" value={filterTicketsMin} onChange={e => setFilterTicketsMin(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block mb-1">{t('ticketSalesDashboard.maxTicketsSold')}</label>
-                    <input type="number" min="0" value={filterTicketsMax} onChange={e => setFilterTicketsMax(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#2d0036] border border-green-400 text-white" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-6">
-                <Button variant="outline" onClick={() => {
-                  setFilterDateFrom(''); setFilterDateTo(''); setFilterRevenueMin(''); setFilterRevenueMax(''); setFilterTicketsMin(''); setFilterTicketsMax(''); setAdvancedOpen(false);
-                }} className="border-green-400 text-green-300">{t('ticketSalesDashboard.reset')}</Button>
-                <Button onClick={() => setAdvancedOpen(false)} className="bg-green-600 text-white">{t('ticketSalesDashboard.apply')}</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
 
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -367,7 +294,7 @@ export default function TicketSalesDashboard() {
                       <span className="text-purple-400 font-semibold">{item.eventDate ? new Date(item.eventDate).toLocaleDateString('vi-VN') : '-'}</span>
                     </td>
                     <td className="p-4 text-center">
-                      <span className="text-green-300 font-semibold">{t('ticketSalesDashboard.ended')}</span>
+                      <span className="text-green-300 font-semibold">{t(`ticketSalesDashboard.statuses.${item.status || 5}`)}</span>
                     </td>
                   </motion.tr>
                 ))}

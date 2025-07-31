@@ -103,6 +103,7 @@ export async function updateEvent(eventId: string, data: CreateEventData) {
   return response.data?.data || response.data;
 }
 
+
 // === Delete Event Image ===
 export async function deleteEventImage(imageUrl: string) {
   return instance.delete(
@@ -477,10 +478,7 @@ export async function useDiscountCode(eventId: string, code: string) {
   return response.data;
 }
 
-export async function deleteDiscountCode(id: string) {
-  const response = await instance.delete(`/api/DiscountCode/${id}`);
-  return response.data;
-}
+
 
 // Cập nhật tin tức
 export async function updateNews(newsId: string, data: Partial<NewsPayload>) {
@@ -668,64 +666,104 @@ export async function enableWithdrawalForCompletedEvents() {
 const ANALYTICS_PREFIX = "/api/analytics/eventManager";
 
 type DashboardParams = {
-  period?: number;
-  groupBy?: number;
-  includeMetrics?: string[];
-  includeRealtimeData?: boolean;
-  customStartDate?: string;
-  customEndDate?: string;
-  includeComparison?: boolean;
-  comparisonPeriod?: number;
+  Period?: number;
+  GroupBy?: number;
+  IncludeMetrics?: string[];
+  IncludeRealtimeData?: boolean;
+  CustomStartDate?: string;
+  CustomEndDate?: string;
+  IncludeComparison?: boolean;
+  ComparisonPeriod?: number;
+  EventManagerId?: string;
 };
 
 type RevenueParams = {
-  eventIds?: string[];
-  categoryIds?: string[];
-  paymentStatus?: number;
-  period?: number;
-  groupBy?: number;
-  customStartDate?: string;
-  customEndDate?: string;
-  includeComparison?: boolean;
-  comparisonPeriod?: number;
+  EventIds?: string[];
+  CategoryIds?: string[];
+  PaymentStatus?: number;
+  Period?: number;
+  GroupBy?: number;
+  CustomStartDate?: string;
+  CustomEndDate?: string;
+  IncludeComparison?: boolean;
+  ComparisonPeriod?: number;
+  EventManagerId?: string;
 };
 
 type TicketStatsParams = {
-  period?: number;
-  groupBy?: number;
-  customStartDate?: string;
-  customEndDate?: string;
-  includeComparison?: boolean;
-  comparisonPeriod?: number;
+  Period?: number;
+  GroupBy?: number;
+  CustomStartDate?: string;
+  CustomEndDate?: string;
+  IncludeComparison?: boolean;
+  ComparisonPeriod?: number;
+  EventManagerId?: string;
 };
 
-// Dashboard tổng quan cho Event Manager
-export async function getEventManagerDashboard(params: DashboardParams = {}) {
+// Debug version của getEventManagerDashboard
+export async function getEventManagerDashboard(params: any = {}) {
   const query = new URLSearchParams();
-  if (params.period) query.append("Period", params.period.toString());
-  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
-  if (params.includeMetrics) params.includeMetrics.forEach(m => query.append("IncludeMetrics", m));
+  
+  console.log('Original params:', params);
+  
+  // Thử cả hai cách: camelCase và PascalCase
+  if (params.period !== undefined) query.append("Period", params.period.toString());
+  if (params.Period !== undefined) query.append("Period", params.Period.toString());
+  
+  if (params.groupBy !== undefined) query.append("GroupBy", params.groupBy.toString());
+  if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
+  
   if (params.includeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.includeRealtimeData));
+  if (params.IncludeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.IncludeRealtimeData));
+  
   if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+  if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
+  
   if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+  if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
+  
   if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
-  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
-  const response = await instance.get(`${ANALYTICS_PREFIX}/dashboard?${query.toString()}`);
-  return response.data;
+  if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
+  
+  if (params.comparisonPeriod !== undefined) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
+  
+  if (params.eventManagerId) query.append("EventManagerId", params.eventManagerId);
+  if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
+
+  const url = `${ANALYTICS_PREFIX}/dashboard?${query.toString()}`;
+  console.log('Final API URL:', url);
+  
+  try {
+    const response = await instance.get(url);
+    console.log('API Response status:', response.status);
+    console.log('API Response data:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+      console.error('Error status:', error.response.status);
+    }
+    throw error;
+  }
 }
 
 // Thống kê doanh thu Event Manager
 export async function getEventManagerRevenue(params: RevenueParams = {}) {
   const query = new URLSearchParams();
-  if (params.eventIds) params.eventIds.forEach(id => query.append("EventIds", id));
-  if (params.categoryIds) params.categoryIds.forEach(id => query.append("CategoryIds", id));
-  if (params.paymentStatus !== undefined) query.append("PaymentStatus", params.paymentStatus.toString());
-  if (params.period) query.append("Period", params.period.toString());
-  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
-  if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
-  if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
-  if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
-  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  
+  if (params.EventIds) params.EventIds.forEach(id => query.append("EventIds", id));
+  if (params.CategoryIds) params.CategoryIds.forEach(id => query.append("CategoryIds", id));
+  if (params.PaymentStatus !== undefined) query.append("PaymentStatus", params.PaymentStatus.toString());
+  if (params.Period !== undefined) query.append("Period", params.Period.toString());
+  if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
+  if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
+  if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
+  if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
+  if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
+  if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
+  
   const response = await instance.get(`${ANALYTICS_PREFIX}/revenue?${query.toString()}`);
   return response.data;
 }
@@ -733,36 +771,203 @@ export async function getEventManagerRevenue(params: RevenueParams = {}) {
 // Thống kê vé Event Manager
 export async function getEventManagerTicketStats(params: TicketStatsParams = {}) {
   const query = new URLSearchParams();
-  if (params.period) query.append("Period", params.period.toString());
-  if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
-  if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
-  if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
-  if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
-  if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+  
+  if (params.Period !== undefined) query.append("Period", params.Period.toString());
+  if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
+  if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
+  if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
+  if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
+  if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
+  if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
+  
   const response = await instance.get(`${ANALYTICS_PREFIX}/tickets/stats?${query.toString()}`);
   return response.data;
 }
 
 // Sự kiện sắp tới
-export async function getUpcomingEvents() {
-  const response = await instance.get(`${ANALYTICS_PREFIX}/events/upcoming`);
+export async function getUpcomingEvents(eventManagerId?: string) {
+  const query = new URLSearchParams();
+  if (eventManagerId) query.append("EventManagerId", eventManagerId);
+  
+  const response = await instance.get(`${ANALYTICS_PREFIX}/events/upcoming?${query.toString()}`);
   return response.data;
 }
 
 // Tổng quan realtime
-export async function getRealtimeOverview() {
-  const response = await instance.get(`${ANALYTICS_PREFIX}/realtime/overview`);
+export async function getRealtimeOverview(eventManagerId?: string) {
+  const query = new URLSearchParams();
+  if (eventManagerId) query.append("EventManagerId", eventManagerId);
+  
+  const response = await instance.get(`${ANALYTICS_PREFIX}/realtime/overview?${query.toString()}`);
   return response.data;
 }
 
 // So sánh hiệu suất
-export async function comparePerformance(currentPeriod: number, comparisonPeriod: number) {
-  const response = await instance.post(`${ANALYTICS_PREFIX}/performance/compare`, {
+export async function comparePerformance(currentPeriod: number, comparisonPeriod: number, eventManagerId?: string) {
+  const payload: any = {
     currentPeriod,
     comparisonPeriod
-  });
+  };
+  
+  if (eventManagerId) {
+    payload.eventManagerId = eventManagerId;
+  }
+  
+  const response = await instance.post(`${ANALYTICS_PREFIX}/performance/compare`, payload);
   return response.data;
 }
+
+// Thêm các API bổ sung nếu cần:
+
+// Lấy chi tiết event theo ID
+export async function getEventDetails(eventId: string) {
+  const response = await instance.get(`${ANALYTICS_PREFIX}/events/${eventId}/details`);
+  return response.data;
+}
+
+// Thống kê theo category
+export async function getCategoryStats(params: {
+  Period?: number;
+  GroupBy?: number;
+  CustomStartDate?: string;
+  CustomEndDate?: string;
+  EventManagerId?: string;
+} = {}) {
+  const query = new URLSearchParams();
+  
+  if (params.Period !== undefined) query.append("Period", params.Period.toString());
+  if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
+  if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
+  if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
+  if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
+  
+  const response = await instance.get(`${ANALYTICS_PREFIX}/categories/stats?${query.toString()}`);
+  return response.data;
+}
+
+// Export data
+export async function exportDashboardData(params: {
+  Period?: number;
+  CustomStartDate?: string;
+  CustomEndDate?: string;
+  Format?: 'xlsx' | 'csv' | 'pdf';
+  IncludeCharts?: boolean;
+  EventManagerId?: string;
+} = {}) {
+  const query = new URLSearchParams();
+  
+  if (params.Period !== undefined) query.append("Period", params.Period.toString());
+  if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
+  if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
+  if (params.Format) query.append("Format", params.Format);
+  if (params.IncludeCharts !== undefined) query.append("IncludeCharts", String(params.IncludeCharts));
+  if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
+  
+  const response = await instance.get(`${ANALYTICS_PREFIX}/export?${query.toString()}`, {
+    responseType: 'blob'
+  });
+  return response;
+}
+
+// === Event Manager Analytics APIs ===
+// const ANALYTICS_PREFIX = "/api/analytics/eventManager";
+
+// type DashboardParams = {
+//   period?: number;
+//   groupBy?: number;
+//   includeMetrics?: string[];
+//   includeRealtimeData?: boolean;
+//   customStartDate?: string;
+//   customEndDate?: string;
+//   includeComparison?: boolean;
+//   comparisonPeriod?: number;
+// };
+
+// type RevenueParams = {
+//   eventIds?: string[];
+//   categoryIds?: string[];
+//   paymentStatus?: number;
+//   period?: number;
+//   groupBy?: number;
+//   customStartDate?: string;
+//   customEndDate?: string;
+//   includeComparison?: boolean;
+//   comparisonPeriod?: number;
+// };
+
+// type TicketStatsParams = {
+//   period?: number;
+//   groupBy?: number;
+//   customStartDate?: string;
+//   customEndDate?: string;
+//   includeComparison?: boolean;
+//   comparisonPeriod?: number;
+// };
+
+// // Dashboard tổng quan cho Event Manager
+// export async function getEventManagerDashboard(params: DashboardParams = {}) {
+//   const query = new URLSearchParams();
+//   if (params.period) query.append("Period", params.period.toString());
+//   if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+//   if (params.includeMetrics) params.includeMetrics.forEach(m => query.append("IncludeMetrics", m));
+//   if (params.includeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.includeRealtimeData));
+//   if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+//   if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+//   if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+//   if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+//   const response = await instance.get(`${ANALYTICS_PREFIX}/dashboard?${query.toString()}`);
+//   return response.data;
+// }
+
+// // Thống kê doanh thu Event Manager
+// export async function getEventManagerRevenue(params: RevenueParams = {}) {
+//   const query = new URLSearchParams();
+//   if (params.eventIds) params.eventIds.forEach(id => query.append("EventIds", id));
+//   if (params.categoryIds) params.categoryIds.forEach(id => query.append("CategoryIds", id));
+//   if (params.paymentStatus !== undefined) query.append("PaymentStatus", params.paymentStatus.toString());
+//   if (params.period) query.append("Period", params.period.toString());
+//   if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+//   if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+//   if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+//   if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+//   if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+//   const response = await instance.get(`${ANALYTICS_PREFIX}/revenue?${query.toString()}`);
+//   return response.data;
+// }
+
+// // Thống kê vé Event Manager
+// export async function getEventManagerTicketStats(params: TicketStatsParams = {}) {
+//   const query = new URLSearchParams();
+//   if (params.period) query.append("Period", params.period.toString());
+//   if (params.groupBy) query.append("GroupBy", params.groupBy.toString());
+//   if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
+//   if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
+//   if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
+//   if (params.comparisonPeriod) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
+//   const response = await instance.get(`${ANALYTICS_PREFIX}/tickets/stats?${query.toString()}`);
+//   return response.data;
+// }
+
+// // Sự kiện sắp tới
+// export async function getUpcomingEvents() {
+//   const response = await instance.get(`${ANALYTICS_PREFIX}/events/upcoming`);
+//   return response.data;
+// }
+
+// // Tổng quan realtime
+// export async function getRealtimeOverview() {
+//   const response = await instance.get(`${ANALYTICS_PREFIX}/realtime/overview`);
+//   return response.data;
+// }
+
+// // So sánh hiệu suất
+// export async function comparePerformance(currentPeriod: number, comparisonPeriod: number) {
+//   const response = await instance.post(`${ANALYTICS_PREFIX}/performance/compare`, {
+//     currentPeriod,
+//     comparisonPeriod
+//   });
+//   return response.data;
+// }
 
 
 
@@ -820,4 +1025,67 @@ export async function getHomeEvents() {
 export async function getAIRecommendedEvents(): Promise<AIRecommendResponse> {
   const response = await instance.get('/api/Event/recommend');
   return response.data;
+}
+// === Discount Code APIs ===
+
+export interface DiscountCode {
+  discountId: string;
+  eventId: string;
+  code: string;
+  discountType: number;
+  value: number;
+  minimum: number;
+  maximum: number;
+  maxUsage: number;
+  usedCount: number;
+  expiredAt: string;
+  createdAt: string;
+  isExpired: boolean;
+  isAvailable: boolean;
+  remainingUsage: number;
+}
+
+export interface CreateDiscountCodePayload {
+  eventId: string;
+  code: string;
+  discountType: number;
+  value: number;
+  minimum?: number;
+  maximum?: number;
+  maxUsage?: number;
+  expiredAt: string;
+}
+
+export interface UpdateDiscountCodePayload {
+  code?: string;
+  discountType?: number;
+  value?: number;
+  minimum?: number;
+  maximum?: number;
+  maxUsage?: number;
+  expiredAt?: string;
+}
+
+// Create new discount code
+export async function createDiscountCode(data: CreateDiscountCodePayload): Promise<DiscountCode> {
+  const response = await instance.post("/api/DiscountCode", data);
+  return response.data?.data || response.data;
+}
+
+// Get discount code by ID
+export async function getDiscountCodeById(discountId: string): Promise<DiscountCode> {
+  const response = await instance.get(`/api/DiscountCode/${discountId}`);
+  return response.data?.data || response.data;
+}
+
+// Update discount code
+export async function updateDiscountCode(discountId: string, data: UpdateDiscountCodePayload): Promise<DiscountCode> {
+  const response = await instance.put(`/api/DiscountCode/${discountId}`, data);
+  return response.data?.data || response.data;
+}
+
+// Delete discount code
+export async function deleteDiscountCode(discountId: string): Promise<boolean> {
+  const response = await instance.delete(`/api/DiscountCode/${discountId}`);
+  return response.data?.data || response.data;
 }

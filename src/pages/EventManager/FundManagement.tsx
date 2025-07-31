@@ -63,6 +63,7 @@ export default function FundManagement() {
   const [withdrawalNotes, setWithdrawalNotes] = useState<string>('');
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [withdrawalError, setWithdrawalError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchEvent, setSearchEvent] = useState('');
@@ -122,7 +123,7 @@ export default function FundManagement() {
 
   const fetchFundData = async (eventId: string) => {
     try {
-      const [ , balanceRes, revenueRes, transactionsRes] = await Promise.all([
+      const [ /*fundRes*/, balanceRes, revenueRes, transactionsRes] = await Promise.all([
         getEventFund(eventId),
         getEventBalance(eventId),
         getEventRevenue(eventId),
@@ -141,28 +142,61 @@ export default function FundManagement() {
   };
 
   const handleRequestWithdrawal = async () => {
+    setWithdrawalError(null); // Reset error state
     if (isSubmitting) return;
     if (!selectedEvent || !withdrawalAmount) {
-      toast.error(t('pleaseEnterAmount'));
+      setWithdrawalError(t('pleaseEnterAmount'));
+      setShowWithdrawalModal(false); // Close modal on error
       return;
     }
 
     const amount = parseFloat(withdrawalAmount);
     if (amount <= 0 || amount > balance) {
-      toast.error(t('invalidAmount'));
+      setWithdrawalError(t('invalidAmount'));
+      setShowWithdrawalModal(false); // Close modal on error
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // Show loading state
+      const loadingToast = toast.loading(t('processingWithdrawal'), {
+        position: 'top-center',
+        autoClose: false,
+        closeOnClick: false,
+        pauseOnHover: false,
+        draggable: false,
+        closeButton: false,
+      });
+
       await requestWithdrawal(selectedEvent.eventId, amount);
-      toast.success(t('withdrawalRequestSent'));
+      
+      // Update loading toast to success
+      toast.update(loadingToast, {
+        render: t('withdrawalRequestSent'),
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000,
+        closeButton: true,
+      });
+
       setShowWithdrawalModal(false);
       setWithdrawalAmount('');
       setWithdrawalNotes('');
       fetchFundData(selectedEvent.eventId);
-    } catch {
-      toast.error(t('errorSendingWithdrawalRequest'));
+    } catch (error: any) {
+      // Dismiss loading toast if it exists
+      toast.dismiss();
+      
+      setShowWithdrawalModal(false); // Close modal on error
+      if (error.response?.data?.message === 'Withdrawal is not enabled for this event') {
+        setWithdrawalError(t('withdrawalNotEnabled'));
+      } else {
+        toast.error(t('errorSendingWithdrawalRequest'), {
+          position: 'top-center',
+          autoClose: 3000,
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -397,6 +431,11 @@ export default function FundManagement() {
           >
             <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-green-500/30 shadow-2xl">
               <h2 className="text-2xl font-bold text-green-300 mb-6">{t('withdrawalRequest')}</h2>
+              {withdrawalError && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-400 rounded-lg text-red-200 text-sm">
+                  {withdrawalError}
+                </div>
+              )}
               <Button
                 onClick={() => setShowWithdrawalModal(true)}
                 disabled={balance <= 0}

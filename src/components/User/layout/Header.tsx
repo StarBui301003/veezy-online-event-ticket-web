@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
@@ -88,13 +89,8 @@ export const Header = () => {
       return;
     }
 
-    try {
-      const results = await searchEvents(searchTerm);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Search failed:', error);
-      setSearchResults([]);
-    }
+    // Navigate to search results page with the search term
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
   };
 
   useEffect(() => {
@@ -204,47 +200,47 @@ export const Header = () => {
           <div className="sm:flex sm:gap-x-8 hidden items-center">
             <Link
               to="/"
-              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
             >
               {t('Home')}
             </Link>
             <Link
               to="/events"
-              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
             >
               {t('Event')}
             </Link>
             <Link
               to="/news"
-              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
             >
               {t('News')}
             </Link>
             <Link
               to="/terms-of-use"
-              className="body-bold-16 text-dark-blue-primary whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
             >
               {t('Terms of Use')}
             </Link>
           </div>
           {/* desktop search bar */}
-          <div className="search-container flex w-full max-w-sm items-center min-w-70 border bg-white rounded-[46px] ml-16 relative">
-            <CiSearch className="size-5 text-neutral-60 ml-[17px]" strokeWidth={1.2} />
+          <div className="search-container flex w-full max-w-sm items-center min-w-70 border border-white/20 bg-white/10 rounded-[46px] ml-16 relative">
+            <CiSearch className="size-5 text-white ml-[17px]" strokeWidth={1.2} />
             <Input
               type="text"
               placeholder={t('search_placeholder')}
-              className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-neutral-40 shadow-none"
+              className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-white placeholder:text-white/70 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
             {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
                 {searchResults.map((item) => (
                   <Link
                     key={item.id}
                     to={`/event/${item.id}`}
-                    className="block p-3 hover:bg-gray-100 border-b border-gray-100"
+                    className="block p-3 text-white border-b border-gray-700 last:border-b-0"
                     onClick={() => setSearchResults([])}
                   >
                     <div className="flex items-center">
@@ -256,8 +252,8 @@ export const Header = () => {
                         />
                       )}
                       <div>
-                        <div className="font-medium text-gray-900">{item.name}</div>
-                        <div className="text-sm text-gray-500">
+                        <div className="font-medium text-white">{item.name}</div>
+                        <div className="text-sm text-gray-300">
                           {new Date(item.date).toLocaleDateString()}
                         </div>
                       </div>
@@ -273,15 +269,25 @@ export const Header = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent transition duration-300 hover:scale-110 hover:shadow"
+                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent text-white transition duration-300 hover:scale-110 hover:shadow hover:bg-white/10"
                 >
                   {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
-                  <IoIosArrowDown />
+                  <IoIosArrowDown className="text-white" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-32">
-                <DropdownMenuItem onClick={() => handleChangeLanguage('vi')}>VN</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleChangeLanguage('en')}>EN</DropdownMenuItem>
+              <DropdownMenuContent className="w-32 bg-gray-900 border-gray-700">
+                <DropdownMenuItem
+                  onClick={() => handleChangeLanguage('vi')}
+                  className="text-white cursor-pointer"
+                >
+                  VN
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleChangeLanguage('en')}
+                  className="text-white cursor-pointer"
+                >
+                  EN
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -299,13 +305,13 @@ export const Header = () => {
               <>
                 <Link
                   to="/login"
-                  className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
                   {t('login')}
                 </Link>
                 <Link
                   to="/register"
-                  className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
                   {t('signUp')}
                 </Link>
@@ -315,33 +321,33 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-3 bg-transparent"
+                    className="flex items-center gap-2 px-3 bg-transparent hover:bg-white/10"
                     style={{ minWidth: 0 }}
                   >
-                    <Avatar className="w-8 h-8 border border-zinc-500 rounded-full">
+                    <Avatar className="w-8 h-8 border border-white/30 rounded-full">
                       <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-white/10 text-white">
                         {user?.fullName?.[0]?.toUpperCase() ||
                           account.fullname?.[0]?.toUpperCase() ||
                           account.username?.[0]?.toUpperCase() ||
                           'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline whitespace-nowrap">
+                    <span className="hidden sm:inline whitespace-nowrap text-white">
                       {user?.fullName || account.fullname || account.username}
                     </span>
-                    <IoIosArrowDown />
+                    <IoIosArrowDown className="text-white" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-lg bg-white dark:bg-zinc-900"
+                  className="w-60 rounded-lg bg-gray-900 border-gray-700 text-white"
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 pl-2 py-2">
-                      <Avatar className="h-10 w-10 rounded-full border border-zinc-500 dark:border-zinc-700">
+                      <Avatar className="h-10 w-10 rounded-full border border-white/30">
                         <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                        <AvatarFallback className="rounded-full">
+                        <AvatarFallback className="rounded-full bg-white/10 text-white">
                           {user?.fullName?.[0]?.toUpperCase() ||
                             account.fullname?.[0]?.toUpperCase() ||
                             account.username?.[0]?.toUpperCase() ||
@@ -349,30 +355,28 @@ export const Header = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col justify-center">
-                        <span className="font-semibold text-sm truncate max-w-[140px]">
+                        <span className="font-semibold text-sm text-white truncate max-w-[140px]">
                           {user?.username || account.username || account.fullname}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                        <span className="text-xs text-gray-300 truncate max-w-[180px]">
                           {user?.email || account.email}
                         </span>
                       </div>
                     </div>
-                    {/* ...existing code... */}
-                    {/* ...existing code... */}
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
-                    className="hover:bg-blue-50 pl-5"
+                    className="text-white focus:text-white pl-5"
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
                     {t('profile')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={loadingLogout}
-                    className="hover:bg-blue-50 pl-5"
+                    className="text-white focus:text-white pl-5"
                   >
                     <LogOut className="mr-2" />
                     {loadingLogout ? (
@@ -384,7 +388,7 @@ export const Header = () => {
                       t('logout')
                     )}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -392,13 +396,13 @@ export const Header = () => {
             {account && (
               <div className="relative">
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/30 transition-all relative"
+                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-all relative"
                   onClick={() => setNotifDropdown((v) => !v)}
                   title={t('notification')}
                 >
-                  <Bell className="text-purple-500 text-xl" />
+                  <Bell className="text-white text-xl" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-800 animate-pulse"></span>
                   )}
                 </button>
                 {notifDropdown && (

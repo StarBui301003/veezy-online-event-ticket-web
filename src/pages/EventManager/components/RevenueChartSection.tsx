@@ -30,7 +30,15 @@ Chart.register(
   Filler
 );
 
-export default function RevenueChartSection({ filter }: { filter: { CustomStartDate: string; CustomEndDate: string; GroupBy: number } }) {
+// Fix: Update interface để match với main dashboard
+interface RevenueFilterProps {
+  CustomStartDate: string;
+  CustomEndDate: string;
+  GroupBy: number;
+  Period: number; // Thêm Period
+}
+
+export default function RevenueChartSection({ filter }: { filter: RevenueFilterProps }) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<{ eventName: string; revenue: number }[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
@@ -41,10 +49,12 @@ export default function RevenueChartSection({ filter }: { filter: { CustomStartD
   async function fetchData() {
     setLoading(true);
     try {
+      // Fix: Sử dụng PascalCase để match với API
       const dash = await getEventManagerRevenue({
-        customStartDate: filter.CustomStartDate,
-        customEndDate: filter.CustomEndDate,
-        groupBy: filter.GroupBy,
+        CustomStartDate: filter.CustomStartDate, // PascalCase
+        CustomEndDate: filter.CustomEndDate,     // PascalCase
+        GroupBy: filter.GroupBy,                 // PascalCase
+        Period: filter.Period,                   // Thêm Period nếu cần
       });
       
       const revenueByEvent = dash.data?.revenueByEvent || dash.revenueByEvent || [];
@@ -57,7 +67,8 @@ export default function RevenueChartSection({ filter }: { filter: { CustomStartD
       
       setEvents(sortedEvents);
       setTimeline(revenueTrend);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
       setEvents([]);
       setTimeline([]);
     }
@@ -66,13 +77,15 @@ export default function RevenueChartSection({ filter }: { filter: { CustomStartD
 
   useEffect(() => {
     fetchData();
-  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy]);
+  }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy, filter.Period]);
 
   const formatCurrency = (amount: number) => {
-    if (amount >= 1000000000) return `${(amount / 1000000000).toFixed(1)}B₫`;
-    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M₫`;
-    if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K₫`;
-    return `${amount.toLocaleString('vi-VN')}₫`;
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   const getGroupByLabel = () => {

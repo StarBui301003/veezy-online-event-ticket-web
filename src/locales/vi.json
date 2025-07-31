@@ -1,8 +1,17 @@
 {
   "search_placeholder": "Tìm kiếm sự kiện...",
+  "search": {
+    "resultsFor": "Kết quả tìm kiếm cho: {{query}}",
+    "noResults": "Không tìm thấy kết quả cho '{{query}}'",
+    "browseAllEvents": "Xem tất cả sự kiện",
+    "errorFetchingResults": "Đã xảy ra lỗi khi tải kết quả tìm kiếm. Vui lòng thử lại.",
+    "events": "Sự kiện",
+    "noEventsFound": "Không tìm thấy sự kiện nào phù hợp với từ khóa tìm kiếm.",
+    "loading": "Đang tìm kiếm..."
+  },
   "Home": "Trang Chủ",
   "Event": "Sự Kiện",
-  "News": "Tin Tức",
+  "latestNews": "Tin Tức",
   "Terms of Use": "Điều Khoản Sử Dụng",
   "trackingTicketSales": "Theo dõi doanh số vé",
   "analyzingTicketPerformance": "Phân tích hiệu suất bán vé cho các sự kiện của bạn.",
@@ -753,6 +762,13 @@
       "errorPasswordRequired": "Mật Khẩu Bắt Buộc",
       "errorPasswordLength": "Mật Khẩu Phải Tối Thiểu 6 Ký Tự",
       "errorFullNameRequired": "Họ Và Tên Bắt Buộc",
-      "errorDateOfBirthRequired": "Ngày Sinh Bắt Buộc"
-    
+      "errorDateOfBirthRequired": "Ngày Sinh Bắt Buộc",
+  "editDiscountCode": "Chỉnh sửa mã giảm giá",
+  "updateDiscountCode": "Cập nhật mã giảm giá",
+  "discountCodeUpdatedSuccessfully": "Cập nhật mã giảm giá thành công!",
+  "discountCodeIdRequired": "Yêu cầu mã giảm giá",
+  "discountCodeNotFound": "Không tìm thấy mã giảm giá",
+  "failedToLoadDiscountCode": "Không tải được thông tin mã giảm giá",
+  "failedToUpdateDiscountCode": "Cập nhật mã giảm giá thất bại",
+  "updating": "Đang cập nhật..."
 }
