@@ -5,7 +5,10 @@ import { LOGO_RECTANGLE } from '@/assets/img';
 
 export const Footer = () => {
   return (
-    <footer className="bg-[linear-gradient(to_bottom_right,#0B1736,#091D4B,#0B1736)] text-white text-center  ">
+    <footer
+      className="bg-[linear-gradient(to_bottom_right,#0B1736,#091D4B,#0B1736)] text-white text-center"
+      style={{ background: 'linear-gradient(to bottom right, #0B1736, #091D4B, #0B1736)' }}
+    >
       <div className="wrapper mx-16 sm:px-0 pt-6 pb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between gap-x-16 items-center text-left mb-6 gap-y-6 ml-20 mt-2">
           <div className="sm:max-w-[320px]">

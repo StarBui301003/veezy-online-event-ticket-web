@@ -114,10 +114,19 @@ export const HomePage = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-black pt-20">
+    <div
+      className="relative min-h-screen bg-black pt-20"
+      style={{
+        backgroundColor: '#000000',
+        minHeight: '100vh',
+      }}
+    >
       {/* Spinner overlay cho loading event hoặc news */}
       <SpinnerOverlay show={loadingEvents || loadingNews} />
-      <div className="relative z-10 max-w-7xl mx-auto px-4">
+      <div
+        className="relative z-10 max-w-7xl mx-auto px-4 pb-8"
+        style={{ backgroundColor: '#000000' }}
+      >
         {/* Carousel */}
         <div className="w-full mb-12 relative">
           {loadingEvents ? (
