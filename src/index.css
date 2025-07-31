@@ -41,6 +41,7 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
+  background-color: #000000;
 }
 
 a {
@@ -54,10 +55,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #000000;
 }
 
 h1 {
@@ -128,6 +128,22 @@ h1 {
   body {
     @apply bg-background text-foreground;
     overflow: auto !important;
+    background-color: #000000 !important;
+  }
+  
+  /* Ensure all sections have black background */
+  #root {
+    background-color: #000000 !important;
+  }
+  
+  /* Fix any white sections */
+  .bg-white {
+    background-color: #000000 !important;
+  }
+  
+  /* Ensure layout components have black background */
+  .layout-container {
+    background-color: #000000 !important;
   }
 }
 

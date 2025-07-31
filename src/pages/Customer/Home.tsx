@@ -254,9 +254,7 @@ export const HomePage = () => {
                         <h3 className="font-bold text-white mb-2 group-hover:text-blue-400 transition-colors duration-200 line-clamp-2">
                           {item.newsTitle}
                         </h3>
-                        <p className="text-sm text-gray-300 line-clamp-2">
-                          {item.newsDescription}
-                        </p>
+                        <p className="text-sm text-gray-300 line-clamp-2">{item.newsDescription}</p>
                         {item.createdAt && (
                           <div className="mt-2 text-xs text-gray-400">
                             {new Date(item.createdAt).toLocaleDateString('vi-VN')}

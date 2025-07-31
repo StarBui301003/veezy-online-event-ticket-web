@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
-import { FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
+import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { LOGO_RECTANGLE } from '@/assets/img';
 
 export const Footer = () => {

@@ -27,7 +27,6 @@ import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
-import { searchEvents } from '@/services/search.service';
 
 // Helper: get userId from localStorage
 const getUserId = () => {
@@ -186,7 +185,7 @@ export const Header = () => {
   return (
     <>
       <div
-        className={cn('fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20', {
+        className={cn('fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20 bg-black', {
           'backdrop-blur': blur,
         })}
       >
