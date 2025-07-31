@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, ArrowLeft, Loader2, Bell, BellOff } from 'lucide-react';
-import { getUserNotifications, markAllNotificationsRead } from '@/services/notification.service';
+import { CheckCircle, ArrowLeft, Loader2, Bell, BellOff, RefreshCw, CheckCheck } from 'lucide-react';
+import { getUserNotifications, markAllNotificationsRead, markNotificationRead } from '@/services/notification.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { connectNotificationHub, onNotification } from "@/services/signalr.service";
 import { format } from 'date-fns';
+import { getNotificationIcon } from '@/components/common/getNotificationIcon';
 
 interface Notification {
   notificationId: string;
@@ -24,6 +25,8 @@ export default function AllNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -39,86 +42,142 @@ export default function AllNotificationsPage() {
     } 
   })() : null;
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (showLoader = true) => {
     if (!userId) {
       setLoading(false);
+      setError('User ID not found');
       return;
     }
     
-    setLoading(true);
+    if (showLoader) setLoading(true);
+    else setRefreshing(true);
+    
+    setError(null);
+    
     try {
+      console.log('Loading notifications for userId:', userId);
       const res = await getUserNotifications(userId, 1, 100);
+      console.log('API Response:', res);
       
-      if (res?.data?.success) {
+      // Check for API success using 'flag' field (as per API spec)
+      if (res?.data?.flag === true) {
         const items = Array.isArray(res.data.data?.items) 
           ? res.data.data.items 
-          : Array.isArray(res.data.data)
-            ? res.data.data
-            : [];
+          : [];
         
-        const processedItems = items.map(item => ({
-          notificationId: item.notificationId || item.id || '',
-          userId: item.userId || '',
-          notificationTitle: item.notificationTitle || item.title || 'No Title',
-          notificationMessage: item.notificationMessage || item.message || 'No message',
-          notificationType: item.notificationType || 0,
-          isRead: item.isRead || false,
-          redirectUrl: item.redirectUrl || '',
-          createdAt: item.createdAt || new Date().toISOString(),
-          createdAtVietnam: item.createdAtVietnam || new Date().toLocaleString('vi-VN')
-        }));
+        console.log('Raw items:', items);
         
-        const sortedItems = [...processedItems].sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        setNotifications(sortedItems);
+        if (items.length === 0) {
+          console.log('No notifications found');
+          setNotifications([]);
+        } else {
+          const processedItems = items.map(item => ({
+            notificationId: item.notificationId || '',
+            userId: item.userId || '',
+            notificationTitle: item.notificationTitle || 'No Title',
+            notificationMessage: item.notificationMessage || 'No message',
+            notificationType: item.notificationType || 0,
+            isRead: item.isRead || false,
+            redirectUrl: item.redirectUrl || '',
+            createdAt: item.createdAt || new Date().toISOString(),
+            createdAtVietnam: item.createdAtVietnam || item.createdAt || new Date().toISOString(),
+            readAt: item.readAt,
+            readAtVietnam: item.readAtVietnam || item.readAt
+          }));
+          
+          console.log('Processed items:', processedItems);
+          
+          const sortedItems = [...processedItems].sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          setNotifications(sortedItems);
+        }
       } else {
-        console.error('Failed to load notifications:', res?.data?.message || 'No success response');
+        const errorMsg = res?.data?.message || `API returned flag: ${res?.data?.flag}, code: ${res?.data?.code}`;
+        console.error('API Error:', errorMsg);
+        setError(errorMsg);
         setNotifications([]);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
       setNotifications([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     if (!userId || notifications.length === 0) return;
     
+    const unreadNotifications = notifications.filter(n => !n.isRead);
+    if (unreadNotifications.length === 0) return;
+    
     setMarkingRead(true);
     try {
+      console.log('Marking all as read for userId:', userId);
       const response = await markAllNotificationsRead(userId);
+      console.log('Mark all as read response:', response);
       
-      if (response?.data?.success) {
+      if (response?.data?.flag === true) {
+        const now = new Date();
         setNotifications(prev => 
           prev.map(n => ({
             ...n, 
             isRead: true,
-            readAt: new Date().toISOString(),
-            readAtVietnam: new Date().toLocaleString('vi-VN')
+            readAt: now.toISOString(),
+            readAtVietnam: now.toISOString()
           }))
         );
+        console.log('All notifications marked as read successfully');
       } else {
-        console.error('Failed to mark all as read:', response?.data?.message || 'Unknown error');
+        const errorMsg = response?.data?.message || `API returned flag: ${response?.data?.flag}, code: ${response?.data?.code}`;
+        console.error('Mark all as read error:', errorMsg);
+        setError(errorMsg);
       }
     } catch (error) {
       console.error('Error marking all as read:', error);
+      setError(error instanceof Error ? error.message : 'Failed to mark all as read');
     } finally {
       setMarkingRead(false);
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
+    if (!notification.isRead && userId) {
+      try {
+        await markNotificationRead(notification.notificationId, userId);
+        setNotifications(prev => 
+          prev.map(n => 
+            n.notificationId === notification.notificationId 
+              ? { ...n, isRead: true, readAt: new Date().toISOString(), readAtVietnam: new Date().toLocaleString('vi-VN') }
+              : n
+          )
+        );
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
+
+    // Navigate to redirect URL if available
     if (notification.redirectUrl) {
       navigate(notification.redirectUrl);
     }
   };
 
   const formatNotificationDate = (date: string) => {
-    return format(new Date(date), 'PPpp');
+    try {
+      return format(new Date(date), 'PPpp');
+    } catch (error) {
+      return date;
+    }
+  };
+
+  const handleRefresh = () => {
+    loadNotifications(false);
   };
 
   useEffect(() => {
@@ -128,19 +187,24 @@ export default function AllNotificationsPage() {
       await loadNotifications();
       
       // Connect to SignalR hub
-      connectNotificationHub();
-      
-      // Subscribe to notifications
-      onNotification('ReceiveNotification', (newNotification: Notification) => {
-        if (!isMounted) return;
+      try {
+        connectNotificationHub();
         
-        setNotifications(prev => [{
-          ...newNotification,
-          isRead: false,
-          createdAt: new Date().toISOString(),
-          createdAtVietnam: new Date().toLocaleString('vi-VN')
-        }, ...prev]);
-      });
+        // Subscribe to notifications
+        onNotification('ReceiveNotification', (newNotification: Notification) => {
+          if (!isMounted) return;
+          
+          console.log('Received new notification via SignalR:', newNotification);
+          setNotifications(prev => [{
+            ...newNotification,
+            isRead: false,
+            createdAt: newNotification.createdAt || new Date().toISOString(),
+            createdAtVietnam: newNotification.createdAtVietnam || new Date().toLocaleString('vi-VN')
+          }, ...prev]);
+        });
+      } catch (error) {
+        console.error('SignalR connection error:', error);
+      }
     };
     
     loadAndSubscribe().catch(console.error);
@@ -148,14 +212,26 @@ export default function AllNotificationsPage() {
     // Cleanup function
     return () => {
       isMounted = false;
-      // No need to stop the connection here as it's managed by the signalr service
     };
   }, [userId]);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      <div className={`min-h-screen bg-gray-900 text-gray-100`}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gray-900 -mt-24 pt-24">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6">
+              <div className="flex justify-center items-center h-64">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-300">
+                    {t('loading') || 'Đang tải thông báo...'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -163,138 +239,170 @@ export default function AllNotificationsPage() {
   const unreadCount = notifications.filter(notification => !notification.isRead).length;
 
   return (
-    <div className={`min-h-screen ${isEventManager ? 'bg-gray-900 text-gray-100' : 'bg-gray-50'}`}>
-      <div className={`max-w-4xl mx-auto p-4 sm:p-6 ${isEventManager ? 'pt-20' : ''}`}>
-        {/* Header */}
-        <div className={`flex items-center justify-between mb-6 p-4 rounded-lg ${
-          isEventManager ? 'bg-gray-800' : 'bg-white shadow-sm'
-        }`}>
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => navigate(-1)}
-              className={`p-2 rounded-full ${
-                isEventManager 
-                  ? 'hover:bg-gray-700 text-gray-300' 
-                  : 'hover:bg-gray-100 text-gray-600'
-              }`}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-semibold">
-              {t('notifications')}
-            </h1>
-            {unreadCount > 0 && (
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                isEventManager 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {unreadCount} {t('new')}
-              </span>
-            )}
-          </div>
-          
-          {notifications.length > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              disabled={markingRead || unreadCount === 0}
-              className={`px-3 py-1.5 rounded-md text-sm flex items-center ${
-                isEventManager
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-700'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300'
-              }`}
-            >
-              {markingRead ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle className="w-4 h-4 mr-2" />
+    <div className={`min-h-screen bg-gray-900 text-gray-100`}>
+      {/* Main content with spacing for the fixed header */}
+      <div className="pt-20">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 p-4 rounded-xl bg-gray-800 border border-gray-700 sticky top-20 z-10">
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => navigate(-1)}
+                className="p-2 rounded-full transition-colors hover:bg-gray-700 text-gray-300 hover:text-white"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <Bell className="w-6 h-6 text-blue-400" />
+                <h1 className="text-xl font-semibold text-white">
+                  {t('notifications') || 'Thông báo'}
+                </h1>
+              </div>
+              
+              {unreadCount > 0 && (
+                <span className="px-3 py-1 text-xs rounded-full font-semibold bg-blue-900/50 text-blue-300 border border-blue-700">
+                  {unreadCount} {t('new') || 'mới'}
+                </span>
               )}
-              {t('markAllAsRead')}
-            </button>
-          )}
-        </div>
-
-        {/* Notifications List */}
-        <div className={`rounded-xl overflow-hidden ${
-          isEventManager 
-            ? 'bg-gray-800 border border-gray-700' 
-            : 'bg-white shadow-sm border border-gray-200'
-        }`}>
-          {notifications.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <BellOff className={`w-14 h-14 mx-auto mb-4 ${
-                isEventManager ? 'text-gray-600' : 'text-gray-300'
-              }`} />
-              <h3 className={`text-lg font-medium mb-1 ${
-                isEventManager ? 'text-gray-200' : 'text-gray-900'
-              }`}>
-                {t('noNotifications')}
-              </h3>
-              <p className={isEventManager ? 'text-gray-400' : 'text-gray-500'}>
-                {t('noNotificationsDescription')}
-              </p>
             </div>
-          ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-              {notifications.map((notification) => (
-                <li 
-                  key={notification.notificationId}
-                  className={`p-4 cursor-pointer transition-colors ${
-                    isEventManager 
-                      ? 'hover:bg-gray-750' 
-                      : 'hover:bg-gray-50'
-                  } ${
-                    !notification.isRead 
-                      ? isEventManager 
-                        ? 'bg-gray-750' 
-                        : 'bg-blue-50'
-                      : ''
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 rounded-lg transition-all hover:bg-gray-700 text-gray-400 hover:text-white"
+                title={t('refresh') || 'Làm mới'}
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  disabled={markingRead || unreadCount === 0}
+                  className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 font-medium transition-all ${
+                    unreadCount === 0
+                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-95'
                   }`}
-                  onClick={() => handleNotificationClick(notification)}
                 >
-                  <div className="flex items-start">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                      notification.isRead 
-                        ? isEventManager 
-                          ? 'bg-gray-700' 
-                          : 'bg-gray-100'
-                        : 'bg-blue-100 dark:bg-blue-900/50'
-                    }`}>
-                      <Bell className={`h-5 w-5 ${
-                        notification.isRead 
-                          ? isEventManager 
-                            ? 'text-gray-400' 
-                            : 'text-gray-400'
-                          : 'text-blue-600 dark:text-blue-400'
-                      }`} />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className={`text-sm ${
+                  {markingRead ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : unreadCount === 0 ? (
+                    <CheckCheck className="w-4 h-4" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  {unreadCount === 0 
+                    ? (t('allRead') || 'Đã đọc hết')
+                    : (t('markAllAsRead') || 'Đọc tất cả')
+                  }
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-4 rounded-xl border bg-red-900/20 border-red-700 text-red-300">
+              <p className="text-sm">
+                <strong>{t('error') || 'Lỗi'}:</strong> {error}
+              </p>
+              <button 
+                onClick={() => loadNotifications()}
+                className="mt-2 text-sm underline text-red-400 hover:text-red-300"
+              >
+                {t('retry') || 'Thử lại'}
+              </button>
+            </div>
+          )}
+
+        
+          {/* Notifications List */}
+          <div className="rounded-xl overflow-hidden bg-gray-800 border border-gray-700">
+            {notifications.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <div className="relative inline-block">
+                  <BellOff className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                  {!error && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                  )}
+                </div>
+                <h3 className="text-lg font-medium mb-2 text-gray-200">
+                  {error ? (t('errorLoadingNotifications') || 'Không thể tải thông báo') : (t('noNotifications') || 'Không có thông báo')}
+                </h3>
+                <p className="text-sm text-gray-400">
+                  {error 
+                    ? (t('checkConnectionAndRetry') || 'Kiểm tra kết nối và thử lại')
+                    : (t('noNotificationsDescription') || 'Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới')
+                  }
+                </p>
+                {error && (
+                  <button 
+                    onClick={() => loadNotifications()}
+                    className="mt-4 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    {t('retry') || 'Thử lại'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-700">
+                {notifications.map((notification) => (
+                  <li 
+                    key={notification.notificationId}
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-gray-750 ${
+                      !notification.isRead 
+                        ? 'bg-gray-750 border-l-4 border-blue-500'
+                        : ''
+                    }`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Unread indicator */}
+                      {!notification.isRead && (
+                        <div className="absolute left-2 top-6 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      )}
+                      
+                      {/* Icon */}
+                      <div className={`flex-shrink-0 p-2.5 rounded-full transition-all ${
                         !notification.isRead 
-                          ? 'font-semibold text-gray-900 dark:text-white' 
-                          : 'text-gray-700 dark:text-gray-300'
+                          ? 'bg-blue-900/50 text-blue-400'
+                          : 'bg-gray-700 text-gray-400'
                       }`}>
-                        {notification.notificationTitle}
-                      </p>
-                      <p className={`mt-1 text-sm ${
-                        isEventManager ? 'text-gray-300' : 'text-gray-600'
-                      }`}>
-                        {notification.notificationMessage}
-                      </p>
-                      <div className={`mt-1 text-xs ${
-                        isEventManager ? 'text-gray-400' : 'text-gray-500'
-                      }`}>
-                        {formatNotificationDate(notification.createdAt)}
+                        {getNotificationIcon ? getNotificationIcon(notification.notificationType) : <Bell className="w-5 h-5" />}
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium mb-1 ${
+                          !notification.isRead 
+                            ? 'text-white'
+                            : 'text-gray-300'
+                        }`}>
+                          {notification.notificationTitle}
+                        </p>
+                        <p className="text-sm mb-2 line-clamp-2 text-gray-400">
+                          {notification.notificationMessage}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            {formatNotificationDate(notification.createdAt)}
+                          </span>
+                          {!notification.isRead && (
+                            <span className="px-2 py-1 text-xs rounded-full font-medium bg-blue-900/50 text-blue-300 border border-blue-700">
+                              {t('new') || 'Mới'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </div>

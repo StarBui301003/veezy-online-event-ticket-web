@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
-import { getMyApprovedEvents } from "@/services/Event Manager/event.service";
-import { getDiscountCodesByEvent } from "@/services/Event Manager/event.service";
-import { FaChevronLeft, FaChevronRight, FaPlus, FaTrash } from "react-icons/fa";
+import { getMyApprovedEvents, getDiscountCodesByEvent, deleteDiscountCode } from "@/services/Event Manager/event.service";
+import { FaChevronLeft, FaChevronRight, FaPlus, FaTrash, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import instance from "@/services/axios.customize";
-import { AxiosError } from "axios";
-import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 
 interface Event {
@@ -18,16 +14,18 @@ interface Event {
 }
 
 interface DiscountCode {
-  id: string;
+  discountId: string;
   code: string;
   discountType: number;
   value: number;
   minimum: number;
   maximum: number;
   maxUsage: number;
+  usedCount: number;
   expiredAt: string;
   eventId: string;
   eventName: string;
+  isExpired: boolean;
 }
 
 const EVENTS_PER_PAGE = 3;
@@ -46,8 +44,7 @@ export default function ManagerDiscountCode() {
 
   // Load events
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
-    (async () => {
+    const loadEvents = async () => {
       setLoadingEvents(true);
       try {
         const data = await getMyApprovedEvents();
@@ -55,26 +52,14 @@ export default function ManagerDiscountCode() {
         setFilteredEvents(data);
       } catch (err) {
         console.error("Failed to load events:", err);
-        toast.error("Failed to load events");
+        toast.error(t("failedToLoadEvents"));
       } finally {
         setLoadingEvents(false);
       }
-    })();
-    // Lắng nghe realtime SignalR
-    const reload = async () => {
-      try {
-        const data = await getMyApprovedEvents();
-        setEvents(data);
-        setFilteredEvents(data);
-      } catch {}
     };
-    onEvent('OnEventCreated', reload);
-    onEvent('OnEventUpdated', reload);
-    onEvent('OnEventDeleted', reload);
-    onEvent('OnEventCancelled', reload);
-    onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+
+    loadEvents();
+  }, [t]);
 
   // Search events
   useEffect(() => {
@@ -110,38 +95,28 @@ export default function ManagerDiscountCode() {
         setDiscountCodes(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to load discount codes:", err);
-        if (err instanceof AxiosError) {
-          if (err.response?.status === 404) {
-            
-            setDiscountCodes([]);
-          } else {
-            toast.error("Failed to load discount codes");
-          }
-        } else {
-          toast.error("An unexpected error occurred");
-        }
+        toast.error(t("failedToLoadDiscountCodes"));
       } finally {
         setLoadingDiscountCodes(false);
       }
     };
 
     fetchDiscountCodes();
-  }, [selectedEvent]);
+  }, [selectedEvent, t]);
 
   const handleDeleteCode = async (codeId: string) => {
-    if (!window.confirm("Are you sure you want to delete this discount code?")) return;
+    if (!window.confirm(t("confirmDeleteDiscountCode"))) return;
     
     try {
-      await instance.delete(`/api/DiscountCode/${codeId}`);
-      toast.success("Discount code deleted successfully");
-      // Refresh discount codes list
+      await deleteDiscountCode(codeId);
+      toast.success(t("discountCodeDeleted"));
       if (selectedEvent) {
         const data = await getDiscountCodesByEvent(selectedEvent.eventId);
         setDiscountCodes(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error("Failed to delete discount code:", err);
-      toast.error("Failed to delete discount code");
+      toast.error(t("failedToDeleteDiscountCode"));
     }
   };
 
@@ -151,26 +126,28 @@ export default function ManagerDiscountCode() {
         {/* Left column: Events list */}
         <div className="w-full md:w-1/3">
           <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent mb-6 uppercase tracking-wide text-center">
-            {t("my_events")}
+            {t("myEvents")}
           </h2>
           <input
             type="text"
             value={searchEvent}
             onChange={(e) => setSearchEvent(e.target.value)}
-            placeholder={t("search_events")}
+            placeholder={t("searchEvents")}
             className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
           />
+          
           {loadingEvents ? (
             <div className="text-pink-400 text-base text-center">
-              {t("loading_events")}
+              {t("loading")}...
             </div>
           ) : (
             <div className="space-y-4">
               {pagedEvents.length === 0 && (
                 <div className="text-slate-300 text-center text-base">
-                  {t("no_events_found")}
+                  {t("noEventsFound")}
                 </div>
               )}
+              
               {pagedEvents.map((event) => (
                 <div
                   key={event.eventId}
@@ -196,11 +173,11 @@ export default function ManagerDiscountCode() {
                       navigate(`/event-manager/discount-codes/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> {t("create_discount_code")}
+                    <FaPlus className="inline mr-2" /> {t("createDiscountCode")}
                   </button>
                 </div>
               ))}
-              {/* Event pagination */}
+
               {totalEventPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4">
                   <button
@@ -216,9 +193,7 @@ export default function ManagerDiscountCode() {
                   <button
                     className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50"
                     disabled={eventPage === totalEventPages}
-                    onClick={() =>
-                      setEventPage((p) => Math.min(totalEventPages, p + 1))
-                    }
+                    onClick={() => setEventPage((p) => Math.min(totalEventPages, p + 1))}
                   >
                     <FaChevronRight />
                   </button>
@@ -236,59 +211,91 @@ export default function ManagerDiscountCode() {
                 {t("discountCodesFor")}{" "}
                 <span className="text-pink-200">{selectedEvent.eventName}</span>
               </h3>
-
-              {/* Discount codes list */}
+              
               {loadingDiscountCodes ? (
                 <div className="text-pink-400 text-base text-center">
-                  {t("loadingDiscountCodes")}
+                  {t("loading")}...
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {discountCodes.map((code) => (
                     <div
-                      key={code.id}
-                      className="bg-gradient-to-br from-[#3a0ca3]/80 to-[#ff008e]/80 rounded-2xl p-6 shadow-2xl border-2 border-pink-500/30 relative group"
+                      key={code.discountId}
+                      className={`bg-gradient-to-br from-[#3a0ca3]/80 to-[#ff008e]/80 rounded-2xl p-6 shadow-2xl border-2 ${
+                        code.isExpired ? "border-red-500/50" : "border-pink-500/30"
+                      } relative`}
                     >
-                      <button
-                        onClick={() => handleDeleteCode(code.id)}
-                        className="absolute top-4 right-4 p-2 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                        title={t("deleteDiscountCode")}
-                      >
-                        <FaTrash />
-                      </button>
+                      {code.isExpired && (
+                        <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          {t("expired")}
+                        </div>
+                      )}
+                      
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        <button
+                          onClick={() => navigate(`/event-manager/discount-codes/edit/${code.discountId}`)}
+                          className="p-2 text-blue-300 hover:text-blue-100 transition-colors duration-200"
+                          title={t("edit")}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCode(code.discountId)}
+                          className="p-2 text-red-400 hover:text-red-300 transition-colors duration-200"
+                          title={t("delete")}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                      
                       <div className="text-lg font-bold text-yellow-200 mb-2">
                         {code.code}
                       </div>
+                      
                       <div className="text-slate-200 text-base mb-2">
-                        <span className="font-semibold">{t("discountType")}:</span>{" "}
+                        <span className="font-semibold">{t("type")}:</span>{" "}
                         <span className="font-bold text-pink-200">
                           {code.discountType === 0 ? t("percentage") : t("fixedAmount")}
                         </span>
                       </div>
+                      
                       <div className="text-slate-200 text-base mb-2">
                         <span className="font-semibold">{t("value")}:</span>{" "}
                         <span className="font-bold text-pink-200">
                           {code.discountType === 0 ? `${code.value}%` : `${code.value.toLocaleString()}₫`}
                         </span>
                       </div>
+                      
                       <div className="text-slate-200 text-sm mb-2">
-                        <span className="font-semibold">{t("minimumOrder")}:</span>{" "}
+                        <span className="font-semibold">{t("minOrder")}:</span>{" "}
                         <span className="font-bold text-white">
                           {code.minimum.toLocaleString()}₫
                         </span>
                       </div>
-                      <div className="text-slate-200 text-sm mb-2">
-                        <span className="font-semibold">{t("maximumDiscount")}:</span>{" "}
-                        <span className="font-bold text-white">
-                          {code.maximum.toLocaleString()}₫
-                        </span>
-                      </div>
+                      
+                      {code.discountType === 0 && (
+                        <div className="text-slate-200 text-sm mb-2">
+                          <span className="font-semibold">{t("maxDiscount")}:</span>{" "}
+                          <span className="font-bold text-white">
+                            {code.maximum.toLocaleString()}₫
+                          </span>
+                        </div>
+                      )}
+                      
                       <div className="text-slate-200 text-sm mb-2">
                         <span className="font-semibold">{t("maxUsage")}:</span>{" "}
                         <span className="font-bold text-white">
                           {code.maxUsage === 2147483647 ? t("unlimited") : code.maxUsage}
                         </span>
                       </div>
+                      
+                      <div className="text-slate-200 text-sm mb-2">
+                        <span className="font-semibold">{t("used")}:</span>{" "}
+                        <span className="font-bold text-white">
+                          {code.usedCount}
+                        </span>
+                      </div>
+                      
                       <div className="text-slate-200 text-sm">
                         <span className="font-semibold">{t("expiresAt")}:</span>{" "}
                         <span className="font-bold text-white">
@@ -297,6 +304,7 @@ export default function ManagerDiscountCode() {
                       </div>
                     </div>
                   ))}
+                  
                   {discountCodes.length === 0 && (
                     <div className="col-span-2 text-center text-slate-300 py-8 text-base">
                       {t("noDiscountCodesForThisEvent")}
@@ -307,11 +315,11 @@ export default function ManagerDiscountCode() {
             </>
           ) : (
             <div className="text-slate-300 text-center text-lg mt-10">
-              {t("pleaseSelectAnEventToManageDiscountCodes")}
+              {t("selectEventToManageDiscountCodes")}
             </div>
           )}
         </div>
       </div>
     </div>
   );
-} 
+}

@@ -114,7 +114,7 @@ export const HomePage = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gray-50 pt-20">
+    <div className="relative min-h-screen bg-black pt-20">
       {/* Spinner overlay cho loading event hoặc news */}
       <SpinnerOverlay show={loadingEvents || loadingNews} />
       <div className="relative z-10 max-w-7xl mx-auto px-4">
@@ -125,13 +125,13 @@ export const HomePage = () => {
               <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
             </div>
           ) : events.length === 0 ? (
-            <div className="text-center text-lg text-gray-400">{t('noApprovedEvents')}</div>
+            <div className="text-center text-lg text-gray-200">{t('noApprovedEvents')}</div>
           ) : (
             <Swiper
               modules={swiperModules}
               slidesPerView={1}
               loop={events.length > 1}
-              pagination={{ clickable: true }}
+              pagination={{ clickable: true, dynamicBullets: true }}
               navigation={true}
               autoplay={{ delay: 4000, disableOnInteraction: false }}
               className="w-full"
@@ -143,10 +143,11 @@ export const HomePage = () => {
                       <img
                         src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
                         alt={event.eventName}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-300"
                         loading="lazy"
                         onError={handleImgError}
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                     </div>
                   </Link>
                 </SwiperSlide>
@@ -159,9 +160,9 @@ export const HomePage = () => {
           {/* Sự kiện nổi bật (2/3 bên trái) */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-gray-800">{t('featuredEvents')}</h2>
+              <h2 className="text-2xl font-bold text-white">{t('featuredEvents')}</h2>
               <button
-                className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
+                className="text-blue-400 font-semibold hover:text-blue-300 hover:underline px-2 py-1 rounded transition"
                 onClick={() => navigate('/events')}
               >
                 {t('viewMore')}
@@ -171,7 +172,7 @@ export const HomePage = () => {
               {events.slice(0, 3).map((event) => (
                 <motion.div
                   key={event.eventId}
-                  className="group relative rounded-2xl overflow-hidden shadow-lg bg-white border border-gray-100 hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                  className="group relative rounded-2xl overflow-hidden shadow-lg bg-gray-900 border border-gray-800 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 cursor-pointer"
                   whileHover={{ scale: 1.04 }}
                 >
                   <Link to={`/event/${event.eventId}`}>
@@ -179,26 +180,32 @@ export const HomePage = () => {
                       <img
                         src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
                         alt={event.eventName}
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100"
                         loading="lazy"
                         onError={handleImgError}
                       />
-                      <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-white/90 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     </div>
                     <div className="p-4">
-                      <h3 className="text-base font-bold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1">
+                      <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-400 transition-colors duration-200 line-clamp-1">
                         {event.eventName}
                       </h3>
-                      <div className="flex flex-col gap-0.5 text-xs text-gray-400">
+                      <div className="flex flex-col gap-0.5 text-xs text-gray-300">
                         <span>
-                          <b>{t('startAt')}:</b>{' '}
-                          {new Date(event.startAt).toLocaleString('vi-VN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                          })}
+                          <b className="text-gray-400">{t('startAt')}:</b>{' '}
+                          <span className="text-white">
+                            {new Date(event.startAt).toLocaleString('vi-VN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </span>
+                        <span>
+                          <b className="text-gray-400">{t('location')}:</b>{' '}
+                          <span className="text-white">{event.eventLocation || t('tba')}</span>
                         </span>
                       </div>
                     </div>
@@ -207,53 +214,60 @@ export const HomePage = () => {
               ))}
             </div>
           </div>
+
           {/* Tin tức (1/3 bên phải) */}
-          <div className="flex flex-col gap-6">
+          <div className="lg:col-span-1">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-gray-800">{t('news')}</h2>
+              <h2 className="text-2xl font-bold text-white">{t('latestNews')}</h2>
               <button
-                className="text-blue-600 font-semibold hover:underline px-2 py-1 rounded transition"
-                onClick={() => navigate('/news/all')}
+                className="text-blue-400 font-semibold hover:text-blue-300 hover:underline px-2 py-1 rounded transition"
+                onClick={() => navigate('/news')}
               >
                 {t('viewMore')}
               </button>
             </div>
-            {loadingNews ? (
-              <div className="flex justify-center items-center h-40">
-                <Loader2 className="animate-spin w-10 h-10 text-gray-400" />
-              </div>
-            ) : news.length === 0 ? (
-              <div className="text-center text-lg text-gray-400">{t('noNews')}</div>
-            ) : (
-              news.slice(0, 3).map((item) => (
-                <div
-                  key={item.newsId}
-                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
-                  onClick={() => navigate(`/news/${item.newsId}`)}
-                >
-                  <img
-                    src={item.imageUrl ? item.imageUrl : NO_IMAGE}
-                    alt={item.newsTitle}
-                    className="w-20 h-20 object-cover rounded-md"
-                    onError={handleImgError}
-                  />
-                  <div className="flex flex-col">
-                    <h3 className="text-sm font-bold text-gray-800 line-clamp-2">
-                      {item.newsTitle}
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {new Date(item.createdAt).toLocaleString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
+            <div className="space-y-4">
+              {loadingNews ? (
+                <div className="flex justify-center items-center h-40">
+                  <Loader2 className="animate-spin w-8 h-8 text-gray-400" />
                 </div>
-              ))
-            )}
+              ) : news.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">{t('noNews')}</div>
+              ) : (
+                news.slice(0, 3).map((item) => (
+                  <Link
+                    key={item.newsId}
+                    to={`/news/${item.newsId}`}
+                    className="group block rounded-xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-blue-500 transition-all duration-300"
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      <div className="relative h-32 sm:h-auto sm:w-1/3 flex-shrink-0">
+                        <img
+                          src={item.imageUrl || NO_IMAGE}
+                          alt={item.newsTitle}
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                          onError={handleImgError}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent sm:bg-gradient-to-r sm:from-transparent sm:to-black/60" />
+                      </div>
+                      <div className="p-4 sm:w-2/3">
+                        <h3 className="font-bold text-white mb-2 group-hover:text-blue-400 transition-colors duration-200 line-clamp-2">
+                          {item.newsTitle}
+                        </h3>
+                        <p className="text-sm text-gray-300 line-clamp-2">
+                          {item.newsDescription}
+                        </p>
+                        {item.createdAt && (
+                          <div className="mt-2 text-xs text-gray-400">
+                            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
