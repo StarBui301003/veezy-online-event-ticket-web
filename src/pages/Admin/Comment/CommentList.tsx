@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { getCommentsWithFilter } from '@/services/Admin/comment.service';
 import type { Comment, PaginatedCommentResponse, CommentFilterParams } from '@/types/Admin/comment';
@@ -237,38 +236,6 @@ export const CommentList = () => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {/* Event Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Event</div>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('eventId', undefined)}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.eventId === undefined}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>All Events</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-
-                  {/* User Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">User</div>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('userId', undefined)}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.userId === undefined}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>All Users</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-
                   {/* Date Range Filter */}
                   <div className="px-2 py-1 text-sm font-semibold">Created Date Range</div>
                   <DropdownMenuItem
