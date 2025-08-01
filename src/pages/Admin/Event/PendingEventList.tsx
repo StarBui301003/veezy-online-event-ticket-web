@@ -277,7 +277,7 @@ export const PendingEventList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by event name or creator..."
+                  placeholder="Search all columns......"
                   value={pendingEventSearch}
                   onChange={(e) => {
                     setPendingEventSearch(e.target.value);
@@ -457,10 +457,20 @@ export const PendingEventList = ({
                       <TableCell className="text-center">
                         {(filters.page - 1) * filters.pageSize + idx + 1}
                       </TableCell>
-                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={event.eventName}
+                      >
                         {event.eventName}
                       </TableCell>
-                      <TableCell className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={
+                          event.categoryName && event.categoryName.length > 0
+                            ? event.categoryName.join(', ')
+                            : 'Unknown'
+                        }
+                      >
                         {event.categoryName && event.categoryName.length > 0
                           ? event.categoryName.join(', ')
                           : 'Unknown'}
@@ -471,7 +481,10 @@ export const PendingEventList = ({
                       <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {event.endAt ? new Date(event.endAt).toLocaleDateString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={event.createByName || 'Unknown'}
+                      >
                         {event.createByName || 'Unknown'}
                       </TableCell>
                       <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">

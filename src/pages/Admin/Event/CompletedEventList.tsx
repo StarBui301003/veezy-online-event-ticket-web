@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useRef } from 'react';
 import {
   Table,
@@ -281,7 +282,7 @@ export const CompletedEventList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by event name or creator..."
+                  placeholder="Search all columns......"
                   value={completedEventSearch}
                   onChange={(e) => {
                     setCompletedEventSearch(e.target.value);
@@ -470,10 +471,20 @@ export const CompletedEventList = ({
                       <TableCell className="text-center">
                         {((page || 1) - 1) * (pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={event.eventName}
+                      >
                         {event.eventName}
                       </TableCell>
-                      <TableCell className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={
+                          event.categoryName && event.categoryName.length > 0
+                            ? event.categoryName.join(', ')
+                            : 'Unknown'
+                        }
+                      >
                         {event.categoryName && event.categoryName.length > 0
                           ? event.categoryName.join(', ')
                           : 'Unknown'}
@@ -484,10 +495,16 @@ export const CompletedEventList = ({
                       <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {event.endAt ? new Date(event.endAt).toLocaleDateString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={event.approvedByName || 'Unknown'}
+                      >
                         {event.approvedByName || 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={event.createByName || 'Unknown'}
+                      >
                         {event.createByName || 'Unknown'}
                       </TableCell>
                       <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">

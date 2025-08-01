@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getPendingWithdrawals } from '@/services/Admin/fund.service';
+import { useEffect, useState, useRef } from 'react';
+import { getPendingWithdrawals, FundFilterParams } from '@/services/Admin/fund.service';
 import type { WithdrawalRequestDto, PaginatedResponseDto } from '@/types/Admin/fund';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
@@ -12,6 +12,12 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -20,75 +26,186 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import FundDetailModal from './FundDetailModal';
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 import { connectFundHub, onFund } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
+const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
   const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
 
-  const refreshData = () => {
-    setLoading(true);
-    setSearch(''); // Reset search khi refresh
-    getPendingWithdrawals({ pageNumber: 1, pageSize }) // Reset về trang 1
-      .then((res) => {
-        setData(res.data.data);
-        setPage(1); // Reset về trang 1
-        onPendingChanged?.(); // Gọi callback cập nhật badge
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
-  };
+  // Search and filter states
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [filters, setFilters] = useState<FundFilterParams>({
+    Page: 1,
+    PageSize: 5,
+    SortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Slider states for amount range
+  const [amountRange, setAmountRange] = useState<[number, number]>([0, 1000000]);
+  const [maxAmount, setMaxAmount] = useState(1000000);
+
+  const pageRef = useRef(filters.Page);
+  const pageSizeRef = useRef(filters.PageSize);
+  const searchRef = useRef(pendingSearch);
 
   useEffect(() => {
-    setLoading(true);
-    getPendingWithdrawals({ pageNumber: page, pageSize })
-      .then((res) => {
-        setData(res.data.data);
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
+    pageRef.current = filters.Page;
+  }, [filters.Page]);
+  useEffect(() => {
+    pageSizeRef.current = filters.PageSize;
+  }, [filters.PageSize]);
+  useEffect(() => {
+    searchRef.current = pendingSearch;
+  }, [pendingSearch]);
 
-    // Connect to FundHub and listen for fund events
+  // Connect hub chỉ 1 lần khi mount
+  useEffect(() => {
     const token = localStorage.getItem('access_token');
     connectFundHub('http://localhost:5005/fundHub', token);
+    const reload = () => {
+      fetchData();
+    };
+    onFund('OnWithdrawalRequested', reload);
+    onFund('OnWithdrawalStatusChanged', reload);
+    onFund('OnWithdrawalApproved', reload);
+    onFund('OnWithdrawalRejected', reload);
+    onFund('OnPaymentConfirmed', reload);
+    onFund('OnFundCreated', reload);
+    onFund('OnBalanceUpdated', reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Listen for fund-related events that affect pending withdrawals
-    const reloadData = () => {
-      console.log('Fund event received, refreshing pending withdrawals...');
-      refreshData();
+  const fetchData = () => {
+    setLoading(true);
+
+    // Separate pagination parameters from filter parameters
+    const paginationParams = {
+      Page: pendingSearch ? 1 : filters.Page,
+      PageSize: filters.PageSize,
     };
 
-    // Listen for withdrawal status changes
-    onFund('OnWithdrawalRequested', reloadData);
-    onFund('OnWithdrawalStatusChanged', reloadData);
-    onFund('OnWithdrawalApproved', reloadData);
-    onFund('OnWithdrawalRejected', reloadData);
-    onFund('OnPaymentConfirmed', reloadData);
-
-    // Cleanup function
-    return () => {
-      // Note: We don't disconnect the hub here as it might be used by other components
+    const filterParams = {
+      SearchTerm: pendingSearch,
+      MinAmount: amountRange[0] > 0 ? amountRange[0] : undefined,
+      MaxAmount: amountRange[1] < maxAmount ? amountRange[1] : undefined,
+      TransactionStatus: filters.TransactionStatus,
+      SortBy: sortBy || filters.SortBy,
+      SortDescending: sortDescending,
     };
-  }, [page, pageSize]);
 
+    // Debug: Log amount range values
+    console.log('🔍 Amount Range Debug:', {
+      amountRange,
+      maxAmount,
+      minAmount: filterParams.MinAmount,
+      maxAmountFilter: filterParams.MaxAmount,
+    });
+
+    // Debug: Log search parameters
+    console.log('🔍 Pending Fund Search Parameters:', {
+      pagination: paginationParams,
+      filters: filterParams,
+      pendingSearch: pendingSearch,
+    });
+
+    // Combine pagination and filter parameters
+    const params = { ...paginationParams, ...filterParams };
+
+    getPendingWithdrawals(params)
+      .then(async (res) => {
+        if (res && res.data && res.data.data) {
+          setData(res.data.data);
+          // Calculate max amount from data
+          const maxAmountInData =
+            res.data.data.items.length > 0
+              ? Math.max(...res.data.data.items.map((item) => item.amount))
+              : 1000000;
+          setMaxAmount(maxAmountInData);
+
+          // Max amount updated
+        } else {
+          setData(null);
+        }
+      })
+      .catch(() => {
+        setData(null);
+      })
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
+  };
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingSearch] đổi
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, pendingSearch]);
+
+  // Update amountRange when maxAmount changes (but not on initial load)
+  useEffect(() => {
+    if (maxAmount > 0 && amountRange[1] === 1000000) {
+      setAmountRange([0, maxAmount]);
+    }
+  }, [maxAmount]);
+
+  // Handle amountRange changes separately
+  useEffect(() => {
+    // Skip initial render
+    if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
+
+    // Always fetch when amountRange changes (including when dragged to 0)
+    fetchData();
+  }, [amountRange]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, Page: newPage }));
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+  };
+
+  // Sort handlers
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(field);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-green-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-green-600" />
+    );
+  };
+
+  const refreshData = () => {
+    setPendingSearch(''); // Reset search when refresh
+    setFilters((prev) => ({ ...prev, Page: 1 })); // Reset to page 1
+    onPendingChanged?.(); // Call callback to update badge
+  };
+
+  // Items and pagination
   const items = data?.items || [];
   const totalItems = data?.totalItems || 0;
   const totalPages = data?.totalPages || 1;
-  const filteredItems = search
-    ? items.filter((item) => item.eventName.toLowerCase().includes(search.trim().toLowerCase()))
-    : items;
-
-  // Debug log
-  console.log('items:', items);
-  console.log('filteredItems:', filteredItems);
-  console.log('loading:', loading);
 
   const getStatusBadge = (status: string | number) => {
     const statusStr = status.toString();
@@ -147,10 +264,12 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
   return (
     <div className="p-3">
       <SpinnerOverlay show={loading} />
+
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          {/* Search */}
+          {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -184,89 +303,160 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                     fontSize: 13.4,
                   }}
                   placeholder="Search all columns..."
-                  value={search}
+                  value={pendingSearch}
                   onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
+                    setPendingSearch(e.target.value);
+                    // Reset to page 1 when searching
+                    setFilters((prev) => ({ ...prev, Page: 1 }));
                   }}
                 />
-                {search && (
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      height: 24,
-                      width: 24,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    onClick={() => {
-                      setSearch('');
-                      setPage(1);
-                    }}
-                    tabIndex={-1}
-                    type="button"
-                    aria-label="Clear search"
-                  >
-                    &#10005;
-                  </button>
-                )}
               </div>
             </div>
+
+            {/* Filter dropdown (right) */}
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Amount Range Filters */}
+                  <div className="px-2 py-1 text-sm font-semibold">Amount Range</div>
+                  <DropdownMenuItem
+                    className="flex flex-col items-start p-4"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <div className="space-y-4 w-full">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Min: {formatCurrency(amountRange[0])}</span>
+                          <span>Max: {formatCurrency(amountRange[1])}</span>
+                        </div>
+                        <Slider
+                          value={amountRange}
+                          onValueChange={(value) => setAmountRange(value as [number, number])}
+                          max={maxAmount}
+                          min={0}
+                          step={10000}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAmountRange([0, maxAmount]);
+                            // Force fetchData after reset
+                            setTimeout(() => {
+                              fetchData();
+                            }, 0);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+
+          {/* Table */}
           <Table className="min-w-full">
             <TableHeader>
               <TableRow className="bg-yellow-200 hover:bg-yellow-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>Event</TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Amount
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('eventName')}
+                  >
+                    Event Name
+                    {getSortIcon('eventName')}
+                  </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Status
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('amount')}
+                  >
+                    Amount
+                    {getSortIcon('amount')}
+                  </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '20%' }}>
-                  Created At
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('transactionStatus')}
+                  >
+                    Status
+                    {getSortIcon('transactionStatus')}
+                  </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
-                  Action
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('initiatedByName')}
+                  >
+                    Requested By
+                    {getSortIcon('initiatedByName')}
+                  </div>
                 </TableHead>
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Created At
+                    {getSortIcon('createdAt')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="min-h-[400px]">
-              {filteredItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
-                    No pending withdrawals found
-                  </TableCell>
-                </TableRow>
+              {items.length === 0 ? (
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={7} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
                 <>
-                  {filteredItems.map((item, idx) => (
-                    <TableRow key={item.transactionId} className="hover:bg-green-50">
+                  {items.map((item, idx) => (
+                    <TableRow key={item.transactionId} className="hover:bg-yellow-50">
                       <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
+                        {(filters.Page - 1) * filters.PageSize + idx + 1}
                       </TableCell>
-                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={item.eventName}
+                      >
                         {item.eventName}
                       </TableCell>
                       <TableCell className="text-center">{formatCurrency(item.amount)}</TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center flex justify-center">
                         {getStatusBadge(item.transactionStatus)}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {new Date(item.createdAt).toLocaleString()}
+                      <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.initiatedByName || 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-center flex justify-center">
+                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
+                      </TableCell>
+                      <TableCell className="text-center flex gap-2 justify-center">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title="View details"
                           onClick={() => setSelected(item)}
                         >
                           <FaEye className="w-4 h-4" />
@@ -277,11 +467,11 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                   {/* Add empty rows to maintain table height */}
                   {Array.from(
                     {
-                      length: Math.max(0, 5 - filteredItems.length),
+                      length: Math.max(0, 5 - items.length),
                     },
                     (_, idx) => (
                       <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                        <TableCell colSpan={6} className="border-0"></TableCell>
+                        <TableCell colSpan={7} className="border-0"></TableCell>
                       </TableRow>
                     )
                   )}
@@ -290,16 +480,16 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
+                              aria-disabled={filters.Page === 1}
+                              className={filters.Page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
                           {(() => {
@@ -313,14 +503,14 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                               }
                             } else {
                               // Logic hiển thị trang với dấu "..."
-                              if (page <= 4) {
+                              if (filters.Page <= 4) {
                                 // Trang hiện tại ở đầu
                                 for (let i = 1; i <= 5; i++) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
                                 pages.push(totalPages);
-                              } else if (page >= totalPages - 3) {
+                              } else if (filters.Page >= totalPages - 3) {
                                 // Trang hiện tại ở cuối
                                 pages.push(1);
                                 pages.push('...');
@@ -331,7 +521,7 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                                 // Trang hiện tại ở giữa
                                 pages.push(1);
                                 pages.push('...');
-                                for (let i = page - 1; i <= page + 1; i++) {
+                                for (let i = filters.Page - 1; i <= filters.Page + 1; i++) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
@@ -345,11 +535,11 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                                   <span className="px-2 py-1 text-gray-500">...</span>
                                 ) : (
                                   <PaginationLink
-                                    isActive={item === page}
-                                    onClick={() => setPage(item as number)}
+                                    isActive={item === filters.Page}
+                                    onClick={() => handlePageChange(item as number)}
                                     className={`transition-colors rounded 
                                       ${
-                                        item === page
+                                        item === filters.Page
                                           ? 'bg-yellow-500 text-white border hover:bg-yellow-700 hover:text-white'
                                           : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                       }
@@ -357,8 +547,8 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                                     style={{
                                       minWidth: 32,
                                       textAlign: 'center',
-                                      fontWeight: item === page ? 700 : 400,
-                                      cursor: item === page ? 'default' : 'pointer',
+                                      fontWeight: item === filters.Page ? 700 : 400,
+                                      cursor: item === filters.Page ? 'default' : 'pointer',
                                     }}
                                   >
                                     {item}
@@ -369,10 +559,12 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                           })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, filters.Page + 1))
+                              }
+                              aria-disabled={filters.Page === totalPages}
                               className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -383,19 +575,16 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
                       <span className="text-sm text-gray-700">
                         {totalItems === 0
                           ? '0-0 of 0'
-                          : `${(page - 1) * pageSize + 1}-${Math.min(
-                              page * pageSize,
+                          : `${(filters.Page - 1) * filters.PageSize + 1}-${Math.min(
+                              filters.Page * filters.PageSize,
                               totalItems
                             )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select
-                        className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
-                        value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setPage(1);
-                        }}
+                        className="border rounded px-2 py-1 text-sm bg-white"
+                        value={filters.PageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >
                         {pageSizeOptions.map((size) => (
                           <option key={size} value={size}>
@@ -409,18 +598,20 @@ export const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: (
               </TableRow>
             </TableFooter>
           </Table>
-          {selected && (
-            <FundDetailModal
-              withdrawal={selected}
-              onClose={() => setSelected(null)}
-              showActionButtons={true}
-              onSuccess={refreshData}
-            />
-          )}
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {selected && (
+        <FundDetailModal
+          withdrawal={selected}
+          onClose={() => setSelected(null)}
+          showActionButtons={true}
+          onSuccess={refreshData}
+        />
+      )}
     </div>
   );
 };
 
-export default PendingWithdrawList;
+export { PendingWithdrawList };

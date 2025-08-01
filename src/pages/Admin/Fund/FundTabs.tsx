@@ -31,7 +31,7 @@ export function FundTabs() {
 
   // Fetch pending count
   const fetchPendingCount = () => {
-    getPendingWithdrawals({ pageNumber: 1, pageSize: 1 })
+    getPendingWithdrawals({ Page: 1, PageSize: 1 })
       .then((res) => {
         setPendingCount(res.data?.data?.totalItems || 0);
       })
@@ -104,7 +104,7 @@ export function FundTabs() {
   return (
     <div className="p-6">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full p-0">
-        <TabsList className="flex w-[600px] items-center rounded-[99px] py-4 gap-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] border">
+        <TabsList className="flex w-[700px] items-center rounded-[99px] py-4 gap-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] border">
           {TABS.map((t) => {
             let activeClass = '';
             let hoverClass = '';

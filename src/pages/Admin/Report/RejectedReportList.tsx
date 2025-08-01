@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
 import {
   Table,
@@ -17,13 +17,17 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getRejectedReport } from '@/services/Admin/report.service';
-// import { getUserByIdAPI } from '@/services/Admin/user.service'; // No longer needed
-import type { Report } from '@/types/Admin/report';
-import { FaEye } from 'react-icons/fa';
-import { Badge } from '@/components/ui/badge';
-
+import { getRejectedReportsWithFilter } from '@/services/Admin/report.service';
+import type { Report, PaginatedReportResponse, ReportFilterParams } from '@/types/Admin/report';
+import { FaEye, FaSort, FaSortUp, FaSortDown, FaFilter } from 'react-icons/fa';
 import ReportDetailModal from './ReportDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -35,104 +39,131 @@ const targetTypeMap: Record<number, string> = {
   3: 'Comment',
 };
 
-export const RejectedReportList = () => {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [search, setSearch] = useState('');
-  // const [reporterNames, setReporterNames] = useState<Record<string, string>>({}); // No longer needed
+export const RejectedReportList = ({
+  onChangeRejected,
+  page,
+  pageSize,
+  setPage,
+  setPageSize,
+}: {
+  onChangeRejected?: (totalItems: number) => void;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+}) => {
+  const [data, setData] = useState<PaginatedReportResponse['data'] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [viewReport, setViewReport] = useState<Report | null>(null);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [filters, setFilters] = useState<ReportFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortBy: 'createdAt',
+    sortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Refs for SignalR
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(searchTerm);
 
   useEffect(() => {
-    connectFeedbackHub('http://localhost:5008/notificationHub');
-    // Lắng nghe realtime SignalR cho report
-    const reload = () => reloadList(page, pageSize, search);
+    pageRef.current = page;
+    pageSizeRef.current = pageSize;
+    searchRef.current = searchTerm;
+  }, [page, pageSize, searchTerm]);
+
+  useEffect(() => {
+    connectFeedbackHub('http://localhost:5004/feedbackHub');
+
+    const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);
-    onFeedback('OnReportUpdated', reload);
-    onFeedback('OnReportDeleted', reload);
     onFeedback('OnReportStatusChanged', reload);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    reloadList(page, pageSize, search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search]);
+    fetchData();
+  }, [filters, sortBy, sortDescending, searchTerm]);
 
-  const reloadList = (pageArg: number, pageSizeArg: number, searchArg: string) => {
+  // Sync filters.page with page on mount
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: page || 1 }));
+  }, []);
+
+  const fetchData = async () => {
     setLoading(true);
-    getRejectedReport(pageArg, pageSizeArg, searchArg)
-      .then((res) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setReports(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-        } else {
-          setReports([]);
-          setTotalItems(0);
-          setTotalPages(1);
-        }
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
-  };
-
-  const getStatusBadge = (status: string | number) => {
-    const statusStr = status.toString();
-    switch (statusStr) {
-      case '0':
-      case 'Pending':
-        return (
-          <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
-            Pending
-          </Badge>
-        );
-      case '1':
-      case 'Resolved':
-        return (
-          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
-            Resolved
-          </Badge>
-        );
-      case '2':
-      case 'Rejected':
-        return (
-          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
-            Rejected
-          </Badge>
-        );
-      default:
-        return (
-          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
-            Other
-          </Badge>
-        );
+    try {
+      const params = {
+        ...filters,
+        sortBy,
+        sortDescending,
+        searchTerm: searchTerm || undefined,
+      };
+      const response = await getRejectedReportsWithFilter(params);
+      setData(response.data);
+      if (onChangeRejected) onChangeRejected(response.data.totalItems);
+    } catch (error) {
+      console.error('Error fetching rejected reports:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Khi render, dùng reports, totalItems, totalPages từ BE
-  const pagedReports = reports;
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, pageSize: newPageSize, page: 1 }));
+    setPageSize(newPageSize);
+    setPage(1);
+  };
+
+  const handleSort = (field: string) => {
+    if (field === '') return; // Skip numbering column
+    const newSortDescending = sortBy === field ? !sortDescending : true;
+    setSortBy(field);
+    setSortDescending(newSortDescending);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+    setPage(1);
+  };
+
+  const getSortIcon = (field: string) => {
+    if (field === '') return null; // No sort icon for numbering column
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-red-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-red-600" />
+    );
+  };
+
+  const updateFilter = (
+    key: keyof ReportFilterParams,
+    value: string | string[] | boolean | number | undefined
+  ) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setPage(1);
+  };
+
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
 
   return (
-    <div className="p-3">
+    <div className="p-6">
       <SpinnerOverlay show={loading} />
-      {/* Modal detail */}
-      {viewReport && (
-        <ReportDetailModal
-          report={viewReport}
-          reporterName={viewReport.reporterName}
-          onClose={() => setViewReport(null)}
-          targetTypeMap={targetTypeMap}
-          showNote={true}
-        />
-      )}
-
+      {viewReport && <ReportDetailModal report={viewReport} onClose={() => setViewReport(null)} />}
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          {/* Search */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -165,14 +196,11 @@ export const RejectedReportList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search all columns..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  placeholder="Search by reporter name, target name, reason, description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                {search && (
+                {searchTerm && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -186,10 +214,7 @@ export const RejectedReportList = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    onClick={() => {
-                      setSearch('');
-                      setPage(1);
-                    }}
+                    onClick={() => setSearchTerm('')}
                     tabIndex={-1}
                     type="button"
                     aria-label="Clear search"
@@ -199,95 +224,205 @@ export const RejectedReportList = () => {
                 )}
               </div>
             </div>
+
+            {/* Filter button (right) */}
+            <div className="flex items-center gap-2">
+              {/* Filter dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Target Type Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Target Type</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('targetType', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.targetType === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All Types</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('targetType', 0)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.targetType === 0}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>News</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('targetType', 1)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.targetType === 1}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Event</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('targetType', 2)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.targetType === 2}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Event Manager</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('targetType', 3)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.targetType === 3}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Comment</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow className="bg-red-200 hover:bg-red-200">
+                <TableHead className="pl-4" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>Target Type</TableHead>
-                <TableHead style={{ width: '10%' }}>Reporter</TableHead>
-                <TableHead style={{ width: '20%' }}>Reason</TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
-                  Status
+                <TableHead
+                  style={{ width: '15%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('targetName')}
+                >
+                  <div className="flex items-center gap-1">
+                    Target Name
+                    {getSortIcon('targetName')}
+                  </div>
                 </TableHead>
-                <TableHead style={{ width: '5%' }}>Created At</TableHead>
-                <TableHead style={{ width: '7%' }}>Updated At</TableHead>
-                <TableHead style={{ width: '20%' }} className="text-center">
+                <TableHead
+                  style={{ width: '10%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('targetType')}
+                >
+                  <div className="flex items-center gap-1">
+                    Target Type
+                    {getSortIcon('targetType')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  style={{ width: '15%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('reporterName')}
+                >
+                  <div className="flex items-center gap-1">
+                    Reporter
+                    {getSortIcon('reporterName')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  style={{ width: '20%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('reason')}
+                >
+                  <div className="flex items-center gap-1">
+                    Reason
+                    {getSortIcon('reason')}
+                  </div>
+                </TableHead>
+
+                <TableHead
+                  style={{ width: '15%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('createdAt')}
+                >
+                  <div className="flex items-center gap-1">
+                    Created At
+                    {getSortIcon('createdAt')}
+                  </div>
+                </TableHead>
+                <TableHead style={{ width: '10%' }} className="text-center">
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="min-h-[400px]">
-              {pagedReports.length === 0 ? (
+              {items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-4 text-gray-500">
-                    No reports found.
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                    No rejected reports found
                   </TableCell>
                 </TableRow>
               ) : (
                 <>
-                  {pagedReports.map((item, idx) => (
-                    <TableRow key={item.reportId} className="hover:bg-blue-50">
-                      <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
+                  {items.map((report, idx) => (
+                    <TableRow key={report.reportId} className="hover:bg-red-50">
+                      <TableCell className="pl-4">
+                        {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
-                      <TableCell className="truncate max-w-[120px]">
-                        {item.reporterName || 'unknown'}
+                      <TableCell>{report.targetName}</TableCell>
+                      <TableCell>{targetTypeMap[report.targetType] || 'Unknown'}</TableCell>
+                      <TableCell>{report.reporterName}</TableCell>
+                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {report.reason}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
-                      <TableCell className="text-center">{getStatusBadge(item.status)}</TableCell>
-                      <TableCell>
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {item.updatedAt ? (
-                          new Date(item.updatedAt).toLocaleString()
-                        ) : (
-                          <span className="text-gray-400 ">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                            title="View details"
-                            onClick={() => setViewReport(item)}
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <TableCell>{new Date(report.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell
+                        className="text-center"
+                        style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}
+                      >
+                        <button
+                          className="border-2 border-red-400 bg-red-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-red-500 hover:text-white"
+                          title="View Details"
+                          onClick={() => setViewReport(report)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from(
-                    {
-                      length: Math.max(0, 5 - pagedReports.length),
-                    },
-                    (_, idx) => (
-                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                        <TableCell colSpan={10} className="border-0"></TableCell>
-                      </TableRow>
-                    )
-                  )}
+                  {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={7} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
                 </>
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={10}>
+                <TableCell colSpan={7}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
+                              aria-disabled={(filters.page || 1) === 1}
+                              className={
+                                (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
+                              }
                             />
                           </PaginationItem>
                           {(() => {
@@ -295,31 +430,30 @@ export const RejectedReportList = () => {
                             const maxVisiblePages = 7;
 
                             if (totalPages <= maxVisiblePages) {
-                              // Hiển thị tất cả trang nếu tổng số trang <= 7
                               for (let i = 1; i <= totalPages; i++) {
                                 pages.push(i);
                               }
                             } else {
-                              // Logic hiển thị trang với dấu "..."
-                              if (page <= 4) {
-                                // Trang hiện tại ở đầu
+                              if ((filters.page || 1) <= 4) {
                                 for (let i = 1; i <= 5; i++) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
                                 pages.push(totalPages);
-                              } else if (page >= totalPages - 3) {
-                                // Trang hiện tại ở cuối
+                              } else if ((filters.page || 1) >= totalPages - 3) {
                                 pages.push(1);
                                 pages.push('...');
                                 for (let i = totalPages - 4; i <= totalPages; i++) {
                                   pages.push(i);
                                 }
                               } else {
-                                // Trang hiện tại ở giữa
                                 pages.push(1);
                                 pages.push('...');
-                                for (let i = page - 1; i <= page + 1; i++) {
+                                for (
+                                  let i = (filters.page || 1) - 1;
+                                  i <= (filters.page || 1) + 1;
+                                  i++
+                                ) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
@@ -333,11 +467,11 @@ export const RejectedReportList = () => {
                                   <span className="px-2 py-1 text-gray-500">...</span>
                                 ) : (
                                   <PaginationLink
-                                    isActive={item === page}
-                                    onClick={() => setPage(item as number)}
+                                    isActive={item === (filters.page || 1)}
+                                    onClick={() => handlePageChange(item as number)}
                                     className={`transition-colors rounded 
                                       ${
-                                        item === page
+                                        item === (filters.page || 1)
                                           ? 'bg-red-500 text-white border hover:bg-red-700 hover:text-white'
                                           : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                       }
@@ -345,8 +479,8 @@ export const RejectedReportList = () => {
                                     style={{
                                       minWidth: 32,
                                       textAlign: 'center',
-                                      fontWeight: item === page ? 700 : 400,
-                                      cursor: item === page ? 'default' : 'pointer',
+                                      fontWeight: item === (filters.page || 1) ? 700 : 400,
+                                      cursor: item === (filters.page || 1) ? 'default' : 'pointer',
                                     }}
                                   >
                                     {item}
@@ -357,10 +491,14 @@ export const RejectedReportList = () => {
                           })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
+                              }
+                              aria-disabled={(filters.page || 1) === totalPages}
                               className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                (filters.page || 1) === totalPages
+                                  ? 'pointer-events-none opacity-50'
+                                  : ''
                               }
                             />
                           </PaginationItem>
@@ -370,27 +508,46 @@ export const RejectedReportList = () => {
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
                         {totalItems === 0
-                          ? '0-0 of 0'
-                          : `${(page - 1) * pageSize + 1}-${Math.min(
-                              page * pageSize,
+                          ? 'No items'
+                          : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
+                              (filters.page || 1) * (filters.pageSize || 5),
                               totalItems
                             )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
-                      <select
-                        className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
-                        value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setPage(1);
-                        }}
-                      >
-                        {pageSizeOptions.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
+                            {filters.pageSize || 5}
+                            <svg
+                              className="w-4 h-4 ml-1"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {pageSizeOptions.map((size) => (
+                            <DropdownMenuItem
+                              key={size}
+                              onClick={() => handlePageSizeChange(size)}
+                              className={
+                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
+                              }
+                            >
+                              {size}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </TableCell>

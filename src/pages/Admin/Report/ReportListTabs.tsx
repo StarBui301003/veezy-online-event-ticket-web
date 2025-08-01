@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
-// import { getPendingReport } from '@/services/Admin/report.service'; // No longer needed
 import { cn } from '@/lib/utils';
 import { connectFeedbackHub } from '@/services/signalr.service';
 import { PendingReportList } from './PendingReportList';
 import { ResolvedReportList } from './ResolvedReportList';
 import { RejectedReportList } from './RejectedReportList';
-// import './EventTabs.css';
 
 export default function ReportListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,39 +14,24 @@ export default function ReportListTabs() {
   // Ưu tiên tab từ param, nếu không có thì mặc định là 'pending'
   const getInitialTab = () => {
     const tab = searchParams.get('tab');
-    if (tab === 'pending' || tab === 'approved' || tab === 'rejected') return tab;
+    if (tab === 'pending' || tab === 'resolved' || tab === 'rejected') return tab;
     return 'pending';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Pagination state for each tab
   const [pendingPage, setPendingPage] = useState(1);
   const [pendingPageSize, setPendingPageSize] = useState(5);
-
-  // Remove fetchPendingCount function since PendingReportList will provide the count
-  // const fetchPendingCount = () => {
-  //   getPendingReport()
-  //     .then((res) => {
-  //       setPendingCount(Array.isArray(res.data) ? res.data.length : 0);
-  //     })
-  //     .catch(() => setPendingCount(0));
-  // };
+  const [resolvedPage, setResolvedPage] = useState(1);
+  const [resolvedPageSize, setResolvedPageSize] = useState(5);
+  const [rejectedPage, setRejectedPage] = useState(1);
+  const [rejectedPageSize, setRejectedPageSize] = useState(5);
 
   useEffect(() => {
-    connectFeedbackHub('http://localhost:5008/notificationHub');
-    // Lắng nghe realtime SignalR cho report
-    // Remove reloadReport since PendingReportList handles its own data fetching
-    // const reloadReport = () => fetchPendingCount();
-    // onFeedback('OnReportCreated', reloadReport);
-    // onFeedback('OnReportUpdated', reloadReport);
-    // onFeedback('OnReportDeleted', reloadReport);
-    // onFeedback('OnReportStatusUpdated', reloadReport);
+    connectFeedbackHub('http://localhost:5004/feedbackHub');
   }, []);
-
-  // Remove the useEffect that calls fetchPendingCount on mount
-  // useEffect(() => {
-  //   fetchPendingCount();
-  // }, []);
 
   // Khi đổi tab, update query param
   const handleTabChange = (tab: string) => {
@@ -71,6 +54,7 @@ export default function ReportListTabs() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
   useEffect(() => {
     if (!searchParams.get('tab')) {
       setSearchParams({ tab: 'pending' }, { replace: true });
@@ -102,7 +86,7 @@ export default function ReportListTabs() {
           <TabsTrigger
             value="resolved"
             className={cn(
-              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in pr-6',
               activeTab === 'resolved'
                 ? '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 text-center'
                 : 'hover:bg-gray-200 text-gray-600'
@@ -115,7 +99,7 @@ export default function ReportListTabs() {
           <TabsTrigger
             value="rejected"
             className={cn(
-              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
+              'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in pr-6',
               activeTab === 'rejected'
                 ? '!text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 shadow-lg shadow-red-500/50 dark:shadow-lg dark:shadow-red-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center '
                 : 'hover:bg-gray-200 text-gray-600'
@@ -127,9 +111,6 @@ export default function ReportListTabs() {
         </TabsList>
 
         <div>
-          <TabsContent value="resolved">
-            {loadedTabs.includes('resolved') && <ResolvedReportList />}
-          </TabsContent>
           <TabsContent value="pending">
             {loadedTabs.includes('pending') && (
               <PendingReportList
@@ -141,8 +122,25 @@ export default function ReportListTabs() {
               />
             )}
           </TabsContent>
+          <TabsContent value="resolved">
+            {loadedTabs.includes('resolved') && (
+              <ResolvedReportList
+                page={resolvedPage}
+                pageSize={resolvedPageSize}
+                setPage={setResolvedPage}
+                setPageSize={setResolvedPageSize}
+              />
+            )}
+          </TabsContent>
           <TabsContent value="rejected">
-            {loadedTabs.includes('rejected') && <RejectedReportList />}
+            {loadedTabs.includes('rejected') && (
+              <RejectedReportList
+                page={rejectedPage}
+                pageSize={rejectedPageSize}
+                setPage={setRejectedPage}
+                setPageSize={setRejectedPageSize}
+              />
+            )}
           </TabsContent>
         </div>
       </Tabs>

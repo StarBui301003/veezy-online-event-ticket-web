@@ -13,6 +13,19 @@ export interface Report {
   note: string | null;
 }
 
+export interface ReportFilterParams {
+  searchTerm?: string;
+  targetId?: string;
+  targetType?: number;
+  reporterId?: string;
+  reason?: string;
+  status?: number;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDescending: boolean;
+}
+
 export interface GetAllReportResponse {
   flag: boolean;
   message: string;

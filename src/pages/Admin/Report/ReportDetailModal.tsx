@@ -17,7 +17,7 @@ import { getNewsById } from '@/services/Admin/news.service';
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
+
 import {
   Table,
   TableHeader,
@@ -58,36 +58,20 @@ const ReportDetailModal = ({
   const isEventTarget = report.targetType === 1; // 1 = Event theo targetTypeMap
   const isNewsTarget = report.targetType === 0; // 0 = News theo targetTypeMap
 
-  const getStatusBadge = (status: string | number) => {
+  const getStatusText = (status: string | number) => {
     const statusStr = status.toString();
     switch (statusStr) {
       case '0':
       case 'Pending':
-        return (
-          <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
-            Pending
-          </Badge>
-        );
+        return 'Pending';
       case '1':
       case 'Resolved':
-        return (
-          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
-            Resolved
-          </Badge>
-        );
+        return 'Resolved';
       case '2':
       case 'Rejected':
-        return (
-          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
-            Rejected
-          </Badge>
-        );
+        return 'Rejected';
       default:
-        return (
-          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
-            Other
-          </Badge>
-        );
+        return 'Other';
     }
   };
 
@@ -198,9 +182,11 @@ const ReportDetailModal = ({
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
-              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 flex items-center justify-center">
-                {getStatusBadge(report.status)}
-              </div>
+              <input
+                value={getStatusText(report.status)}
+                readOnly
+                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+              />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('reason')}</label>
