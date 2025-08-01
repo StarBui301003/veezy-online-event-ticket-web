@@ -88,3 +88,9 @@ export async function RejectedNews(newsId: string, reason: string): Promise<News
   const res = await instance.put(`/api/News/${newsId}/reject`, { reason });
   return res.data;
 }
+
+// Lấy news theo newsId
+export async function getNewsById(newsId: string): Promise<News> {
+  const res = await instance.get<{ data: News }>(`/api/News/${newsId}`);
+  return res.data.data;
+}

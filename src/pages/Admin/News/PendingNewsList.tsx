@@ -36,7 +36,7 @@ export const PendingNewsList = ({
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
@@ -63,8 +63,6 @@ export const PendingNewsList = ({
   useEffect(() => {
     if (activeTab !== 'pending') return;
     connectNewsHub('http://localhost:5004/newsHub');
-    fetchData();
-
     // Lắng nghe realtime SignalR cho news
     const reload = () => {
       fetchData();
@@ -79,6 +77,12 @@ export const PendingNewsList = ({
     onNews('OnNewsRejected', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
+  }, [activeTab]);
+
+  // Load data when component mounts, activeTab changes, or pagination changes
+  useEffect(() => {
+    if (activeTab !== 'pending') return;
+    fetchData();
   }, [activeTab, page, pageSize]);
 
   useEffect(() => {
@@ -210,39 +214,51 @@ export const PendingNewsList = ({
             </TableHeader>
             <TableBody>
               {pagedNews.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    No pending news found.
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={6} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
-                pagedNews.map((item, idx) => (
-                  <TableRow key={item.newsId} className="hover:bg-yellow-50">
-                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
-                      {item.newsTitle}
-                    </TableCell>
-                    <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-                      {authorNames[item.authorId] || item.authorId || 'unknown'}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
-                    </TableCell>
-
-                    <TableCell className="text-center flex items-center justify-center gap-2">
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
-                        onClick={() => setSelectedNews(item)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {pagedNews.map((item, idx) => (
+                    <TableRow key={item.newsId} className="hover:bg-yellow-50">
+                      <TableCell className="text-center">
+                        {(page - 1) * pageSize + idx + 1}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.newsTitle}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.newsContent}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {authorNames[item.authorId] || item.authorId || 'Unknown'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
+                      </TableCell>
+                      <TableCell className="text-center flex items-center justify-center gap-2">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setSelectedNews(item)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from({ length: Math.max(0, 5 - pagedNews.length) }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={6} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
             <TableFooter>
@@ -259,23 +275,71 @@ export const PendingNewsList = ({
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-yellow-400 text-white border hover:bg-yellow-500 hover:text-white'
-                                      : 'text-gray-700 hover:bg-yellow-100 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = page - 1; i <= page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === page}
+                                    onClick={() => setPage(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === page
+                                          ? 'bg-yellow-500 text-white border hover:bg-yellow-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === page ? 700 : 400,
+                                      cursor: item === page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

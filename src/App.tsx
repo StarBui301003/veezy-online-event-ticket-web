@@ -47,6 +47,7 @@ import { CommentList } from './pages/Admin/Comment/CommentList';
 import { NewsListTabs } from './pages/Admin/News/NewListTabs';
 import UserListTabs from './pages/Admin/User/UserListTabs';
 import NewsDetail from './pages/Customer/NewsDetail';
+import TermsOfUse from './pages/Customer/TermsOfUse';
 // Import new dashboard pages
 import TicketSalesDashboard from './pages/EventManager/TicketSalesDashboard';
 import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
@@ -56,6 +57,8 @@ import ChatSupportManager from './pages/EventManager/ChatSupportManager';
 import { Users, Eye, ChartBar } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
+import AllNotificationsPage from './pages/EventManager/AllNotificationsPage';
+import SearchResultsPage from './pages/Customer/SearchResultsPage';
 
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 import ReportCommentPage from './pages/Customer/ReportCommentPage';
@@ -85,6 +88,12 @@ import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
 import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
 import { FundTabs } from './pages/Admin/Fund/FundTabs';
+import EventReviews from './pages/EventManager/EventReviews';
+import EventAttendancePredictor from './pages/EventManager/EventAttendancePredictor';
+
+// Thêm import cho NotificationManager
+import NotificationManager from './pages/EventManager/NotificationManager';
+import EditDiscountCode from './pages/EventManager/EditDiscountCode';
 
 function App() {
   useEffect(() => {
@@ -209,10 +218,30 @@ function App() {
           element: <EventDetail />,
         },
         {
-          path: 'news/:newsId',
-          element: <NewsDetail />,
+          path: 'news',
+          children: [
+            {
+              index: true,
+              element: <NewsAll />,
+            },
+            {
+              path: 'all',
+              element: <NewsAll />,
+            },
+            {
+              path: ':newsId',
+              element: <NewsDetail />,
+            },
+          ],
         },
-
+        {
+          path: 'terms-of-use',
+          element: <TermsOfUse />,
+        },
+        {
+          path: 'report/comment/:commentId',
+          element: <ReportCommentPage />,
+        },
         {
           path: 'events',
           element: <AllEventsPage />,
@@ -257,6 +286,18 @@ function App() {
         {
           path: 'event-manager/:id',
           element: <EventManagerProfile />,
+        },
+        {
+          path: 'notifications',
+          element: (
+            <ProtectedRoute allowedRoles={[1, 2]}>
+              <AllNotificationsPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'search',
+          element: <SearchResultsPage />,
         },
       ],
     },
@@ -525,6 +566,14 @@ function App() {
           ),
         },
         {
+          path: 'discount-codes/edit/:discountId',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EditDiscountCode />
+            </ProtectedRoute>
+          ),
+        },
+        {
           path: 'news/create/:eventId',
           element: (
             <ProtectedRoute allowedRoles={[2]}>
@@ -565,6 +614,30 @@ function App() {
           ),
         },
         {
+          path: 'reviews',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventReviews />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'analytics/sentiment',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventReviews />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'analytics/predictions',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <EventAttendancePredictor />
+            </ProtectedRoute>
+          ),
+        },
+        {
           path: 'analytics/participants',
           element: (
             <ProtectedRoute allowedRoles={[2]}>
@@ -574,34 +647,6 @@ function App() {
                   <h1 className="text-3xl font-bold text-blue-300 mb-4">
                     Danh Sách Người Tham Gia
                   </h1>
-                  <p className="text-gray-300">Trang này đang được phát triển</p>
-                </div>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'reviews',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <Eye className="text-yellow-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-yellow-300 mb-4">Đánh Giá Sự Kiện</h1>
-                  <p className="text-gray-300">Trang này đang được phát triển</p>
-                </div>
-              </div>
-            </ProtectedRoute>
-          ),
-        },
-        {
-          path: 'analytics/predictions',
-          element: (
-            <ProtectedRoute allowedRoles={[2]}>
-              <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <ChartBar className="text-purple-400 mx-auto mb-4" size={64} />
-                  <h1 className="text-3xl font-bold text-purple-300 mb-4">Dự Đoán AI</h1>
                   <p className="text-gray-300">Trang này đang được phát triển</p>
                 </div>
               </div>
@@ -621,6 +666,22 @@ function App() {
           element: (
             <ProtectedRoute allowedRoles={[2]}>
               <ChatSupportManager />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'notifications',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <AllNotificationsPage />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: 'notification-manager',
+          element: (
+            <ProtectedRoute allowedRoles={[2]}>
+              <NotificationManager />
             </ProtectedRoute>
           ),
         },

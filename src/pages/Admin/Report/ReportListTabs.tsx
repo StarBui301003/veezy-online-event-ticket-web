@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
-import { getPendingReport } from '@/services/Admin/report.service';
+// import { getPendingReport } from '@/services/Admin/report.service'; // No longer needed
 import { cn } from '@/lib/utils';
-import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
+import { connectFeedbackHub } from '@/services/signalr.service';
 import { PendingReportList } from './PendingReportList';
 import { ResolvedReportList } from './ResolvedReportList';
 import { RejectedReportList } from './RejectedReportList';
@@ -23,27 +23,32 @@ export default function ReportListTabs() {
   const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingPage, setPendingPage] = useState(1);
-  const [pendingPageSize, setPendingPageSize] = useState(10);
+  const [pendingPageSize, setPendingPageSize] = useState(5);
 
-  const fetchPendingCount = () => {
-    getPendingReport()
-      .then((res) => {
-        setPendingCount(Array.isArray(res.data) ? res.data.length : 0);
-      })
-      .catch(() => setPendingCount(0));
-  };
+  // Remove fetchPendingCount function since PendingReportList will provide the count
+  // const fetchPendingCount = () => {
+  //   getPendingReport()
+  //     .then((res) => {
+  //       setPendingCount(Array.isArray(res.data) ? res.data.length : 0);
+  //     })
+  //     .catch(() => setPendingCount(0));
+  // };
 
   useEffect(() => {
     connectFeedbackHub('http://localhost:5008/notificationHub');
-    fetchPendingCount();
-
     // Lắng nghe realtime SignalR cho report
-    const reloadReport = () => fetchPendingCount();
-    onFeedback('OnReportCreated', reloadReport);
-    onFeedback('OnReportUpdated', reloadReport);
-    onFeedback('OnReportDeleted', reloadReport);
-    onFeedback('OnReportStatusUpdated', reloadReport);
+    // Remove reloadReport since PendingReportList handles its own data fetching
+    // const reloadReport = () => fetchPendingCount();
+    // onFeedback('OnReportCreated', reloadReport);
+    // onFeedback('OnReportUpdated', reloadReport);
+    // onFeedback('OnReportDeleted', reloadReport);
+    // onFeedback('OnReportStatusUpdated', reloadReport);
   }, []);
+
+  // Remove the useEffect that calls fetchPendingCount on mount
+  // useEffect(() => {
+  //   fetchPendingCount();
+  // }, []);
 
   // Khi đổi tab, update query param
   const handleTabChange = (tab: string) => {

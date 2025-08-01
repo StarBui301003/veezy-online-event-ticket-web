@@ -5,7 +5,6 @@ import { ChevronsUpDown, LogOut } from 'lucide-react';
 import { FiUser } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,11 +44,12 @@ export function NavUser() {
       if (!accStr) return;
       try {
         const acc = JSON.parse(accStr);
+        const avatarUrl = acc.avatar || '';
         setUser({
           name: acc.fullName || acc.username || '',
           username: acc.username || '',
           email: acc.email || '',
-          avatar: acc.avatar || '',
+          avatar: avatarUrl,
         });
         setAvatarLoaded(false);
       } catch {
@@ -57,24 +57,33 @@ export function NavUser() {
       }
     };
 
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      if (event.detail?.avatarUrl !== undefined) {
+        console.log('NavUser - Avatar Updated:', event.detail.avatarUrl); // Debug log
+        setUser((prev) => (prev ? { ...prev, avatar: event.detail.avatarUrl } : null));
+        setAvatarLoaded(false);
+      }
+    };
+
     fetchUser();
 
     window.addEventListener('user-updated', fetchUser);
     window.addEventListener('storage', fetchUser);
+    window.addEventListener('avatar-updated', handleAvatarUpdate as EventListener);
     return () => {
       window.removeEventListener('user-updated', fetchUser);
       window.removeEventListener('storage', fetchUser);
+      window.removeEventListener('avatar-updated', handleAvatarUpdate as EventListener);
     };
   }, []);
 
   // Khi avatar thay đổi, reset trạng thái loaded
   useEffect(() => {
-    setAvatarLoaded(true);
-    // Nếu không có avatar hoặc avatar là chuỗi rỗng/null thì coi như đã load xong (không hiện spinner)
     if (!user?.avatar || user.avatar.trim() === '') {
       setAvatarLoaded(true);
       return;
     }
+
     setAvatarLoaded(false);
     let cancelled = false;
     const img = new window.Image();
@@ -85,7 +94,11 @@ export function NavUser() {
       }
     };
     img.onerror = () => {
-      if (!cancelled) setAvatarLoaded(true);
+      if (!cancelled) {
+        setAvatarLoaded(true);
+        // Nếu avatar load lỗi, reset về fallback
+        setUser((prev) => (prev ? { ...prev, avatar: '' } : null));
+      }
     };
     return () => {
       cancelled = true;
@@ -123,17 +136,30 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-blue-50 transition"
             >
               <div className="relative">
-                {user.avatar && (
-                  <Avatar className="h-9 w-9 rounded-full border-2 border-blue-400 shadow">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                  </Avatar>
-                )}
-                {!user.avatar && (
-                  <Avatar className="h-9 w-9 rounded-full border-2 border-blue-400 shadow">
-                    <AvatarFallback className="rounded-full bg-blue-100 text-blue-700 font-bold">
+                {user.avatar && user.avatar.trim() !== '' ? (
+                  <div className="h-9 w-9 rounded-full border-2 border-blue-400 shadow overflow-hidden">
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => {
+                        console.log('NavUser - Avatar loaded successfully:', user.avatar);
+                      }}
+                      onError={(e) => {
+                        console.log('NavUser - Avatar load error:', user.avatar);
+                        // Nếu avatar load lỗi, ẩn img để hiển thị fallback
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="hidden w-full h-full rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
                       {user.name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 rounded-full border-2 border-blue-400 shadow bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                    {user.name?.[0]?.toUpperCase() || 'U'}
+                  </div>
                 )}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight ml-2">
@@ -151,12 +177,31 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-3 px-2 py-2 text-left text-sm">
-                <Avatar className="h-10 w-10 rounded-full border-2 border-blue-400 shadow">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-full bg-blue-100 text-blue-700 font-bold">
+                {user.avatar && user.avatar.trim() !== '' ? (
+                  <div className="h-10 w-10 rounded-full border-2 border-blue-400 shadow overflow-hidden">
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                      onLoad={() => {
+                        console.log('NavUser Dropdown - Avatar loaded successfully:', user.avatar);
+                      }}
+                      onError={(e) => {
+                        console.log('NavUser Dropdown - Avatar load error:', user.avatar);
+                        // Nếu avatar load lỗi, ẩn img để hiển thị fallback
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="hidden w-full h-full rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
+                      {user.name?.[0]?.toUpperCase() || 'U'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded-full border-2 border-blue-400 shadow bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm">
                     {user.name?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                  </div>
+                )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold text-blue-900">{user.username}</span>
                   <span className="truncate text-xs text-blue-500">{user.email}</span>

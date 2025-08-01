@@ -70,7 +70,7 @@ export const ResetNewPasswordForm = () => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200 to-blue-400">
+    <div className="fixed inset-0 flex items-center justify-center  bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f]">
       <form
         onSubmit={handleSubmit}
         className="bg-white p-16 rounded-2xl shadow-lg w-full max-w-3xl min-h-[400px] space-y-4 relative"
@@ -92,7 +92,7 @@ export const ResetNewPasswordForm = () => {
 
         <Input
           type="text"
-          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none placeholder:text-white/50"
           placeholder="Verification code"
           value={code}
           onChange={(e) => setCode(e.target.value)}
@@ -100,7 +100,7 @@ export const ResetNewPasswordForm = () => {
         />
         <Input
           type="password"
-          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none placeholder:text-white/50"
           placeholder="New password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
@@ -108,7 +108,7 @@ export const ResetNewPasswordForm = () => {
         />
         <Input
           type="password"
-          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+          className="border-2 border-gray-300 rounded-md p-2 text-gray-800 focus:border-blue-500 focus:outline-none placeholder:text-white/50"
           placeholder="Confirm password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}

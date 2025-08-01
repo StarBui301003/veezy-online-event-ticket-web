@@ -2,12 +2,25 @@
 export interface Comment {
   commentId: string; // Guid
   eventId: string;
+  eventName: string; // Added eventName property
   userId: string;
   content: string;
   createdAt: string; // ISO date
   updatedAt: string | null;
   avatarUrl: string | null;
   fullName: string | null;
+}
+
+export interface CommentFilterParams {
+  searchTerm?: string;
+  eventId?: string;
+  userId?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDescending: boolean;
 }
 
 export interface PaginatedCommentResponse {

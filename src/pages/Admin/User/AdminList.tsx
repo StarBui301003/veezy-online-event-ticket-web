@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
-import { getAdminUsers } from '@/services/Admin/user.service';
+import { getAdminsWithFilter, UserFilterParams } from '@/services/Admin/user.service';
 import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
-import type { User } from '@/types/auth';
-import type { PaginatedUserResponse } from '@/types/Admin/user';
+import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
   TableHeader,
@@ -26,9 +26,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { MdOutlineEdit } from 'react-icons/md';
-import { FaEye, FaPlus } from 'react-icons/fa';
+import { FaEye, FaPlus, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
 import EditUserModal from '@/pages/Admin/User/EditUserModal';
 import CreateAdminModal from '@/pages/Admin/User/CreateAdminModal';
@@ -38,73 +40,119 @@ const pageSizeOptions = [5, 10, 20, 50];
 
 export const AdminList = () => {
   const { t } = useTranslation();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserAccountResponse[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [adminPage, setAdminPage] = useState(1);
-  const [adminPageSize, setAdminPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [viewUser, setViewUser] = useState<User | null>(null);
-  const [editUser, setEditUser] = useState<User | null>(null);
+  const [viewUser, setViewUser] = useState<UserAccountResponse | null>(null);
+  const [editUser, setEditUser] = useState<UserAccountResponse | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Search state
   const [adminSearch, setAdminSearch] = useState('');
 
-  // Thêm hàm reload danh sách
-  const reloadUsers = () => {
+  // Filter state
+  const [filters, setFilters] = useState<UserFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortDescending: true,
+  });
+
+  // Sort state
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  const fetchUsers = async () => {
     setLoading(true);
-    getAdminUsers(adminPage, adminPageSize)
-      .then((res: PaginatedUserResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setUsers(res.data.items);
-          setTotalPages(res.data.totalPages);
-        } else {
-          setUsers([]);
-          setTotalPages(1);
-        }
-      })
-      .finally(() => setLoading(false));
+    try {
+      const params: Omit<UserFilterParams, 'role'> = {
+        searchTerm: adminSearch || filters.searchTerm,
+        isActive: filters.isActive,
+        isOnline: filters.isOnline,
+        isEmailVerified: filters.isEmailVerified,
+        page: filters.page,
+        pageSize: filters.pageSize,
+        sortBy: sortBy || filters.sortBy,
+        sortDescending: sortDescending,
+      };
+
+      const response = await getAdminsWithFilter(params);
+      if (response.flag) {
+        setUsers(response.data.items);
+        setTotalItems(response.data.totalItems);
+        setTotalPages(response.data.totalPages);
+        // Don't update filters here to avoid infinite loop
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
     connectIdentityHub('http://localhost:5001/hubs/notifications');
-    
+
     // Listen for real-time admin user updates
     onIdentity('AdminCreated', (data: any) => {
       console.log('👤 Admin created:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('AdminUpdated', (data: any) => {
-      console.log('👤 Admin updated:', data);
-      reloadUsers();
-    });
-    
-    onIdentity('AdminDeleted', (data: any) => {
-      console.log('👤 Admin deleted:', data);
-      reloadUsers();
+      fetchUsers();
     });
 
-    // Initial data load
-    reloadUsers();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    onIdentity('AdminUpdated', (data: any) => {
+      console.log('👤 Admin updated:', data);
+      fetchUsers();
+    });
+
+    onIdentity('AdminDeleted', (data: any) => {
+      console.log('👤 Admin deleted:', data);
+      fetchUsers();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    reloadUsers();
+    fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminPage, adminPageSize]);
+  }, [filters, adminSearch, sortBy, sortDescending]);
 
-  const filteredAdmins = users.filter(
-    (user) =>
-      !adminSearch ||
-      user.fullName.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
-      user.email.toLowerCase().includes(adminSearch.trim().toLowerCase()) ||
-      (user.phone && user.phone.toLowerCase().includes(adminSearch.trim().toLowerCase()))
-  );
-  const pagedAdmins = filteredAdmins;
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(column);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-blue-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-blue-600" />
+    );
+  };
+
+  const updateFilter = (key: keyof UserFilterParams, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      page: 1, // Reset to first page when filters change
+    }));
+  };
 
   return (
     <div className="p-3">
@@ -116,7 +164,7 @@ export const AdminList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            reloadUsers();
+            fetchUsers();
           }}
           title="Edit Admin"
           disableEmail
@@ -127,14 +175,13 @@ export const AdminList = () => {
         onClose={() => setShowCreateModal(false)}
         onCreated={() => {
           setShowCreateModal(false);
-          reloadUsers();
+          fetchUsers();
         }}
       />
+
       <div className="overflow-x-auto mb-10">
         <div className="p-4 bg-white rounded-xl shadow">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Remove <h2 className="font-bold text-lg text-blue-700">Admin List</h2> */}
-            {/* Keep search and create button layout */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -171,7 +218,7 @@ export const AdminList = () => {
                   value={adminSearch}
                   onChange={(e) => {
                     setAdminSearch(e.target.value);
-                    setAdminPage(1);
+                    setFilters((prev) => ({ ...prev, page: 1 }));
                   }}
                 />
                 {adminSearch && (
@@ -190,7 +237,7 @@ export const AdminList = () => {
                     }}
                     onClick={() => {
                       setAdminSearch('');
-                      setAdminPage(1);
+                      setFilters((prev) => ({ ...prev, page: 1 }));
                     }}
                     tabIndex={-1}
                     type="button"
@@ -201,159 +248,401 @@ export const AdminList = () => {
                 )}
               </div>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {/* Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1 text-sm font-semibold">Status</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Active</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isActive', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isActive === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Inactive</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1 text-sm font-semibold">Online Status</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Online</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isOnline', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isOnline === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Offline</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <div className="px-2 py-1 text-sm font-semibold">Email Verified</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', true)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === true}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Verified</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('isEmailVerified', false)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.isEmailVerified === false}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>Not Verified</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <button
                 className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
                 onClick={() => setShowCreateModal(true)}
               >
                 <FaPlus />
-                {t('create')}
+                Create Admin
               </button>
             </div>
           </div>
-          <Table className="min-w-full">
+
+          <Table>
             <TableHeader>
               <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4" style={{ width: '10%' }}>
+                <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>{t('fullName')}</TableHead>
-                <TableHead style={{ width: '15%' }}>{t('phone')}</TableHead>
-                <TableHead style={{ width: '25%' }}>{t('email')}</TableHead>
-                {/* <TableHead>Role</TableHead> */}
-                <TableHead className="text-center">{t('actions')}</TableHead>
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('fullname')}
+                  >
+                    Name
+                    {getSortIcon('fullname')}
+                  </div>
+                </TableHead>
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('username')}
+                  >
+                    Username
+                    {getSortIcon('username')}
+                  </div>
+                </TableHead>
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('email')}
+                  >
+                    Email
+                    {getSortIcon('email')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Status
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Online
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Email Verified
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center justify-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('createdat')}
+                  >
+                    Created At
+                    {getSortIcon('createdat')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedAdmins.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    {t('noUsersFound')}
-                  </TableCell>
-                </TableRow>
+              {users.length === 0 ? (
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={9} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
-                pagedAdmins.map((user, idx) => (
-                  <TableRow key={user.userId} className="hover:bg-blue-50">
-                    <TableCell className="pl-4 ">
-                      {(adminPage - 1) * adminPageSize + idx + 1}
-                    </TableCell>
-                    <TableCell>{user.fullName}</TableCell>
-                    <TableCell>
-                      {user.phone || <span className="text-gray-400">N/A</span>}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-
-                    <TableCell className="text-center flex items-center justify-center gap-2">
-                      <button
-                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-                        title={t('edit')}
-                        onClick={() => setEditUser(user)}
-                      >
-                        <MdOutlineEdit className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title={t('view')}
-                        onClick={() => setViewUser(user)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {users.map((user, idx) => (
+                    <TableRow key={user.userId} className="hover:bg-blue-50">
+                      <TableCell className="text-center">
+                        {(filters.page - 1) * filters.pageSize + idx + 1}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.fullName}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.username}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user.email}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isActive
+                              ? 'border-green-500 bg-green-500 text-white hover:bg-green-600 hover:text-white hover:border-green-500'
+                              : 'border-red-500 bg-red-500 text-white hover:bg-red-600 hover:text-white hover:border-red-500'
+                          }`}
+                        >
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isOnline
+                              ? 'border-blue-500 bg-blue-500 text-white hover:bg-blue-600 hover:text-white hover:border-blue-500'
+                              : 'border-gray-500 bg-gray-500 text-white hover:bg-gray-600 hover:text-white hover:border-gray-500'
+                          }`}
+                        >
+                          {user.isOnline ? 'Online' : 'Offline'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
+                            user.isEmailVerified
+                              ? 'border-green-500 bg-green-500 text-white hover:bg-green-600 hover:text-white hover:border-green-500'
+                              : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-600 hover:text-white hover:border-yellow-500'
+                          }`}
+                        >
+                          {user.isEmailVerified ? 'Verified' : 'Not Verified'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-center flex items-center justify-center gap-2">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setViewUser(user)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
+                          title="Edit"
+                          onClick={() => setEditUser(user)}
+                        >
+                          <MdOutlineEdit className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from({ length: Math.max(0, 5 - users.length) }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={9} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={9}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setAdminPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={adminPage === 1}
-                              className={adminPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                            >
-                              {t('previous')}
-                            </PaginationPrevious>
+                              onClick={() => handlePageChange(Math.max(1, filters.page - 1))}
+                              aria-disabled={filters.page === 1}
+                              className={filters.page === 1 ? 'pointer-events-none opacity-50' : ''}
+                            />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === adminPage}
-                                onClick={() => setAdminPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === adminPage
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (filters.page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (filters.page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = filters.page - 1; i <= filters.page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === filters.page}
+                                    onClick={() => handlePageChange(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === filters.page
+                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === filters.page ? 700 : 400,
+                                      cursor: item === filters.page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setAdminPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={adminPage === totalPages}
-                              className={
-                                adminPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, filters.page + 1))
                               }
-                            >
-                              {t('next')}
-                            </PaginationNext>
+                              aria-disabled={filters.page === totalPages}
+                              className={
+                                filters.page === totalPages ? 'pointer-events-none opacity-50' : ''
+                              }
+                            />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700">
-                        {filteredAdmins.length === 0
+                        {totalItems === 0
                           ? '0-0 of 0'
-                          : `${(adminPage - 1) * adminPageSize + 1}-${Math.min(
-                              adminPage * adminPageSize,
-                              filteredAdmins.length
-                            )} of ${filteredAdmins.length}`}
+                          : `${(filters.page - 1) * filters.pageSize + 1}-${Math.min(
+                              filters.page * filters.pageSize,
+                              totalItems
+                            )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-600">{t('rowsPerPage')}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {adminPageSize}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => {
-                                setAdminPageSize(size);
-                                setAdminPage(1);
-                              }}
-                              className={size === adminPageSize ? 'font-bold bg-primary/10' : ''}
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <select
+                        className="border rounded px-2 py-1 text-sm bg-white"
+                        value={filters.pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

@@ -1,12 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import instance from "@/services/axios.customize";
 import { Loader2, Send, MoreVertical, Flag } from "lucide-react";
 import { toast } from "react-toastify";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-// import ReportModal from './ReportModal';
-
 import { connectCommentHub, onComment } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 
@@ -20,28 +18,27 @@ interface Comment {
 }
 
 interface UserData {
-    userId: string;
-    fullName: string;
-    avatar: string;
+  userId: string;
+  fullName: string;
+  avatar: string;
 }
 
 const getLoggedInUser = (): UserData | null => {
-    try {
-        const accStr = localStorage.getItem('account');
-        if (accStr) {
-            const acc = JSON.parse(accStr);
-            return {
-                userId: acc.userId,
-                fullName: acc.fullName,
-                avatar: acc.avatar
-            };
-        }
-        return null;
-    } catch {
-        return null;
+  try {
+    const accStr = localStorage.getItem('account');
+    if (accStr) {
+      const acc = JSON.parse(accStr);
+      return {
+        userId: acc.userId,
+        fullName: acc.fullName,
+        avatar: acc.avatar
+      };
     }
+    return null;
+  } catch {
+    return null;
+  }
 }
-
 
 export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
   const { t } = useTranslation();
@@ -52,6 +49,10 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   const [showCount, setShowCount] = useState(3);
   const [showComment, setShowComment] = useState(true);
   const loggedInUser = getLoggedInUser();
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const fetchComments = () => {
     setLoading(true);
@@ -132,13 +133,57 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     }
   };
 
+  // Edit comment handler
+  const handleEdit = (commentId: string, currentContent: string) => {
+    setEditingCommentId(commentId);
+    setEditContent(currentContent);
+    setTimeout(() => {
+      editTextareaRef.current?.focus();
+    }, 0);
+  };
+  // Save edited comment
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editContent.trim()) return;
+    try {
+      await instance.put(`/api/Comment/${commentId}`, { content: editContent.trim() });
+      toast.success(t('editCommentSuccess') || 'Đã sửa bình luận!');
+      setEditingCommentId(null);
+      setEditContent("");
+      fetchComments();
+    } catch (err) {
+      toast.error(t('editCommentFailed') || 'Sửa bình luận thất bại!');
+    }
+  };
+  // Cancel edit
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent("");
+  };
+  // Delete comment handler (show modal)
+  const handleDelete = (commentId: string) => {
+    setDeleteConfirmId(commentId);
+  };
+  // Confirm delete
+  const confirmDelete = async (commentId: string) => {
+    try {
+      await instance.delete(`/api/Comment/${commentId}`);
+      toast.success(t('deleteCommentSuccess') || 'Đã xóa bình luận!');
+      setDeleteConfirmId(null);
+      fetchComments();
+    } catch (err) {
+      toast.error(t('deleteCommentFailed') || 'Xóa bình luận thất bại!');
+    }
+  };
+  // Cancel delete
+  const cancelDelete = () => {
+    setDeleteConfirmId(null);
+  };
+
   // Hiển thị tối đa 3 comment, có nút xem thêm
   const sortedComments = [...comments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const visibleComments = sortedComments.slice(0, showCount);
-
-  // Chỉ hiện scroll khi đã bấm "Xem thêm" (tức là showCount > 3 và có nhiều hơn 3 comment)
   const isScrollable = showCount > 3 && sortedComments.length > 3;
-  // Tăng chiều cao tối đa để đủ chỗ cho 3 comment và tránh bị đè lên EventChatAssistant
+
   return (
     <div className={`mt-8 bg-slate-800/50 p-6 rounded-xl shadow-xl max-h-[700px] min-h-[340px] flex flex-col${!showComment ? ' mb-0' : ''}`} style={{ overscrollBehavior: 'contain' }}>
       <button
@@ -200,7 +245,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                   <div className="text-slate-400 text-center py-4">{t('noCommentsYet')}</div>
                 ) : (
                   visibleComments.map(c => (
-                    <div key={c.commentId} className="flex items-start gap-4">
+                    <div key={c.commentId} className="flex items-start gap-4 relative">
                       <img
                         src={c.avatarUrl}
                         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://via.placeholder.com/150/94a3b8/ffffff?text=U'; }}
@@ -219,21 +264,96 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
-                                <DropdownMenuItem
-                                  onSelect={e => {
-                                    e.preventDefault();
-                                    setReportModal({type: 'comment', id: c.commentId});
-                                  }}
-                                  className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                                >
-                                  <Flag className="w-4 h-4" /> {t('reportComment')}
-                                </DropdownMenuItem>
+                                {/* Report chỉ cho comment của người khác */}
+                                {loggedInUser && c.userId !== loggedInUser.userId && (
+                                  <DropdownMenuItem
+                                    onSelect={e => {
+                                      e.preventDefault();
+                                      setReportModal({type: 'comment', id: c.commentId});
+                                    }}
+                                    className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                                  >
+                                    <Flag className="w-4 h-4" /> {t('reportComment')}
+                                  </DropdownMenuItem>
+                                )}
+                                {/* Sửa/Xóa chỉ cho comment của mình */}
+                                {loggedInUser && c.userId === loggedInUser.userId && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onSelect={e => {
+                                        e.preventDefault();
+                                        handleEdit(c.commentId, c.content);
+                                      }}
+                                      className="flex items-center gap-2 text-blue-600 font-semibold cursor-pointer hover:bg-blue-50 rounded px-3 py-2"
+                                    >
+                                      ✏️ {t('editComment') || 'Sửa'}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onSelect={e => {
+                                        e.preventDefault();
+                                        handleDelete(c.commentId);
+                                      }}
+                                      className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                                    >
+                                      🗑️ {t('deleteComment') || 'Xóa'}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
                         </div>
-                        <p className="text-sm text-slate-200 mt-1">{c.content}</p>
+                        {editingCommentId === c.commentId ? (
+                          <div className="mt-2">
+                            <textarea
+                              ref={editTextareaRef}
+                              className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                              value={editContent}
+                              onChange={e => setEditContent(e.target.value)}
+                              rows={3}
+                              disabled={posting}
+                            />
+                            <div className="flex gap-2 mt-2 justify-end">
+                              <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                                onClick={() => handleSaveEdit(c.commentId)}
+                                disabled={posting || !editContent.trim()}
+                              >
+                                {t('save') || 'Lưu'}
+                              </button>
+                              <button
+                                className="px-4 py-2 bg-slate-500 text-white rounded-lg font-semibold hover:bg-slate-600 transition"
+                                onClick={handleCancelEdit}
+                                disabled={posting}
+                              >
+                                {t('cancel') || 'Hủy'}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-200 mt-1">{c.content}</p>
+                        )}
                       </div>
+                      {/* Xác nhận xóa bình luận vĩnh viễn - mockup nhỏ */}
+                      {deleteConfirmId === c.commentId && (
+                        <div className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white border border-red-400 rounded-lg shadow-lg p-4 flex flex-col items-center min-w-[220px]">
+                          <p className="text-red-700 font-semibold mb-3 text-center">Bạn muốn xóa bình luận này vĩnh viễn?</p>
+                          <div className="flex gap-3">
+                            <button
+                              className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 font-semibold"
+                              onClick={() => confirmDelete(c.commentId)}
+                            >
+                              Xóa
+                            </button>
+                            <button
+                              className="px-4 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 font-semibold"
+                              onClick={cancelDelete}
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

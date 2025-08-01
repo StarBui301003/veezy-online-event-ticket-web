@@ -87,95 +87,126 @@ const ConfirmOrderPage = () => {
     }
   }, [t]);
 
-  // FIX: Sửa cách tính total - ưu tiên dùng checkout.totalAmount cho face order
-  const total = checkout
-    ? checkout.faceOrder && checkout.totalAmount 
-      ? checkout.totalAmount // Sử dụng totalAmount từ API nếu là face order
-      : checkout.items.reduce((sum, item) => {
-          // Tính từ items nếu không phải face order hoặc không có totalAmount
-          let price = 0;
-          // Ưu tiên pricePerTicket từ API response
-          if (typeof item.pricePerTicket === 'number') {
-            price = item.pricePerTicket;
-          } else if (typeof item.pricePerTicket === 'string') {
-            price = parseFloat(item.pricePerTicket) || 0;
-          } else if (typeof item.ticketPrice === 'number') {
-            price = item.ticketPrice;
-          } else if (typeof item.ticketPrice === 'string') {
-            price = parseFloat(item.ticketPrice) || 0;
-          }
-          
-          let quantity = 0;
-          if (typeof item.quantity === 'number') {
-            quantity = item.quantity;
-          } else if (typeof item.quantity === 'string') {
-            quantity = parseInt(item.quantity) || 0;
-          }
-          
-          return sum + (price * quantity);
-        }, 0)
-    : 0;
+  // FIX: Sửa cách tính total - KHÔNG dùng discountAmount từ checkout vì nó có thể không chính xác
+  const calculateOrderTotal = () => {
+    if (!checkout) return 0;
+    
+    // For face orders, use the provided totalAmount if available
+    if (checkout.faceOrder && checkout.totalAmount) {
+      return Math.max(0, checkout.totalAmount);
+    }
+    
+    // Calculate total from items - đây là subtotal TRƯỚC khi giảm giá
+    const calculatedTotal = checkout.items.reduce((sum, item) => {
+      let price = 0;
+      if (typeof item.pricePerTicket === 'number') {
+        price = item.pricePerTicket;
+      } else if (typeof item.pricePerTicket === 'string') {
+        price = parseFloat(item.pricePerTicket) || 0;
+      } else if (typeof item.ticketPrice === 'number') {
+        price = item.ticketPrice;
+      } else if (typeof item.ticketPrice === 'string') {
+        price = parseFloat(item.ticketPrice) || 0;
+      }
+      
+      let quantity = 0;
+      if (typeof item.quantity === 'number') {
+        quantity = item.quantity;
+      } else if (typeof item.quantity === 'string') {
+        quantity = parseInt(item.quantity) || 0;
+      }
+      
+      return sum + (price * quantity);
+    }, 0);
+    
+    return Math.max(0, calculatedTotal); // Ensure total is never negative
+  };
 
-  // FIX: Sửa cách tính discount - ưu tiên dùng từ checkout cho face order
-  const discountAmount = checkout?.faceOrder && checkout.discountAmount 
-    ? checkout.discountAmount // Dùng discountAmount từ API response nếu là face order
-    : checkout?.discountAmount || 0;
-
-  const finalTotal = total - discountAmount;
+  const subtotal = calculateOrderTotal(); // Subtotal trước khi giảm giá
+  const discountAmount = checkout?.discountAmount || 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount); // Final total sau khi giảm giá
 
   const isFaceOrderInvalid = checkout?.faceOrder && (checkout.items.length === 0 || checkout.totalAmount === 0);
 
   const handleConfirm = async () => {
     if (!checkout) return;
+    
+    // Validate order amount before proceeding
+    if (subtotal <= 0) {
+      setError('Tổng tiền đơn hàng không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.');
+      return;
+    }
+    
     setConfirming(true);
     setError(null);
+    
     try {
       let orderId = checkout.orderId;
       let finalOrder = null;
+
       // Nếu là order bằng khuôn mặt đã có orderId, chỉ lấy lại orderInfo
       if (checkout.faceOrder && orderId) {
         finalOrder = await getOrderById(orderId);
       } else {
-        // Gọi API tạo order (KHÔNG truyền discountCode)
+        // Tạo order mới với thông tin giảm giá (nếu có)
         const orderPayload = {
           eventId: checkout.eventId,
           customerId: checkout.customerId,
-          items: checkout.items.map(i => ({ ticketId: i.ticketId, quantity: i.quantity })),
+          items: checkout.items.map(i => ({
+            ticketId: i.ticketId,
+            quantity: i.quantity,
+            price: i.ticketPrice || i.pricePerTicket || 0
+          })),
+          discountCode: checkout.discountCode || undefined,
+          discountAmount: checkout.discountAmount || 0,
+          // FIX: Send the subtotal (before discount) as orderAmount
+          orderAmount: subtotal // This should be the total before discount
         };
+
+        console.log('Order payload:', orderPayload); // Debug log
+
+        // Gọi API tạo order với thông tin giảm giá
         const orderRes = await createOrder(orderPayload);
-        orderId = orderRes.orderId;
-        if (!orderId) throw new Error('Không lấy được mã đơn hàng từ server.');
-        // Nếu có discountCode, gọi tiếp /use và lấy lại order đã giảm giá
-        finalOrder = orderRes;
-        if (checkout.discountCode) {
-          const useRes = await useDiscountCode(checkout.eventId, checkout.discountCode);
-          if (!useRes.flag) {
-            throw new Error(useRes.message || 'Mã giảm giá không hợp lệ hoặc không áp dụng được.');
-          }
-          // Lấy lại order đã giảm giá
-          finalOrder = await getOrderById(orderId);
+        
+        if (!orderRes || !orderRes.orderId) {
+          throw new Error('Không thể tạo đơn hàng. Vui lòng thử lại.');
         }
+        
+        orderId = orderRes.orderId;
+        finalOrder = orderRes;
       }
-      setOrderInfo(finalOrder); // Lưu lại thông tin đơn hàng đã giảm giá (nếu có)
-      // Gọi API tạo thanh toán VNPAY như cũ
+
+      // Lưu thông tin order vào state để hiển thị
+      setOrderInfo(finalOrder);
+
+      // Tạo thanh toán VNPAY với orderId
       const payRes = await createVnPayPayment(orderId);
       let paymentUrl = '';
+      
       if (payRes && payRes.paymentUrl) paymentUrl = payRes.paymentUrl;
       else if (typeof payRes === 'string' && payRes.startsWith('http')) paymentUrl = payRes;
-      else if (payRes.data && typeof payRes.data === 'string' && payRes.data.startsWith('http'))
+      else if (payRes?.data && typeof payRes.data === 'string' && payRes.data.startsWith('http'))
         paymentUrl = payRes.data;
-      if (!paymentUrl) throw new Error('Không lấy được link thanh toán từ server.');
-      // Mở tab mới
+      
+      if (!paymentUrl) {
+        throw new Error('Không lấy được link thanh toán từ server.');
+      }
+
+      // Mở tab thanh toán mới
       handleStartPayment(paymentUrl);
+      
       // Lưu orderId vào localStorage để callback có thể lấy
       localStorage.setItem('lastOrderId', orderId);
-    } catch (err: unknown) {
+    } catch (err: any) {
+      console.error('Lỗi khi xác nhận đơn hàng:', err);
       let msg = 'Có lỗi khi tạo đơn hàng/thanh toán.';
-      if (typeof err === 'object' && err && 'response' in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message) {
-        msg = (err as { response: { data: { message: string } } }).response.data.message;
-      } else if (typeof err === 'object' && err && 'message' in err && typeof (err as { message?: string }).message === 'string') {
-        msg = (err as { message: string }).message;
+      
+      if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      } else if (err?.message) {
+        msg = err.message;
       }
+      
       setError(msg);
     } finally {
       setConfirming(false);
@@ -303,7 +334,6 @@ const ConfirmOrderPage = () => {
             <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
             <div className="divide-y divide-gray-200">
               {(orderInfo.items || checkout?.items || []).map((item: CheckoutItem) => {
-                // FIX: Xử lý price với type checking - ưu tiên pricePerTicket từ API
                 let price = 0;
                 if (typeof item.pricePerTicket === 'number') {
                   price = item.pricePerTicket;
@@ -322,7 +352,7 @@ const ConfirmOrderPage = () => {
                   quantity = parseInt(item.quantity) || 0;
                 }
                 
-                const subtotal = price * quantity;
+                const itemSubtotal = price * quantity;
                 
                 return (
                   <div key={item.ticketId} className="flex justify-between py-2 text-sm">
@@ -330,16 +360,16 @@ const ConfirmOrderPage = () => {
                       {item.ticketName} (x{quantity})
                     </span>
                     <span>
-                      {isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ
+                      {isNaN(itemSubtotal) ? '0' : itemSubtotal.toLocaleString('vi-VN')} VNĐ
                     </span>
                   </div>
                 );
               })}
             </div>
           </div>
-          <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-6">
-            <span>{t('total')}:</span>
-            <span>{isNaN(total) ? '0' : total.toLocaleString('vi-VN')} VNĐ</span>
+          <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-2">
+            <span>{t('subtotal')}:</span>
+            <span>{isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ</span>
           </div>
           {discountAmount > 0 && (
             <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
@@ -415,7 +445,6 @@ const ConfirmOrderPage = () => {
           <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
           <div className="divide-y divide-gray-200">
             {checkout.items.map((item) => {
-              // FIX: Xử lý price với type checking - ưu tiên pricePerTicket từ API response
               let price = 0;
               if (typeof item.pricePerTicket === 'number') {
                 price = item.pricePerTicket;
@@ -434,33 +463,44 @@ const ConfirmOrderPage = () => {
                 quantity = parseInt(item.quantity) || 0;
               }
               
-              const subtotal = price * quantity;
+              const itemSubtotal = price * quantity;
               
               return (
                 <div key={item.ticketId} className="flex justify-between py-2 text-sm">
                   <span>
                     {item.ticketName} (x{quantity})
                   </span>
-                  <span>{isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ</span>
+                  <span>{isNaN(itemSubtotal) ? '0' : itemSubtotal.toLocaleString('vi-VN')} VNĐ</span>
                 </div>
               );
             })}
           </div>
         </div>
+        
+        {/* Subtotal (before discount) */}
         <div className="flex justify-between items-center font-bold text-lg text-emerald-700 border-t border-emerald-200 pt-4 mb-2">
-          <span>{t('total')}:</span>
-          <span>{isNaN(total) ? '0' : total.toLocaleString('vi-VN')} VNĐ</span>
+          <span>{t('subtotal')}:</span>
+          <span>{isNaN(subtotal) ? '0' : subtotal.toLocaleString('vi-VN')} VNĐ</span>
         </div>
-        {discountAmount > 0 && (
-          <div className="flex justify-between items-center text-lg text-amber-600 mb-2">
-            <span>{t('discount')}:</span>
-            <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
+        
+        {/* Discount (if applicable) */}
+        {checkout.discountCode && discountAmount > 0 && (
+          <div className="flex justify-between py-2 border-b">
+            <div className="text-gray-600">
+              Mã giảm giá: <span className="font-medium">{checkout.discountCode}</span>
+            </div>
+            <div className="text-red-500 font-medium">
+              -{discountAmount.toLocaleString('vi-VN')} VNĐ
+            </div>
           </div>
         )}
+        
+        {/* Final total (after discount) */}
         <div className="flex justify-between items-center font-bold text-xl text-green-700 border-t border-green-200 pt-2 mb-6">
           <span>{t('finalTotal')}:</span>
           <span>{isNaN(finalTotal) ? '0' : finalTotal.toLocaleString('vi-VN')} VNĐ</span>
         </div>
+        
         <button
           onClick={handleConfirm}
           disabled={confirming || isFaceOrderInvalid}

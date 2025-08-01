@@ -23,6 +23,7 @@ import FundDetailModal from './FundDetailModal';
 import { FaEye } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { connectFundHub, onFund } from '@/services/signalr.service';
+import { formatCurrency } from '@/utils/format';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -30,7 +31,7 @@ export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: (
   const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
 
@@ -181,7 +182,7 @@ export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: (
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by event name..."
+                  placeholder="Search all columns..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -235,7 +236,7 @@ export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: (
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="min-h-[400px]">
               {filteredItems.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-gray-500">
@@ -243,35 +244,50 @@ export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: (
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredItems.map((item, idx) => (
-                  <TableRow key={item.transactionId} className="hover:bg-gray-50">
-                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
-                      {item.eventName}
-                    </TableCell>
-                    <TableCell>{item.amount}</TableCell>
-                    <TableCell className="text-center">
-                      {getStatusBadge(item.transactionStatus)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-center flex justify-center">
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
-                        onClick={() => setSelected(item)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {filteredItems.map((item, idx) => (
+                    <TableRow key={item.transactionId} className="hover:bg-gray-50">
+                      <TableCell className="text-center">
+                        {(page - 1) * pageSize + idx + 1}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.eventName}
+                      </TableCell>
+                      <TableCell>{formatCurrency(item.amount)}</TableCell>
+                      <TableCell className="text-center">
+                        {getStatusBadge(item.transactionStatus)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center flex justify-center">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setSelected(item)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(0, 5 - filteredItems.length),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={6} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -283,23 +299,71 @@ export const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: (
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-gray-500 text-white border hover:bg-gray-600 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = page - 1; i <= page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === page}
+                                    onClick={() => setPage(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === page
+                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === page ? 700 : 400,
+                                      cursor: item === page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

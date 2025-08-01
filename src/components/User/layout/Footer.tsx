@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
-import { FaEnvelope, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
+import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { LOGO_RECTANGLE } from '@/assets/img';
 
 export const Footer = () => {
   return (
-    <footer className="bg-[linear-gradient(to_bottom_right,#0B1736,#091D4B,#0B1736)] text-white text-center  ">
+    <footer
+      className="bg-[linear-gradient(to_bottom_right,#0B1736,#091D4B,#0B1736)] text-white text-center"
+      style={{ background: 'linear-gradient(to bottom right, #0B1736, #091D4B, #0B1736)' }}
+    >
       <div className="wrapper mx-16 sm:px-0 pt-6 pb-6">
         <div className="flex flex-col sm:flex-row sm:justify-between gap-x-16 items-center text-left mb-6 gap-y-6 ml-20 mt-2">
           <div className="sm:max-w-[320px]">
@@ -19,15 +22,9 @@ export const Footer = () => {
                 <FaMapMarkerAlt className="mt-1 text-lg text-white" />
                 <div>
                   <p className="font-semibold">Address</p>
-                  <p className="text-sm">123 Concert Street, District 1, HCMC</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FaPhoneAlt className="mt-1 text-lg text-white" />
-                <div>
-                  <p className="font-semibold">Hotline</p>
-                  <p className="text-sm">1900 123 456</p>
+                  <p className="text-sm">
+                    600 Nguyen Van Cu Noi Dai Street, Binh Thuy Ward, Can Tho City
+                  </p>
                 </div>
               </div>
 
@@ -36,14 +33,6 @@ export const Footer = () => {
                 <div>
                   <p className="font-semibold">Email</p>
                   <p className="text-sm">support@vezzy.com</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FaPhoneAlt className="mt-1 text-lg text-white" />
-                <div>
-                  <p className="font-semibold">Customer Care</p>
-                  <p className="text-sm">+84 987 654 321</p>
                 </div>
               </div>
             </div>
@@ -59,23 +48,17 @@ export const Footer = () => {
             <Link to="/" className="hover:underline">
               Home
             </Link>
-            <Link to="/" className="hover:underline">
-              Category
+            <Link to="/events" className="hover:underline">
+              Event
             </Link>
-            <Link to="/" className="hover:underline">
-              About
-            </Link>
-            <Link to="/" className="hover:underline">
-              Contact
+            <Link to="/news" className="hover:underline">
+              News
             </Link>
           </div>
 
           <div className="flex gap-6 text-xs text-white/70">
-            <Link to="/" className="hover:underline">
-              Terms of Service
-            </Link>
-            <Link to="/" className="hover:underline">
-              Privacy Policy
+            <Link to="/terms-of-use" className="hover:underline">
+              Terms of User
             </Link>
           </div>
         </div>

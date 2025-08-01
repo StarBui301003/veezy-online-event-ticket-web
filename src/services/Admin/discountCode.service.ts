@@ -2,8 +2,24 @@ import { DiscountCodeCreateInput, DiscountCodeUpdateInput, DiscountCodeResponse 
 import instance from "../axios.customize";
 
 // Lấy tất cả discount code
-export async function getDiscountCodes(): Promise<DiscountCodeResponse> {
-  const res = await instance.get<DiscountCodeResponse>('/api/DiscountCode');
+export async function getDiscountCodes(params?: { page?: number; pageSize?: number }): Promise<DiscountCodeResponse> {
+  const res = await instance.get<DiscountCodeResponse>('/api/DiscountCode', { params });
+  return res.data;
+}
+
+// Lấy discount codes với filter
+export async function getDiscountCodesWithFilter(params: {
+  searchTerm?: string;
+  eventId?: string;
+  discountType?: number;
+  isExpired?: boolean;
+  isAvailable?: boolean;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+}): Promise<DiscountCodeResponse> {
+  const res = await instance.get<DiscountCodeResponse>('/api/DiscountCode', { params });
   return res.data;
 }
 

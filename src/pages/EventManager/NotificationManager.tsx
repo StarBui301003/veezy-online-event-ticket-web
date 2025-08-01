@@ -81,7 +81,6 @@ const NotificationManager = () => {
   });
 
   const roleOptions = [
-    { value: 0, label: t('Admin'), color: 'text-purple-800' },
     { value: 1, label: t('Manager'), color: 'text-blue-800' },
     { value: 2, label: t('User'), color: 'text-green-800' },
     { value: 3, label: t('Collaborator'), color: 'text-orange-800' }

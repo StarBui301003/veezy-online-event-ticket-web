@@ -1,5 +1,4 @@
-
-  // Fetch following events when the tab is selected
+// Fetch following events when the tab is selected
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
@@ -12,8 +11,13 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getUserByIdAPI, editUserAPI, uploadUserAvatarAPI, updateFaceAPI } from '@/services/Admin/user.service';
+
+import {
+  getUserByIdAPI,
+  editUserAPI,
+  uploadUserAvatarAPI,
+  updateFaceAPI,
+} from '@/services/Admin/user.service';
 import { useFaceAuthStatus } from '@/hooks/use-face-auth-status';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import type { User } from '@/types/auth';
@@ -25,32 +29,41 @@ import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
 import { useTranslation } from 'react-i18next';
+import { DatePickerProfile } from '@/components/ui/day-picker-profile';
+import {
+  parseBackendErrors,
+  getFieldError,
+  hasFieldError,
+  type FieldErrors,
+  validateDateOfBirth,
+} from '@/utils/validation';
 
 const TABS = [
   { key: 'profile', label: 'Thông tin cá nhân' },
   { key: 'followers', label: 'Người theo dõi event của bạn' },
-  { key: 'managerFollowers', label: 'Người theo dõi bạn' }
+  { key: 'managerFollowers', label: 'Người theo dõi bạn' },
 ];
-
 
 export default function ProfileEventManager() {
   const { t } = useTranslation();
   const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
+
   const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
-  const [tab, setTab] = useState<'profile' | 'followers' | 'managerFollowers' | 'followingEvents'>('profile');
+  const [tab, setTab] = useState<'profile' | 'followers' | 'managerFollowers' | 'followingEvents'>(
+    'profile'
+  );
   const [eventFollowers, setEventFollowers] = useState<EventFollower[]>([]);
   const [loadingEventFollowers, setLoadingEventFollowers] = useState(false);
   const [managerFollowers, setManagerFollowers] = useState<User[]>([]);
   const [loadingManagerFollowers, setLoadingManagerFollowers] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
-
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -76,7 +89,7 @@ export default function ProfileEventManager() {
       .then((user) => {
         setAccount(user);
         setForm({ ...user });
-        setPreviewUrl(user.avatarUrl || '');
+        setPreviewUrl(user.avatar || user.avatarUrl || '');
       })
       .catch(() => {
         setAccount(null);
@@ -91,15 +104,17 @@ export default function ProfileEventManager() {
       try {
         // 1. Lấy danh sách event mà user này quản lý
         const eventsRes = await getMyApprovedEvents();
-        const events = Array.isArray(eventsRes) ? eventsRes : (eventsRes?.data?.items || []);
+        const events = Array.isArray(eventsRes) ? eventsRes : eventsRes?.data?.items || [];
         // 2. Lấy followers cho từng event
         const allFollowers = [];
         for (const event of events) {
           try {
-            const res = await instance.get('/api/Follow/getFollowersByEvent', { params: { eventId: event.eventId, page: 1, pageSize: 1000 } });
+            const res = await instance.get('/api/Follow/getFollowersByEvent', {
+              params: { eventId: event.eventId, page: 1, pageSize: 1000 },
+            });
             const items = Array.isArray(res.data?.data?.items) ? res.data.data.items : [];
             // Gắn thêm tên event vào từng follower để hiển thị, đồng thời chuẩn hóa dữ liệu
-            items.forEach(f => {
+            items.forEach((f) => {
               // Chuẩn hóa dữ liệu theo API mới: userId, userName, eventName, createdAt
               f.userId = f.userId || '';
               f.fullName = f.fullName || f.userName || '';
@@ -109,7 +124,9 @@ export default function ProfileEventManager() {
               f.eventName = f.eventName || event.eventName || '';
             });
             allFollowers.push(...items);
-          } catch { /* empty */ }
+          } catch {
+            /* empty */
+          }
         }
         setEventFollowers(Array.isArray(allFollowers) ? allFollowers : []);
       } catch {
@@ -123,26 +140,29 @@ export default function ProfileEventManager() {
     }
     if (tab === 'managerFollowers') {
       setLoadingManagerFollowers(true);
-      instance.get('/api/Follow/followers')
+      instance
+        .get('/api/Follow/followers')
         .then((res) => {
           // API returns { data: { items: [...] } }
           const items = res.data?.data?.items || [];
           // Map to unified structure for table rendering
-          setManagerFollowers(Array.isArray(items)
-            ? items.map((item) => ({
-                userId: item.followerId,
-                accountId: '',
-                fullName: item.followerFullName,
-                phone: item.followerPhone || '',
-                email: item.followerEmail || '',
-                avatarUrl: item.followerAvatar,
-                gender: 0,
-                dob: '',
-                location: '',
-                createdAt: item.createdAt || '',
-                userName: item.followerUsername,
-              }))
-            : []);
+          setManagerFollowers(
+            Array.isArray(items)
+              ? items.map((item) => ({
+                  userId: item.followerId,
+                  accountId: '',
+                  fullName: item.followerFullName,
+                  phone: item.followerPhone || '',
+                  email: item.followerEmail || '',
+                  avatarUrl: item.followerAvatar,
+                  gender: 0,
+                  dob: '',
+                  location: '',
+                  createdAt: item.createdAt || '',
+                  userName: item.followerUsername,
+                }))
+              : []
+          );
         })
         .catch(() => setManagerFollowers([]))
         .finally(() => setLoadingManagerFollowers(false));
@@ -155,6 +175,14 @@ export default function ProfileEventManager() {
       ...prev,
       [name]: name === 'gender' ? Number(value) : value,
     }));
+
+    if (hasFieldError(fieldErrors, name)) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -166,18 +194,46 @@ export default function ProfileEventManager() {
   };
 
   const handleSave = async () => {
+    setFieldErrors({});
+    const newFieldErrors: FieldErrors = {};
+    if (!form.fullName?.trim()) newFieldErrors.fullname = ['Full name is required!'];
+    if (!form.email?.trim()) newFieldErrors.email = ['Email is required!'];
+    if (!form.phone?.trim()) newFieldErrors.phone = ['Phone number is required!'];
+    if (form.dob) {
+      const dobValidation = validateDateOfBirth(form.dob);
+      if (!dobValidation.isValid) newFieldErrors.dob = [dobValidation.errorMessage!];
+    }
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
     setLoading(true);
     try {
       let avatarUrl = form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
+
+        // Cập nhật preview URL ngay lập tức
+        setPreviewUrl(avatarUrl);
+
+        // Cập nhật avatar trong form ngay lập tức
+        setForm((prev: any) => ({ ...prev, avatarUrl: avatarUrl }));
+
+        // Ghi đè lên trường avatar trong localStorage
         const accStr = localStorage.getItem('account');
         if (accStr) {
           const acc = JSON.parse(accStr);
-          acc.avatarUrl = avatarUrl;
+          acc.avatar = avatarUrl;
           localStorage.setItem('account', JSON.stringify(acc));
         }
+
+        // Dispatch avatar-updated event ngay lập tức sau khi upload thành công
+        window.dispatchEvent(
+          new CustomEvent('avatar-updated', {
+            detail: { avatarUrl },
+          })
+        );
       }
       await editUserAPI(form.userId, {
         fullName: form.fullName,
@@ -194,38 +250,50 @@ export default function ProfileEventManager() {
         if (accStr) {
           acc = JSON.parse(accStr);
         }
+        // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+        const finalAvatarUrl = updatedUser.avatarUrl || avatarUrl;
+
         const newAccount = {
           ...acc,
           ...updatedUser,
-          avatarUrl: updatedUser.avatarUrl,
+          avatar: finalAvatarUrl, // Sử dụng avatarUrl từ updatedUser hoặc upload
           fullName: updatedUser.fullName,
           email: updatedUser.email,
           username: updatedUser.username || acc.username,
         };
+        // Xóa avatarUrl field để chỉ sử dụng avatar
+        delete newAccount.avatarUrl;
         localStorage.setItem('account', JSON.stringify(newAccount));
       }
+      // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+      const finalAvatarUrl = updatedUser?.avatarUrl || avatarUrl;
+
       setAccount({
         userId: form.userId || '',
         accountId: form.accountId || '',
         fullName: form.fullName || '',
         phone: form.phone || '',
         email: form.email || '',
-        avatarUrl: avatarUrl || '',
+        avatarUrl: finalAvatarUrl || '',
         gender: form.gender ?? 0,
         dob: form.dob || '',
         location: form.location || '',
         createdAt: form.createdAt || '',
       });
-      setEditMode(false);
+
       setAvatarFile(null);
+
+      // Dispatch event để cập nhật layout ngay lập tức
       window.dispatchEvent(new Event('user-updated'));
-    } catch (err: unknown) {
-      if ((err as any)?.response?.status === 403) {
-        alert('You do not have permission to update this profile.');
-      } else if ((err as any)?.response?.status === 404) {
-        alert('User not found.');
-      } else {
-        alert('Failed to update profile.');
+      setFieldErrors({});
+      toast.success('Profile updated successfully!');
+    } catch (error: unknown) {
+      const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
+      setFieldErrors(backendFieldErrors);
+      if (generalErrors.length > 0) {
+        toast.error(generalErrors[0]);
+      } else if (Object.keys(backendFieldErrors).length === 0) {
+        toast.error('Failed to update profile. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -237,7 +305,7 @@ export default function ProfileEventManager() {
       <>
         <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
         <div className="w-full min-h-screen flex flex-col items-center justify-center text-white">
-          <SpinnerOverlay show={true} />
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
         </div>
       </>
     );
@@ -249,16 +317,18 @@ export default function ProfileEventManager() {
     <>
       <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-start justify-center">
-        <div className="w-full max-w-7xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-col overflow-hidden mt-24 mb-8 p-0">
+        <div className="w-full max-w-5xl rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-col overflow-hidden mt-4 mb-8 mx-8">
           {/* Tabs horizontal full width on top, bo tròn hai góc dưới */}
           <div className="flex flex-row gap-2 w-full px-0 pt-0 pb-0 bg-transparent justify-start border-b border-indigo-700/30 rounded-b-[2.5rem] overflow-hidden">
             {TABS.map((t) => (
               <button
                 key={t.key}
                 className={`flex-1 px-0 py-4 rounded-none font-semibold transition-all text-base text-center
-                  ${tab === t.key
-                    ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow-none'
-                    : 'text-indigo-100 hover:bg-indigo-700/30'}
+                  ${
+                    tab === t.key
+                      ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow-none'
+                      : 'text-indigo-100 hover:bg-indigo-700/30'
+                  }
                 `}
                 style={{ minWidth: 0 }}
                 onClick={() => setTab(t.key as 'profile' | 'followers' | 'managerFollowers')}
@@ -280,24 +350,20 @@ export default function ProfileEventManager() {
                       <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
                     )}
                   </div>
-                  {editMode && (
-                    <>
-                      <input
-                        id="edit-avatar-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                      <Button
-                        type="button"
-                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                        onClick={() => document.getElementById('edit-avatar-input')?.click()}
-                      >
-                        {t('Change Avatar')}
-                      </Button>
-                    </>
-                  )}
+                  <input
+                    id="edit-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
+                    onClick={() => document.getElementById('edit-avatar-input')?.click()}
+                  >
+                    {t('Change Avatar')}
+                  </Button>
                 </div>
                 {/* Personal Information */}
                 <div className="w-full flex flex-col items-center justify-center">
@@ -305,130 +371,209 @@ export default function ProfileEventManager() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                       {/* Full Name */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Full Name')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Full Name')}
+                        </label>
                         <Input
                           name="fullName"
                           value={form.fullName || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('Enter your full name')}
-                          className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'fullname')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
                         />
+                        {getFieldError(fieldErrors, 'fullname') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'fullname')}
+                          </div>
+                        )}
                       </div>
                       {/* Email */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Email Address')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Email Address')}
+                        </label>
                         <Input
                           name="email"
                           value={form.email || ''}
                           disabled={true}
                           placeholder={t('Your email address')}
-                          className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'email')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
                         />
+                        {getFieldError(fieldErrors, 'email') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'email')}
+                          </div>
+                        )}
                       </div>
                       {/* Phone */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Phone Number')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Phone Number')}
+                        </label>
                         <Input
                           name="phone"
                           value={form.phone || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('Enter your phone number')}
-                          className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'phone')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
                         />
+                        {getFieldError(fieldErrors, 'phone') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'phone')}
+                          </div>
+                        )}
                       </div>
                       {/* Gender */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Gender')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Gender')}
+                        </label>
                         <Select
                           value={String(form.gender || '0')}
-                          onValueChange={(val) => setForm((prev: Partial<User>) => ({ ...prev, gender: Number(val) }))}
-                          disabled={!editMode}
+                          onValueChange={(val) => {
+                            setForm((prev: Partial<User>) => ({ ...prev, gender: Number(val) }));
+                            if (hasFieldError(fieldErrors, 'gender')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.gender;
+                                return newErrors;
+                              });
+                            }
+                          }}
                         >
                           <SelectTrigger
-                            className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
+                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'gender')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`}
                           >
-                            <SelectValue placeholder={t('Select your gender')} className="text-[#A1A1AA] placeholder:text-[#A1A1AA]" />
+                            <SelectValue
+                              placeholder={t('Select your gender')}
+                              className="text-[#A1A1AA] placeholder:text-[#A1A1AA]"
+                            />
                           </SelectTrigger>
                           <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
-                            <SelectItem value="0" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Male')}</SelectItem>
-                            <SelectItem value="1" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Female')}</SelectItem>
-                            <SelectItem value="2" className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white">{t('Other')}</SelectItem>
+                            <SelectItem
+                              value="0"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              {t('Male')}
+                            </SelectItem>
+                            <SelectItem
+                              value="1"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              {t('Female')}
+                            </SelectItem>
+                            <SelectItem
+                              value="2"
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            >
+                              {t('Other')}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
+                        {getFieldError(fieldErrors, 'gender') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'gender')}
+                          </div>
+                        )}
                       </div>
                       {/* Location */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Location')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Location')}
+                        </label>
                         <Input
                           name="location"
                           value={form.location || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('Enter your location')}
-                          className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'location')
+                              ? '!border-red-500 !text-white'
+                              : '!border-purple-700 !text-white'
+                          }`}
                         />
+                        {getFieldError(fieldErrors, 'location') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'location')}
+                          </div>
+                        )}
                       </div>
                       {/* Date of Birth */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('Day of Birth')}</label>
-                        <input
-                          name="dob"
-                          type="date"
-                          value={form.dob ? form.dob.slice(0, 10) : ''}
-                          onChange={(e) => setForm((f: Partial<User>) => ({ ...f, dob: e.target.value }))}
-                          disabled={!editMode}
-                          className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm"
-                          style={{ colorScheme: 'dark' }}
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('Day of Birth')}
+                        </label>
+                        <DatePickerProfile
+                          selectedDate={form.dob ? new Date(form.dob) : undefined}
+                          onDateChange={(date) => {
+                            const dateString = date ? date.toISOString().split('T')[0] : '';
+                            setForm((f: Partial<User>) => ({
+                              ...f,
+                              dob: dateString,
+                            }));
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                            if (dateString) {
+                              const dobValidation = validateDateOfBirth(dateString);
+                              if (!dobValidation.isValid) {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  dob: [dobValidation.errorMessage!],
+                                }));
+                              }
+                            }
+                          }}
+                          disabled={false}
+                          className="w-full"
                         />
+                        {getFieldError(fieldErrors, 'dob') && (
+                          <div className="text-red-400 text-xs mt-1 ml-2">
+                            {getFieldError(fieldErrors, 'dob')}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
                 {/* Action Buttons */}
-                {editMode ? (
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                      onClick={() => {
-                        setEditMode(false);
-                        setForm(account);
-                        setAvatarFile(null);
-                        setPreviewUrl(account.avatarUrl || '');
-                      }}
-                      disabled={loading}
-                    >
-                      {t('Cancel')}
-                    </Button>
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                      onClick={handleSave}
-                      disabled={loading}
-                    >
-                      {loading ? t('Saving...') : t('Save Changes')}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="w-full flex flex-row gap-3 mt-2 flex-wrap">
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2.5 text-base font-semibold shadow"
-                      onClick={() => setEditMode(true)}
-                    >
-                      {t('Edit Profile')}
-                    </Button>
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2 text-base font-semibold shadow"
-                      onClick={() => setShowFaceModal(true)}
-                    >
-                      {account.avatarUrl ? t('Update Face') : t('Register Face')}
-                    </Button>
-                  </div>
-                )}
+                <div className="w-full flex flex-row gap-3 mt-2 flex-wrap">
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2.5 text-base font-semibold shadow"
+                    onClick={handleSave}
+                    disabled={loading}
+                  >
+                    {loading ? t('Saving...') : t('Save Changes')}
+                  </Button>
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2 text-base font-semibold shadow"
+                    onClick={() => setShowFaceModal(true)}
+                  >
+                    {account.avatarUrl ? t('Update Face') : t('Register Face')}
+                  </Button>
+                </div>
               </div>
             )}
             {tab === 'followers' && (
@@ -444,12 +589,18 @@ export default function ProfileEventManager() {
                   </div>
                 </div>
                 {loadingEventFollowers ? (
-                  <SpinnerOverlay show={true} />
+                  <div className="flex justify-center items-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                  </div>
                 ) : !Array.isArray(eventFollowers) || eventFollowers.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
-                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi event của bạn')}</div>
-                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow event của bạn')}</div>
+                    <div className="text-gray-400 text-lg mb-2">
+                      {t('Chưa có ai theo dõi event của bạn')}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      {t('Chưa có người dùng nào follow event của bạn')}
+                    </div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl shadow border border-slate-700/40 bg-slate-900/60">
@@ -462,15 +613,29 @@ export default function ProfileEventManager() {
                         </tr>
                       </thead>
                       <tbody>
-                        {Array.isArray(eventFollowers) && eventFollowers.map((f, idx) => (
-                          <tr key={(f.userId || idx) + '-' + ((f as EventFollower).eventName || idx)} className="border-b border-slate-700/30 hover:bg-slate-800/60 transition">
-                            <td className="px-4 py-2">
-                              <img src={f.avatarUrl || NO_AVATAR} alt={f.fullName || ''} className="w-10 h-10 rounded-full object-cover border border-slate-700" />
-                            </td>
-                            <td className="px-4 py-2 font-medium text-white">{f.fullName || ''}</td>
-                            <td className="px-4 py-2 text-slate-300">{(f as EventFollower).eventName || ''}</td>
-                          </tr>
-                        ))}
+                        {Array.isArray(eventFollowers) &&
+                          eventFollowers.map((f, idx) => (
+                            <tr
+                              key={
+                                (f.userId || idx) + '-' + ((f as EventFollower).eventName || idx)
+                              }
+                              className="border-b border-slate-700/30 hover:bg-slate-800/60 transition"
+                            >
+                              <td className="px-4 py-2">
+                                <img
+                                  src={f.avatarUrl || NO_AVATAR}
+                                  alt={f.fullName || ''}
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-700"
+                                />
+                              </td>
+                              <td className="px-4 py-2 font-medium text-white">
+                                {f.fullName || ''}
+                              </td>
+                              <td className="px-4 py-2 text-slate-300">
+                                {(f as EventFollower).eventName || ''}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -490,12 +655,18 @@ export default function ProfileEventManager() {
                   </div>
                 </div>
                 {loadingManagerFollowers ? (
-                  <SpinnerOverlay show={true} />
+                  <div className="flex justify-center items-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                  </div>
                 ) : managerFollowers.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
-                    <div className="text-gray-400 text-lg mb-2">{t('Chưa có ai theo dõi event manager này')}</div>
-                    <div className="text-gray-500 text-sm">{t('Chưa có người dùng nào follow event manager này')}</div>
+                    <div className="text-gray-400 text-lg mb-2">
+                      {t('Chưa có ai theo dõi event manager này')}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      {t('Chưa có người dùng nào follow event manager này')}
+                    </div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-xl shadow border border-slate-700/40 bg-slate-900/60">
@@ -509,12 +680,21 @@ export default function ProfileEventManager() {
                       </thead>
                       <tbody>
                         {managerFollowers.map((f, idx) => (
-                          <tr key={f.userId || idx} className="border-b border-slate-700/30 hover:bg-slate-800/60 transition">
+                          <tr
+                            key={f.userId || idx}
+                            className="border-b border-slate-700/30 hover:bg-slate-800/60 transition"
+                          >
                             <td className="px-4 py-2">
-                              <img src={f.avatarUrl || NO_AVATAR} alt={f.fullName} className="w-10 h-10 rounded-full object-cover border border-slate-700" />
+                              <img
+                                src={f.avatarUrl || NO_AVATAR}
+                                alt={f.fullName}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-700"
+                              />
                             </td>
                             <td className="px-4 py-2 font-medium text-white">{f.fullName}</td>
-                            <td className="px-4 py-2 text-slate-300">{(f as any).userName || ''}</td>
+                            <td className="px-4 py-2 text-slate-300">
+                              {(f as any).userName || ''}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -523,7 +703,6 @@ export default function ProfileEventManager() {
                 )}
               </div>
             )}
-
           </main>
         </div>
       </div>
@@ -589,4 +768,4 @@ export default function ProfileEventManager() {
       )}
     </>
   );
-};
+}

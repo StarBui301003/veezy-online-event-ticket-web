@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
+import { getRejectedWithdrawals } from '@/services/Admin/fund.service';
+import type { WithdrawalRequestDto, PaginatedResponseDto } from '@/types/Admin/fund';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
   Table,
   TableHeader,
@@ -17,86 +19,117 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getRejectedReport } from '@/services/Admin/report.service';
-// import { getUserByIdAPI } from '@/services/Admin/user.service'; // No longer needed
-import type { Report } from '@/types/Admin/report';
+import FundDetailModal from './FundDetailModal';
 import { FaEye } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
-
-import ReportDetailModal from './ReportDetailModal';
+import { connectFundHub, onFund } from '@/services/signalr.service';
+import { formatCurrency } from '@/utils/format';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-const targetTypeMap: Record<number, string> = {
-  0: 'News',
-  1: 'Event',
-  2: 'EventManager',
-  3: 'Comment',
-};
-
-export const RejectedReportList = () => {
-  const [reports, setReports] = useState<Report[]>([]);
+export const RejectedWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
+  const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [search, setSearch] = useState('');
-  // const [reporterNames, setReporterNames] = useState<Record<string, string>>({}); // No longer needed
-  const [viewReport, setViewReport] = useState<Report | null>(null);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+  const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
 
-  useEffect(() => {
-    connectFeedbackHub('http://localhost:5008/notificationHub');
-    // Lắng nghe realtime SignalR cho report
-    const reload = () => reloadList(page, pageSize, search);
-    onFeedback('OnReportCreated', reload);
-    onFeedback('OnReportUpdated', reload);
-    onFeedback('OnReportDeleted', reload);
-    onFeedback('OnReportStatusChanged', reload);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    reloadList(page, pageSize, search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search]);
-
-  const reloadList = (pageArg: number, pageSizeArg: number, searchArg: string) => {
+  const refreshData = () => {
     setLoading(true);
-    getRejectedReport(pageArg, pageSizeArg, searchArg)
+    setSearch(''); // Reset search khi refresh
+    getRejectedWithdrawals({ pageNumber: 1, pageSize }) // Reset về trang 1
       .then((res) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setReports(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-        } else {
-          setReports([]);
-          setTotalItems(0);
-          setTotalPages(1);
-        }
+        setData(res.data.data);
+        setPage(1); // Reset về trang 1
+        onPendingChanged?.(); // Gọi callback cập nhật badge
       })
       .finally(() => setTimeout(() => setLoading(false), 500));
   };
+
+  useEffect(() => {
+    setLoading(true);
+    getRejectedWithdrawals({ pageNumber: page, pageSize })
+      .then((res) => {
+        setData(res.data.data);
+      })
+      .finally(() => setTimeout(() => setLoading(false), 500));
+
+    // Connect to FundHub and listen for fund events (truyền token)
+    const token = localStorage.getItem('access_token');
+    connectFundHub('http://localhost:5005/fundHub', token);
+
+    // Listen for fund-related events that affect rejected withdrawal requests
+    const reloadData = () => {
+      console.log('Fund event received, refreshing rejected withdrawal requests...');
+      refreshData();
+    };
+
+    // Listen for all withdrawal status changes
+    onFund('OnWithdrawalRequested', reloadData);
+    onFund('OnWithdrawalStatusChanged', reloadData);
+    onFund('OnWithdrawalApproved', reloadData);
+    onFund('OnWithdrawalRejected', reloadData);
+    onFund('OnPaymentConfirmed', reloadData);
+    onFund('OnFundCreated', reloadData);
+    onFund('OnBalanceUpdated', reloadData);
+
+    // Cleanup function
+    return () => {
+      // Note: We don't disconnect the hub here as it might be used by other components
+    };
+  }, [page, pageSize]);
+
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+  const filteredItems = search
+    ? items.filter((item) => item.eventName.toLowerCase().includes(search.trim().toLowerCase()))
+    : items;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, pageSize]);
 
   const getStatusBadge = (status: string | number) => {
     const statusStr = status.toString();
     switch (statusStr) {
       case '0':
+      case 'Success':
+        return (
+          <Badge className="border-green-500 bg-green-500 items-center border-2 rounded-[10px] cursor-pointer transition-all text-white hover:bg-green-600 hover:text-white hover:border-green-500">
+            Success
+          </Badge>
+        );
+      case '1':
+      case 'Failed':
+        return (
+          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white hover:border-red-500">
+            Failed
+          </Badge>
+        );
+      case '2':
       case 'Pending':
         return (
           <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
             Pending
           </Badge>
         );
-      case '1':
-      case 'Resolved':
+      case '3':
+      case 'Processing':
         return (
-          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
-            Resolved
+          <Badge className="border-blue-500 bg-blue-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-blue-600 hover:text-white">
+            Processing
           </Badge>
         );
-      case '2':
+      case '4':
+      case 'Paid':
+        return (
+          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
+            Paid
+          </Badge>
+        );
+      case '5':
       case 'Rejected':
         return (
           <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
@@ -112,23 +145,9 @@ export const RejectedReportList = () => {
     }
   };
 
-  // Khi render, dùng reports, totalItems, totalPages từ BE
-  const pagedReports = reports;
-
   return (
     <div className="p-3">
       <SpinnerOverlay show={loading} />
-      {/* Modal detail */}
-      {viewReport && (
-        <ReportDetailModal
-          report={viewReport}
-          reporterName={viewReport.reporterName}
-          onClose={() => setViewReport(null)}
-          targetTypeMap={targetTypeMap}
-          showNote={true}
-        />
-      )}
-
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
           {/* Search */}
@@ -202,74 +221,66 @@ export const RejectedReportList = () => {
           </div>
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
+              <TableRow className="bg-red-200 hover:bg-red-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>Target Type</TableHead>
-                <TableHead style={{ width: '10%' }}>Reporter</TableHead>
-                <TableHead style={{ width: '20%' }}>Reason</TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead style={{ width: '25%' }}>Event</TableHead>
+                <TableHead style={{ width: '15%' }}>Amount</TableHead>
+                <TableHead className="text-center" style={{ width: '15%' }}>
                   Status
                 </TableHead>
-                <TableHead style={{ width: '5%' }}>Created At</TableHead>
-                <TableHead style={{ width: '7%' }}>Updated At</TableHead>
-                <TableHead style={{ width: '20%' }} className="text-center">
+                <TableHead className="text-center" style={{ width: '20%' }}>
+                  Created At
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="min-h-[400px]">
-              {pagedReports.length === 0 ? (
+              {filteredItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-4 text-gray-500">
-                    No reports found.
+                  <TableCell colSpan={6} className="text-center py-4 text-gray-500">
+                    No rejected withdrawals found
                   </TableCell>
                 </TableRow>
               ) : (
                 <>
-                  {pagedReports.map((item, idx) => (
-                    <TableRow key={item.reportId} className="hover:bg-blue-50">
+                  {filteredItems.map((item, idx) => (
+                    <TableRow key={item.transactionId} className="hover:bg-red-50">
                       <TableCell className="text-center">
                         {(page - 1) * pageSize + idx + 1}
                       </TableCell>
-                      <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
-                      <TableCell className="truncate max-w-[120px]">
-                        {item.reporterName || 'unknown'}
+                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.eventName}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
-                      <TableCell className="text-center">{getStatusBadge(item.status)}</TableCell>
-                      <TableCell>
-                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                      <TableCell>{formatCurrency(item.amount)}</TableCell>
+                      <TableCell className="text-center">
+                        {getStatusBadge(item.transactionStatus)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {item.updatedAt ? (
-                          new Date(item.updatedAt).toLocaleString()
-                        ) : (
-                          <span className="text-gray-400 ">N/A</span>
-                        )}
+                        {new Date(item.createdAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center gap-2">
-                          <button
-                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                            title="View details"
-                            onClick={() => setViewReport(item)}
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <TableCell className="text-center flex justify-center">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          title="View details"
+                          onClick={() => setSelected(item)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
                   {Array.from(
                     {
-                      length: Math.max(0, 5 - pagedReports.length),
+                      length: Math.max(0, 5 - filteredItems.length),
                     },
                     (_, idx) => (
                       <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                        <TableCell colSpan={10} className="border-0"></TableCell>
+                        <TableCell colSpan={6} className="border-0"></TableCell>
                       </TableRow>
                     )
                   )}
@@ -278,7 +289,7 @@ export const RejectedReportList = () => {
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={10}>
+                <TableCell colSpan={6}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -397,8 +408,18 @@ export const RejectedReportList = () => {
               </TableRow>
             </TableFooter>
           </Table>
+          {selected && (
+            <FundDetailModal
+              withdrawal={selected}
+              onClose={() => setSelected(null)}
+              showActionButtons={false}
+              onSuccess={refreshData}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 };
+
+export default RejectedWithdrawList;

@@ -25,7 +25,7 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
             <thead>
               <tr className="bg-slate-700 text-slate-100">
                 <th className="px-4 py-3 font-medium">{t('eventName')}</th>
-                <th className="px-4 py-3 font-medium">{t('attendedAt')}</th>
+                <th className="px-4 py-3 font-medium">{t('checkedInAt')}</th>
                 <th className="px-4 py-3 font-medium">{t('status')}</th>
               </tr>
             </thead>
@@ -33,7 +33,9 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
               {attendances.map((att, idx) => (
                 <tr key={att.attendanceId || idx} className="border-b border-slate-700 hover:bg-slate-700/60 transition">
                   <td className="px-4 py-3 text-slate-200">{att.eventName}</td>
-                  <td className="px-4 py-3 text-slate-300 text-xs">{att.attendedAt ? new Date(att.attendedAt).toLocaleString('vi-VN') : ''}</td>
+                  <td className="px-4 py-3 text-slate-300 text-xs">
+                    {att.checkedInAt ? new Date(att.checkedInAt).toLocaleString('vi-VN') : 'Not Checked In'}
+                  </td>
                   <td className="px-4 py-3">
                     {att.status === 'attended' ? (
                       <span className="text-green-400 font-semibold">{t('attended')}</span>

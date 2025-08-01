@@ -1,6 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import instance from "../axios.customize";
-import type { CreateAdminRequest, EditUserRequest, PaginatedUserResponse } from "@/types/Admin/user";
+import type { CreateAdminRequest, EditUserRequest, PaginatedUserResponse, PaginatedUserAccountResponse } from "@/types/Admin/user";
 
+// New filter interface
+export interface UserFilterParams {
+  searchTerm?: string;
+  role?: string;
+  isActive?: boolean;
+  isOnline?: boolean;
+  isEmailVerified?: boolean;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+}
 
 // export const getAccountByIdAPI = async (accountId: string) => {
 //   const response = await instance.get(`/api/Account/${accountId}`);
@@ -95,6 +108,37 @@ export async function getCollaboratorUsers(page = 1, pageSize = 10): Promise<Pag
   return res.data;
 }
 
+// New comprehensive filter functions
+export async function getUsersWithFilter(params: UserFilterParams): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User', { params });
+  return res.data;
+}
+
+export async function getAdminsWithFilter(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/admins', { params });
+  return res.data;
+}
+
+export async function getCustomersWithFilter(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/customers', { params });
+  return res.data;
+}
+
+export async function getEventManagersWithFilter(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/event-managers', { params });
+  return res.data;
+}
+
+export async function getCollaboratorsWithFilter(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/collaborators', { params });
+  return res.data;
+}
+
+export async function getInactiveUsersWithFilter(params: Omit<UserFilterParams, 'isActive'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/inactive', { params });
+  return res.data;
+}
+
 export const updateFaceAPI = async (
   accountId: string,
   faceImage: File,
@@ -119,7 +163,7 @@ export const updateFaceAPI = async (
       formData.append(`FaceEmbedding[${idx}]`, num.toString());
     });
   }
-  
+
   // Only append AccountId if user already has face authentication
   // This helps the backend determine whether to call AI service with accountId (update) or without (enroll)
   if (hasExistingFaceAuth !== false) {
@@ -128,7 +172,7 @@ export const updateFaceAPI = async (
   } else {
     console.log('[UpdateFace] Skipping AccountId (new face registration)');
   }
-  
+
   formData.append('FaceImage', faceImage, 'face.jpg');
   if (password) {
     console.log('[UpdateFace] Adding password to form data');
@@ -140,7 +184,7 @@ export const updateFaceAPI = async (
     const response = await instance.put('/api/Account/updateFace', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    
+
     console.log('[UpdateFace] API Response received:', {
       status: response.status,
       flag: response.data?.flag,
@@ -148,7 +192,7 @@ export const updateFaceAPI = async (
       message: response.data?.message,
       data: response.data?.data
     });
-    
+
     return response.data;
   } catch (error: any) {
     console.error('[UpdateFace] API Error:', {

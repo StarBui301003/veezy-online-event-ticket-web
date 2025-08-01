@@ -316,7 +316,7 @@ export const LoginPage = () => {
 
   return (
     <>
-      <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,_#091D4B_50%,_#0B1736_50%)] min-h-screen w-full" />
+      <div className="absolute inset-0 -z-10  bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] min-h-screen w-full" />
       {/* Back to Home button */}
       <div
         className="fixed top-6 left-6 z-20 flex items-center gap-2 bg-white text-[#091D4B] px-4 py-2 rounded-full shadow cursor-pointer hover:bg-blue-50 transition"
@@ -419,8 +419,8 @@ export const LoginPage = () => {
                       });
                     }
                   }}
-                  className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 ${
-                    hasFieldError(fieldErrors, 'username') ? 'border-red-500 border-2' : ''
+                  className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 placeholder:text-white/50 text-lg ${
+                    hasFieldError(fieldErrors, 'username') ? 'border-red-500' : ''
                   }`}
                   autoComplete="username"
                   autoFocus
@@ -451,8 +451,8 @@ export const LoginPage = () => {
                         });
                       }
                     }}
-                    className={`rounded-full border-none focus:outline-none bg-white/5 text-[#A1A1AA] shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 pr-12 ${
-                      hasFieldError(fieldErrors, 'password') ? 'border-red-500 border-2' : ''
+                    className={`rounded-full border border-transparent focus:border-blue-400 focus:ring-2 focus:ring-blue-200 bg-white/5 text-white/50 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-6 px-5 pr-12 placeholder:text-white/50 text-lg ${
+                      hasFieldError(fieldErrors, 'password') ? 'border-red-500' : ''
                     }`}
                     autoComplete="current-password"
                     onKeyDown={(e) => {

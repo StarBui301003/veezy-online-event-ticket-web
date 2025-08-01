@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { getAllCategory, deleteCategoryById } from '@/services/Admin/event.service';
+import { useEffect, useState, useRef } from 'react';
+import { getCategoriesWithFilter, deleteCategoryById } from '@/services/Admin/event.service';
 import type { Category } from '@/types/event';
-import type { PaginatedCategoryResponse } from '@/types/Admin/category';
+import type { PaginatedCategoryResponse, CategoryFilterParams } from '@/types/Admin/category';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import {
@@ -21,9 +21,23 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { MdOutlineEdit } from 'react-icons/md';
-import { FaEye, FaPlus, FaRegTrashAlt } from 'react-icons/fa';
+import {
+  FaEye,
+  FaPlus,
+  FaRegTrashAlt,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
+  FaFilter,
+} from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import CreateCategoryModal from '@/pages/Admin/Category/CreateCategoryModal';
 import CategoryDetailModal from '@/pages/Admin/Category/CategoryDetailModal';
@@ -34,67 +48,124 @@ const pageSizeOptions = [5, 10, 20, 50];
 
 export const CategoryList = () => {
   const { t } = useTranslation();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<PaginatedCategoryResponse['data'] | null>(null);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(5);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewCate, setViewCategory] = useState<Category | null>(null);
   const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [filters, setFilters] = useState<CategoryFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortBy: 'createdAt',
+    sortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Refs for SignalR
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(searchTerm);
+
+  useEffect(() => {
+    pageRef.current = page;
+    pageSizeRef.current = pageSize;
+    searchRef.current = searchTerm;
+  }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    reloadList(page, pageSize);
 
-    // Lắng nghe realtime SignalR cho category
-    const reload = () => reloadList(page, pageSize);
+    const reload = () => reloadList();
     onEvent('OnCategoryCreated', reload);
     onEvent('OnCategoryUpdated', reload);
     onEvent('OnCategoryDeleted', reload);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    reloadList(page, pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize]);
+    fetchData();
+  }, [filters, sortBy, sortDescending, searchTerm]);
 
-  const reloadList = (pageArg: number, pageSizeArg: number) => {
+  // Sync filters.page with page on mount
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: page || 1 }));
+  }, []);
+
+  const fetchData = async () => {
     setLoading(true);
-    getAllCategory(pageArg, pageSizeArg)
-      .then((res: PaginatedCategoryResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setCategories(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-          setHasNextPage(res.data.hasNextPage);
-          setHasPreviousPage(res.data.hasPreviousPage);
-        } else {
-          setCategories([]);
-          setTotalItems(0);
-          setTotalPages(1);
-          setHasNextPage(false);
-          setHasPreviousPage(false);
-        }
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
+    try {
+      const params = {
+        ...filters,
+        sortBy,
+        sortDescending,
+        searchTerm: searchTerm || undefined,
+      };
+      const response = await getCategoriesWithFilter(params);
+      setData(response.data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const pagedCategories = categories;
+  const reloadList = () => {
+    fetchData();
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, pageSize: newPageSize, page: 1 }));
+    setPageSize(newPageSize);
+    setPage(1);
+  };
+
+  const handleSort = (field: string) => {
+    if (field === '') return; // Skip numbering column
+    const newSortDescending = sortBy === field ? !sortDescending : true;
+    setSortBy(field);
+    setSortDescending(newSortDescending);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+    setPage(1);
+  };
+
+  const getSortIcon = (field: string) => {
+    if (field === '') return null; // No sort icon for numbering column
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-blue-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-blue-600" />
+    );
+  };
+
+  const updateFilter = (
+    key: keyof CategoryFilterParams,
+    value: string | string[] | boolean | undefined
+  ) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setPage(1);
+  };
+
+  const items = data?.items || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
 
   const handleDelete = async (cat: Category) => {
     if (!window.confirm(t('confirmDeleteCategory'))) return;
     try {
       await deleteCategoryById(cat.categoryId);
       toast.success(t('categoryDeletedSuccessfully'));
-      reloadList(page, pageSize);
+      reloadList();
     } catch {
       toast.error(t('cannotDeleteCategory'));
     }
@@ -108,14 +179,14 @@ export const CategoryList = () => {
         <EditCategoryModal
           category={editCategory}
           onClose={() => setEditCategory(null)}
-          onUpdated={() => reloadList(page, pageSize)}
+          onUpdated={reloadList}
         />
       )}
       {viewCate && <CategoryDetailModal cate={viewCate} onClose={() => setViewCategory(null)} />}
       <CreateCategoryModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={() => reloadList(page, pageSize)}
+        onCreated={reloadList}
       />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
@@ -153,14 +224,11 @@ export const CategoryList = () => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder={t('searchByCategoryName')}
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  placeholder="Search all columns..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                {search && (
+                {searchTerm && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -174,10 +242,7 @@ export const CategoryList = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    onClick={() => {
-                      setSearch('');
-                      setPage(1);
-                    }}
+                    onClick={() => setSearchTerm('')}
                     tabIndex={-1}
                     type="button"
                     aria-label="Clear search"
@@ -187,8 +252,52 @@ export const CategoryList = () => {
                 )}
               </div>
             </div>
-            {/* Create button (right) */}
-            <div className="flex justify-end">
+
+            {/* Filter and Create buttons (right) */}
+            <div className="flex items-center gap-2">
+              {/* Filter dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Category Name Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Category Name</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('searchTerm', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.searchTerm === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All Categories</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+
+                  {/* Description Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Description</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('searchTerm', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.searchTerm === undefined}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All Descriptions</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Create button */}
               <button
                 className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
                 onClick={() => setShowCreateModal(true)}
@@ -204,33 +313,44 @@ export const CategoryList = () => {
                 <TableHead className="pl-4" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>{t('categoryName')}</TableHead>
-                <TableHead>{t('description')}</TableHead>
+                <TableHead
+                  style={{ width: '15%' }}
+                  className="cursor-pointer"
+                  onClick={() => handleSort('categoryName')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('categoryName')}
+                    {getSortIcon('categoryName')}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer"
+                  onClick={() => handleSort('categoryDescription')}
+                >
+                  <div className="flex items-center gap-1">
+                    {t('description')}
+                    {getSortIcon('categoryDescription')}
+                  </div>
+                </TableHead>
                 <TableHead style={{ width: '20%' }} className="text-center">
                   {t('action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {pagedCategories.filter(
-                (cat) =>
-                  !search || cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
-              ).length === 0 ? (
+            <TableBody className="min-h-[400px]">
+              {items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-4 text-gray-500">
                     {t('noCategoriesFound')}
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedCategories
-                  .filter(
-                    (cat) =>
-                      !search ||
-                      cat.categoryName.toLowerCase().includes(search.trim().toLowerCase())
-                  )
-                  .map((cat, idx) => (
+                <>
+                  {items.map((cat, idx) => (
                     <TableRow key={cat.categoryId} className="hover:bg-blue-50">
-                      <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
+                      <TableCell className="pl-4">
+                        {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
+                      </TableCell>
                       <TableCell>{cat.categoryName}</TableCell>
                       <TableCell className="truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
                         {cat.categoryDescription}
@@ -259,7 +379,14 @@ export const CategoryList = () => {
                         </button>
                       </TableCell>
                     </TableRow>
-                  ))
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={4} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
             <TableFooter>
@@ -271,33 +398,88 @@ export const CategoryList = () => {
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={!hasPreviousPage}
-                              className={!hasPreviousPage ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
+                              aria-disabled={(filters.page || 1) === 1}
+                              className={
+                                (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
+                              }
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              if ((filters.page || 1) <= 4) {
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if ((filters.page || 1) >= totalPages - 3) {
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                pages.push(1);
+                                pages.push('...');
+                                for (
+                                  let i = (filters.page || 1) - 1;
+                                  i <= (filters.page || 1) + 1;
+                                  i++
+                                ) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === (filters.page || 1)}
+                                    onClick={() => handlePageChange(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === (filters.page || 1)
+                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === (filters.page || 1) ? 700 : 400,
+                                      cursor: item === (filters.page || 1) ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={!hasNextPage}
-                              className={!hasNextPage ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
+                              }
+                              aria-disabled={(filters.page || 1) === totalPages}
+                              className={
+                                (filters.page || 1) === totalPages
+                                  ? 'pointer-events-none opacity-50'
+                                  : ''
+                              }
                             />
                           </PaginationItem>
                         </PaginationContent>
@@ -307,26 +489,45 @@ export const CategoryList = () => {
                       <span className="text-sm text-gray-700">
                         {totalItems === 0
                           ? t('paginationEmpty')
-                          : `${(page - 1) * pageSize + 1}-${Math.min(
-                              page * pageSize,
+                          : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
+                              (filters.page || 1) * (filters.pageSize || 5),
                               totalItems
                             )} ${t('of')} ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
-                      <select
-                        className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
-                        value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setPage(1);
-                        }}
-                      >
-                        {pageSizeOptions.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
+                            {filters.pageSize || 5}
+                            <svg
+                              className="w-4 h-4 ml-1"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {pageSizeOptions.map((size) => (
+                            <DropdownMenuItem
+                              key={size}
+                              onClick={() => handlePageSizeChange(size)}
+                              className={
+                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
+                              }
+                            >
+                              {size}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </TableCell>

@@ -19,10 +19,11 @@ import {
 } from '@/components/ui/pagination';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getPendingReport } from '@/services/Admin/report.service';
-import { getUserByIdAPI } from '@/services/Admin/user.service';
+// import { getUserByIdAPI } from '@/services/Admin/user.service'; // No longer needed
 import type { Report } from '@/types/Admin/report';
 import { FaEye } from 'react-icons/fa';
 import ReportDetailModal from './ReportDetailModal';
+import { Badge } from '@/components/ui/badge';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -31,12 +32,6 @@ const targetTypeMap: Record<number, string> = {
   1: 'Event',
   2: 'EventManager',
   3: 'Comment',
-};
-
-const statusMap: Record<number, string> = {
-  0: 'Pending',
-  1: 'Resolved',
-  2: 'Rejected',
 };
 
 // Thay vì:
@@ -62,7 +57,7 @@ export const PendingReportList = ({
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [reporterNames, setReporterNames] = useState<Record<string, string>>({});
+  // const [reporterNames, setReporterNames] = useState<Record<string, string>>({}); // No longer needed
   const [viewReport, setViewReport] = useState<Report | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -118,27 +113,60 @@ export const PendingReportList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search]);
 
-  useEffect(() => {
-    const fetchReporters = async () => {
-      const ids = Array.from(new Set(reports.map((r) => r.reporterId).filter(Boolean)));
-      const names: Record<string, string> = {};
-      await Promise.all(
-        ids.map(async (id) => {
-          try {
-            const res = await getUserByIdAPI(id);
-            names[id] = res.fullName || id;
-          } catch {
-            names[id] = id;
-          }
-        })
-      );
-      setReporterNames(names);
-    };
-    if (reports.length > 0) fetchReporters();
-  }, [reports]);
+  // Remove fetchReporters useEffect since reporterName is now included in the response
+  // useEffect(() => {
+  //   const fetchReporters = async () => {
+  //     const ids = Array.from(new Set(reports.map((r) => r.reporterId).filter(Boolean)));
+  //     const names: Record<string, string> = {};
+  //     await Promise.all(
+  //       ids.map(async (id) => {
+  //         try {
+  //         const res = await getUserByIdAPI(id);
+  //         names[id] = res.fullName || id;
+  //       } catch {
+  //         names[id] = id;
+  //       }
+  //     });
+  //     setReporterNames(names);
+  //   };
+  //   if (reports.length > 0) fetchReporters();
+  // }, [reports]);
 
   // Khi render, dùng reports, totalItems, totalPages từ BE
   const pagedReports = reports;
+
+  const getStatusBadge = (status: string | number) => {
+    const statusStr = status.toString();
+    switch (statusStr) {
+      case '0':
+      case 'Pending':
+        return (
+          <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
+            Pending
+          </Badge>
+        );
+      case '1':
+      case 'Resolved':
+        return (
+          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
+            Resolved
+          </Badge>
+        );
+      case '2':
+      case 'Rejected':
+        return (
+          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
+            Rejected
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
+            Other
+          </Badge>
+        );
+    }
+  };
 
   return (
     <div className="p-3">
@@ -147,10 +175,9 @@ export const PendingReportList = ({
       {viewReport && (
         <ReportDetailModal
           report={viewReport}
-          reporterName={reporterNames[viewReport.reporterId]}
+          reporterName={viewReport.reporterName}
           onClose={() => setViewReport(null)}
           targetTypeMap={targetTypeMap}
-          statusMap={statusMap}
           showNote={false}
           onActionDone={() => {
             setViewReport(null);
@@ -194,7 +221,7 @@ export const PendingReportList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by reason or report ID..."
+                  placeholder="Search all columns..."
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -238,15 +265,19 @@ export const PendingReportList = ({
                 <TableHead style={{ width: '10%' }}>Target Type</TableHead>
                 <TableHead style={{ width: '10%' }}>Reporter</TableHead>
                 <TableHead style={{ width: '20%' }}>Reason</TableHead>
-                <TableHead style={{ width: '7%' }}>Status</TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
+                  Status
+                </TableHead>
                 <TableHead style={{ width: '5%' }}>Created At</TableHead>
-                <TableHead style={{ width: '7%' }}>Updated At</TableHead>
+                <TableHead className="text-center" style={{ width: '7%' }}>
+                  Updated At
+                </TableHead>
                 <TableHead style={{ width: '20%' }} className="text-center">
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="min-h-[400px]">
               {pagedReports.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-4 text-gray-500">
@@ -254,39 +285,54 @@ export const PendingReportList = ({
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedReports.map((item, idx) => (
-                  <TableRow key={item.reportId} className="hover:bg-blue-50">
-                    <TableCell className="text-center">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
-                    <TableCell className="truncate max-w-[120px]">
-                      {reporterNames[item.reporterId] || item.reporterId || 'unknown'}
-                    </TableCell>
-                    <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
-                    <TableCell>{statusMap[item.status] ?? item.status}</TableCell>
-                    <TableCell>
-                      {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.updatedAt ? (
-                        new Date(item.updatedAt).toLocaleString()
-                      ) : (
-                        <span className="text-gray-400 ">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title="View details"
-                          onClick={() => setViewReport(item)}
-                        >
-                          <FaEye className="w-4 h-4" />
-                        </button>
-                        {/* Xóa nút Edit */}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {pagedReports.map((item, idx) => (
+                    <TableRow key={item.reportId} className="hover:bg-blue-50">
+                      <TableCell className="text-center">
+                        {(page - 1) * pageSize + idx + 1}
+                      </TableCell>
+                      <TableCell>{targetTypeMap[item.targetType] ?? item.targetType}</TableCell>
+                      <TableCell className="truncate max-w-[120px]">
+                        {item.reporterName || 'unknown'}
+                      </TableCell>
+                      <TableCell className="truncate max-w-[120px]">{item.reason}</TableCell>
+                      <TableCell className="text-center">{getStatusBadge(item.status)}</TableCell>
+                      <TableCell>
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString() : ''}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.updatedAt ? (
+                          new Date(item.updatedAt).toLocaleString()
+                        ) : (
+                          <span className="text-gray-400 ">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                            title="View details"
+                            onClick={() => setViewReport(item)}
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                          {/* Xóa nút Edit */}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(0, 5 - pagedReports.length),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={10} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>
@@ -303,23 +349,71 @@ export const PendingReportList = ({
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => setPage(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = page - 1; i <= page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === page}
+                                    onClick={() => setPage(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === page
+                                          ? 'bg-yellow-500 text-white border hover:bg-yellow-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === page ? 700 : 400,
+                                      cursor: item === page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => setPage(Math.min(totalPages, page + 1))}

@@ -19,6 +19,11 @@ export async function getSuccessfulWithdrawals(params: any): Promise<AxiosRespon
     return instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/successful-withdrawals-details', { params });
 }
 
+export async function getRejectedWithdrawals(params: any): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
+    return instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/rejected-withdrawals-details', { params });
+}
+
+
 // Lấy tất cả yêu cầu rút tiền (bao gồm bị từ chối)
 export async function getAllWithdrawalRequests(params: any): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
     return instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/all-withdrawal-requests-details', { params });

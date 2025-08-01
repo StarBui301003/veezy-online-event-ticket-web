@@ -3,12 +3,21 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useTranslation } from 'react-i18next';
 
 interface Ticket {
+  issuedId: string;
+  ticketOrderId: string;
   ticketId: string;
-  ticketName: string;
+  eventId: string;
+  qrCode: string;
   qrCodeUrl?: string;
-  createdAt?: string;
-  status?: string;
-  key: string;
+  used: boolean;
+  checkedInAt: string | null;
+  checkedInBy: string | null;
+  faceImageUrl: string | null;
+  issuedToEmail: string;
+  createdAt: string;
+  ticketName?: string;  // Optional since it's not in the API response
+  key?: string;         // For React key prop
+  status?: string;      // For display purposes
 }
 
 interface MyTicketsProps {
@@ -21,6 +30,14 @@ interface MyTicketsProps {
 
 const MyTickets = ({ selectedOrder, tickets, loading, error, onBack }: MyTicketsProps) => {
   const { t } = useTranslation();
+  
+  // Format status based on ticket data
+  const getStatus = (ticket: Ticket) => {
+    if (ticket.used) return t('used') || 'Đã sử dụng';
+    if (ticket.checkedInAt) return t('checkedIn') || 'Đã check-in';
+    return t('notUsed') || 'Chưa sử dụng';
+  };
+
   return (
     <div className="flex flex-col items-center w-full min-h-[400px]">
       <h2 className="text-2xl font-bold mb-6 text-white">Vé của tôi</h2>
@@ -47,9 +64,9 @@ const MyTickets = ({ selectedOrder, tickets, loading, error, onBack }: MyTickets
             </thead>
             <tbody>
               {tickets.map((ticket) => (
-                <tr key={ticket.key} className="border-b border-slate-700 hover:bg-slate-700/60 transition">
-                  <td className="px-4 py-3 text-slate-200">{ticket.ticketId}</td>
-                  <td className="px-4 py-3 text-slate-200">{ticket.ticketName}</td>
+                <tr key={ticket.issuedId} className="border-b border-slate-700 hover:bg-slate-700/60 transition">
+                  <td className="px-4 py-3 text-slate-200 font-mono">{ticket.qrCode}</td>
+                  <td className="px-4 py-3 text-slate-200">{ticket.ticketName || 'Vé sự kiện'}</td>
                   <td className="px-4 py-3">
                     {ticket.qrCodeUrl ? (
                       <img src={ticket.qrCodeUrl} alt="QR Code" style={{ width: 64, height: 64 }} />
@@ -58,8 +75,10 @@ const MyTickets = ({ selectedOrder, tickets, loading, error, onBack }: MyTickets
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-yellow-400 font-semibold">
-                      {ticket.status || t('notUsed') || 'Chưa sử dụng'}
+                    <span className={`font-semibold ${
+                      ticket.used || ticket.checkedInAt ? 'text-green-400' : 'text-yellow-400'
+                    }`}>
+                      {getStatus(ticket)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-300 text-xs">

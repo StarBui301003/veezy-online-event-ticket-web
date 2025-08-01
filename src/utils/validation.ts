@@ -857,39 +857,91 @@ export const validateCreateAdminForm = (formData: {
   const errors: FieldErrors = {};
 
   // Username validation
-  const usernameValidation = validateUsername(formData.username);
-  if (!usernameValidation.isValid) {
-    errors.username = [usernameValidation.errorMessage!];
+  const usernameResult = validateUsername(formData.username);
+  if (!usernameResult.isValid) {
+    errors.username = [usernameResult.errorMessage!];
   }
 
   // Email validation
-  const emailValidation = validateEmail(formData.email);
-  if (!emailValidation.isValid) {
-    errors.email = [emailValidation.errorMessage!];
+  const emailResult = validateEmail(formData.email);
+  if (!emailResult.isValid) {
+    errors.email = [emailResult.errorMessage!];
   }
 
-  // Phone validation
-  const phoneValidation = validatePhone(formData.phone);
-  if (!phoneValidation.isValid) {
-    errors.phone = [phoneValidation.errorMessage!];
+  // Phone validation (optional)
+  const phoneResult = validatePhone(formData.phone);
+  if (!phoneResult.isValid) {
+    errors.phone = [phoneResult.errorMessage!];
   }
 
   // Password validation
-  const passwordValidation = validatePassword(formData.password);
-  if (!passwordValidation.isValid) {
-    errors.password = [passwordValidation.errorMessage!];
+  const passwordResult = validatePassword(formData.password);
+  if (!passwordResult.isValid) {
+    errors.password = [passwordResult.errorMessage!];
   }
 
   // Full name validation
-  const fullNameValidation = validateFullName(formData.fullName);
-  if (!fullNameValidation.isValid) {
-    errors.fullName = [fullNameValidation.errorMessage!];
+  const fullNameResult = validateFullName(formData.fullName);
+  if (!fullNameResult.isValid) {
+    errors.fullName = [fullNameResult.errorMessage!];
   }
 
   // Date of birth validation
-  const dobValidation = validateDateOfBirth(formData.dateOfBirth);
-  if (!dobValidation.isValid) {
-    errors.dateOfBirth = [dobValidation.errorMessage!];
+  const dobResult = validateDateOfBirth(formData.dateOfBirth);
+  if (!dobResult.isValid) {
+    errors.dateOfBirth = [dobResult.errorMessage!];
+  }
+
+  // Gender validation
+  const genderResult = validateSelect(formData.gender, 'Gender');
+  if (!genderResult.isValid) {
+    errors.gender = [genderResult.errorMessage!];
+  }
+
+  return errors;
+};
+
+export const validateEditUserForm = (formData: {
+  fullName: string;
+  email: string;
+  phone?: string;
+  dob?: string;
+  gender: number;
+}): FieldErrors => {
+  const errors: FieldErrors = {};
+
+  // Full name validation
+  const fullNameResult = validateFullName(formData.fullName);
+  if (!fullNameResult.isValid) {
+    errors.fullName = [fullNameResult.errorMessage!];
+  }
+
+  // Email validation
+  const emailResult = validateEmail(formData.email);
+  if (!emailResult.isValid) {
+    errors.email = [emailResult.errorMessage!];
+  }
+
+  // Phone validation (optional)
+  if (formData.phone) {
+    const phoneResult = validatePhone(formData.phone);
+    if (!phoneResult.isValid) {
+      errors.phone = [phoneResult.errorMessage!];
+    }
+  }
+
+  // Date of birth validation (optional)
+  if (formData.dob) {
+    const dobResult = validateDateOfBirth(formData.dob);
+    if (!dobResult.isValid) {
+      errors.dob = [dobResult.errorMessage!];
+    }
+  }
+
+  // Gender validation
+  const genderResult = validateSelect(formData.gender, 'Gender');
+  if (!genderResult.isValid) {
+    errors.gender = [genderResult.errorMessage!];
   }
 
   return errors;

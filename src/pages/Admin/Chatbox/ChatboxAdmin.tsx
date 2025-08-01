@@ -44,6 +44,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 const ChatboxAdmin = () => {
   // State for room mode (ai/human) and permission to switch
@@ -186,7 +187,7 @@ const [editingContent, setEditingContent] = useState('');
             senderUserId: messageDto.SenderUserId,
             senderUserName: messageDto.SenderUserName,
             content: messageDto.Content,
-            createdAt: messageDto.CreatedAt
+            createdAt: messageDto.CreatedAt,
           });
 
           // Transform backend DTO to frontend interface
@@ -233,27 +234,34 @@ const [editingContent, setEditingContent] = useState('');
             messageContent: message.content,
             messageSenderId: message.senderId,
             currentUserId: currentUser.userId,
-            activeRoomId: activeRoomRef.current?.roomId
+            activeRoomId: activeRoomRef.current?.roomId,
           });
-          
+
           setChatRooms((prev) => {
-            console.log('🏠 Current chat rooms before update:', prev.map(r => ({ id: r.roomId, lastMsg: r.lastMessage?.content })));
-            
+            console.log(
+              '🏠 Current chat rooms before update:',
+              prev.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content }))
+            );
+
             const updatedRooms = prev.map((room) =>
               room.roomId === message.roomId
-                ? { 
-                    ...room, 
-                    lastMessage: message, 
+                ? {
+                    ...room,
+                    lastMessage: message,
                     // Only increase unread count if it's not the active room and not from current user
-                    unreadCount: message.senderId !== currentUser.userId && 
-                                 room.roomId !== activeRoomRef.current?.roomId 
-                                 ? room.unreadCount + 1 
-                                 : room.unreadCount 
+                    unreadCount:
+                      message.senderId !== currentUser.userId &&
+                      room.roomId !== activeRoomRef.current?.roomId
+                        ? room.unreadCount + 1
+                        : room.unreadCount,
                   }
                 : room
             );
-            
-            console.log('🏠 Chat rooms after update:', updatedRooms.map(r => ({ id: r.roomId, lastMsg: r.lastMessage?.content })));
+
+            console.log(
+              '🏠 Chat rooms after update:',
+              updatedRooms.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content }))
+            );
             return updatedRooms;
           });
 
@@ -436,18 +444,20 @@ const [editingContent, setEditingContent] = useState('');
       }
 
       // Add chat participants to OnlineStatusContext for testing
-      validatedRooms.forEach(room => {
-        room.participants.forEach(participant => {
+      validatedRooms.forEach((room) => {
+        room.participants.forEach((participant) => {
           if (participant.userId) {
             // Emit event to add participant to context
-            window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
-              detail: {
-                userId: participant.userId,
-                username: participant.username || participant.fullName,
-                isOnline: participant.isOnline || true, // Default to online for testing
-                lastActiveAt: new Date().toISOString()
-              }
-            }));
+            window.dispatchEvent(
+              new CustomEvent('addUserToOnlineContext', {
+                detail: {
+                  userId: participant.userId,
+                  username: participant.username || participant.fullName,
+                  isOnline: participant.isOnline || true, // Default to online for testing
+                  lastActiveAt: new Date().toISOString(),
+                },
+              })
+            );
           }
         });
       });
@@ -715,6 +725,7 @@ const [editingContent, setEditingContent] = useState('');
 
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
+      <SpinnerOverlay show={loading} />
       {/* Left Sidebar - Chat Rooms */}
       <Card className="w-80 flex flex-col bg-white/80 rounded-2xl shadow-2xl border border-blue-100">
         <CardHeader className="pb-3">
@@ -798,9 +809,7 @@ const [editingContent, setEditingContent] = useState('');
 
         <CardContent className="flex-1 p-0 flex flex-col">
           <ScrollArea className="flex-1 max-h-[calc(100vh-16rem)]">
-            {loading ? (
-              <div className="p-4 text-center text-muted-foreground">Loading chat rooms...</div>
-            ) : filteredRooms.length === 0 ? (
+            {filteredRooms.length === 0 && !loading ? (
               <div className="p-4 text-center text-muted-foreground">No chat rooms found</div>
             ) : (
               <div className="space-y-1 p-2">
@@ -831,7 +840,7 @@ const [editingContent, setEditingContent] = useState('');
                             </AvatarFallback>
                           </Avatar>
                           <div className="absolute -bottom-1 -right-1">
-                            <OnlineStatusIndicator 
+                            <OnlineStatusIndicator
                               userId={room.participants[0]?.userId}
                               size="sm"
                               showText={false}
@@ -922,7 +931,7 @@ const [editingContent, setEditingContent] = useState('');
                           'Unknown User'}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <OnlineStatusIndicator 
+                        <OnlineStatusIndicator
                           userId={activeRoom.participants[0]?.userId}
                           size="sm"
                           showText={true}

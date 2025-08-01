@@ -4,6 +4,14 @@ export interface Category {
   categoryDescription: string;
 }
 
+export interface CategoryFilterParams {
+  searchTerm?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDescending: boolean;
+}
+
 export interface PaginatedCategoryResponse {
   flag: boolean;
   code: number;

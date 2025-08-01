@@ -109,7 +109,15 @@ const AllEventsPage = () => {
             events.map((event, idx) => (
               <div
                 key={event.eventId}
-                className="event-card bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-105 hover:shadow-2xl hover:border-white/40 animate-cardFloat"
+                onClick={(e) => {
+                  // Prevent the click from propagating to child elements
+                  e.stopPropagation();
+                  // Only navigate if the click is not on the button
+                  if (!(e.target as HTMLElement).closest('.event-actions button')) {
+                    navigate(`/event/${event.eventId}`);
+                  }
+                }}
+                className="event-card bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-105 hover:shadow-2xl hover:border-white/40 animate-cardFloat cursor-pointer"
                 style={{ animationDelay: `${idx % 2 === 0 ? 0 : 4}s` }}
               >
                 <div

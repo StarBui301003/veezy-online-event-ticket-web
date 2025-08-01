@@ -1,4 +1,4 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
@@ -27,33 +27,34 @@ import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
-  // Helper: get userId from localStorage
-  const getUserId = () => {
-    const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-    if (!accStr) return null;
-    try {
-      const acc = JSON.parse(accStr);
-      return acc.userId || acc.accountId || null;
-    } catch {
-      return null;
-    }
-  };
 
-  // Helper: update language in user config
-  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
-    i18n.changeLanguage(lang);
-    const userId = getUserId();
-    if (!userId) return;
-    try {
-      const res = await getUserConfig(userId);
-      if (res?.data) {
-        const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
-        await updateUserConfig(userId, newConfig);
-      }
-    } catch {
-      // ignore error
+// Helper: get userId from localStorage
+const getUserId = () => {
+  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+  if (!accStr) return null;
+  try {
+    const acc = JSON.parse(accStr);
+    return acc.userId || acc.accountId || null;
+  } catch {
+    return null;
+  }
+};
+
+// Helper: update language in user config
+const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+  i18n.changeLanguage(lang);
+  const userId = getUserId();
+  if (!userId) return;
+  try {
+    const res = await getUserConfig(userId);
+    if (res?.data) {
+      const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
+      await updateUserConfig(userId, newConfig);
     }
-  };
+  } catch {
+    // ignore error
+  }
+};
 
 export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -69,6 +70,47 @@ export const Header = () => {
   const userId = accountObj?.userId || accountObj?.accountId;
   const { unreadCount } = useRealtimeNotifications();
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      type: string;
+      imageUrl: string;
+      date: string;
+    }>
+  >([]);
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    // Navigate to search results page with the search term
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setSearchResults([]);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setSearchResults([]);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
@@ -79,14 +121,10 @@ export const Header = () => {
         try {
           const acc = JSON.parse(accStr);
           setAccount(acc);
-          // Ưu tiên avatar từ localStorage (avatar, avatarUrl)
-          setAvatar(
-            acc.avatar && acc.avatar.trim() !== ''
-              ? acc.avatar
-              : acc.avatarUrl && acc.avatarUrl.trim() !== ''
-              ? acc.avatarUrl
-              : undefined
-          );
+          // Logic giống nav-user: chỉ đọc avatar field
+          const avatarUrl = acc.avatar || '';
+          setAvatar(avatarUrl || undefined);
+
           // Gọi API lấy user
           if (acc.userId) {
             getUserAPI(acc.userId)
@@ -105,13 +143,22 @@ export const Header = () => {
 
     fetchAccountAndUser();
 
+    const handleAvatarUpdate = (event: CustomEvent) => {
+      if (event.detail?.avatarUrl !== undefined) {
+        console.log('Header - Avatar Updated:', event.detail.avatarUrl);
+        setAvatar(event.detail.avatarUrl);
+      }
+    };
+
     window.addEventListener('user-updated', fetchAccountAndUser);
     window.addEventListener('storage', fetchAccountAndUser);
+    window.addEventListener('avatar-updated', handleAvatarUpdate as EventListener);
 
     return () => {
       window.removeEventListener('scroll', changeBlur);
       window.removeEventListener('user-updated', fetchAccountAndUser);
       window.removeEventListener('storage', fetchAccountAndUser);
+      window.removeEventListener('avatar-updated', handleAvatarUpdate as EventListener);
     };
   }, []);
 
@@ -138,9 +185,12 @@ export const Header = () => {
   return (
     <>
       <div
-        className={cn('fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20', {
-          'backdrop-blur': blur,
-        })}
+        className={cn(
+          'fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20 bg-black',
+          {
+            'backdrop-blur': blur,
+          }
+        )}
       >
         <div className="sm:wrapper flex sm:h-[100px] h-[57px] items-center justify-between px-7 pr-10">
           <div></div>
@@ -149,31 +199,71 @@ export const Header = () => {
             <img className="sm:h-10 sm:w-[115px] w-[92px] h-[32px]" src={LOGO} alt="Logo" />
           </Link>
           {/* Navigation */}
-          <div className="sm:flex sm:gap-x-12 hidden">
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('home')}
+          <div className="sm:flex sm:gap-x-8 hidden items-center">
+            <Link
+              to="/"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
+              {t('Home')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('category')}
+            <Link
+              to="/events"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
+              {t('Event')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('shows')}
+            <Link
+              to="/news"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
+              {t('News')}
             </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('about')}
-            </Link>
-            <Link to="/" className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none">
-              {t('contact')}
+            <Link
+              to="/terms-of-use"
+              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+            >
+              {t('Terms of Use')}
             </Link>
           </div>
           {/* desktop search bar */}
-          <div className="flex w-full max-w-sm items-center min-w-70 border bg-white rounded-[46px] ml-16">
-            <CiSearch className="size-5 text-neutral-60 ml-[17px]" strokeWidth={1.2} />
+          <div className="search-container flex w-full max-w-sm items-center min-w-70 border border-white/20 bg-white/10 rounded-[46px] ml-16 relative">
+            <CiSearch className="size-5 text-white ml-[17px]" strokeWidth={1.2} />
             <Input
               type="text"
               placeholder={t('search_placeholder')}
-              className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-neutral-40 shadow-none"
+              className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-white placeholder:text-white/70 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
+            {searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                {searchResults.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/event/${item.id}`}
+                    className="block p-3 text-white border-b border-gray-700 last:border-b-0"
+                    onClick={() => setSearchResults([])}
+                  >
+                    <div className="flex items-center">
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-12 h-12 object-cover rounded mr-3"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium text-white">{item.name}</div>
+                        <div className="text-sm text-gray-300">
+                          {new Date(item.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mr-14 flex items-center gap-4 relative">
@@ -181,17 +271,23 @@ export const Header = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent transition duration-300 hover:scale-110 hover:shadow"
+                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent text-white transition duration-300 hover:scale-110 hover:shadow hover:bg-white/10"
                 >
                   {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
-                  <IoIosArrowDown />
+                  <IoIosArrowDown className="text-white" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-32">
-                <DropdownMenuItem onClick={() => handleChangeLanguage('vi')}>
+              <DropdownMenuContent className="w-32 bg-gray-900 border-gray-700">
+                <DropdownMenuItem
+                  onClick={() => handleChangeLanguage('vi')}
+                  className="text-white cursor-pointer"
+                >
                   VN
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleChangeLanguage('en')}>
+                <DropdownMenuItem
+                  onClick={() => handleChangeLanguage('en')}
+                  className="text-white cursor-pointer"
+                >
                   EN
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -211,13 +307,13 @@ export const Header = () => {
               <>
                 <Link
                   to="/login"
-                  className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
                   {t('login')}
                 </Link>
                 <Link
                   to="/register"
-                  className="body-bold-16 text-dark-blue-primary border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
                 >
                   {t('signUp')}
                 </Link>
@@ -227,33 +323,33 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-3 bg-transparent"
+                    className="flex items-center gap-2 px-3 bg-transparent hover:bg-white/10"
                     style={{ minWidth: 0 }}
                   >
-                    <Avatar className="w-8 h-8 border border-zinc-500 rounded-full">
+                    <Avatar className="w-8 h-8 border border-white/30 rounded-full">
                       <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-white/10 text-white">
                         {user?.fullName?.[0]?.toUpperCase() ||
                           account.fullname?.[0]?.toUpperCase() ||
                           account.username?.[0]?.toUpperCase() ||
                           'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline whitespace-nowrap">
+                    <span className="hidden sm:inline whitespace-nowrap text-white">
                       {user?.fullName || account.fullname || account.username}
                     </span>
-                    <IoIosArrowDown />
+                    <IoIosArrowDown className="text-white" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-lg bg-white dark:bg-zinc-900"
+                  className="w-60 rounded-lg bg-gray-900 border-gray-700 text-white"
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 pl-2 py-2">
-                      <Avatar className="h-10 w-10 rounded-full border border-zinc-500 dark:border-zinc-700">
+                      <Avatar className="h-10 w-10 rounded-full border border-white/30">
                         <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                        <AvatarFallback className="rounded-full">
+                        <AvatarFallback className="rounded-full bg-white/10 text-white">
                           {user?.fullName?.[0]?.toUpperCase() ||
                             account.fullname?.[0]?.toUpperCase() ||
                             account.username?.[0]?.toUpperCase() ||
@@ -261,30 +357,28 @@ export const Header = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col justify-center">
-                        <span className="font-semibold text-sm truncate max-w-[140px]">
+                        <span className="font-semibold text-sm text-white truncate max-w-[140px]">
                           {user?.username || account.username || account.fullname}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                        <span className="text-xs text-gray-300 truncate max-w-[180px]">
                           {user?.email || account.email}
                         </span>
                       </div>
                     </div>
-                    {/* ...existing code... */}
-                    {/* ...existing code... */}
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
-                    className="hover:bg-blue-50 pl-5"
+                    className="text-white focus:text-white pl-5"
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
                     {t('profile')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={loadingLogout}
-                    className="hover:bg-blue-50 pl-5"
+                    className="text-white focus:text-white pl-5"
                   >
                     <LogOut className="mr-2" />
                     {loadingLogout ? (
@@ -296,7 +390,7 @@ export const Header = () => {
                       t('logout')
                     )}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-gray-700" />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -304,21 +398,27 @@ export const Header = () => {
             {account && (
               <div className="relative">
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-200/30 transition-all relative"
+                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-all relative"
                   onClick={() => setNotifDropdown((v) => !v)}
                   title={t('notification')}
                 >
-                  <Bell className="text-purple-500 text-xl" />
+                  <Bell className="text-white text-xl" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-800 animate-pulse"></span>
                   )}
                 </button>
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
-                    onViewAll={() => { setNotifDropdown(false); navigate('/all-notifications'); }}
+                    onViewAll={() => {
+                      setNotifDropdown(false);
+                      navigate('/notifications');
+                    }}
                     t={t}
-                    onRedirect={(url) => { navigate(url); setNotifDropdown(false); }}
+                    onRedirect={(url) => {
+                      navigate(url);
+                      setNotifDropdown(false);
+                    }}
                   />
                 )}
               </div>

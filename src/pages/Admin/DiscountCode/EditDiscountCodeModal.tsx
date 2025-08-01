@@ -23,6 +23,7 @@ import {
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
 import { toast } from 'react-toastify';
+import { formatCurrency } from '@/utils/format';
 
 interface Props {
   discount: (DiscountCodeUpdateInput & { discountId: string }) | null;
@@ -34,9 +35,9 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
   const [form, setForm] = useState<DiscountCodeUpdateInput>({
     code: discount?.code || '',
     discountType: discount?.discountType || 0,
-    value: discount?.value || 0,
-    minimum: discount?.minimum || 0,
-    maximum: discount?.maximum || 0,
+    value: discount?.value || null,
+    minimum: discount?.minimum || null,
+    maximum: discount?.maximum || null,
     maxUsage: discount?.maxUsage || 1,
     expiredAt: discount?.expiredAt || '',
   });
@@ -69,7 +70,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
   const handleValueChange = createFieldChangeHandler(
     'value',
     (value: string) => {
-      setForm((prev) => ({ ...prev, value: Number(value) }));
+      setForm((prev) => ({ ...prev, value: value === '' ? null : Number(value) }));
     },
     clearFieldError
   );
@@ -77,7 +78,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
   const handleMinimumChange = createFieldChangeHandler(
     'minimum',
     (value: string) => {
-      setForm((prev) => ({ ...prev, minimum: Number(value) }));
+      setForm((prev) => ({ ...prev, minimum: value === '' ? null : Number(value) }));
       // Clear maximum error as well since they're related
       clearFieldError('maximum');
     },
@@ -87,7 +88,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
   const handleMaximumChange = createFieldChangeHandler(
     'maximum',
     (value: string) => {
-      setForm((prev) => ({ ...prev, maximum: Number(value) }));
+      setForm((prev) => ({ ...prev, maximum: value === '' ? null : Number(value) }));
       // Clear minimum error as well since they're related
       clearFieldError('minimum');
     },
@@ -191,13 +192,15 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             <input
               type="number"
               className={getErrorClass('value', 'border rounded px-2 py-1 w-full')}
-              value={form.value}
+              value={form.value || ''}
               onChange={handleValueChange}
               disabled={loading}
               min={0}
               step={form.discountType === 0 ? 0.01 : 1000}
               placeholder={
-                form.discountType === 0 ? 'Enter percentage (0-100)' : 'Enter amount in VND'
+                form.discountType === 0
+                  ? 'Enter percentage (0-100)'
+                  : `Enter amount (e.g., ${formatCurrency(50000)})`
               }
             />
             {getFieldError('value') && (
@@ -213,12 +216,12 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             <input
               type="number"
               className={getErrorClass('minimum', 'border rounded px-2 py-1 w-full')}
-              value={form.minimum}
+              value={form.minimum || ''}
               onChange={handleMinimumChange}
               disabled={loading}
               min={0}
               step={1000}
-              placeholder="Enter minimum amount to apply discount"
+              placeholder={`Enter minimum amount (e.g., ${formatCurrency(100000)})`}
             />
             {getFieldError('minimum') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -233,12 +236,12 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             <input
               type="number"
               className={getErrorClass('maximum', 'border rounded px-2 py-1 w-full')}
-              value={form.maximum}
+              value={form.maximum || ''}
               onChange={handleMaximumChange}
               disabled={loading}
               min={0}
               step={1000}
-              placeholder="Enter maximum discount amount"
+              placeholder={`Enter maximum discount amount (e.g., ${formatCurrency(50000)})`}
             />
             {getFieldError('maximum') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">

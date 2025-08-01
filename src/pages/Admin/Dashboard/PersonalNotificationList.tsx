@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bell, CheckCircle, AlertCircle, Clock, Plus } from 'lucide-react';
-import { CreateNotificationModal } from './CreateNotificationModal';
+import { Bell, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   getPersonalNotifications,
@@ -178,7 +177,6 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [openCreateModal, setOpenCreateModal] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -340,14 +338,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
               </Badge>
             )}
           </CardTitle>
-          <button
-            type="button"
-            className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-            onClick={() => setOpenCreateModal(true)}
-          >
-            <Plus className="w-4 h-4" />
-            Create Notification
-          </button>
+          {/* Removed Create Notification button */}
         </div>
         {/* Filter trạng thái */}
         <div className="flex items-center gap-2">{/* Removed filter status */}</div>
@@ -462,29 +453,71 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
                           className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                         />
                       </PaginationItem>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                        <PaginationItem key={i}>
-                          <PaginationLink
-                            isActive={i === page}
-                            onClick={() => setPage(i)}
-                            className={`transition-colors rounded 
-                              ${
-                                i === page
-                                  ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                  : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                              }
-                              px-2 py-1 mx-0.5`}
-                            style={{
-                              minWidth: 32,
-                              textAlign: 'center',
-                              fontWeight: i === page ? 700 : 400,
-                              cursor: i === page ? 'default' : 'pointer',
-                            }}
-                          >
-                            {i}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
+                      {(() => {
+                        const pages = [];
+                        const maxVisiblePages = 7;
+
+                        if (totalPages <= maxVisiblePages) {
+                          // Hiển thị tất cả trang nếu tổng số trang <= 7
+                          for (let i = 1; i <= totalPages; i++) {
+                            pages.push(i);
+                          }
+                        } else {
+                          // Logic hiển thị trang với dấu "..."
+                          if (page <= 4) {
+                            // Trang hiện tại ở đầu
+                            for (let i = 1; i <= 5; i++) {
+                              pages.push(i);
+                            }
+                            pages.push('...');
+                            pages.push(totalPages);
+                          } else if (page >= totalPages - 3) {
+                            // Trang hiện tại ở cuối
+                            pages.push(1);
+                            pages.push('...');
+                            for (let i = totalPages - 4; i <= totalPages; i++) {
+                              pages.push(i);
+                            }
+                          } else {
+                            // Trang hiện tại ở giữa
+                            pages.push(1);
+                            pages.push('...');
+                            for (let i = page - 1; i <= page + 1; i++) {
+                              pages.push(i);
+                            }
+                            pages.push('...');
+                            pages.push(totalPages);
+                          }
+                        }
+
+                        return pages.map((item, index) => (
+                          <PaginationItem key={index}>
+                            {item === '...' ? (
+                              <span className="px-2 py-1 text-gray-500">...</span>
+                            ) : (
+                              <PaginationLink
+                                isActive={item === page}
+                                onClick={() => setPage(item as number)}
+                                className={`transition-colors rounded 
+                                  ${
+                                    item === page
+                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                  }
+                                  px-2 py-1 mx-0.5`}
+                                style={{
+                                  minWidth: 32,
+                                  textAlign: 'center',
+                                  fontWeight: item === page ? 700 : 400,
+                                  cursor: item === page ? 'default' : 'pointer',
+                                }}
+                              >
+                                {item}
+                              </PaginationLink>
+                            )}
+                          </PaginationItem>
+                        ));
+                      })()}
                       <PaginationItem>
                         <PaginationNext
                           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -501,7 +534,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
                       ? '0 of 0'
                       : `${startIdx}-${endIdx} of ${totalItems}`}
                   </span>
-                  <span className="text-sm text-gray-700">Rows per page</span>
+
                   <select
                     className="border rounded px-2 py-1 text-sm bg-white"
                     value={pageSize}
@@ -522,11 +555,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
           </>
         )}
       </CardContent>
-      <CreateNotificationModal
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        onCreated={fetchNotifications}
-      />
+      {/* Removed CreateNotificationModal */}
     </Card>
   );
 };

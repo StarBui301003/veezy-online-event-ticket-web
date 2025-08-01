@@ -8,6 +8,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import { DatePickerProfile } from '@/components/ui/day-picker-profile';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
   getUserByIdAPI,
@@ -47,7 +48,6 @@ const ProfileCustomer = () => {
   const { t } = useTranslation();
   const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -141,7 +141,7 @@ const ProfileCustomer = () => {
       try {
         const accObj = JSON.parse(accStr);
         userId = accObj.userId;
-      } catch { }
+      } catch {}
     }
     if (!userId) {
       setLoading(false);
@@ -153,6 +153,20 @@ const ProfileCustomer = () => {
         setAccount(user);
         setForm({ ...user });
         setPreviewUrl(user.avatarUrl || '');
+
+        // Cập nhật localStorage với avatarUrl từ API
+        const accStr = localStorage.getItem('account');
+        if (accStr && user.avatarUrl) {
+          try {
+            const acc = JSON.parse(accStr);
+            acc.avatar = user.avatarUrl; // Lưu avatarUrl vào avatar field
+            // Xóa avatarUrl field để chỉ sử dụng avatar
+            delete acc.avatarUrl;
+            localStorage.setItem('account', JSON.stringify(acc));
+          } catch (error) {
+            console.error('Error updating localStorage:', error);
+          }
+        }
       })
       .catch(() => {
         setAccount(null);
@@ -244,16 +258,31 @@ const ProfileCustomer = () => {
     }
     setLoading(true);
     try {
-      let avatarUrl = form.avatarUrl;
+      let avatarUrl = form.avatar || form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
+        console.log('ProfileCustomer - Upload response:', res.data);
+        console.log('ProfileCustomer - New avatarUrl:', avatarUrl);
+
+        // Cập nhật avatar URL trong form ngay lập tức
+        setForm((prev) => ({ ...prev, avatar: avatarUrl }));
+        setPreviewUrl(avatarUrl);
+
+        // Ghi đè lên trường avatar trong localStorage
         const accStr = localStorage.getItem('account');
         if (accStr) {
           const acc = JSON.parse(accStr);
-          acc.avatarUrl = avatarUrl;
+          acc.avatar = avatarUrl;
           localStorage.setItem('account', JSON.stringify(acc));
         }
+
+        // Dispatch avatar-updated event ngay lập tức sau khi upload thành công
+        window.dispatchEvent(
+          new CustomEvent('avatar-updated', {
+            detail: { avatarUrl },
+          })
+        );
       }
       await editUserAPI(form.userId, {
         fullName: form.fullName,
@@ -263,36 +292,41 @@ const ProfileCustomer = () => {
         dob: form.dob,
         gender: Number(form.gender),
       });
+      // Lấy lại thông tin user mới nhất từ backend và ghi đè trường avatar
       const updatedUser = await getUserByIdAPI(form.userId);
+      console.log('ProfileCustomer - Updated user from API:', updatedUser);
       if (updatedUser) {
         const accStr = localStorage.getItem('account');
-        let acc: Partial<User> = {};
-        if (accStr) acc = JSON.parse(accStr);
+        let acc: any = {};
+        if (accStr) {
+          acc = JSON.parse(accStr);
+        }
+        // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+        const finalAvatarUrl = updatedUser.avatarUrl || avatarUrl;
+        console.log('ProfileCustomer - Final avatarUrl:', finalAvatarUrl);
+
         const newAccount = {
           ...acc,
           ...updatedUser,
-          avatarUrl: updatedUser.avatarUrl,
+          avatar: finalAvatarUrl, // Sử dụng avatarUrl từ updatedUser hoặc upload
           fullName: updatedUser.fullName,
           email: updatedUser.email,
+          username: updatedUser.username || acc.username,
         };
+        // Xóa avatarUrl field để chỉ sử dụng avatar
+        delete newAccount.avatarUrl;
         localStorage.setItem('account', JSON.stringify(newAccount));
       }
-      setAccount({
-        userId: form.userId,
-        accountId: form.accountId,
-        fullName: form.fullName,
-        phone: form.phone,
-        email: form.email,
-        avatarUrl: avatarUrl,
-        gender: form.gender,
-        dob: form.dob,
-        location: form.location,
-        createdAt: form.createdAt,
-      });
-      setEditMode(false);
+
+      // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
+      const finalAvatarUrl = updatedUser?.avatarUrl || avatarUrl;
+      setAccount({ ...form, avatar: finalAvatarUrl });
       setAvatarFile(null);
-      setFieldErrors({});
+
+      // Dispatch event để cập nhật layout ngay lập tức
       window.dispatchEvent(new Event('user-updated'));
+      setFieldErrors({});
+
       toast.success('Profile updated successfully!');
     } catch (error: unknown) {
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
@@ -346,8 +380,10 @@ const ProfileCustomer = () => {
     return tickets.map((t, idx) => {
       const orderItem = selectedOrder.items.find((item: any) => item.ticketId === t.ticketId);
       return {
+        ...t, // Spread all existing ticket properties
         ticketId: t.ticketId,
         ticketName: orderItem?.ticketName || '---',
+        qrCode: t.qrCode, // Make sure qrCode is included from the original ticket
         qrCodeUrl: t.qrCodeUrl,
         createdAt: t.createdAt,
         status: t.used ? 'Đã sử dụng' : 'Chưa sử dụng',
@@ -366,10 +402,11 @@ const ProfileCustomer = () => {
               <button
                 key={t.key}
                 className={`w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2
-                  ${tab === t.key
-                    ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
-                    : 'text-indigo-100 hover:bg-indigo-700/30'}
-                `}
+                  ${
+                    tab === t.key
+                      ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
+                      : 'text-indigo-100 hover:bg-indigo-700/30'
+                  }`}
                 onClick={() => {
                   setTab(t.key);
                   setSelectedOrder(null); // reset khi chuyển tab
@@ -391,24 +428,20 @@ const ProfileCustomer = () => {
                       <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
                     )}
                   </div>
-                  {editMode && (
-                    <>
-                      <input
-                        id="edit-avatar-input"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                      <Button
-                        type="button"
-                        className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                        onClick={() => document.getElementById('edit-avatar-input')?.click()}
-                      >
-                        {t('changeAvatar')}
-                      </Button>
-                    </>
-                  )}
+                  <input
+                    id="edit-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
+                    onClick={() => document.getElementById('edit-avatar-input')?.click()}
+                  >
+                    {t('changeAvatar')}
+                  </Button>
                 </div>
                 {/* Personal Information */}
                 <div className="w-full flex flex-col items-center justify-center">
@@ -416,17 +449,19 @@ const ProfileCustomer = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                       {/* Full Name */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('fullName')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('fullName')}
+                        </label>
                         <Input
                           name="fullName"
                           value={form.fullName || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('enterFullName')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'fullname')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'fullname')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                            }`}
+                          }`}
                         />
                         {getFieldError(fieldErrors, 'fullname') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -436,16 +471,19 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Email */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('emailAddress')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('emailAddress')}
+                        </label>
                         <Input
                           name="email"
                           value={form.email || ''}
                           disabled={true}
                           placeholder={t('yourEmailAddress')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'email')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'email')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                            }`}
+                          }`}
                         />
                         {getFieldError(fieldErrors, 'email') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -455,17 +493,19 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Phone */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('phoneNumber')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('phoneNumber')}
+                        </label>
                         <Input
                           name="phone"
                           value={form.phone || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('enterPhoneNumber')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'phone')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'phone')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                            }`}
+                          }`}
                         />
                         {getFieldError(fieldErrors, 'phone') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -475,11 +515,16 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Gender */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('gender')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('gender')}
+                        </label>
                         <Select
                           value={String(form.gender || '0')}
                           onValueChange={(val) => {
-                            setForm((prev: Partial<User> | null) => ({ ...(prev || {}), gender: Number(val) }));
+                            setForm((prev: Partial<User> | null) => ({
+                              ...(prev || {}),
+                              gender: Number(val),
+                            }));
                             if (hasFieldError(fieldErrors, 'gender')) {
                               setFieldErrors((prev) => {
                                 const newErrors = { ...prev };
@@ -488,13 +533,13 @@ const ProfileCustomer = () => {
                               });
                             }
                           }}
-                          disabled={!editMode}
                         >
                           <SelectTrigger
-                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'gender')
+                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'gender')
                                 ? '!border-red-500 !text-white'
                                 : '!border-purple-700 !text-white'
-                              }`}
+                            }`}
                           >
                             <SelectValue
                               placeholder={t('selectGender')}
@@ -530,17 +575,19 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Location */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('location')}</label>
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('location')}
+                        </label>
                         <Input
                           name="location"
                           value={form.location || ''}
                           onChange={handleInputChange}
-                          disabled={!editMode}
                           placeholder={t('enterLocation')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'location')
+                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                            hasFieldError(fieldErrors, 'location')
                               ? '!border-red-500 !text-white'
                               : '!border-purple-700 !text-white'
-                            }`}
+                          }`}
                         />
                         {getFieldError(fieldErrors, 'location') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -550,13 +597,17 @@ const ProfileCustomer = () => {
                       </div>
                       {/* Date of Birth */}
                       <div className="w-full">
-                        <label className="block text-xs text-white/50 ml-1 mb-1">{t('dayOfBirth')}</label>
-                        <input
-                          name="dob"
-                          type="date"
-                          value={form.dob ? form.dob.slice(0, 10) : ''}
-                          onChange={(e) => {
-                            setForm((f: Partial<User> | null) => ({ ...(f || {}), dob: e.target.value }));
+                        <label className="block text-xs text-white/50 ml-1 mb-1">
+                          {t('dayOfBirth')}
+                        </label>
+                        <DatePickerProfile
+                          selectedDate={form.dob ? new Date(form.dob) : undefined}
+                          onDateChange={(date) => {
+                            const dateString = date ? date.toISOString().split('T')[0] : '';
+                            setForm((f: Partial<User> | null) => ({
+                              ...(f || {}),
+                              dob: dateString,
+                            }));
                             if (hasFieldError(fieldErrors, 'dob')) {
                               setFieldErrors((prev) => {
                                 const newErrors = { ...prev };
@@ -564,8 +615,8 @@ const ProfileCustomer = () => {
                                 return newErrors;
                               });
                             }
-                            if (e.target.value) {
-                              const dobValidation = validateDateOfBirth(e.target.value);
+                            if (dateString) {
+                              const dobValidation = validateDateOfBirth(dateString);
                               if (!dobValidation.isValid) {
                                 setFieldErrors((prev) => ({
                                   ...prev,
@@ -574,63 +625,22 @@ const ProfileCustomer = () => {
                               }
                             }
                           }}
-                          disabled={!editMode}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full disabled:opacity-70 h-auto text-sm ${hasFieldError(fieldErrors, 'dob')
-                              ? '!border-red-500 !text-white'
-                              : '!border-purple-700 !text-white'
-                            }`}
-                          style={{
-                            colorScheme: 'dark',
-                          }}
+                          error={getFieldError(fieldErrors, 'dob')}
                         />
-                        {getFieldError(fieldErrors, 'dob') && (
-                          <div className="text-red-400 text-xs mt-1 ml-2">
-                            {getFieldError(fieldErrors, 'dob')}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
                 </div>
                 {/* Action Buttons */}
                 <div className="w-full flex flex-col gap-3 mt-2">
-                  {editMode ? (
-                    <div className="flex gap-3">
-                      <Button
-                        type="button"
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                        onClick={() => {
-                          setEditMode(false);
-                          setForm(account);
-                          setAvatarFile(null);
-                          setPreviewUrl(account.avatarUrl || '');
-                          setFieldErrors({});
-                        }}
-                        disabled={loading}
-                      >
-                        {t('cancel')}
-                      </Button>
-                      <Button
-                        type="button"
-                        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full flex-1 py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                        onClick={handleSave}
-                        disabled={loading}
-                      >
-                        {loading ? t('saving') : t('saveChanges')}
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
-                      onClick={() => {
-                        setEditMode(true);
-                        setFieldErrors({});
-                      }}
-                    >
-                      {t('editProfile')}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    onClick={handleSave}
+                    disabled={loading}
+                  >
+                    {loading ? t('saving') : t('saveChanges')}
+                  </Button>
                   {/* Nút riêng Cập nhật khuôn mặt */}
                   <Button
                     type="button"
@@ -642,8 +652,8 @@ const ProfileCustomer = () => {
                 </div>
               </div>
             )}
-            {tab === 'orders' && (
-              selectedOrder ? (
+            {tab === 'orders' &&
+              (selectedOrder ? (
                 <MyTickets
                   tickets={getMappedTickets()}
                   loading={ticketsLoading}
@@ -661,8 +671,7 @@ const ProfileCustomer = () => {
                   onPageChange={setOrdersPage}
                   onSelectOrder={handleSelectOrder}
                 />
-              )
-            )}
+              ))}
             {tab === 'attendances' && (
               <AttendanceHistory
                 attendances={attendances}
@@ -710,8 +719,15 @@ const ProfileCustomer = () => {
                   await refetchFaceAuth();
                 } catch (e: unknown) {
                   let msg = 'Face update failed!';
-                  if (typeof e === 'object' && e && 'response' in e && typeof (e as { response?: { data?: { message?: string } } }).response?.data?.message === 'string') {
-                    const m = (e as { response: { data: { message: string } } }).response.data.message;
+                  if (
+                    typeof e === 'object' &&
+                    e &&
+                    'response' in e &&
+                    typeof (e as { response?: { data?: { message?: string } } }).response?.data
+                      ?.message === 'string'
+                  ) {
+                    const m = (e as { response: { data: { message: string } } }).response.data
+                      .message;
                     if (
                       m.includes('This face is already registered to another account') ||
                       m.includes('Liveness check failed') ||
