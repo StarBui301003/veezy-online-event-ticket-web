@@ -37,7 +37,7 @@ const PaymentSuccessPage = () => {
     
     // Listen for ticket generation
     onTicket('TicketGenerated', (data: any) => {
-      console.log('🎫 Ticket generated:', data);
+      // ...removed log...
       if (data.orderId === checkout?.orderId) {
         // Update checkout data with ticket info
         setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
@@ -51,7 +51,7 @@ const PaymentSuccessPage = () => {
     const data = localStorage.getItem('checkout');
     if (data) {
       const parsedData = JSON.parse(data);
-      console.log('Checkout data from localStorage:', parsedData); // Debug log
+      // ...removed log...
       setCheckout(parsedData);
     }
   }, []);
@@ -60,6 +60,7 @@ const PaymentSuccessPage = () => {
   const subtotal = checkout?.items?.reduce((sum, item) => {
     return sum + (item.ticketPrice || 0) * (item.quantity || 1);
   }, 0) || 0;
+
 
   // Get discount amount from checkout or default to 0
   const discountAmount = checkout?.discountAmount || 0;

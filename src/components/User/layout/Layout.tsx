@@ -3,7 +3,7 @@ import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
 import { useEffect, useState } from 'react';
 import ScrollToTop from '@/components/common/ScrollToTop';
-import { UnifiedCustomerChat } from '@/components/Customer';
+import { CustomerChatBox } from '@/components/Customer';
 
 export function Layout() {
   const [show, setShow] = useState(false);
@@ -57,8 +57,8 @@ export function Layout() {
       <Outlet />
       <Footer />
       
-      {/* Unified Customer Chat - Available on all customer pages */}
-      <UnifiedCustomerChat />
+      {/* Customer Chat Box - Available on all customer pages */}
+      <CustomerChatBox />
       
       {show && (
         <button

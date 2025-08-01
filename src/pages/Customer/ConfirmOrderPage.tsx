@@ -28,7 +28,7 @@ const ConfirmOrderPage = () => {
       
       // Listen for real-time order updates
       onTicket('OrderCreated', (data: unknown) => {
-        console.log('🎫 Order created:', data);
+        // ...removed log...
         // Update order info if it matches current order
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           setOrderInfo(data as OrderInfo);
@@ -36,7 +36,7 @@ const ConfirmOrderPage = () => {
       });
       
       onTicket('OrderUpdated', (data: unknown) => {
-        console.log('🎫 Order updated:', data);
+        // ...removed log...
         // Update order info if it matches current order
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           setOrderInfo(data as OrderInfo);
@@ -44,7 +44,7 @@ const ConfirmOrderPage = () => {
       });
       
       onTicket('PaymentCompleted', (data: unknown) => {
-        console.log('🎫 Payment completed:', data);
+        // ...removed log...
         // Redirect to success page if payment is completed
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-success');
@@ -52,7 +52,7 @@ const ConfirmOrderPage = () => {
       });
       
       onTicket('PaymentFailed', (data: unknown) => {
-        console.log('🎫 Payment failed:', data);
+        // ...removed log...
         // Redirect to failed page if payment failed
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-failed');

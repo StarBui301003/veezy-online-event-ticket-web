@@ -15,7 +15,7 @@ import {
   Legend,
   Cell,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type {
   EventApprovalTrendItem,
   EventByCategory,
@@ -88,16 +88,34 @@ export default function EventTabs() {
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
     connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    
-    // Listen for real-time event analytics updates
-    onAnalytics('OnEventAnalytics', (data: any) => {
-      console.log('📊 Received real-time event analytics:', data);
-      reloadData();
-    });
+
+    // Handler reference for cleanup
+    const handler = (data: any) => {
+      if (document.visibilityState === 'visible') {
+        if (
+          !approvalTrend ||
+          JSON.stringify(data.approvalTrend) !== JSON.stringify(approvalTrend) ||
+          !eventsByCategory ||
+          JSON.stringify(data.eventsByCategory) !== JSON.stringify(eventsByCategory) ||
+          !topEvents ||
+          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents)
+        ) {
+          setApprovalTrend(data.approvalTrend);
+          setEventsByCategory(data.eventsByCategory);
+          setTopEvents(data.topEvents);
+        }
+      }
+    };
+    onAnalytics('OnEventAnalytics', handler);
 
     // Initial data load
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Cleanup to avoid duplicate listeners
+    return () => {
+      offAnalytics('OnEventAnalytics', handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

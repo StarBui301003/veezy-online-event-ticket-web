@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getUserAnalytics } from '@/services/Admin/dashboard.service';
 import {
   XAxis,
@@ -13,7 +13,7 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type { AdminUserAnalyticsResponse } from '@/types/Admin/dashboard';
 import type { UserGrowth, UserDemographics } from '@/types/Admin/dashboard';
 import {
@@ -43,6 +43,17 @@ export default function UserTabs() {
   // const [loading, setLoading] = useState(false);
   const [growth, setGrowth] = useState<UserGrowth | null>(null);
   const [demographics, setDemographics] = useState<UserDemographics | null>(null);
+
+  const filterRef = useRef(filter);
+  const startDateRef = useRef(startDate);
+  const endDateRef = useRef(endDate);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    filterRef.current = filter;
+    startDateRef.current = startDate;
+    endDateRef.current = endDate;
+  }, [filter, startDate, endDate]);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -74,17 +85,34 @@ export default function UserTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub();
-    
-    // Listen for real-time user analytics updates
-    onAnalytics('OnUserAnalytics', (data: any) => {
-      console.log('👥 Received real-time user analytics:', data);
-      reloadData();
-    });
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+
+    // Handler reference for cleanup
+    const handler = (data: any) => {
+      // Chỉ reload nếu tab đang hiển thị và dữ liệu thực sự thay đổi
+      if (document.visibilityState === 'visible') {
+        // So sánh dữ liệu mới với dữ liệu hiện tại
+        if (
+          !growth ||
+          JSON.stringify(data.growth) !== JSON.stringify(growth) ||
+          !demographics ||
+          JSON.stringify(data.demographics) !== JSON.stringify(demographics)
+        ) {
+          setGrowth(data.growth);
+          setDemographics(data.demographics);
+        }
+      }
+    };
+    onAnalytics('OnUserAnalytics', handler);
 
     // Initial data load
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Cleanup to avoid duplicate listeners
+    return () => {
+      offAnalytics('OnUserAnalytics', handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

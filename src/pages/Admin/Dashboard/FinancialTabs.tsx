@@ -14,7 +14,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type {
   FinancialRevenueTimelineItem,
   FinancialTopEventByRevenue,
@@ -103,16 +103,39 @@ export default function FinancialTabs() {
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
     connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    
-    // Listen for real-time financial analytics updates
-    onAnalytics('OnFinancialAnalytics', (data: any) => {
-      console.log('💰 Received real-time financial analytics:', data);
-      reloadData();
-    });
+
+    // Handler reference for cleanup
+    const handler = (data: any) => {
+      if (document.visibilityState === 'visible') {
+        // Defensive: always ensure platformFees is an array
+        const safePlatformFees = Array.isArray(data.platformFees) ? data.platformFees : (data.platformFees?.topContributingEvents || []);
+        if (
+          !summary ||
+          JSON.stringify(data.summary) !== JSON.stringify(summary) ||
+          !revenueTimeline ||
+          JSON.stringify(data.revenueTimeline) !== JSON.stringify(revenueTimeline) ||
+          !topEvents ||
+          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents) ||
+          !platformFees ||
+          JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
+        ) {
+          setSummary(data.summary);
+          setRevenueTimeline(data.revenueTimeline);
+          setTopEvents(data.topEvents);
+          setPlatformFees(safePlatformFees);
+        }
+      }
+    };
+    onAnalytics('OnFinancialAnalytics', handler);
 
     // Initial data load
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Cleanup to avoid duplicate listeners
+    return () => {
+      offAnalytics('OnFinancialAnalytics', handler);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

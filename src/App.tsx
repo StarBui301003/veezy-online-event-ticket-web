@@ -4,6 +4,8 @@ import { ErrorPage } from '@/pages/ErrorPage';
 // import { HomePage } from '@/pages/User/HomePage';
 import { LoginPage } from '@/pages/authentication/LoginPage';
 import { LoadingProvider } from '@/contexts/LoadingContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
+import { OnlineStatusProvider } from '@/contexts/OnlineStatusContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
@@ -30,6 +32,7 @@ import ConfirmOrderPage from './pages/Customer/ConfirmOrderPage';
 import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
 import { PaymentListAdmin } from './pages/Admin/Payment/PaymentListAdmin';
 import ProfilePage from '@/pages/Admin/ProfilePage';
+import ChatboxAdmin from './pages/Admin/Chatbox/ChatboxAdmin';
 import CategoryList from './pages/Admin/Category/CategoryList';
 import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';
 import ProfileEventManager from './pages/EventManager/ProfileEventManager';
@@ -415,6 +418,14 @@ function App() {
             </ProtectedRoute>
           ),
         },
+        {
+          path: 'chatbox',
+          element: (
+            <ProtectedRoute allowedRoles={[0]}>
+              <ChatboxAdmin />
+            </ProtectedRoute>
+          ),
+        },
       ],
     },
     {
@@ -697,21 +708,36 @@ function App() {
       element: <VerifyRegister />,
     },
   ]);
+  // Get userId from localStorage/account for NotificationProvider
+  let userId = '';
+  if (typeof window !== 'undefined') {
+    const accStr = localStorage.getItem('account');
+    if (accStr) {
+      try {
+        const acc = JSON.parse(accStr);
+        userId = acc.userId || acc.accountId || '';
+      } catch {}
+    }
+  }
   return (
     <LoadingProvider>
-      <RouterProvider router={router} />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
+      <NotificationProvider userId={userId}>
+        <OnlineStatusProvider>
+          <RouterProvider router={router} />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
+        </OnlineStatusProvider>
+      </NotificationProvider>
     </LoadingProvider>
   );
 }

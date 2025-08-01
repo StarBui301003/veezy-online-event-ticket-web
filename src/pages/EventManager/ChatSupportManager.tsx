@@ -140,13 +140,87 @@ const ChatSupportManager: React.FC = () => {
     }
   }, [selectedEvent, loadChatRooms]);
 
-  // When chatroom selected, load messages
+
+  // When chatroom selected, load messages and setup SignalR real-time updates
   useEffect(() => {
+    let disconnectChatHub: (() => void) | null = null;
+    let leaveGroup: (() => void) | null = null;
+    let isMounted = true;
+    let joinedRoomId: string | null = null;
     if (selectedRoom) {
       loadMessages(selectedRoom.roomId);
+      (async () => {
+        try {
+          const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } = await import('@/services/signalr.service');
+          await connectHub('chat', 'http://localhost:5007/chatHub');
+          await joinChatRoom(selectedRoom.roomId);
+          joinedRoomId = selectedRoom.roomId;
+          leaveGroup = async () => {
+            if (joinedRoomId) await leaveChatRoom(joinedRoomId);
+          };
+          // Listen for new messages (backend: ReceiveMessage)
+          onHubEvent('chat', 'ReceiveMessage', async (msg) => {
+            if (!isMounted) return;
+            if (msg && msg.roomId === selectedRoom.roomId) {
+              // If any critical field is missing, reload all messages for the room
+              if (!msg.senderName || !msg.messageId || !msg.content || !msg.timestamp || !msg.senderId) {
+                await loadMessages(selectedRoom.roomId);
+                return;
+              }
+              setMessages(prev => {
+                if (prev.some(m => m.messageId === msg.messageId)) return prev;
+                return [...prev, msg];
+              });
+            }
+          });
+          // Listen for user joined room (backend: UserJoinedRoom)
+          onHubEvent('chat', 'UserJoinedRoom', (connectionId, roomId) => {
+            // Optionally handle user join (e.g., show notification or update UI)
+            // You may want to reload participants or set someone online
+          });
+          // Listen for user left room (backend: UserLeftRoom)
+          onHubEvent('chat', 'UserLeftRoom', (connectionId, roomId) => {
+            // Optionally handle user leave (e.g., show notification or update UI)
+          });
+          // Listen for user online status (backend: UserOnline)
+          onHubEvent('chat', 'UserOnline', (userId) => {
+            if (!isMounted) return;
+            setChatRooms(prevRooms => prevRooms.map(room =>
+              room.roomId === selectedRoom.roomId
+                ? {
+                    ...room,
+                    participants: room.participants.map(p =>
+                      p.userId === userId ? { ...p, isOnline: true } : p
+                    )
+                  }
+                : room
+            ));
+          });
+          // Listen for user offline status (backend: UserOffline)
+          onHubEvent('chat', 'UserOffline', (userId) => {
+            if (!isMounted) return;
+            setChatRooms(prevRooms => prevRooms.map(room =>
+              room.roomId === selectedRoom.roomId
+                ? {
+                    ...room,
+                    participants: room.participants.map(p =>
+                      p.userId === userId ? { ...p, isOnline: false } : p
+                    )
+                  }
+                : room
+            ));
+          });
+          disconnectChatHub = () => disconnectHub('chat');
+        } catch {}
+      })();
     } else {
       setMessages([]);
     }
+    return () => {
+      isMounted = false;
+      if (leaveGroup) leaveGroup();
+      if (disconnectChatHub) disconnectChatHub();
+    };
   }, [selectedRoom, loadMessages]);
 
   // Send message handler
@@ -452,6 +526,8 @@ const ChatSupportManager: React.FC = () => {
                   currentMessages.map((message, index) => {
                     const isMyMsg = isMyMessage(message);
                     const isConsecutive = index > 0 && currentMessages[index - 1].senderId === message.senderId;
+                    // Fallback for senderName
+                    const safeSenderName = message.senderName || 'U';
                     return (
                       <motion.div
                         key={message.messageId || index}
@@ -463,14 +539,14 @@ const ChatSupportManager: React.FC = () => {
                           {!isConsecutive && (
                             <Avatar className="h-8 w-8">
                               <AvatarFallback>
-                                {message.senderName.charAt(0).toUpperCase()}
+                                {safeSenderName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                           )}
                           <div className={`${isConsecutive && !isMyMsg ? 'ml-10' : ''} ${isConsecutive && isMyMsg ? 'mr-10' : ''}`}>
                             {!isConsecutive && (
                               <p className={`text-xs text-gray-500 mb-1 ${isMyMsg ? 'text-right' : 'text-left'}`}>
-                                {message.senderName}
+                                {safeSenderName}
                               </p>
                             )}
                             {/* Reply preview */}
