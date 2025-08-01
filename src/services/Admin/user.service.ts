@@ -76,9 +76,10 @@ export const uploadUserAvatarAPI = async (userId: string, avatarFile: File) => {
 };
 
 export const getUserByIdAPI = async (userId: string) => {
-  const response = await instance.get(`/api/Account/${userId}`);
+  const response = await instance.get(`/api/User/${userId}`);
   return response.data.data;
 };
+
 
 
 
@@ -227,6 +228,59 @@ export const deactivateUserAPI = async (accountId: string) => {
     return response.data;
   } catch (error: any) {
     console.error('[DeactivateUser] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
+
+// Update user configuration API
+export const updateUserConfigAPI = async (userId: string, config: {
+  language?: number;
+  theme?: number;
+  receiveEmail?: boolean;
+  receiveNotify?: boolean;
+}) => {
+  try {
+    const response = await instance.put(`/api/User/${userId}/config`, config);
+    return response.data;
+  } catch (error: any) {
+    console.error('[UpdateUserConfig] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
+
+// Get user configuration API
+export const getUserConfigAPI = async (userId: string) => {
+  try {
+    const response = await instance.get(`/api/User/${userId}/config`);
+    return response.data;
+  } catch (error: any) {
+    console.error('[GetUserConfig] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
+
+// Get user information API
+export const getUserInfoAPI = async (userId: string) => {
+  try {
+    const response = await instance.get(`/api/User/${userId}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('[GetUserInfo] API Error:', {
       status: error?.response?.status,
       statusText: error?.response?.statusText,
       data: error?.response?.data,

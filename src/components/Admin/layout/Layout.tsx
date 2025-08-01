@@ -16,6 +16,9 @@ import ScrollToTop from '@/components/common/ScrollToTop';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+import { toast } from 'react-toastify';
+import ThemeToggle from '@/components/Admin/ThemeToggle';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 // Helper: get userId from localStorage
 const getUserId = () => {
   const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
@@ -28,21 +31,6 @@ const getUserId = () => {
   }
 };
 
-// Helper: update language in user config
-const handleChangeLanguage = async (lang: 'vi' | 'en') => {
-  i18n.changeLanguage(lang);
-  const userId = getUserId();
-  if (!userId) return;
-  try {
-    const res = await getUserConfig(userId);
-    if (res?.data) {
-      const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
-      await updateUserConfig(userId, newConfig);
-    }
-  } catch {
-    // ignore error
-  }
-};
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -69,6 +57,66 @@ export function AdminLayout() {
   const { t, i18n: i18nInstance } = useTranslation();
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(Boolean);
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    try {
+      // Change i18n language immediately for UI responsiveness
+      i18n.changeLanguage(lang);
+
+      const userId = getUserId();
+      if (!userId) {
+        console.warn('No userId found, language changed locally only');
+        return;
+      }
+
+      // Get current user config
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = {
+          ...res.data,
+          language: lang === 'vi' ? 1 : 0,
+        };
+
+        // Update user config via API
+        await updateUserConfig(userId, newConfig);
+
+        // Save to localStorage
+        localStorage.setItem('user_config', JSON.stringify(newConfig));
+
+        // Show success toast using translation
+        toast.success(t('languageChangedSuccessfully'));
+      } else {
+        console.error('Failed to get user config');
+        toast.error(t('languageChangeFailed'));
+      }
+    } catch (error) {
+      console.error('Error updating language:', error);
+      toast.error(t('languageChangeFailed'));
+    }
+  };
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const loadLanguageFromStorage = () => {
+      try {
+        const userConfigStr = localStorage.getItem('user_config');
+        if (userConfigStr) {
+          const userConfig = JSON.parse(userConfigStr);
+          if (userConfig.language !== undefined) {
+            const languageCode = userConfig.language === 1 ? 'vi' : 'en';
+            if (i18nInstance.language !== languageCode) {
+              i18nInstance.changeLanguage(languageCode);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load language from localStorage:', error);
+      }
+    };
+
+    loadLanguageFromStorage();
+  }, [i18nInstance]);
 
   // Đặt PAGE_TITLES vào trong component để dùng được t()
   const PAGE_TITLES: Record<string, string> = {
@@ -106,12 +154,12 @@ export function AdminLayout() {
   const loading = useGlobalLoading();
 
   return (
-    <>
+    <ThemeProvider>
       <ScrollToTop />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white justify-between">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 justify-between">
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
@@ -120,10 +168,14 @@ export function AdminLayout() {
                   {/* Dashboard luôn ở đầu */}
                   <BreadcrumbItem>
                     {pathnames.length === 1 && pathnames[0] === 'admin' ? (
-                      <BreadcrumbPage className="font-bold">{t('adminDashboard')}</BreadcrumbPage>
+                      <BreadcrumbPage className="font-bold dark:text-white text-black">
+                        {t('adminDashboard')}
+                      </BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink asChild>
-                        <Link to="/admin">{t('adminDashboard')}</Link>
+                        <Link to="/admin" className="dark:text-white text-black">
+                          {t('adminDashboard')}
+                        </Link>
                       </BreadcrumbLink>
                     )}
                   </BreadcrumbItem>
@@ -145,10 +197,14 @@ export function AdminLayout() {
                           <BreadcrumbSeparator />
                           <BreadcrumbItem>
                             {isLast ? (
-                              <BreadcrumbPage>{title}</BreadcrumbPage>
+                              <BreadcrumbPage className="dark:text-white text-black">
+                                {title}
+                              </BreadcrumbPage>
                             ) : (
                               <BreadcrumbLink asChild>
-                                <Link to={to}>{title}</Link>
+                                <Link to={to} className="dark:text-white text-black">
+                                  {title}
+                                </Link>
                               </BreadcrumbLink>
                             )}
                           </BreadcrumbItem>
@@ -158,25 +214,27 @@ export function AdminLayout() {
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
+
             {/* Dropdown EN/VN đẹp ở góc phải header */}
-            <div className="flex items-center pr-6">
+            <div className="flex items-center pr-6 gap-4">
+              <ThemeToggle className="scale-75" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-800 font-semibold shadow hover:bg-gray-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                    <Globe className="w-5 h-5 text-gray-500" />
+                  <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#e9e6e6] dark:bg-gray-500 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-semibold shadow hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500">
+                    <Globe className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     {i18nInstance.language === 'vi' ? t('vn') : t('en')}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="rounded-lg shadow-xl bg-white p-2 min-w-[140px] border border-gray-200"
+                  className="rounded-lg shadow-xl bg-white dark:bg-gray-800 p-2 min-w-[140px] border border-gray-200 dark:border-gray-600"
                 >
                   <DropdownMenuItem
                     onClick={() => handleChangeLanguage('vi')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
                       i18nInstance.language === 'vi'
-                        ? 'bg-gray-200 text-gray-900'
-                        : 'hover:bg-gray-100'
+                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <span className="text-lg">🇻🇳</span> {t('tiengViet')}
@@ -185,8 +243,8 @@ export function AdminLayout() {
                     onClick={() => handleChangeLanguage('en')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
                       i18nInstance.language === 'en'
-                        ? 'bg-gray-200 text-gray-900'
-                        : 'hover:bg-gray-100'
+                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                   >
                     <span className="text-lg">🇬🇧</span> {t('english')}
@@ -195,14 +253,14 @@ export function AdminLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0 relative">
+          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0 relative dark:bg-gray-900">
             <SpinnerOverlay show={loading} />
             <Outlet />
           </div>
           {showGoTop && (
             <button
               onClick={handleGoTop}
-              className="fixed bottom-6 right-6 z-50 size-10 rounded-full bg-white text-black shadow-lg hover:bg-black hover:text-white transition"
+              className="fixed bottom-6 right-6 z-50 size-10 rounded-full bg-white dark:bg-gray-800 text-black dark:text-white shadow-lg hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition"
               aria-label={t('goToTop')}
             >
               ↑
@@ -210,6 +268,6 @@ export function AdminLayout() {
           )}
         </SidebarInset>
       </SidebarProvider>
-    </>
+    </ThemeProvider>
   );
 }

@@ -31,7 +31,7 @@ import AllEventsPage from './pages/Customer/AllEventsPage';
 import ConfirmOrderPage from './pages/Customer/ConfirmOrderPage';
 import PaymentSuccessPage from './pages/Customer/PaymentSuccessPage';
 import PaymentListAdmin from './pages/Admin/Payment/PaymentListAdmin';
-import ProfilePage from '@/pages/Admin/ProfilePage';
+import ProfilePage from '@/pages/Admin/Profile/ProfilePage';
 import ChatboxAdmin from './pages/Admin/Chatbox/ChatboxAdmin';
 import CategoryList from './pages/Admin/Category/CategoryList';
 import { DiscountCodeList } from './pages/Admin/DiscountCode/DiscountCodeList';

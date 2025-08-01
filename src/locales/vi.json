@@ -770,5 +770,9 @@
   "discountCodeNotFound": "Không tìm thấy mã giảm giá",
   "failedToLoadDiscountCode": "Không tải được thông tin mã giảm giá",
   "failedToUpdateDiscountCode": "Cập nhật mã giảm giá thất bại",
-  "updating": "Đang cập nhật..."
+  "updating": "Đang cập nhật...",
+  "lightThemeEnabled": "Bật giao diện sáng thành công!",
+  "darkThemeEnabled": "Bật giao diện tối thành công!",
+  "themeUpdateFailed": "Cập nhật giao diện thất bại. Vui lòng thử lại.",
+  "updatingTheme": "Đang cập nhật giao diện..."
 }

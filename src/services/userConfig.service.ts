@@ -1,7 +1,7 @@
 import instance from "./axios.customize";
 
 export interface UserConfig {
-  language: number; // 0: default, 1: vi, 2: en
+  language: number; // 0: English, 1: Vietnamese
   theme: number;
   receiveEmail: boolean;
   receiveNotify: boolean;
