@@ -1,19 +1,4 @@
-import { useEffect, useState } from 'react';
-import {
-  getOwnNews,
-  deleteNews,
-  hideNews,
-  showNews,
-  deleteNewsImage,
-} from '@/services/Admin/news.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
-import NewsOwnDetailModal from '@/pages/Admin/News/NewsOwnDetailModal';
-import CreateNewsModal from './CreateNewsModal';
-import type { News } from '@/types/Admin/news';
-import type { NewsListResponse } from '@/types/Admin/news';
-import { FaEye, FaRegTrashAlt, FaPlus } from 'react-icons/fa';
-import { toast } from 'react-toastify';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -31,29 +16,148 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import EditNewsModal from './EditNewsModal';
-import { MdOutlineEdit } from 'react-icons/md';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { getOwnNews, hideNews, showNews } from '@/services/Admin/news.service';
+import CreateNewsModal from './CreateNewsModal';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { getUserByIdAPI } from '@/services/Admin/user.service';
+import type { News, NewsFilterParams } from '@/types/Admin/news';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import NewsOwnDetailModal from './NewsOwnDetailModal';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState(''); // Thêm state search
+  const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editNews, setEditNews] = useState<News | null>(null);
+  const [authorId, setAuthorId] = useState<string>('');
 
-  const fetchData = () => {
+  // Search and filter states
+  const [ownNewsSearch, setOwnNewsSearch] = useState('');
+  const [filters, setFilters] = useState<NewsFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Sync filters.pageSize with pageSize prop
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, pageSize }));
+  }, [pageSize]);
+
+  // Sync filters.page with page prop
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page }));
+  }, [page]);
+
+  // Ensure filters.page is synced on mount
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: page || 1 }));
+  }, []); // Only run once on mount
+
+  // Set default pageSize to 5 on mount if not already set
+  useEffect(() => {
+    if (pageSize !== 5) {
+      setPageSize(5);
+    }
+  }, []); // Only run once on mount
+
+  // Get current user ID on mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          const user = await getUserByIdAPI();
+          if (user && user.data) {
+            setAuthorId(user.data.userId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get current user:', error);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(ownNewsSearch);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  useEffect(() => {
+    searchRef.current = ownNewsSearch;
+  }, [ownNewsSearch]);
+
+  // Connect hub chỉ 1 lần khi mount
+  useEffect(() => {
+    connectNewsHub('http://localhost:5004/newsHub');
+    const reload = () => {
+      fetchData(pageRef.current, pageSizeRef.current);
+    };
+    onNews('OnNewsCreated', reload);
+    onNews('OnNewsUpdated', reload);
+    onNews('OnNewsDeleted', reload);
+    onNews('OnNewsApproved', reload);
+    onNews('OnNewsRejected', reload);
+    onNews('OnNewsHidden', reload);
+    onNews('OnNewsUnhidden', reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchData = (p = page, ps = pageSize) => {
     setLoading(true);
-    getOwnNews(page, pageSize)
-      .then((res: NewsListResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
+
+    // Use current page and pageSize, but reset to page 1 when searching
+    const currentPage = ownNewsSearch ? 1 : p;
+    const currentPageSize = ps;
+
+    const filterParams = {
+      page: currentPage,
+      pageSize: currentPageSize,
+      searchTerm: ownNewsSearch,
+      authorFullName: filters.authorFullName,
+      eventId: filters.eventId,
+      authorId: filters.authorId,
+      createdFrom: filters.createdFrom,
+      createdTo: filters.createdTo,
+      sortBy: sortBy || filters.sortBy,
+      sortDescending: sortDescending,
+    };
+
+    // Debug: Log search parameters
+    console.log('🔍 Own News Search Parameters:', filterParams);
+    console.log('🔍 Date filters:', {
+      createdFrom: filters.createdFrom,
+      createdTo: filters.createdTo,
+    });
+
+    getOwnNews(filterParams)
+      .then(async (res) => {
+        if (res && res.data) {
           setNews(res.data.items);
           setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
@@ -63,42 +167,61 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
           setTotalPages(1);
         }
       })
-      .finally(() => setTimeout(() => setLoading(false), 500));
+      .catch(() => {
+        setNews([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      })
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
   };
 
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, ownNewsSearch] đổi
   useEffect(() => {
-    if (activeTab !== 'own') return;
-    connectNewsHub('http://localhost:5004/newsHub');
-    fetchData();
-    // Lắng nghe realtime SignalR cho news
-    const reload = () => fetchData();
-    onNews('OnNewsCreated', reload);
-    onNews('OnNewsUpdated', reload);
-    onNews('OnNewsDeleted', reload);
-    onNews('OnNewsHidden', reload);
-    onNews('OnNewsUnhidden', reload);
-  }, [activeTab, page, pageSize]);
-
-  // Lọc theo search
-  const filteredNews = news.filter(
-    (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
-  );
-  const pagedNews = filteredNews;
-
-  // Delete handler
-  const handleDelete = async (item: News) => {
-    if (!window.confirm('Are you sure you want to delete this news?')) return;
-    try {
-      // Nếu imageUrl là blob (tức là ảnh vừa upload, chưa lưu lên server), bỏ qua xóa ảnh
-      if (item.imageUrl && !item.imageUrl.startsWith('blob:')) {
-        await deleteNewsImage(item.imageUrl);
-      }
-      await deleteNews(item.newsId);
-      toast.success('News deleted successfully!');
+    if (activeTab === 'own') {
       fetchData();
-    } catch {
-      toast.error('Cannot delete this news!');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, ownNewsSearch, activeTab]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setPageSize(newPageSize);
+    setPage(1);
+  };
+
+  // Sort handlers
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(field);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-green-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-green-600" />
+    );
+  };
+
+  // Filter handlers
+  const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setPage(1);
   };
 
   // Toggle status handler
@@ -116,18 +239,6 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       toast.error('Failed to update status!');
     }
   };
-
-  // Lấy authorId từ localStorage (có thể đặt ngoài useEffect để dùng cho CreateNewsModal)
-  const accStr = localStorage.getItem('account');
-  let authorId = '';
-  if (accStr) {
-    try {
-      const acc = JSON.parse(accStr);
-      authorId = acc.userId;
-    } catch {
-      authorId = '';
-    }
-  }
 
   return (
     <div className="pl-1 pt-3">
@@ -169,14 +280,14 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by news title..."
-                  value={search}
+                  placeholder="Search title, description, content..."
+                  value={ownNewsSearch}
                   onChange={(e) => {
-                    setSearch(e.target.value);
+                    setOwnNewsSearch(e.target.value);
                     setPage(1);
                   }}
                 />
-                {search && (
+                {ownNewsSearch && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -191,7 +302,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                       justifyContent: 'center',
                     }}
                     onClick={() => {
-                      setSearch('');
+                      setOwnNewsSearch('');
                       setPage(1);
                     }}
                     tabIndex={-1}
@@ -203,13 +314,81 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                 )}
               </div>
             </div>
-            {/* Create button (right) */}
-            <div className="flex justify-end">
+            {/* Filter and Create buttons (right) */}
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Author Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Author</div>
+                  <DropdownMenuItem
+                    onSelect={() => updateFilter('authorFullName', undefined)}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!filters.authorFullName}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All Authors</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+
+                  {/* Date Range Filters */}
+                  <div className="px-2 py-1 text-sm font-semibold">Created Date Range</div>
+                  <DropdownMenuItem
+                    className="flex flex-col items-start p-3"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <div className="space-y-2 w-full">
+                      <input
+                        type="date"
+                        placeholder="From..."
+                        value={filters.createdFrom || ''}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          updateFilter('createdFrom', e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <input
+                        type="date"
+                        placeholder="To..."
+                        value={filters.createdTo || ''}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          updateFilter('createdTo', e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      {(filters.createdFrom || filters.createdTo) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFilter('createdFrom', undefined);
+                            updateFilter('createdTo', undefined);
+                          }}
+                          className="w-full px-2 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                          Clear Date Filter
+                        </button>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
                 onClick={() => setShowCreateModal(true)}
               >
-                <FaPlus />
                 Create
               </button>
             </div>
@@ -236,14 +415,14 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pagedNews.length === 0 ? (
+              {news.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                     No news found.
                   </TableCell>
                 </TableRow>
               ) : (
-                pagedNews.map((item, idx) => (
+                news.map((item, idx) => (
                   <TableRow key={item.newsId} className="hover:bg-blue-50">
                     <TableCell className="pl-4 text-center">
                       {(page - 1) * pageSize + idx + 1}
@@ -270,26 +449,39 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
                     </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
-                      <button
-                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                        title="View details"
-                        onClick={() => setSelectedNews(item)}
-                      >
-                        <FaEye className="w-4 h-4" />
-                      </button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button
+                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                            title="View details"
+                            onClick={() => {
+                              setSelectedNews(item);
+                            }}
+                          >
+                            <FaEye className="w-4 h-4" />
+                          </button>
+                        </DialogTrigger>
+                        <NewsOwnDetailModal news={item} onClose={() => setSelectedNews(null)} />
+                      </Dialog>
                       <button
                         className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
                         title="Edit"
-                        onClick={() => setEditNews(item)}
+                        onClick={() => {
+                          // TODO: Implement edit functionality
+                          console.log('Edit button clicked for:', item.newsId);
+                        }}
                       >
-                        <MdOutlineEdit className="w-4 h-4" />
+                        Edit
                       </button>
                       <button
                         className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
                         title="Delete"
-                        onClick={() => handleDelete(item)}
+                        onClick={() => {
+                          // TODO: Implement delete functionality
+                          console.log('Delete button clicked for:', item.newsId);
+                        }}
                       >
-                        <FaRegTrashAlt className="w-4 h-4" />
+                        Delete
                       </button>
                     </TableCell>
                   </TableRow>
@@ -419,18 +611,17 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
           </Table>
         </div>
       </div>
-      {selectedNews && (
-        <NewsOwnDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
-      )}
+
+      {/* Create News Modal */}
       <CreateNewsModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={fetchData}
+        onCreated={() => {
+          setShowCreateModal(false);
+          fetchData(); // Refresh data after creating
+        }}
         authorId={authorId}
       />
-      {editNews && (
-        <EditNewsModal news={editNews} onClose={() => setEditNews(null)} onUpdated={fetchData} />
-      )}
     </div>
   );
 };

@@ -29,11 +29,14 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { MdOutlineEdit } from 'react-icons/md';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import UserDetailModal from '@/pages/Admin/User/UserDetailModal';
 import EditUserModal from '@/pages/Admin/User/EditUserModal';
 import { useTranslation } from 'react-i18next';
+import { deactivateUserAPI } from '@/services/Admin/user.service';
+import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -150,6 +153,18 @@ export const EventManagerList = () => {
       [key]: value,
       page: 1, // Reset to first page when filters change
     }));
+  };
+
+  // Handle deactivate user
+  const handleDeactivateUser = async (user: UserAccountResponse) => {
+    try {
+      await deactivateUserAPI(user.accountId);
+      toast.success('User deactivated successfully!');
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      toast.error('Failed to deactivate user!');
+      console.error('Error deactivating user:', error);
+    }
   };
 
   return (
@@ -449,15 +464,18 @@ export const EventManagerList = () => {
                         {user.email}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          className={`border-2 rounded-[10px] cursor-pointer transition-all ${
-                            user.isActive
-                              ? 'border-green-500 bg-green-500 text-white hover:bg-green-600 hover:text-white hover:border-green-500'
-                              : 'border-red-500 bg-red-500 text-white hover:bg-red-600 hover:text-white hover:border-red-500'
-                          }`}
-                        >
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                        <div className="flex items-center justify-center">
+                          <Switch
+                            checked={user.isActive}
+                            onCheckedChange={() => handleDeactivateUser(user)}
+                            disabled={loading}
+                            className={
+                              user.isActive
+                                ? '!bg-green-500 !border-green-500'
+                                : '!bg-red-400 !border-red-400'
+                            }
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge

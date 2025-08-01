@@ -37,6 +37,7 @@ const targetTypeMap: Record<number, string> = {
   1: 'Event',
   2: 'EventManager',
   3: 'Comment',
+  4: 'Other',
 };
 
 export const ResolvedReportList = ({

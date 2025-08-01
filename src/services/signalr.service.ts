@@ -104,3 +104,11 @@ export const disconnectAnalyticsHub = () => {
     connections.analytics = null;
   }
 };
+// OrderHub
+export const connectOrderHub = (url: string, token?: string) => connectHub('order', url, token);
+export const onOrder = (event: string, cb: (...args: any[]) => void) => onHubEvent('order', event, cb);
+export const disconnectOrderHub = () => disconnectHub('order');
+// PaymentHub
+export const connectPaymentHub = (url: string, token?: string) => connectHub('payment', url, token);
+export const onPayment = (event: string, cb: (...args: any[]) => void) => onHubEvent('payment', event, cb);
+export const disconnectPaymentHub = () => disconnectHub('payment');

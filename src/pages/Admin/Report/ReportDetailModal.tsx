@@ -11,13 +11,16 @@ import type { ApprovedEvent } from '@/types/Admin/event';
 import type { News } from '@/types/Admin/news';
 import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
-import { getEventById } from '@/services/Admin/event.service';
-import { getNewsById } from '@/services/Admin/news.service';
-// import { getUserByIdAPI } from '@/services/Admin/user.service'; // No longer needed
+import { getEventById, hideEvent, showEvent } from '@/services/Admin/event.service';
+import { getNewsById, hideNews, showNews } from '@/services/Admin/news.service';
+import { getUserByIdAPI, deactivateUserAPI } from '@/services/Admin/user.service';
+import { getCommentById, deleteComment } from '@/services/Admin/comment.service';
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
+import { FaRegTrashAlt } from 'react-icons/fa';
 
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableHeader,
@@ -49,14 +52,24 @@ const ReportDetailModal = ({
   const [loading, setLoading] = useState(false);
   const [eventData, setEventData] = useState<ApprovedEvent | null>(null);
   const [newsData, setNewsData] = useState<News | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [commentData, setCommentData] = useState<any>(null);
   const [eventLoading, setEventLoading] = useState(false);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [userLoading, setUserLoading] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [newsStatusLoading, setNewsStatusLoading] = useState(false);
+  const [eventStatusLoading, setEventStatusLoading] = useState(false);
+  const [userStatusLoading, setUserStatusLoading] = useState(false);
+  const [commentDeleteLoading, setCommentDeleteLoading] = useState(false);
   // const [userNames, setUserNames] = useState<Record<string, string>>({}); // No longer needed
   const { t } = useTranslation();
 
   const isPending = report.status === 0;
   const isEventTarget = report.targetType === 1; // 1 = Event theo targetTypeMap
   const isNewsTarget = report.targetType === 0; // 0 = News theo targetTypeMap
+  const isEventManagerTarget = report.targetType === 2; // 2 = EventManager
+  const isCommentTarget = report.targetType === 3; // 3 = Comment
 
   const getStatusText = (status: string | number) => {
     const statusStr = status.toString();
@@ -113,6 +126,146 @@ const ReportDetailModal = ({
     }
   }, [isNewsTarget, report.targetId]);
 
+  // Fetch user data if target type is EventManager
+  useEffect(() => {
+    if (isEventManagerTarget && report.targetId) {
+      console.log('Fetching user data for targetId:', report.targetId);
+      setUserLoading(true);
+      getUserByIdAPI(report.targetId)
+        .then((user) => {
+          console.log('User data fetched successfully:', user);
+          setUserData(user);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch user data:', error);
+          console.error('Error details:', {
+            status: error?.response?.status,
+            statusText: error?.response?.statusText,
+            data: error?.response?.data,
+            message: error?.message,
+          });
+          toast.error('Failed to load user details');
+        })
+        .finally(() => {
+          setUserLoading(false);
+        });
+    }
+  }, [isEventManagerTarget, report.targetId]);
+
+  // Fetch comment data if target type is Comment
+  useEffect(() => {
+    if (isCommentTarget && report.targetId) {
+      console.log('Fetching comment data for targetId:', report.targetId);
+      setCommentLoading(true);
+      getCommentById(report.targetId)
+        .then((comment) => {
+          console.log('Comment data fetched successfully:', comment);
+          setCommentData(comment);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch comment data:', error);
+          console.error('Error details:', {
+            status: error?.response?.status,
+            statusText: error?.response?.statusText,
+            data: error?.response?.data,
+            message: error?.message,
+          });
+          toast.error('Failed to load comment details');
+        })
+        .finally(() => {
+          setCommentLoading(false);
+        });
+    }
+  }, [isCommentTarget, report.targetId]);
+
+  // Toggle news status handler
+  const handleToggleNewsStatus = async () => {
+    if (!newsData) return;
+
+    setNewsStatusLoading(true);
+    try {
+      if (newsData.status) {
+        await hideNews(newsData.newsId);
+        toast.success('News hidden successfully!');
+      } else {
+        await showNews(newsData.newsId);
+        toast.success('News shown successfully!');
+      }
+      // Refresh news data
+      const updatedNews = await getNewsById(newsData.newsId);
+      setNewsData(updatedNews);
+    } catch (error) {
+      console.error('Failed to toggle news status:', error);
+      toast.error('Failed to update news status!');
+    } finally {
+      setNewsStatusLoading(false);
+    }
+  };
+
+  // Toggle event status handler
+  const handleToggleEventStatus = async () => {
+    if (!eventData) return;
+
+    setEventStatusLoading(true);
+    try {
+      if (eventData.isActive) {
+        await hideEvent(eventData.eventId);
+        toast.success('Event hidden successfully!');
+      } else {
+        await showEvent(eventData.eventId);
+        toast.success('Event shown successfully!');
+      }
+      // Refresh event data
+      const updatedEvent = await getEventById(eventData.eventId);
+      setEventData(updatedEvent);
+    } catch (error) {
+      console.error('Failed to toggle event status:', error);
+      toast.error('Failed to update event status!');
+    } finally {
+      setEventStatusLoading(false);
+    }
+  };
+
+  // Toggle user status handler (deactivate)
+  const handleToggleUserStatus = async () => {
+    if (!userData) return;
+
+    setUserStatusLoading(true);
+    try {
+      await deactivateUserAPI(userData.accountId);
+      toast.success('User deactivated successfully!');
+      // Refresh user data
+      const updatedUser = await getUserByIdAPI(report.targetId);
+      setUserData(updatedUser);
+    } catch (error) {
+      toast.error('Failed to deactivate user!');
+      console.error('Error deactivating user:', error);
+    } finally {
+      setUserStatusLoading(false);
+    }
+  };
+
+  // Delete comment handler
+  const handleDeleteComment = async () => {
+    if (!commentData) return;
+
+    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+
+    setCommentDeleteLoading(true);
+    try {
+      await deleteComment(commentData.commentId);
+      toast.success('Comment deleted successfully!');
+      // Refresh comment data
+      const updatedComment = await getCommentById(report.targetId);
+      setCommentData(updatedComment);
+    } catch (error) {
+      toast.error('Failed to delete comment!');
+      console.error('Error deleting comment:', error);
+    } finally {
+      setCommentDeleteLoading(false);
+    }
+  };
+
   const handleAction = async (type: 'approve' | 'reject') => {
     setActionType(type);
     setNote('');
@@ -156,7 +309,7 @@ const ReportDetailModal = ({
 
   return (
     <Dialog open={!!report} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-white p-0 shadow-lg">
+      <DialogContent className="max-w-7xl bg-white p-0 shadow-lg">
         <div className="p-4">
           <DialogHeader>
             <DialogTitle>{t('reportDetail')}</DialogTitle>
@@ -167,7 +320,20 @@ const ReportDetailModal = ({
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('targetType')}</label>
               <input
-                value={targetTypeMap?.[report.targetType] ?? report.targetType}
+                value={
+                  targetTypeMap?.[report.targetType] ??
+                  (report.targetType === 0
+                    ? 'News'
+                    : report.targetType === 1
+                    ? 'Event'
+                    : report.targetType === 2
+                    ? 'EventManager'
+                    : report.targetType === 3
+                    ? 'Comment'
+                    : report.targetType === 4
+                    ? 'Other'
+                    : `Type ${report.targetType}`)
+                }
                 readOnly
                 className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
               />
@@ -182,11 +348,9 @@ const ReportDetailModal = ({
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
-              <input
-                value={getStatusText(report.status)}
-                readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              />
+              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1">
+                {getStatusText(report.status)}
+              </div>
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">{t('reason')}</label>
@@ -340,14 +504,17 @@ const ReportDetailModal = ({
                           </div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div
-                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                              eventData.isActive
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {eventData.isActive ? t('active') : t('inactive')}
+                          <div className="flex items-center justify-center">
+                            <Switch
+                              checked={eventData.isActive}
+                              onCheckedChange={handleToggleEventStatus}
+                              disabled={eventStatusLoading}
+                              className={
+                                eventData.isActive
+                                  ? '!bg-green-500 !border-green-500'
+                                  : '!bg-red-400 !border-red-400'
+                              }
+                            />
                           </div>
                         </TableCell>
                         <TableCell className="text-center py-3">
@@ -406,7 +573,7 @@ const ReportDetailModal = ({
                       <TableRow className="bg-blue-50 hover:bg-blue-50">
                         <TableHead
                           className="text-center font-semibold text-gray-700"
-                          style={{ width: '20%' }}
+                          style={{ width: '15%' }}
                         >
                           {t('newsTitle')}
                         </TableHead>
@@ -414,11 +581,17 @@ const ReportDetailModal = ({
                           className="text-center font-semibold text-gray-700"
                           style={{ width: '15%' }}
                         >
-                          {t('author')}
+                          {t('eventName')}
                         </TableHead>
                         <TableHead
                           className="text-center font-semibold text-gray-700"
                           style={{ width: '12%' }}
+                        >
+                          {t('author')}
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
                         >
                           {t('status')}
                         </TableHead>
@@ -442,17 +615,25 @@ const ReportDetailModal = ({
                           <div className="font-medium text-gray-900">{newsData.newsTitle}</div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div className="text-gray-700">{newsData.authorId || 'N/A'}</div>
+                          <div className="text-gray-700">{newsData.eventName || 'N/A'}</div>
                         </TableCell>
                         <TableCell className="text-center py-3">
-                          <div
-                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                              newsData.status
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {newsData.status ? t('active') : t('inactive')}
+                          <div className="text-gray-700">
+                            {newsData.authorName || newsData.authorId || 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="flex items-center justify-center">
+                            <Switch
+                              checked={newsData.status}
+                              onCheckedChange={handleToggleNewsStatus}
+                              disabled={newsStatusLoading}
+                              className={
+                                newsData.status
+                                  ? '!bg-green-500 !border-green-500'
+                                  : '!bg-red-400 !border-red-400'
+                              }
+                            />
                           </div>
                         </TableCell>
                         <TableCell className="text-center py-3">
@@ -485,15 +666,239 @@ const ReportDetailModal = ({
                     </div>
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">{t('newsContent')}</label>
-                      <div className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700 max-h-20 overflow-y-auto">
-                        {newsData.newsContent || t('noContent')}
-                      </div>
+                      <div
+                        className="bg-gray-50 border rounded px-3 py-2 text-sm text-gray-700 max-h-20 overflow-y-auto"
+                        dangerouslySetInnerHTML={{ __html: newsData.newsContent || t('noContent') }}
+                      />
                     </div>
+                    {newsData.rejectionReason && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-gray-500 mb-1">Rejection Reason</label>
+                        <div className="bg-red-50 border border-red-200 rounded px-3 py-2 text-sm text-red-700">
+                          {newsData.rejectionReason}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <p>{t('newsNotFound')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Comment Details Table - chỉ hiển thị khi target type là Comment */}
+          {isCommentTarget && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
+                Comment Details
+              </h3>
+              {commentLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-gray-600">Loading comment details...</p>
+                </div>
+              ) : commentData ? (
+                <div className="overflow-x-auto">
+                  <Table className="min-w-full border border-gray-200 rounded-lg">
+                    <TableHeader>
+                      <TableRow className="bg-blue-50 hover:bg-blue-50">
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '20%' }}
+                        >
+                          User
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '20%' }}
+                        >
+                          Event
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '40%' }}
+                        >
+                          Content
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '10%' }}
+                        >
+                          Created At
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '10%' }}
+                        >
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="text-center py-3">
+                          <div className="font-medium text-gray-900">
+                            {commentData.fullName || 'Unknown User'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {commentData.eventName || commentData.eventId || 'Unknown Event'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700 max-h-20 overflow-y-auto">
+                            {commentData.content ? (
+                              <span className="whitespace-pre-wrap">{commentData.content}</span>
+                            ) : (
+                              <span className="text-gray-400">No content</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {commentData.createdAt
+                              ? new Date(commentData.createdAt).toLocaleDateString('vi-VN')
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="flex items-center justify-center">
+                            <button
+                              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-3 py-1 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                              onClick={handleDeleteComment}
+                              disabled={commentDeleteLoading}
+                              title="Delete Comment"
+                            >
+                              <FaRegTrashAlt className="w-3 h-3" />
+                              {commentDeleteLoading ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Comment not found</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* User Details Table - chỉ hiển thị khi target type là EventManager */}
+          {isEventManagerTarget && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">
+                Event Manager Details
+              </h3>
+              {userLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <p className="mt-2 text-gray-600">Loading user details...</p>
+                </div>
+              ) : userData ? (
+                <div className="overflow-x-auto">
+                  <Table className="min-w-full border border-gray-200 rounded-lg">
+                    <TableHeader>
+                      <TableRow className="bg-blue-50 hover:bg-blue-50">
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '20%' }}
+                        >
+                          Full Name
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          Username
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '20%' }}
+                        >
+                          Email
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '10%' }}
+                        >
+                          Status
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '10%' }}
+                        >
+                          Online
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '10%' }}
+                        >
+                          Email Verified
+                        </TableHead>
+                        <TableHead
+                          className="text-center font-semibold text-gray-700"
+                          style={{ width: '15%' }}
+                        >
+                          Created At
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell className="text-center py-3">
+                          <div className="font-medium text-gray-900">{userData.fullName}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">{userData.username}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">{userData.email}</div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="flex items-center justify-center">
+                            <Switch
+                              checked={userData.isActive}
+                              onCheckedChange={handleToggleUserStatus}
+                              disabled={userStatusLoading}
+                              className={
+                                userData.isActive
+                                  ? '!bg-green-500 !border-green-500'
+                                  : '!bg-red-400 !border-red-400'
+                              }
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {userData.isOnline ? 'Online' : 'Offline'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {userData.isEmailVerified ? 'Verified' : 'Not Verified'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="text-gray-700">
+                            {userData.createdAt
+                              ? new Date(userData.createdAt).toLocaleDateString()
+                              : 'N/A'}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>User not found</p>
                 </div>
               )}
             </div>

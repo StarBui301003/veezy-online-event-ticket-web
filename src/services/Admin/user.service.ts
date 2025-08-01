@@ -76,7 +76,7 @@ export const uploadUserAvatarAPI = async (userId: string, avatarFile: File) => {
 };
 
 export const getUserByIdAPI = async (userId: string) => {
-  const response = await instance.get(`/api/User/${userId}`);
+  const response = await instance.get(`/api/Account/${userId}`);
   return response.data.data;
 };
 
@@ -211,6 +211,22 @@ export const checkFaceAuthStatusAPI = async () => {
     return response.data;
   } catch (error: any) {
     console.error('[FaceAuthStatus] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
+
+// Deactivate user account
+export const deactivateUserAPI = async (accountId: string) => {
+  try {
+    const response = await instance.post(`/api/Account/${accountId}/deactivate`);
+    return response.data;
+  } catch (error: any) {
+    console.error('[DeactivateUser] API Error:', {
       status: error?.response?.status,
       statusText: error?.response?.statusText,
       data: error?.response?.data,

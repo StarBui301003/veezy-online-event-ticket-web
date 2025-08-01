@@ -29,6 +29,12 @@ export async function deleteComment(commentId: string): Promise<Comment> {
   const res = await instance.delete(`/api/Comment/${commentId}`);
   return res.data;
 }
+
+// Lấy comment theo ID
+export async function getCommentById(commentId: string): Promise<Comment> {
+  const res = await instance.get(`/api/Comment/${commentId}`);
+  return res.data.data;
+}
 export async function analyzeCommentSentiment(eventId: string): Promise<ApiResponse<SentimentAnalysisResponse>> {
   const res = await instance.get('/api/Comment/analyze-sentiment', {
     params: { eventId },

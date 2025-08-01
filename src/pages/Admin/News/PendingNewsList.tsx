@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -16,12 +16,19 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getPendingNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
-import type { News, NewsListResponse } from '@/types/Admin/news';
-import { FaEye } from 'react-icons/fa';
+import type { News, NewsListResponse, NewsFilterParams } from '@/types/Admin/news';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import PendingNewsDetailModal from './PendingNewsDetailModal';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -39,33 +46,63 @@ export const PendingNewsList = ({
   const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState('');
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
-  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
 
-  const fetchData = () => {
-    setLoading(true);
-    getPendingNews(page, pageSize)
-      .then((res: NewsListResponse) => {
-        if (res && res.data && Array.isArray(res.data.items)) {
-          setNews(res.data.items);
-          setTotalItems(res.data.totalItems);
-          setTotalPages(res.data.totalPages);
-        } else {
-          setNews([]);
-          setTotalItems(0);
-          setTotalPages(1);
-        }
-      })
-      .finally(() => setTimeout(() => setLoading(false), 500));
-  };
+  // Search and filter states
+  const [pendingNewsSearch, setPendingNewsSearch] = useState('');
+  const [filters, setFilters] = useState<NewsFilterParams>({
+    page: 1,
+    pageSize: 5,
+    sortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Event and Author filter states
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [selectedAuthorName, setSelectedAuthorName] = useState<string>('');
+
+  // Sync filters.pageSize with pageSize prop
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, pageSize }));
+  }, [pageSize]);
+
+  // Sync filters.page with page prop
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page }));
+  }, [page]);
+
+  // Ensure filters.page is synced on mount
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: page || 1 }));
+  }, []); // Only run once on mount
+
+  // Set default pageSize to 5 on mount if not already set
+  useEffect(() => {
+    if (pageSize !== 5) {
+      setPageSize(5);
+    }
+  }, []); // Only run once on mount
+
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const searchRef = useRef(pendingNewsSearch);
 
   useEffect(() => {
-    if (activeTab !== 'pending') return;
+    pageRef.current = page;
+  }, [page]);
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  useEffect(() => {
+    searchRef.current = pendingNewsSearch;
+  }, [pendingNewsSearch]);
+
+  // Connect hub chỉ 1 lần khi mount
+  useEffect(() => {
     connectNewsHub('http://localhost:5004/newsHub');
-    // Lắng nghe realtime SignalR cho news
     const reload = () => {
-      fetchData();
+      fetchData(pageRef.current, pageSizeRef.current);
       if (onChangePending) {
         setTimeout(() => onChangePending(), 600);
       }
@@ -77,7 +114,103 @@ export const PendingNewsList = ({
     onNews('OnNewsRejected', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchData = (p = page, ps = pageSize) => {
+    setLoading(true);
+
+    // Separate pagination parameters from filter parameters
+    const paginationParams = {
+      page: pendingNewsSearch ? 1 : filters.page,
+      pageSize: filters.pageSize,
+    };
+
+    const filterParams = {
+      searchTerm: pendingNewsSearch,
+      authorFullName: selectedAuthorName || filters.authorFullName,
+      eventId: selectedEventId || filters.eventId,
+      authorId: filters.authorId,
+      sortBy: sortBy || filters.sortBy,
+      sortDescending: sortDescending,
+    };
+
+    // Debug: Log search parameters
+    console.log('🔍 Pending News Search Parameters:', {
+      pagination: paginationParams,
+      filters: filterParams,
+      pendingNewsSearch: pendingNewsSearch,
+    });
+
+    // Combine pagination and filter parameters
+    const params = { ...paginationParams, ...filterParams };
+
+    getPendingNews(params)
+      .then(async (res) => {
+        if (res && res.data) {
+          setNews(res.data.items);
+          setTotalItems(res.data.totalItems);
+          setTotalPages(res.data.totalPages);
+        } else {
+          setNews([]);
+          setTotalItems(0);
+          setTotalPages(1);
+        }
+      })
+      .catch(() => {
+        setNews([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      })
+      .finally(() => {
+        setTimeout(() => setLoading(false), 500);
+      });
+  };
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingNewsSearch, selectedEventId, selectedAuthorName] đổi
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, pendingNewsSearch, selectedEventId, selectedAuthorName]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, page: newPage }));
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setPageSize(newPageSize);
+    setPage(1);
+  };
+
+  // Sort handlers
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(field);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-green-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-green-600" />
+    );
+  };
+
+  // Filter handlers
+  const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setPage(1);
+  };
 
   // Load data when component mounts, activeTab changes, or pagination changes
   useEffect(() => {
@@ -99,7 +232,7 @@ export const PendingNewsList = ({
           }
         })
       );
-      setAuthorNames(names);
+      // setAuthorNames(names); // This state is no longer needed
     };
     if (news.length > 0) fetchAuthors();
   }, [news]);
@@ -114,7 +247,9 @@ export const PendingNewsList = ({
   };
 
   const filteredNews = news.filter(
-    (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
+    (item) =>
+      !pendingNewsSearch ||
+      item.newsTitle.toLowerCase().includes(pendingNewsSearch.trim().toLowerCase())
   );
   const pagedNews = filteredNews;
 
@@ -123,8 +258,9 @@ export const PendingNewsList = ({
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          {/* Search */}
+          {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
                 className="InputContainer relative"
@@ -157,14 +293,16 @@ export const PendingNewsList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search by news title..."
-                  value={search}
+                  placeholder="Search all columns..."
+                  value={pendingNewsSearch}
                   onChange={(e) => {
-                    setSearch(e.target.value);
+                    setPendingNewsSearch(e.target.value);
+                    // Reset to page 1 when searching
+                    setFilters((prev) => ({ ...prev, page: 1 }));
                     setPage(1);
                   }}
                 />
-                {search && (
+                {pendingNewsSearch && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
                     style={{
@@ -179,7 +317,8 @@ export const PendingNewsList = ({
                       justifyContent: 'center',
                     }}
                     onClick={() => {
-                      setSearch('');
+                      setPendingNewsSearch('');
+                      setFilters((prev) => ({ ...prev, page: 1 }));
                       setPage(1);
                     }}
                     tabIndex={-1}
@@ -191,6 +330,113 @@ export const PendingNewsList = ({
                 )}
               </div>
             </div>
+
+            {/* Filter dropdown (right) */}
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  {/* Event Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Event</div>
+                  <DropdownMenuItem
+                    onSelect={() => setSelectedEventId('')}
+                    className="flex items-center gap-2"
+                  >
+                    <input type="checkbox" checked={!selectedEventId} readOnly className="mr-2" />
+                    <span>All Events</span>
+                  </DropdownMenuItem>
+                  {selectedEventId && (
+                    <DropdownMenuItem
+                      onSelect={() => setSelectedEventId('')}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear Filter
+                    </DropdownMenuItem>
+                  )}
+                  {(() => {
+                    // Extract unique events from current data
+                    const uniqueEvents = news
+                      ? Array.from(
+                          new Map(news.map((item) => [item.eventId, item.eventName])).entries()
+                        )
+                      : [];
+
+                    return uniqueEvents.map(([eventId, eventName]) => (
+                      <DropdownMenuItem
+                        key={eventId}
+                        onSelect={() => setSelectedEventId(eventId)}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEventId === eventId}
+                          readOnly
+                          className="mr-2"
+                        />
+                        <span className="truncate" title={eventName}>
+                          {eventName}
+                        </span>
+                      </DropdownMenuItem>
+                    ));
+                  })()}
+                  <DropdownMenuSeparator />
+
+                  {/* Author Filter */}
+                  <div className="px-2 py-1 text-sm font-semibold">Author</div>
+                  <DropdownMenuItem
+                    onSelect={() => setSelectedAuthorName('')}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!selectedAuthorName}
+                      readOnly
+                      className="mr-2"
+                    />
+                    <span>All Authors</span>
+                  </DropdownMenuItem>
+                  {selectedAuthorName && (
+                    <DropdownMenuItem
+                      onSelect={() => setSelectedAuthorName('')}
+                      className="text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      Clear Filter
+                    </DropdownMenuItem>
+                  )}
+                  {(() => {
+                    // Extract unique authors from current data
+                    const uniqueAuthors = news
+                      ? Array.from(
+                          new Map(news.map((item) => [item.authorName, item.authorName])).entries()
+                        )
+                      : [];
+
+                    return uniqueAuthors.map(([authorName, authorNameValue]) => (
+                      <DropdownMenuItem
+                        key={authorName}
+                        onSelect={() => setSelectedAuthorName(authorName)}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAuthorName === authorName}
+                          readOnly
+                          className="mr-2"
+                        />
+                        <span className="truncate" title={authorNameValue}>
+                          {authorNameValue}
+                        </span>
+                      </DropdownMenuItem>
+                    ));
+                  })()}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           <Table className="min-w-full">
             <TableHeader>
@@ -198,16 +444,52 @@ export const PendingNewsList = ({
                 <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '25%' }}>Title</TableHead>
-                <TableHead style={{ width: '15%' }}>Author Name</TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Created At
+                <TableHead style={{ width: '20%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('newsTitle')}
+                  >
+                    Title
+                    {getSortIcon('newsTitle')}
+                  </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
-                  Updated At
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('eventName')}
+                  >
+                    Event Name
+                    {getSortIcon('eventName')}
+                  </div>
                 </TableHead>
-
-                <TableHead className="text-center" style={{ width: '15%' }}>
+                <TableHead style={{ width: '12%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('authorName')}
+                  >
+                    Author Name
+                    {getSortIcon('authorName')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '12%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Created At
+                    {getSortIcon('createdAt')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '12%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('updatedAt')}
+                  >
+                    Updated At
+                    {getSortIcon('updatedAt')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center" style={{ width: '10%' }}>
                   Action
                 </TableHead>
               </TableRow>
@@ -224,22 +506,34 @@ export const PendingNewsList = ({
                 </>
               ) : (
                 <>
-                  {pagedNews.map((item, idx) => (
+                  {news.map((item, idx) => (
                     <TableRow key={item.newsId} className="hover:bg-yellow-50">
                       <TableCell className="text-center">
-                        {(page - 1) * pageSize + idx + 1}
+                        {((page || 1) - 1) * (pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={item.newsTitle}
+                      >
                         {item.newsTitle}
                       </TableCell>
-                      <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {item.newsContent}
+                      <TableCell
+                        className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={item.eventName || 'N/A'}
+                      >
+                        {item.eventName || 'N/A'}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {authorNames[item.authorId] || item.authorId || 'Unknown'}
+                      <TableCell
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        title={item.authorName || item.authorId || 'Unknown'}
+                      >
+                        {item.authorName || item.authorId || 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center">
                         {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button
@@ -270,7 +564,7 @@ export const PendingNewsList = ({
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
+                              onClick={() => handlePageChange(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
@@ -319,7 +613,7 @@ export const PendingNewsList = ({
                                 ) : (
                                   <PaginationLink
                                     isActive={item === page}
-                                    onClick={() => setPage(item as number)}
+                                    onClick={() => handlePageChange(item as number)}
                                     className={`transition-colors rounded 
                                       ${
                                         item === page
@@ -342,7 +636,7 @@ export const PendingNewsList = ({
                           })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
                               className={
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
@@ -365,10 +659,7 @@ export const PendingNewsList = ({
                       <select
                         className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
                         value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setPage(1);
-                        }}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >
                         {pageSizeOptions.map((size) => (
                           <option key={size} value={size}>
@@ -385,7 +676,7 @@ export const PendingNewsList = ({
           {selectedNews && (
             <PendingNewsDetailModal
               news={selectedNews}
-              authorName={authorNames[selectedNews.authorId] || selectedNews.authorId || 'unknown'}
+              // authorName={authorNames[selectedNews.authorId] || selectedNews.authorId || 'unknown'}
               onClose={() => setSelectedNews(null)}
               onActionDone={reloadList}
             />

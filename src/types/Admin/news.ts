@@ -1,15 +1,18 @@
 export interface News {
   newsId: string;
-  eventId: string;
+  eventId?: string;
+  eventName?: string;
   newsDescription: string;
   newsTitle: string;
   newsContent: string;
   authorId: string;
-  imageUrl: string;
+  authorName?: string;
+  imageUrl?: string;
   status: boolean;
+  isApprove?: string; // Approved, Pending, Rejected
   rejectionReason?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateNewsRequest {
@@ -22,6 +25,22 @@ export interface CreateNewsRequest {
   status: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface NewsFilterParams {
+  // Pagination parameters
+  page?: number;
+  pageSize?: number;
+
+  // Search and filter parameters
+  searchTerm?: string;
+  authorFullName?: string;
+  eventId?: string;
+  authorId?: string;
+  createdFrom?: string; // Date filter from
+  createdTo?: string; // Date filter to
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 export interface NewsListResponse {

@@ -25,7 +25,7 @@ export function NewsListTabs() {
 
   const fetchPendingCount = () => {
     import('@/services/Admin/news.service').then(({ getPendingNews }) => {
-      getPendingNews(1, 1)
+      getPendingNews({ page: 1, pageSize: 1 })
         .then((res) => {
           setPendingCount(res.data?.totalItems || 0);
         })

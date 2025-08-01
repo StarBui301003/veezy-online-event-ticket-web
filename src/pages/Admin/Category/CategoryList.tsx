@@ -163,11 +163,18 @@ export const CategoryList = () => {
   const handleDelete = async (cat: Category) => {
     if (!window.confirm(t('confirmDeleteCategory'))) return;
     try {
-      await deleteCategoryById(cat.categoryId);
-      toast.success(t('categoryDeletedSuccessfully'));
-      reloadList();
-    } catch {
-      toast.error(t('cannotDeleteCategory'));
+      const response = await deleteCategoryById(cat.categoryId);
+      if (response.flag) {
+        toast.success(t('categoryDeletedSuccessfully'));
+        reloadList();
+      } else {
+        toast.error(response.message || t('cannotDeleteCategory'));
+      }
+    } catch (error: any) {
+      // Handle network errors or other exceptions
+      const errorMessage =
+        error.response?.data?.message || error.message || t('cannotDeleteCategory');
+      toast.error(errorMessage);
     }
   };
 

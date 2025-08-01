@@ -1,31 +1,31 @@
-import { CreateNewsRequest } from './../../types/Admin/news';
+import { CreateNewsRequest, NewsFilterParams } from './../../types/Admin/news';
 import instance from '@/services/axios.customize';
 import type { NewsListResponse, News } from '@/types/Admin/news';
 
-export async function getAllNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getAllNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/all`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
 
-export async function getAllNewsActive(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getAllNewsActive(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/active`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
 
-export async function getAllNewsInactive(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getAllNewsInactive(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/inactive`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
 
-export async function getOwnNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getOwnNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/my-news`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
@@ -58,23 +58,23 @@ export async function showNews(newsId: string): Promise<News> {
   const res = await instance.put(`/api/News/${newsId}/show`);
   return res.data;
 }
-export async function getPendingNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getPendingNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/pending`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
 
-export async function getApprovedNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getApprovedNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/approve`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }
 
-export async function getRejectedNews(page = 1, pageSize = 10): Promise<NewsListResponse> {
+export async function getRejectedNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/rejected`, {
-    params: { page, pageSize },
+    params,
   });
   return res.data;
 }

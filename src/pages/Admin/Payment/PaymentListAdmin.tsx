@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
-import { getPaymentsAdmin } from '@/services/Admin/order.service';
-import type { AdminPaymentListResponse } from '@/types/Admin/order';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { getPaymentsAdmin, PaymentFilterParams } from '@/services/Admin/order.service';
+import type { AdminPayment, AdminPaymentListResponse } from '@/types/Admin/order';
+import SpinnerOverlay from '@/components/SpinnerOverlay';
 import {
   Table,
   TableHeader,
@@ -11,7 +11,13 @@ import {
   TableCell,
   TableFooter,
 } from '@/components/ui/table';
-import SpinnerOverlay from '@/components/SpinnerOverlay';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   Pagination,
   PaginationContent,
@@ -20,170 +26,529 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import PaymentDetailModal from './PaymentDetailModal';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
-import { useTranslation } from 'react-i18next';
-import GenerateTicketModal from './GenerateTicketModal';
+import { Slider } from '@/components/ui/slider';
+import { connectPaymentHub, onPayment } from '@/services/signalr.service';
+import { formatCurrency } from '@/utils/format';
+import {
+  PAYMENT_STATUS_LABEL,
+  PAYMENT_STATUS_COLOR,
+  PAYMENT_METHOD_LABEL,
+} from '@/types/Admin/order';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-export const PaymentListAdmin = () => {
-  const { t } = useTranslation();
-  const [data, setData] = useState<AdminPaymentListResponse['data'] | null>(null);
+const PaymentListAdmin = () => {
+  const [data, setData] = useState<AdminPaymentListResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [selected, setSelected] = useState<AdminPayment | null>(null);
+
+  // Search and filter states
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [filters, setFilters] = useState<PaymentFilterParams>({
+    Page: 1,
+    PageSize: 5,
+    SortDescending: true,
+  });
+  const [sortBy, setSortBy] = useState<string>('paidAt');
+  const [sortDescending, setSortDescending] = useState(true);
+
+  // Slider states for amount range
+  const [amountRange, setAmountRange] = useState<[number, number]>([0, 1000000]);
+  const [maxAmount, setMaxAmount] = useState(1000000);
+
+  const pageRef = useRef(filters.Page);
+  const pageSizeRef = useRef(filters.PageSize);
+  const searchRef = useRef(paymentSearch);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+    pageRef.current = filters.Page;
+  }, [filters.Page]);
+  useEffect(() => {
+    pageSizeRef.current = filters.PageSize;
+  }, [filters.PageSize]);
+  useEffect(() => {
+    searchRef.current = paymentSearch;
+  }, [paymentSearch]);
+
+  // Connect hub chỉ 1 lần khi mount
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    connectPaymentHub('http://localhost:5005/paymentHub', token);
+    const reload = () => {
+      fetchData();
+    };
+    onPayment('OnPaymentCreated', reload);
+    onPayment('OnPaymentStatusChanged', reload);
+    onPayment('OnPaymentSuccess', reload);
+    onPayment('OnPaymentFailed', reload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchData = useCallback(() => {
     setLoading(true);
-    getPaymentsAdmin({ page: page, pageSize: pageSize })
-      .then((res) => {
-        if (res && res.data) {
-          setData(res.data);
+
+    // Separate pagination parameters from filter parameters
+    const paginationParams = {
+      Page: paymentSearch ? 1 : filters.Page,
+      PageSize: filters.PageSize,
+    };
+
+    const filterParams = {
+      SearchTerm: paymentSearch,
+      MinAmount: amountRange[0] > 0 ? amountRange[0] : undefined,
+      MaxAmount: amountRange[1] < maxAmount ? amountRange[1] : undefined,
+      SortBy: sortBy,
+      SortDescending: sortDescending,
+    };
+
+    // Debug: Log amount range values
+    console.log('🔍 Amount Range Debug:', {
+      amountRange,
+      maxAmount,
+      minAmount: filterParams.MinAmount,
+      maxAmountFilter: filterParams.MaxAmount,
+    });
+
+    // Debug: Log search parameters
+    console.log('🔍 Payment Search Parameters:', {
+      pagination: paginationParams,
+      filters: filterParams,
+      paymentSearch: paymentSearch,
+    });
+
+    // Combine pagination and filter parameters
+    const params = { ...paginationParams, ...filterParams };
+
+    getPaymentsAdmin(params)
+      .then(async (res) => {
+        if (res && res.success && res.data) {
+          setData(res);
+          // Calculate max amount from data
+          const maxAmountInData =
+            res.data.items.length > 0
+              ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
+              : 1000000;
+          setMaxAmount(maxAmountInData);
+          console.log(
+            '🔍 Max Amount calculated:',
+            maxAmountInData,
+            'Items count:',
+            res.data.items.length,
+            'All amounts:',
+            res.data.items.map((item) => item.amount)
+          );
         } else {
           setData(null);
         }
       })
+      .catch(() => {
+        setData(null);
+      })
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
+  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
 
-    // Lắng nghe realtime SignalR cho payment
-    const reload = () => {
-      setLoading(true);
-      getPaymentsAdmin({ page: page, pageSize: pageSize })
-        .then((res) => {
-          if (res && res.data) {
-            setData(res.data);
-          } else {
-            setData(null);
-          }
-        })
-        .finally(() => {
-          setTimeout(() => setLoading(false), 500);
-        });
-    };
-    onEvent('OnPaymentCreated', reload);
-    onEvent('OnPaymentUpdated', reload);
-    onEvent('OnPaymentDeleted', reload);
-  }, [page, pageSize]);
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, paymentSearch]);
 
-  const items = data?.items || [];
-  const totalItems = data?.totalItems || 0;
-  const totalPages = data?.totalPages || 1;
+  // Update amountRange when maxAmount changes (but not on initial load)
+  useEffect(() => {
+    if (maxAmount > 0 && amountRange[1] === 1000000) {
+      setAmountRange([0, maxAmount]);
+    }
+  }, [maxAmount]);
 
-  const paymentMethodLabel = (method: number) => {
-    switch (method) {
-      case 0:
-        return t('vietQR');
-      case 1:
-        return t('momo');
-      case 2:
-        return t('vnPay');
-      case 3:
-        return t('other');
+  // Handle amountRange changes separately
+  useEffect(() => {
+    // Skip initial render
+    if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
+
+    // Always fetch when amountRange changes (including when dragged to 0)
+    fetchData();
+  }, [amountRange]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    setFilters((prev) => ({ ...prev, Page: newPage }));
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+  };
+
+  // Sort handlers
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDescending(!sortDescending);
+    } else {
+      setSortBy(field);
+      setSortDescending(true);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDescending ? (
+      <FaSortDown className="w-3 h-3 text-green-600" />
+    ) : (
+      <FaSortUp className="w-3 h-3 text-green-600" />
+    );
+  };
+
+  // Filter handlers
+  const updateFilter = (key: keyof PaymentFilterParams, value: string | number | undefined) => {
+    setFilters((prev) => ({ ...prev, [key]: value, Page: 1 }));
+  };
+
+  const refreshData = () => {
+    setPaymentSearch(''); // Reset search when refresh
+    setFilters((prev) => ({ ...prev, Page: 1 })); // Reset to page 1
+  };
+
+  // Items and pagination
+  const items = data?.data?.items || [];
+  const totalItems = data?.data?.totalItems || 0;
+  const totalPages = data?.data?.totalPages || 1;
+
+  const getStatusBadge = (status: string | number) => {
+    const statusStr = status.toString();
+    switch (statusStr) {
+      case '0':
+        return (
+          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
+            Success
+          </Badge>
+        );
+      case '1':
+        return (
+          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
+            Failed
+          </Badge>
+        );
+      case '2':
+        return (
+          <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
+            Pending
+          </Badge>
+        );
+      case '3':
+        return (
+          <Badge className="border-blue-500 bg-blue-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-blue-600 hover:text-white">
+            Processing
+          </Badge>
+        );
+      case '4':
+        return (
+          <Badge className="border-green-500 bg-green-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-green-600 hover:text-white">
+            Paid
+          </Badge>
+        );
+      case '5':
+        return (
+          <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white">
+            Rejected
+          </Badge>
+        );
+      case '6':
+        return (
+          <Badge className="border-gray-500 bg-gray-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-gray-600 hover:text-white">
+            Other
+          </Badge>
+        );
       default:
-        return t('unknown');
+        return (
+          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
+            Unknown
+          </Badge>
+        );
+    }
+  };
+
+  const getMethodBadge = (method: string | number) => {
+    const methodStr = method.toString();
+    switch (methodStr) {
+      case '0':
+        return (
+          <Badge className="border-blue-500 bg-blue-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-blue-600 hover:text-white">
+            VietQR
+          </Badge>
+        );
+      case '1':
+        return (
+          <Badge className="border-purple-500 bg-purple-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-purple-600 hover:text-white">
+            Momo
+          </Badge>
+        );
+      case '2':
+        return (
+          <Badge className="border-blue-500 bg-blue-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-blue-600 hover:text-white">
+            VnPay
+          </Badge>
+        );
+      case '3':
+        return (
+          <Badge className="border-gray-500 bg-gray-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-gray-600 hover:text-white">
+            Other
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-black/100 hover:text-white">
+            Unknown
+          </Badge>
+        );
     }
   };
 
   return (
-    <div className="p-6">
+    <div className="p-3">
       <SpinnerOverlay show={loading} />
-      <GenerateTicketModal open={showGenerateModal} onClose={() => setShowGenerateModal(false)} />
+
       <div className="overflow-x-auto">
         <div className="p-4 bg-white rounded-xl shadow">
-          <div className="flex justify-end mb-4">
-            <button
-              className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-              onClick={() => setShowGenerateModal(true)}
-            >
-              Generate Error Ticket
-            </button>
+          {/* Search and Filter UI */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Search input (left) */}
+            <div className="flex-1 flex items-center gap-2">
+              <div
+                className="InputContainer relative"
+                style={{
+                  width: 310,
+                  height: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(to bottom, #c7eafd, #e0e7ff)',
+                  borderRadius: 30,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 10px rgba(0,0,0,0.075)',
+                  position: 'relative',
+                }}
+              >
+                <input
+                  className="input pr-8"
+                  style={{
+                    width: 300,
+                    height: 40,
+                    border: 'none',
+                    outline: 'none',
+                    caretColor: 'rgb(255,81,0)',
+                    backgroundColor: 'rgb(255,255,255)',
+                    borderRadius: 30,
+                    paddingLeft: 15,
+                    letterSpacing: 0.8,
+                    color: 'rgb(19,19,19)',
+                    fontSize: 13.4,
+                  }}
+                  placeholder="Search all columns..."
+                  value={paymentSearch}
+                  onChange={(e) => {
+                    setPaymentSearch(e.target.value);
+                    // Reset to page 1 when searching
+                    setFilters((prev) => ({ ...prev, Page: 1 }));
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Filter dropdown (right) */}
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
+                    <FaFilter />
+                    Filter
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* Amount Range Filters */}
+                  <div className="px-2 py-1 text-sm font-semibold">Amount Range</div>
+                  <DropdownMenuItem
+                    className="flex flex-col items-start p-4"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    <div className="space-y-4 w-full">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs text-gray-600">
+                          <span>Min: {formatCurrency(amountRange[0])}</span>
+                          <span>Max: {formatCurrency(amountRange[1])}</span>
+                        </div>
+                        <Slider
+                          value={amountRange}
+                          onValueChange={(value) => setAmountRange(value as [number, number])}
+                          max={maxAmount}
+                          min={0}
+                          step={10000}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAmountRange([0, maxAmount]);
+                            // Force fetchData after reset
+                            setTimeout(() => {
+                              fetchData();
+                            }, 0);
+                          }}
+                          className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
+
+          {/* Table */}
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4" style={{ width: '5%' }}>
+              <TableRow className="bg-green-200 hover:bg-green-200">
+                <TableHead className="text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                {/* <TableHead style={{ width: '25%' }}>PaymentId</TableHead> */}
-                <TableHead style={{ width: '10%' }}>{t('orderId')}</TableHead>
-                <TableHead style={{ width: '5%' }} className="text-center">
-                  {t('amount')}
+
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('orderId')}
+                  >
+                    Order ID
+                    {getSortIcon('orderId')}
+                  </div>
                 </TableHead>
-                <TableHead style={{ width: '5%' }} className="text-center">
-                  {t('method')}
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer justify-center"
+                    onClick={() => handleSort('amount')}
+                  >
+                    Amount
+                    {getSortIcon('amount')}
+                  </div>
                 </TableHead>
-                <TableHead style={{ width: '5%' }} className="text-center">
-                  {t('status')}
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer justify-center"
+                    onClick={() => handleSort('paymentMethod')}
+                  >
+                    Payment Method
+                    {getSortIcon('paymentMethod')}
+                  </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>{t('transactionCode')}</TableHead>
-                <TableHead style={{ width: '5%' }} className="text-center">
-                  {t('paidAt')}
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer justify-center"
+                    onClick={() => handleSort('paymentStatus')}
+                  >
+                    Status
+                    {getSortIcon('paymentStatus')}
+                  </div>
                 </TableHead>
+                <TableHead style={{ width: '15%' }}>
+                  <div
+                    className="flex items-center gap-1 cursor-pointer"
+                    onClick={() => handleSort('paidAt')}
+                  >
+                    Paid At
+                    {getSortIcon('paidAt')}
+                  </div>
+                </TableHead>
+                <TableHead className="text-center">Details</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="min-h-[400px]">
               {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    No payments found.
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show 5 empty rows when no data */}
+                  {Array.from({ length: 5 }, (_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableCell colSpan={7} className="border-0"></TableCell>
+                    </TableRow>
+                  ))}
+                </>
               ) : (
-                items.map((p, idx) => (
-                  <TableRow key={p.paymentId} className="hover:bg-blue-50">
-                    <TableCell className="pl-4">{(page - 1) * pageSize + idx + 1}</TableCell>
-                    {/* <TableCell>{p.paymentId}</TableCell> */}
-                    <TableCell>{p.orderId}</TableCell>
-                    <TableCell className="text-center">{p.amount}</TableCell>
-                    <TableCell className="text-center">
-                      {paymentMethodLabel(p.paymentMethod)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {p.paymentStatus === 0 && (
-                        <Badge className=" border-green-500 bg-green-500 items-center border-2 rounded-[10px] cursor-pointer transition-all text-white hover:bg-green-600 hover:text-white hover:border-green-500">
-                          Success
-                        </Badge>
-                      )}
-                      {p.paymentStatus === 1 && (
-                        <Badge className="border-red-500 bg-red-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-red-600 hover:text-white hover:border-red-500">
-                          Failed
-                        </Badge>
-                      )}
-                      {p.paymentStatus === 2 && (
-                        <Badge className="border-yellow-500 bg-yellow-500 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all hover:bg-yellow-600 hover:text-white">
-                          Pending
-                        </Badge>
-                      )}
-                      {p.paymentStatus === 3 && (
-                        <Badge className="border-black/70 bg-black/70 text-white items-center border-2 rounded-[10px] cursor-pointer transition-all  hover:bg-black/100 hover:text-white">
-                          Other
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>{p.transactionCode}</TableCell>
-                    <TableCell className="text-center">
-                      {p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                ))
+                <>
+                  {items.map((item, idx) => (
+                    <TableRow key={item.paymentId || idx} className="hover:bg-green-50">
+                      <TableCell className="text-center">
+                        {(filters.Page - 1) * filters.PageSize + idx + 1}
+                      </TableCell>
+
+                      <TableCell className="font-mono text-sm">{item.orderId || 'N/A'}</TableCell>
+                      <TableCell className="text-center font-semibold">
+                        {item.amount ? formatCurrency(parseFloat(item.amount)) : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                          {item.paymentMethod !== null ? (
+                            getMethodBadge(item.paymentMethod)
+                          ) : (
+                            <span className="text-gray-500">N/A</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                          {item.paymentStatus !== null ? (
+                            getStatusBadge(item.paymentStatus)
+                          ) : (
+                            <span className="text-gray-500">N/A</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {item.paidAt ? new Date(item.paidAt).toLocaleString('vi-VN') : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-center flex gap-2 justify-center">
+                        <button
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                          onClick={() => setSelected(item)}
+                        >
+                          <FaEye className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(0, 5 - items.length),
+                    },
+                    (_, idx) => (
+                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                        <TableCell colSpan={7} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={7}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setPage((p) => Math.max(1, p - 1))}
-                              aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
+                              aria-disabled={filters.Page === 1}
+                              className={filters.Page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
                           {(() => {
@@ -197,14 +562,14 @@ export const PaymentListAdmin = () => {
                               }
                             } else {
                               // Logic hiển thị trang với dấu "..."
-                              if (page <= 4) {
+                              if (filters.Page <= 4) {
                                 // Trang hiện tại ở đầu
                                 for (let i = 1; i <= 5; i++) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
                                 pages.push(totalPages);
-                              } else if (page >= totalPages - 3) {
+                              } else if (filters.Page >= totalPages - 3) {
                                 // Trang hiện tại ở cuối
                                 pages.push(1);
                                 pages.push('...');
@@ -215,7 +580,7 @@ export const PaymentListAdmin = () => {
                                 // Trang hiện tại ở giữa
                                 pages.push(1);
                                 pages.push('...');
-                                for (let i = page - 1; i <= page + 1; i++) {
+                                for (let i = filters.Page - 1; i <= filters.Page + 1; i++) {
                                   pages.push(i);
                                 }
                                 pages.push('...');
@@ -229,20 +594,20 @@ export const PaymentListAdmin = () => {
                                   <span className="px-2 py-1 text-gray-500">...</span>
                                 ) : (
                                   <PaginationLink
-                                    isActive={item === page}
-                                    onClick={() => setPage(item as number)}
+                                    isActive={item === filters.Page}
+                                    onClick={() => handlePageChange(item as number)}
                                     className={`transition-colors rounded 
                                       ${
-                                        item === page
-                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                        item === filters.Page
+                                          ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
                                           : 'text-gray-700 hover:bg-slate-200 hover:text-black'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
                                       minWidth: 32,
                                       textAlign: 'center',
-                                      fontWeight: item === page ? 700 : 400,
-                                      cursor: item === page ? 'default' : 'pointer',
+                                      fontWeight: item === filters.Page ? 700 : 400,
+                                      cursor: item === filters.Page ? 'default' : 'pointer',
                                     }}
                                   >
                                     {item}
@@ -253,10 +618,12 @@ export const PaymentListAdmin = () => {
                           })()}
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                              aria-disabled={page === totalPages}
+                              onClick={() =>
+                                handlePageChange(Math.min(totalPages, filters.Page + 1))
+                              }
+                              aria-disabled={filters.Page === totalPages}
                               className={
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
                               }
                             />
                           </PaginationItem>
@@ -267,19 +634,16 @@ export const PaymentListAdmin = () => {
                       <span className="text-sm text-gray-700">
                         {totalItems === 0
                           ? '0-0 of 0'
-                          : `${(page - 1) * pageSize + 1}-${Math.min(
-                              page * pageSize,
+                          : `${(filters.Page - 1) * filters.PageSize + 1}-${Math.min(
+                              filters.Page * filters.PageSize,
                               totalItems
                             )} of ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700">Rows per page</span>
                       <select
-                        className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
-                        value={pageSize}
-                        onChange={(e) => {
-                          setPageSize(Number(e.target.value));
-                          setPage(1);
-                        }}
+                        className="border rounded px-2 py-1 text-sm bg-white"
+                        value={filters.PageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >
                         {pageSizeOptions.map((size) => (
                           <option key={size} value={size}>
@@ -295,6 +659,17 @@ export const PaymentListAdmin = () => {
           </Table>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {selected && (
+        <PaymentDetailModal
+          payment={selected}
+          onClose={() => setSelected(null)}
+          onRefresh={refreshData}
+        />
+      )}
     </div>
   );
 };
+
+export default PaymentListAdmin;
