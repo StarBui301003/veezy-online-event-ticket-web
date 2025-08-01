@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FiCheckCircle, FiClock, FiX } from 'react-icons/fi';
 // import { getPendingReport } from '@/services/Admin/report.service'; // No longer needed
 import { cn } from '@/lib/utils';
-import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
+import { connectFeedbackHub } from '@/services/signalr.service';
 import { PendingReportList } from './PendingReportList';
 import { ResolvedReportList } from './ResolvedReportList';
 import { RejectedReportList } from './RejectedReportList';

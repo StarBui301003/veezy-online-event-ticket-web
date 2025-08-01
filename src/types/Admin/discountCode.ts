@@ -5,6 +5,7 @@ export interface DiscountCodeResponse {
     items: {
       discountId: string;
       eventId: string;
+      eventName: string;
       code: string;
       discountType: number;
       value: number;
@@ -26,6 +27,18 @@ export interface DiscountCodeResponse {
     hasPreviousPage: boolean;
   };
   message: string | null;
+}
+
+export interface DiscountCodeFilterParams {
+  searchTerm?: string;
+  eventId?: string;
+  discountType?: number;
+  isExpired?: boolean;
+  isAvailable?: boolean;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDescending: boolean;
 }
 
 export interface DiscountCodeCreateInput {
@@ -52,5 +65,5 @@ export interface DiscountCodeUpdateInput {
 export enum DiscountType {
   Percentage = 0,
   Fixed = 1,
-  Other = 3,
+  Other = 2,
 }

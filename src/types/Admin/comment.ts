@@ -11,6 +11,18 @@ export interface Comment {
   fullName: string | null;
 }
 
+export interface CommentFilterParams {
+  searchTerm?: string;
+  eventId?: string;
+  userId?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortDescending: boolean;
+}
+
 export interface PaginatedCommentResponse {
   flag: boolean;
   code: number;

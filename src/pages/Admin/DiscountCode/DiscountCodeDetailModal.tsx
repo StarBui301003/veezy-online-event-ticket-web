@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -6,7 +5,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { getEventById } from '@/services/Admin/event.service';
 import { formatDiscountValue, formatMinMaxAmount, getDiscountTypeLabel } from '@/utils/format';
 
 interface Props {
@@ -16,37 +14,6 @@ interface Props {
 }
 
 export const DiscountCodeDetailModal = ({ discount, onClose }: Props) => {
-  const [eventName, setEventName] = useState<string>('');
-  const [loadingEventName, setLoadingEventName] = useState(false);
-
-  useEffect(() => {
-    let ignore = false;
-    async function fetchEventName() {
-      if (discount?.eventId) {
-        setLoadingEventName(true);
-        try {
-          const event = await getEventById(discount.eventId);
-          if (!ignore) {
-            setEventName(event?.eventName || '');
-            setLoadingEventName(false); // Dừng loading ngay sau khi lấy xong tên event
-          }
-        } catch {
-          if (!ignore) {
-            setEventName('');
-            setLoadingEventName(false);
-          }
-        }
-      } else {
-        setEventName('');
-        setLoadingEventName(false);
-      }
-    }
-    fetchEventName();
-    return () => {
-      ignore = true;
-    };
-  }, [discount?.eventId]);
-
   return (
     <Dialog open={!!discount} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
@@ -60,7 +27,7 @@ export const DiscountCodeDetailModal = ({ discount, onClose }: Props) => {
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <input
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
-              value={loadingEventName ? 'Loading...' : eventName ? eventName : discount.eventId}
+              value={discount.eventName || discount.eventId}
               readOnly
             />
           </div>

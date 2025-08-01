@@ -58,7 +58,7 @@ export const PendingEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
   });
-  const [sortBy, setSortBy] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
   // Sync filters.pageSize with pageSize prop
@@ -119,13 +119,13 @@ export const PendingEventList = ({
 
   const fetchData = (p = page, ps = pageSize) => {
     setLoading(true);
-    
+
     // Separate pagination parameters from filter parameters
     const paginationParams = {
       page: pendingEventSearch ? 1 : filters.page,
       pageSize: filters.pageSize,
     };
-    
+
     const filterParams = {
       searchTerm: pendingEventSearch,
       createdByFullName: filters.createdByFullName,
@@ -144,7 +144,7 @@ export const PendingEventList = ({
     console.log('🔍 Search Parameters:', {
       pagination: paginationParams,
       filters: filterParams,
-      pendingEventSearch: pendingEventSearch
+      pendingEventSearch: pendingEventSearch,
     });
 
     // Combine pagination and filter parameters
@@ -216,9 +216,9 @@ export const PendingEventList = ({
       return <FaSort className="w-3 h-3 text-gray-400" />;
     }
     return sortDescending ? (
-      <FaSortDown className="w-3 h-3 text-blue-600" />
+      <FaSortDown className="w-3 h-3 text-yellow-600" />
     ) : (
-      <FaSortUp className="w-3 h-3 text-blue-600" />
+      <FaSortUp className="w-3 h-3 text-yellow-600" />
     );
   };
 
@@ -232,7 +232,10 @@ export const PendingEventList = ({
   const items = data?.items || [];
   const totalItems = data?.totalItems || 0;
   const totalPages = data?.totalPages || 1;
-
+  // Ensure filters.page is synced on mount
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: page || 1 }));
+  }, []); // Only run once on mount
   return (
     <div className="p-3">
       <SpinnerOverlay show={loading} />
@@ -378,12 +381,7 @@ export const PendingEventList = ({
             <TableHeader>
               <TableRow className="bg-yellow-200 hover:bg-yellow-200">
                 <TableHead className="text-center" style={{ width: '5%' }}>
-                  <div
-                    className="flex items-center justify-center gap-1 cursor-pointer"
-                    onClick={() => handleSort('')}
-                  >
-                    #{getSortIcon('')}
-                  </div>
+                  #
                 </TableHead>
                 <TableHead style={{ width: '20%' }}>
                   <div
@@ -517,29 +515,71 @@ export const PendingEventList = ({
                               className={page === 1 ? 'pointer-events-none opacity-50' : ''}
                             />
                           </PaginationItem>
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((i) => (
-                            <PaginationItem key={i}>
-                              <PaginationLink
-                                isActive={i === page}
-                                onClick={() => handlePageChange(i)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    i === page
-                                      ? 'bg-yellow-400 text-white border hover:bg-yellow-500 hover:text-white'
-                                      : 'text-gray-700 hover:bg-yellow-100 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
-                                style={{
-                                  minWidth: 32,
-                                  textAlign: 'center',
-                                  fontWeight: i === page ? 700 : 400,
-                                  cursor: i === page ? 'default' : 'pointer',
-                                }}
-                              >
-                                {i}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages = [];
+                            const maxVisiblePages = 7;
+
+                            if (totalPages <= maxVisiblePages) {
+                              // Hiển thị tất cả trang nếu tổng số trang <= 7
+                              for (let i = 1; i <= totalPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Logic hiển thị trang với dấu "..."
+                              if (filters.page <= 4) {
+                                // Trang hiện tại ở đầu
+                                for (let i = 1; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              } else if (filters.page >= totalPages - 3) {
+                                // Trang hiện tại ở cuối
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = totalPages - 4; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // Trang hiện tại ở giữa
+                                pages.push(1);
+                                pages.push('...');
+                                for (let i = filters.page - 1; i <= filters.page + 1; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push('...');
+                                pages.push(totalPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => (
+                              <PaginationItem key={index}>
+                                {item === '...' ? (
+                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                ) : (
+                                  <PaginationLink
+                                    isActive={item === filters.page}
+                                    onClick={() => handlePageChange(item as number)}
+                                    className={`transition-colors rounded 
+                                      ${
+                                        item === filters.page
+                                          ? 'bg-yellow-500 text-white border hover:bg-yellow-700 hover:text-white'
+                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                      }
+                                      px-2 py-1 mx-0.5`}
+                                    style={{
+                                      minWidth: 32,
+                                      textAlign: 'center',
+                                      fontWeight: item === filters.page ? 700 : 400,
+                                      cursor: item === filters.page ? 'default' : 'pointer',
+                                    }}
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                )}
+                              </PaginationItem>
+                            ));
+                          })()}
                           <PaginationItem>
                             <PaginationNext
                               onClick={() => handlePageChange(Math.min(totalPages, page + 1))}

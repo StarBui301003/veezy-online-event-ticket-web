@@ -36,6 +36,12 @@ export default function EventListTabs() {
   const [pendingPageSize, setPendingPageSize] = useState(5);
   const [approvedPage, setApprovedPage] = useState(1);
   const [approvedPageSize, setApprovedPageSize] = useState(5);
+  const [rejectedPage, setRejectedPage] = useState(1);
+  const [rejectedPageSize, setRejectedPageSize] = useState(5);
+  const [canceledPage, setCanceledPage] = useState(1);
+  const [canceledPageSize, setCanceledPageSize] = useState(5);
+  const [completedPage, setCompletedPage] = useState(1);
+  const [completedPageSize, setCompletedPageSize] = useState(5);
 
   const fetchPendingCount = () => {
     getPendingEvents()
@@ -191,13 +197,34 @@ export default function EventListTabs() {
             )}
           </TabsContent>
           <TabsContent value="rejected">
-            {loadedTabs.includes('rejected') && <RejectedEventList />}
+            {loadedTabs.includes('rejected') && (
+              <RejectedEventList
+                page={rejectedPage}
+                pageSize={rejectedPageSize}
+                setPage={setRejectedPage}
+                setPageSize={setRejectedPageSize}
+              />
+            )}
           </TabsContent>
           <TabsContent value="canceled">
-            {loadedTabs.includes('canceled') && <CanceledEventList />}
+            {loadedTabs.includes('canceled') && (
+              <CanceledEventList
+                page={canceledPage}
+                pageSize={canceledPageSize}
+                setPage={setCanceledPage}
+                setPageSize={setCanceledPageSize}
+              />
+            )}
           </TabsContent>
           <TabsContent value="completed">
-            {loadedTabs.includes('completed') && <CompletedEventList />}
+            {loadedTabs.includes('completed') && (
+              <CompletedEventList
+                page={completedPage}
+                pageSize={completedPageSize}
+                setPage={setCompletedPage}
+                setPageSize={setCompletedPageSize}
+              />
+            )}
           </TabsContent>
         </div>
       </Tabs>

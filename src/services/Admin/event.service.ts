@@ -115,10 +115,23 @@ export async function getCategoryById(categoryId: string) {
   return res.data.data;
 }
 
+// Lấy tất cả category với pagination
 export async function getAllCategory(page = 1, pageSize = 10): Promise<PaginatedCategoryResponse> {
   const res = await instance.get('/api/Category/getCategoriesByPaginate', {
     params: { page, pageSize },
   });
+  return res.data;
+}
+
+// Lấy categories với filter
+export async function getCategoriesWithFilter(params: {
+  searchTerm?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+}): Promise<PaginatedCategoryResponse> {
+  const res = await instance.get('/api/Category/getCategoriesByPaginate', { params });
   return res.data;
 }
 

@@ -3,7 +3,7 @@
 /**
  * Format value based on discount type
  * @param value - The numeric value
- * @param discountType - 0 for percentage, 1 for amount, 3 for other
+ * @param discountType - 0 for percentage, 1 for fixed amount, 2 for other
  * @returns Formatted string
  */
 export const formatDiscountValue = (value: number, discountType: number): string => {
@@ -11,10 +11,13 @@ export const formatDiscountValue = (value: number, discountType: number): string
         // Percentage
         return `${value}%`;
     } else if (discountType === 1) {
-        // Amount in VND
+        // Fixed amount in VND
         return formatCurrency(value);
+    } else if (discountType === 2) {
+        // Other type - display as is
+        return value.toString();
     } else {
-        // Other type
+        // Unknown type
         return value.toString();
     }
 };
@@ -56,7 +59,7 @@ export const getDiscountTypeLabel = (discountType: number): string => {
             return 'Percentage';
         case 1:
             return 'Amount';
-        case 3:
+        case 2:
             return 'Other';
         default:
             return 'Unknown';
