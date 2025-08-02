@@ -9,6 +9,8 @@ import {
   Radar,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -138,9 +140,27 @@ export default function NewsTabs() {
     }
     getNewAnalytics(params)
       .then((res: AdminNewsAnalyticsResponse) => {
-        setApprovalTrend(Array.isArray(res.data?.approvalMetrics?.approvalTrend) ? res.data.approvalMetrics.approvalTrend : []);
-        setNewsByEvent(Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : []);
-        setNewsByAuthor(Array.isArray(res.data?.newsByAuthor) ? res.data.newsByAuthor : []);
+        setApprovalTrend(
+          Array.isArray(res.data?.approvalMetrics?.approvalTrend)
+            ? res.data.approvalMetrics.approvalTrend
+            : []
+        );
+        // Use real data from backend, but map to frontend structure
+        const backendNewsByEvent = Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : [];
+        const mappedNewsByEvent = backendNewsByEvent.map((item) => ({
+          eventName: item.eventName || 'Unknown Event',
+          count: item.newsCount || 0,
+        }));
+        setNewsByEvent(mappedNewsByEvent);
+
+        const backendNewsByAuthor = Array.isArray(res.data?.newsByAuthor)
+          ? res.data.newsByAuthor
+          : [];
+        const mappedNewsByAuthor = backendNewsByAuthor.map((item) => ({
+          authorName: item.authorName || 'Unknown Author',
+          count: item.totalNews || 0,
+        }));
+        setNewsByAuthor(mappedNewsByAuthor);
       })
       .finally(() => setLoading(false));
   };
@@ -186,7 +206,7 @@ export default function NewsTabs() {
 
   useEffect(() => {
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   return (
@@ -230,7 +250,7 @@ export default function NewsTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
             </div>
-          ) : Array.isArray(approvalTrend) && approvalTrend.length === 1 ? (
+          ) : Array.isArray(approvalTrend) && approvalTrend.length > 0 ? (
             <div className="flex flex-row items-center justify-center h-[260px] gap-6">
               {/* Chart bên trái */}
               <RadialBarChart
@@ -242,9 +262,21 @@ export default function NewsTabs() {
                 outerRadius="90%"
                 barSize={18}
                 data={[
-                  { name: 'Approved', value: approvalTrend[0]?.approved ?? 0, fill: '#22c55e' },
-                  { name: 'Pending', value: approvalTrend[0]?.pending ?? 0, fill: '#f59e42' },
-                  { name: 'Rejected', value: approvalTrend[0]?.rejected ?? 0, fill: '#ef4444' },
+                  {
+                    name: 'Approved',
+                    value: approvalTrend.reduce((sum, item) => sum + (item.approved || 0), 0),
+                    fill: '#22c55e',
+                  },
+                  {
+                    name: 'Pending',
+                    value: approvalTrend.reduce((sum, item) => sum + (item.pending || 0), 0),
+                    fill: '#f59e42',
+                  },
+                  {
+                    name: 'Rejected',
+                    value: approvalTrend.reduce((sum, item) => sum + (item.rejected || 0), 0),
+                    fill: '#ef4444',
+                  },
                 ]}
                 startAngle={90}
                 endAngle={-270}
@@ -322,13 +354,22 @@ export default function NewsTabs() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={newsByEvent} margin={{ top: 16, right: 16, left: 48, bottom: 0 }}>
+              <LineChart data={newsByEvent} margin={{ top: 16, right: 16, left: 48, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="eventName" />
                 <YAxis tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}` : '')} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#60a5fa" name="News Count" />
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#60a5fa"
+                  strokeWidth={3}
+                  fill="#60a5fa"
+                  name="News Count"
+                  dot={{ fill: '#60a5fa', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#60a5fa', strokeWidth: 2, fill: '#ffffff' }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           )}
         </div>
@@ -338,22 +379,23 @@ export default function NewsTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
             </div>
-          ) : (
+          ) : newsByAuthor && newsByAuthor.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={newsByAuthor}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="authorName" />
-                <PolarRadiusAxis />
-                <Radar
-                  name="News"
-                  dataKey="count"
-                  stroke="#a78bfa"
-                  fill="#a78bfa"
-                  fillOpacity={0.6}
-                />
+              <BarChart data={newsByAuthor} margin={{ top: 16, right: 16, left: 48, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="authorName" />
+                <YAxis tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}` : '')} />
                 <Tooltip />
-              </RadarChart>
+                <Bar dataKey="count" fill="#a78bfa" name="News Count" />
+              </BarChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[260px] text-gray-500">
+              <div className="text-center">
+                <p>No data available</p>
+                <p className="text-sm mt-1">Debug: {JSON.stringify(newsByAuthor)}</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
