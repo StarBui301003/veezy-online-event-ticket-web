@@ -12,6 +12,7 @@ import {
   getPersonalNotifications,
   markPersonalNotificationAsRead,
   getPersonalUnreadCount,
+  markAllPersonalNotificationsAsRead,
 } from '@/services/Admin/notification.service';
 import { PersonalNotificationType, PersonalNotification } from '@/types/Admin/notification';
 import { onNotification } from '@/services/signalr.service';
@@ -292,6 +293,27 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      const account = localStorage.getItem('account');
+      const userId = account ? JSON.parse(account).userId : '';
+      const response = await markAllPersonalNotificationsAsRead(userId);
+      if (response.flag) {
+        setNotifications((prev) =>
+          prev.map((notification) => ({
+            ...notification,
+            isRead: true,
+            readAt: new Date().toISOString(),
+          }))
+        );
+        setUnreadCount(0);
+        toast.success('All notifications marked as read');
+      }
+    } catch {
+      toast.error('Failed to mark all notifications as read');
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -338,11 +360,28 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
               </Badge>
             )}
           </CardTitle>
-          {/* Removed Create Notification button */}
+          {unreadCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={handleMarkAllAsRead}
+                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 backdrop-blur-md font-medium isolation-auto border-1 border-gray-300 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group"
+                  >
+                    Mark all read
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Mark all notifications as read</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         {/* Filter trạng thái */}
         <div className="flex items-center gap-2">{/* Removed filter status */}</div>
-        {/* Removed Mark all read button */}
       </CardHeader>
       <CardContent>
         {notifications.length === 0 ? (
