@@ -157,15 +157,16 @@ export const AdminList = () => {
     }));
   };
 
-  // Handle deactivate user
-  const handleDeactivateUser = async (user: UserAccountResponse) => {
+  // Handle toggle user status (deactivate only)
+  const handleToggleUserStatus = async (user: UserAccountResponse) => {
     try {
+      // Always call deactivate API - if user is active, it will deactivate; if inactive, it will activate
       await deactivateUserAPI(user.accountId);
-      toast.success('User deactivated successfully!');
+      toast.success(`User ${user.isActive ? 'deactivated' : 'activated'} successfully!`);
       fetchUsers(); // Refresh the list
     } catch (error) {
-      toast.error('Failed to deactivate user!');
-      console.error('Error deactivating user:', error);
+      toast.error('Failed to toggle user status!');
+      console.error('Error toggling user status:', error);
     }
   };
 
@@ -485,7 +486,7 @@ export const AdminList = () => {
                         <div className="flex items-center justify-center">
                           <Switch
                             checked={user.isActive}
-                            onCheckedChange={() => handleDeactivateUser(user)}
+                            onCheckedChange={() => handleToggleUserStatus(user)}
                             disabled={loading}
                             className={
                               user.isActive

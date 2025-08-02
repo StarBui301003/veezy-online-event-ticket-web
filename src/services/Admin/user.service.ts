@@ -80,6 +80,23 @@ export const getUserByIdAPI = async (userId: string) => {
   return response.data.data;
 };
 
+// Get account details by accountId (for reports)
+export const getAccountDetailsAPI = async (accountId: string) => {
+  try {
+    const response = await instance.get(`/api/Account/${accountId}`);
+    const accountData = response.data.data;
+
+    if (accountData) {
+      return accountData;
+    }
+
+    throw new Error('Account not found');
+  } catch (error) {
+    console.error('Error fetching account details:', error);
+    throw error;
+  }
+};
+
 
 
 
@@ -137,6 +154,37 @@ export async function getCollaboratorsWithFilter(params: Omit<UserFilterParams, 
 
 export async function getInactiveUsersWithFilter(params: Omit<UserFilterParams, 'isActive'>): Promise<PaginatedUserAccountResponse> {
   const res = await instance.get('/api/User/inactive', { params });
+  return res.data;
+}
+
+// New search endpoints with enhanced filtering
+export async function searchUsers(params: UserFilterParams): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/search', { params });
+  return res.data;
+}
+
+export async function searchAdmins(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/admins/search', { params });
+  return res.data;
+}
+
+export async function searchCustomers(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/customers/search', { params });
+  return res.data;
+}
+
+export async function searchEventManagers(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/event-managers/search', { params });
+  return res.data;
+}
+
+export async function searchCollaborators(params: Omit<UserFilterParams, 'role'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/collaborators/search', { params });
+  return res.data;
+}
+
+export async function searchInactiveUsers(params: Omit<UserFilterParams, 'isActive'>): Promise<PaginatedUserAccountResponse> {
+  const res = await instance.get('/api/User/inactive/search', { params });
   return res.data;
 }
 
@@ -228,6 +276,22 @@ export const deactivateUserAPI = async (accountId: string) => {
     return response.data;
   } catch (error: any) {
     console.error('[DeactivateUser] API Error:', {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    throw error;
+  }
+};
+
+// Activate user account
+export const activateUserAPI = async (accountId: string) => {
+  try {
+    const response = await instance.post(`/api/Account/${accountId}/activate`);
+    return response.data;
+  } catch (error: any) {
+    console.error('[ActivateUser] API Error:', {
       status: error?.response?.status,
       statusText: error?.response?.statusText,
       data: error?.response?.data,

@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import { AdminNotificationList } from './AdminNotificationList';
 import { getAdminOverviewDashboard } from '@/services/Admin/dashboard.service';
 import { RadialBarChart, RadialBar, Tooltip, ResponsiveContainer } from 'recharts';
-import { Clock } from 'lucide-react';
+import { Clock, Download } from 'lucide-react';
 import {
   Select,
   SelectTrigger,
@@ -179,7 +179,7 @@ export const OverviewTabs = () => {
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
     connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    
+
     // Listen for real-time analytics updates
     onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
@@ -188,12 +188,12 @@ export const OverviewTabs = () => {
 
     // Initial data load
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   if (loading) return <SpinnerOverlay show />;
@@ -206,37 +206,50 @@ export const OverviewTabs = () => {
 
   return (
     <div className="space-y-6 p-3">
-      <div className="flex gap-4 items-center mb-4">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
-            <SelectValue placeholder="Select filter" />
-          </SelectTrigger>
-          <SelectContent>
-            {OVERVIEW_FILTERS.map((f) => (
-              <SelectItem key={f.value} value={String(f.value)}>
-                {f.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {filter === '5' && (
-          <>
-            <input
-              type="date"
-              value={startDate ? startDate.toISOString().slice(0, 10) : ''}
-              onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1 rounded"
-              placeholder="Start date"
-            />
-            <input
-              type="date"
-              value={endDate ? endDate.toISOString().slice(0, 10) : ''}
-              onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1  rounded"
-              placeholder="End date"
-            />
-          </>
-        )}
+      <div className="flex gap-4 items-center justify-between mb-4">
+        <div className="flex gap-4 items-center">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
+              <SelectValue placeholder="Select filter" />
+            </SelectTrigger>
+            <SelectContent>
+              {OVERVIEW_FILTERS.map((f) => (
+                <SelectItem key={f.value} value={String(f.value)}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {filter === '5' && (
+            <>
+              <input
+                type="date"
+                value={startDate ? startDate.toISOString().slice(0, 10) : ''}
+                onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+                className="border px-3 py-1 rounded"
+                placeholder="Start date"
+              />
+              <input
+                type="date"
+                value={endDate ? endDate.toISOString().slice(0, 10) : ''}
+                onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+                className="border px-3 py-1  rounded"
+                placeholder="End date"
+              />
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+          onClick={() => {
+            // TODO: Implement export functionality
+            toast.info('Export functionality coming soon!');
+          }}
+        >
+          <Download className="w-4 h-4" />
+          Export Data
+        </button>
       </div>
       {/* 5 card tổng quan */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full">

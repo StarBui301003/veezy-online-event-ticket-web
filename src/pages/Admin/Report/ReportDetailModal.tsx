@@ -13,7 +13,11 @@ import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service'; // sửa import
 import { getEventById, hideEvent, showEvent } from '@/services/Admin/event.service';
 import { getNewsById, hideNews, showNews } from '@/services/Admin/news.service';
-import { getUserByIdAPI, deactivateUserAPI } from '@/services/Admin/user.service';
+import {
+  getUserByIdAPI,
+  getAccountDetailsAPI,
+  deactivateUserAPI,
+} from '@/services/Admin/user.service';
 import { getCommentById, deleteComment } from '@/services/Admin/comment.service';
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
@@ -126,25 +130,51 @@ const ReportDetailModal = ({
     }
   }, [isNewsTarget, report.targetId]);
 
-  // Fetch user data if target type is EventManager
+  // Fetch account data if target type is EventManager
   useEffect(() => {
     if (isEventManagerTarget && report.targetId) {
-      console.log('Fetching user data for targetId:', report.targetId);
+      console.log('Fetching account data for targetId (accountId):', report.targetId);
       setUserLoading(true);
-      getUserByIdAPI(report.targetId)
-        .then((user) => {
-          console.log('User data fetched successfully:', user);
-          setUserData(user);
+
+      // Get account details using accountId
+      getAccountDetailsAPI(report.targetId)
+        .then((account) => {
+          console.log('Account data fetched successfully:', account);
+          console.log('Account data structure:', {
+            accountId: account?.accountId,
+            username: account?.username,
+            email: account?.email,
+            isActive: account?.isActive,
+            isOnline: account?.isOnline,
+            isEmailVerified: account?.isEmailVerified,
+            createdAt: account?.createdAt,
+          });
+
+          // Map account data to user data format for UI consistency
+          const userData = {
+            userId: account.accountId, // Use accountId as userId for consistency
+            accountId: account.accountId,
+            fullName: account.fullName || account.username,
+            username: account.username,
+            email: account.email,
+            isActive: account.isActive,
+            isOnline: account.isOnline,
+            isEmailVerified: account.isEmailVerified,
+            createdAt: account.createdAt,
+            role: account.role,
+          };
+
+          setUserData(userData);
         })
         .catch((error) => {
-          console.error('Failed to fetch user data:', error);
+          console.error('Failed to fetch account data:', error);
           console.error('Error details:', {
             status: error?.response?.status,
             statusText: error?.response?.statusText,
             data: error?.response?.data,
             message: error?.message,
           });
-          toast.error('Failed to load user details');
+          toast.error('Failed to load account details');
         })
         .finally(() => {
           setUserLoading(false);
@@ -226,20 +256,48 @@ const ReportDetailModal = ({
     }
   };
 
-  // Toggle user status handler (deactivate)
+  // Toggle user status handler (deactivate only)
   const handleToggleUserStatus = async () => {
     if (!userData) return;
 
+    // Use accountId directly since targetId is accountId
+    const accountId = userData.accountId;
+    if (!accountId) {
+      toast.error('Cannot toggle user status: missing account information');
+      return;
+    }
+
     setUserStatusLoading(true);
     try {
-      await deactivateUserAPI(userData.accountId);
-      toast.success('User deactivated successfully!');
-      // Refresh user data
-      const updatedUser = await getUserByIdAPI(report.targetId);
-      setUserData(updatedUser);
+      // Always call deactivate API - if user is active, it will deactivate; if inactive, it will activate
+      await deactivateUserAPI(accountId);
+      toast.success(`User ${userData.isActive ? 'deactivated' : 'activated'} successfully!`);
+
+      // Refresh account data
+      try {
+        const updatedAccount = await getAccountDetailsAPI(report.targetId);
+        // Map account data to user data format for UI consistency
+        const updatedUserData = {
+          userId: updatedAccount.accountId,
+          accountId: updatedAccount.accountId,
+          fullName: updatedAccount.fullName || updatedAccount.username,
+          username: updatedAccount.username,
+          email: updatedAccount.email,
+          isActive: updatedAccount.isActive,
+          isOnline: updatedAccount.isOnline,
+          isEmailVerified: updatedAccount.isEmailVerified,
+          createdAt: updatedAccount.createdAt,
+          role: updatedAccount.role,
+        };
+        setUserData(updatedUserData);
+      } catch (refreshError) {
+        console.warn('Failed to refresh account data after toggle:', refreshError);
+        // If refresh fails, update the UI optimistically
+        setUserData((prev) => (prev ? { ...prev, isActive: !prev.isActive } : null));
+      }
     } catch (error) {
-      toast.error('Failed to deactivate user!');
-      console.error('Error deactivating user:', error);
+      toast.error(`Failed to toggle user status!`);
+      console.error('Error toggling user status:', error);
     } finally {
       setUserStatusLoading(false);
     }
@@ -802,69 +860,34 @@ const ReportDetailModal = ({
                   <p className="mt-2 text-gray-600">Loading user details...</p>
                 </div>
               ) : userData ? (
-                <div className="overflow-x-auto">
-                  <Table className="min-w-full border border-gray-200 rounded-lg">
-                    <TableHeader>
-                      <TableRow className="bg-blue-50 hover:bg-blue-50">
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '20%' }}
-                        >
-                          Full Name
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '15%' }}
-                        >
-                          Username
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '20%' }}
-                        >
-                          Email
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '10%' }}
-                        >
-                          Status
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '10%' }}
-                        >
-                          Online
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '10%' }}
-                        >
-                          Email Verified
-                        </TableHead>
-                        <TableHead
-                          className="text-center font-semibold text-gray-700"
-                          style={{ width: '15%' }}
-                        >
-                          Created At
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow className="hover:bg-gray-50">
-                        <TableCell className="text-center py-3">
-                          <div className="font-medium text-gray-900">{userData.fullName}</div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className="text-gray-700">{userData.username}</div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className="text-gray-700">{userData.email}</div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
+                <div className="mt-2 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow">
+                  <table className="min-w-full text-sm rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-900 font-semibold">
+                        <th className="px-3 py-2 text-center">#</th>
+                        <th className="px-3 py-2 text-center">Name</th>
+                        <th className="px-3 py-2 text-center">Username</th>
+                        <th className="px-3 py-2 text-center">Email</th>
+                        <th className="px-3 py-2 text-center">Status</th>
+                        <th className="px-3 py-2 text-center">Online</th>
+                        <th className="px-3 py-2 text-center">Email Verified</th>
+                        <th className="px-3 py-2 text-center">Created At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-blue-50 transition-colors">
+                        <td className="px-3 py-2 text-center font-medium">1</td>
+                        <td className="px-3 py-2 text-center">
+                          {userData.fullName || userData.name || 'N/A'}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {userData.username || userData.userName || 'N/A'}
+                        </td>
+                        <td className="px-3 py-2 text-center">{userData.email || 'N/A'}</td>
+                        <td className="px-3 py-2 text-center">
                           <div className="flex items-center justify-center">
                             <Switch
-                              checked={userData.isActive}
+                              checked={userData.isActive || false}
                               onCheckedChange={handleToggleUserStatus}
                               disabled={userStatusLoading}
                               className={
@@ -874,31 +897,36 @@ const ReportDetailModal = ({
                               }
                             />
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {userData.isOnline ? 'Online' : 'Offline'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {userData.isEmailVerified ? 'Verified' : 'Not Verified'}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center py-3">
-                          <div className="text-gray-700">
-                            {userData.createdAt
-                              ? new Date(userData.createdAt).toLocaleDateString()
-                              : 'N/A'}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {userData.isOnline ? 'Online' : 'Offline'}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {userData.isEmailVerified ? 'Verified' : 'Not Verified'}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {userData.createdAt
+                            ? new Date(userData.createdAt).toLocaleString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                              })
+                            : 'N/A'}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : userLoading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <p>Loading user details...</p>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <p>User not found</p>
+                  <p>User not found or failed to load</p>
                 </div>
               )}
             </div>
