@@ -30,6 +30,7 @@ import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
 import { useTranslation } from 'react-i18next';
 import { DatePickerProfile } from '@/components/ui/day-picker-profile';
+import { Switch } from '@/components/ui/switch';
 import {
   parseBackendErrors,
   getFieldError,
@@ -37,17 +38,42 @@ import {
   type FieldErrors,
   validateDateOfBirth,
 } from '@/utils/validation';
+import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+import { updateUserConfigAPI, getUserConfigAPI } from '@/services/Admin/user.service';
+import { useTheme } from '@/contexts/ThemeContext';
+
+// Helper: get userId from localStorage
+const getUserId = () => {
+  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
+  if (!accStr) return null;
+  try {
+    const acc = JSON.parse(accStr);
+    return acc.userId || acc.accountId || null;
+  } catch {
+    return null;
+  }
+};
 
 const TABS = [
   { key: 'profile', label: 'Thông tin cá nhân' },
+  { key: 'settings', label: 'Cài đặt chung' },
   { key: 'followers', label: 'Người theo dõi event của bạn' },
   { key: 'managerFollowers', label: 'Người theo dõi bạn' },
 ];
 
 export default function ProfileEventManager() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // User config state
+  const [userConfig, setUserConfig] = useState({
+    language: 0, // 0: English, 1: Vietnamese
+    theme: 0, // 0: Light, 1: Dark
+    receiveEmail: false, // Default to false, will be updated by API
+    receiveNotify: false, // Default to false, will be updated by API
+  });
 
   const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -55,15 +81,137 @@ export default function ProfileEventManager() {
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
-  const [tab, setTab] = useState<'profile' | 'followers' | 'managerFollowers' | 'followingEvents'>(
-    'profile'
-  );
+  const [tab, setTab] = useState<
+    'profile' | 'settings' | 'followers' | 'managerFollowers' | 'followingEvents'
+  >('profile');
   const [eventFollowers, setEventFollowers] = useState<EventFollower[]>([]);
   const [loadingEventFollowers, setLoadingEventFollowers] = useState(false);
   const [managerFollowers, setManagerFollowers] = useState<User[]>([]);
   const [loadingManagerFollowers, setLoadingManagerFollowers] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
+
+  // Load user config from API
+  const loadUserConfig = async (userId: string) => {
+    try {
+      const response = await getUserConfigAPI(userId);
+      console.log('User config loaded:', response);
+
+      if (response.data) {
+        const configData = response.data;
+        console.log('Config data from API:', configData);
+
+        const newConfig = {
+          language: configData.language || 0,
+          theme: configData.theme || 0,
+          receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
+          receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+        };
+
+        setUserConfig(newConfig);
+
+        // Save to localStorage
+        localStorage.setItem('user_config', JSON.stringify(newConfig));
+
+        // Sync theme with ThemeContext
+        const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
+        if (theme !== themeMode) {
+          setTheme(themeMode);
+        }
+
+        console.log('Updated userConfig:', newConfig);
+      }
+    } catch (error) {
+      console.error('Failed to load user config:', error);
+      // Keep default values if API fails
+    }
+  };
+
+  // Save user config to localStorage
+  const saveUserConfigToLocalStorage = (config: any) => {
+    try {
+      localStorage.setItem('user_config', JSON.stringify(config));
+      console.log('User config saved to localStorage:', config);
+    } catch (error) {
+      console.error('Failed to save user config to localStorage:', error);
+    }
+  };
+
+  // Load user config when component mounts
+  useEffect(() => {
+    const accStr = localStorage.getItem('account');
+    if (accStr) {
+      try {
+        const accountData = JSON.parse(accStr);
+        const userId = accountData.userId;
+        if (userId) {
+          loadUserConfig(userId);
+        }
+      } catch (error) {
+        console.error('Failed to parse account data:', error);
+      }
+    }
+  }, []);
+
+  // Listen for language changes from header
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // Update userConfig state to reflect current i18n language
+      const currentLanguage = i18n.language;
+      const languageNumber = currentLanguage === 'vi' ? 1 : 0;
+
+      setUserConfig((prev) => ({
+        ...prev,
+        language: languageNumber,
+      }));
+    };
+
+    // Listen for i18n language changes
+    i18n.on('languageChanged', handleLanguageChange);
+
+    // Initial sync
+    handleLanguageChange();
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
+
+  // Listen for theme changes from header
+  useEffect(() => {
+    const handleThemeChange = () => {
+      // Update userConfig state to reflect current theme
+      const themeNumber = theme === 'dark' ? 1 : 0;
+
+      setUserConfig((prev) => ({
+        ...prev,
+        theme: themeNumber,
+      }));
+    };
+
+    // Initial sync
+    handleThemeChange();
+  }, [theme]);
+
+  // Load user config from localStorage on mount
+  useEffect(() => {
+    const loadUserConfig = async () => {
+      try {
+        const userId = getUserId();
+        if (!userId) return;
+
+        const res = await getUserConfig(userId);
+        if (res?.data) {
+          // Save to localStorage for other components to use
+          localStorage.setItem('user_config', JSON.stringify(res.data));
+        }
+      } catch (error) {
+        console.error('Failed to load user config:', error);
+      }
+    };
+
+    loadUserConfig();
+  }, []);
 
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -193,6 +341,114 @@ export default function ProfileEventManager() {
     }
   };
 
+  // User config handlers
+  const handleLanguageChange = async (language: string) => {
+    console.log('ProfileEventManager - handleLanguageChange called with:', language);
+    console.log('ProfileEventManager - account:', account);
+    console.log('ProfileEventManager - account.userId:', account?.userId);
+
+    if (!account?.userId) {
+      console.error('ProfileEventManager - No account or userId found');
+      toast.error('Account not loaded yet');
+      return;
+    }
+
+    try {
+      const languageNumber = parseInt(language);
+      const languageCode = languageNumber === 0 ? 'en' : 'vi';
+
+      console.log('ProfileEventManager - languageNumber:', languageNumber);
+      console.log('ProfileEventManager - languageCode:', languageCode);
+
+      // Update language in i18n
+      await i18n.changeLanguage(languageCode);
+      console.log('ProfileEventManager - i18n language updated');
+
+      // Update user config - only send the language field
+      console.log('ProfileEventManager - calling updateUserConfigAPI with:', {
+        language: languageNumber,
+      });
+      await updateUserConfigAPI(account.userId, {
+        language: languageNumber,
+      });
+      console.log('ProfileEventManager - API call successful');
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        language: languageNumber,
+      };
+      setUserConfig(newConfig);
+      console.log('ProfileEventManager - local state updated');
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+      console.log('ProfileEventManager - localStorage updated');
+
+      toast.success(t('languageChangedSuccessfully'));
+    } catch (error) {
+      console.error('ProfileEventManager - Failed to update language:', error);
+      toast.error(t('languageChangeFailed'));
+    }
+  };
+
+  const handleEmailNotificationsChange = async (checked: boolean) => {
+    console.log('Switch clicked! New value:', checked);
+    try {
+      // Update user config - only send the receiveEmail field
+      await updateUserConfigAPI(account.userId, {
+        receiveEmail: checked,
+      });
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        receiveEmail: checked,
+      };
+      setUserConfig(newConfig);
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+
+      console.log('Email notifications updated successfully:', checked);
+      toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
+    } catch (error) {
+      console.error('Failed to update email notifications:', error);
+      toast.error(t('emailNotificationsUpdateFailed'));
+    }
+  };
+
+  const handleThemeChange = async (theme: string) => {
+    try {
+      const themeNumber = parseInt(theme);
+      const themeMode = themeNumber === 1 ? 'dark' : 'light';
+
+      // Update theme in ThemeContext
+      setTheme(themeMode);
+
+      // Update user config - only send the theme field
+      await updateUserConfigAPI(account.userId, {
+        theme: themeNumber,
+      });
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        theme: themeNumber,
+      };
+      setUserConfig(newConfig);
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+
+      console.log('Theme updated successfully:', themeNumber);
+      toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+      toast.error(t('themeUpdateFailed'));
+    }
+  };
+
   const handleSave = async () => {
     setFieldErrors({});
     const newFieldErrors: FieldErrors = {};
@@ -283,6 +539,21 @@ export default function ProfileEventManager() {
 
       setAvatarFile(null);
 
+      // Update user config
+      try {
+        const userId = getUserId();
+        if (userId) {
+          const res = await getUserConfig(userId);
+          if (res?.data) {
+            const newConfig = { ...res.data };
+            await updateUserConfig(userId, newConfig);
+            localStorage.setItem('user_config', JSON.stringify(newConfig));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update user config:', error);
+      }
+
       // Dispatch event để cập nhật layout ngay lập tức
       window.dispatchEvent(new Event('user-updated'));
       setFieldErrors({});
@@ -331,7 +602,9 @@ export default function ProfileEventManager() {
                   }
                 `}
                 style={{ minWidth: 0 }}
-                onClick={() => setTab(t.key as 'profile' | 'followers' | 'managerFollowers')}
+                onClick={() =>
+                  setTab(t.key as 'profile' | 'settings' | 'followers' | 'managerFollowers')
+                }
               >
                 {t.label}
               </button>
@@ -576,6 +849,97 @@ export default function ProfileEventManager() {
                 </div>
               </div>
             )}
+            {tab === 'settings' && (
+              <div className="flex flex-col items-center justify-center w-full">
+                <div className="w-full max-w-md">
+                  <h2 className="text-2xl font-bold mb-6 text-center text-white">
+                    {t('userConfig')}
+                  </h2>
+
+                  <div className="space-y-6">
+                    {/* Language Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('language')}
+                      </label>
+                      <Select
+                        value={String(userConfig.language)}
+                        onValueChange={handleLanguageChange}
+                      >
+                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                          <SelectValue placeholder={t('selectLanguage')} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                          <SelectItem
+                            value="0"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('english')}
+                          </SelectItem>
+                          <SelectItem
+                            value="1"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('vietnamese')}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Theme Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('theme')}
+                      </label>
+                      <Select value={String(userConfig.theme)} onValueChange={handleThemeChange}>
+                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                          <SelectValue placeholder={t('selectTheme')} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                          <SelectItem
+                            value="0"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('light')}
+                          </SelectItem>
+                          <SelectItem
+                            value="1"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('dark')}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Email Notifications Toggle */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('emailNotifications')}
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          id="receive-email-switch"
+                          checked={userConfig.receiveEmail}
+                          onCheckedChange={handleEmailNotificationsChange}
+                          className={
+                            userConfig.receiveEmail
+                              ? '!bg-green-500 !border-green-500'
+                              : '!bg-red-400 !border-red-400'
+                          }
+                        />
+                        <label
+                          htmlFor="receive-email-switch"
+                          className="text-sm text-gray-300 cursor-pointer"
+                        >
+                          {t('receiveEmailNotifications')}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {tab === 'followers' && (
               <div>
                 <div className="flex items-center justify-between mb-8">
@@ -747,7 +1111,7 @@ export default function ProfileEventManager() {
                   if ((e as any)?.response?.data?.message) {
                     const m = (e as any).response.data.message;
                     if (
-                     m.includes('This face is already registered to another account') ||
+                      m.includes('This face is already registered to another account') ||
                       m.includes('Liveness check failed') ||
                       m.includes('No face detected in photo') ||
                       m.includes('Multiple faces detected') ||

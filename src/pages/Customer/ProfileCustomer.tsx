@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { useFaceAuthStatus } from '@/hooks/use-face-auth-status';
 import { NO_AVATAR } from '@/assets/img';
 import FaceCapture from '@/components/common/FaceCapture';
 import { toast } from 'react-toastify';
+import { Switch } from '@/components/ui/switch';
 import {
   parseBackendErrors,
   getFieldError,
@@ -33,31 +35,91 @@ import OrderHistory from '@/components/Customer/OrderHistory';
 import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
+import ChangePasswordModal from '@/pages/Customer/ChangePasswordModal';
+import { updateUserConfigAPI, getUserConfigAPI } from '@/services/Admin/user.service';
 import type { User } from '@/types/auth';
 import type { AdminOrder } from '@/types/Admin/order';
 import type { Attendance } from '@/types/attendance';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const TABS = [
   { key: 'info', label: 'Thông tin cá nhân' },
+  { key: 'settings', label: 'Cài đặt chung' },
   { key: 'orders', label: 'Lịch sử mua vé' },
   { key: 'attendances', label: 'Lịch sử tham dự' },
 ];
 
 const ProfileCustomer = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Partial<User> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [tab, setTab] = useState('info');
 
+  // User config state
+  const [userConfig, setUserConfig] = useState({
+    language: 0, // 0: English, 1: Vietnamese
+    theme: 0, // 0: Light, 1: Dark
+    receiveEmail: false, // Default to false, will be updated by API
+    receiveNotify: false, // Default to false, will be updated by API
+  });
+
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
+
+  // Load user config from API
+  const loadUserConfig = async (userId: string) => {
+    try {
+      const response = await getUserConfigAPI(userId);
+      console.log('User config loaded:', response);
+
+      if (response.data) {
+        const configData = response.data;
+        console.log('Config data from API:', configData);
+
+        const newConfig = {
+          language: configData.language || 0,
+          theme: configData.theme || 0,
+          receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
+          receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+        };
+
+        setUserConfig(newConfig);
+
+        // Save to localStorage
+        localStorage.setItem('user_config', JSON.stringify(newConfig));
+
+        // Sync theme with ThemeContext
+        const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
+        if (theme !== themeMode) {
+          setTheme(themeMode);
+        }
+
+        console.log('Updated userConfig:', newConfig);
+      }
+    } catch (error) {
+      console.error('Failed to load user config:', error);
+      // Keep default values if API fails
+    }
+  };
+
+  // Save user config to localStorage
+  const saveUserConfigToLocalStorage = (config: any) => {
+    try {
+      localStorage.setItem('user_config', JSON.stringify(config));
+      console.log('User config saved to localStorage:', config);
+    } catch (error) {
+      console.error('Failed to save user config to localStorage:', error);
+    }
+  };
 
   // Lịch sử mua vé
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -81,6 +143,62 @@ const ProfileCustomer = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Load user config when component mounts
+  useEffect(() => {
+    const accStr = localStorage.getItem('account');
+    if (accStr) {
+      try {
+        const accountData = JSON.parse(accStr);
+        const userId = accountData.userId;
+        if (userId) {
+          loadUserConfig(userId);
+        }
+      } catch (error) {
+        console.error('Failed to parse account data:', error);
+      }
+    }
+  }, []);
+
+  // Listen for language changes from header
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // Update userConfig state to reflect current i18n language
+      const currentLanguage = i18n.language;
+      const languageNumber = currentLanguage === 'vi' ? 1 : 0;
+
+      setUserConfig((prev) => ({
+        ...prev,
+        language: languageNumber,
+      }));
+    };
+
+    // Listen for i18n language changes
+    i18n.on('languageChanged', handleLanguageChange);
+
+    // Initial sync
+    handleLanguageChange();
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
+
+  // Listen for theme changes from header
+  useEffect(() => {
+    const handleThemeChange = () => {
+      // Update userConfig state to reflect current theme
+      const themeNumber = theme === 'dark' ? 1 : 0;
+
+      setUserConfig((prev) => ({
+        ...prev,
+        theme: themeNumber,
+      }));
+    };
+
+    // Initial sync
+    handleThemeChange();
+  }, [theme]);
+
   // Connect to SignalR hubs for real-time updates
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -102,7 +220,7 @@ const ProfileCustomer = () => {
         }
       });
       onTicket('TicketIssued', () => {
-        loadTicketsAndAttendances(accountObj.userId);
+        loadTicketsAndAttendances();
         toast.success('Vé đã được phát hành');
       });
     }
@@ -114,7 +232,7 @@ const ProfileCustomer = () => {
     try {
       const orders = await getOrderHistoryByCustomerId(userId);
       setOrders(orders || []);
-    } catch (error) {
+    } catch {
       setOrdersError('Failed to load order history');
     } finally {
       setOrdersLoading(false);
@@ -122,12 +240,12 @@ const ProfileCustomer = () => {
   };
 
   // Load tickets and attendances function
-  const loadTicketsAndAttendances = async (_userId: string) => {
+  const loadTicketsAndAttendances = async () => {
     setAttendancesLoading(true);
     try {
       const attendanceData = await getMyAttendances();
       setAttendances(attendanceData || []);
-    } catch (error) {
+    } catch {
       setAttendancesError('Failed to load attendance history');
     } finally {
       setAttendancesLoading(false);
@@ -141,7 +259,9 @@ const ProfileCustomer = () => {
       try {
         const accObj = JSON.parse(accStr);
         userId = accObj.userId;
-      } catch {}
+      } catch {
+        // Ignore error
+      }
     }
     if (!userId) {
       setLoading(false);
@@ -150,6 +270,7 @@ const ProfileCustomer = () => {
     setLoading(true);
     getUserByIdAPI(userId)
       .then((user) => {
+        console.log('ProfileCustomer - User loaded from API:', user);
         setAccount(user);
         setForm({ ...user });
         setPreviewUrl(user.avatarUrl || '');
@@ -168,7 +289,8 @@ const ProfileCustomer = () => {
           }
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('ProfileCustomer - Failed to load user:', error);
         setAccount(null);
         setForm(null);
       })
@@ -242,6 +364,114 @@ const ProfileCustomer = () => {
     setSelectedOrder(order);
   };
 
+  // User config handlers
+  const handleLanguageChange = async (language: string) => {
+    console.log('ProfileCustomer - handleLanguageChange called with:', language);
+    console.log('ProfileCustomer - account:', account);
+    console.log('ProfileCustomer - account.userId:', account?.userId);
+
+    if (!account?.userId) {
+      console.error('ProfileCustomer - No account or userId found');
+      toast.error('Account not loaded yet');
+      return;
+    }
+
+    try {
+      const languageNumber = parseInt(language);
+      const languageCode = languageNumber === 0 ? 'en' : 'vi';
+
+      console.log('ProfileCustomer - languageNumber:', languageNumber);
+      console.log('ProfileCustomer - languageCode:', languageCode);
+
+      // Update language in i18n
+      await i18n.changeLanguage(languageCode);
+      console.log('ProfileCustomer - i18n language updated');
+
+      // Update user config - only send the language field
+      console.log('ProfileCustomer - calling updateUserConfigAPI with:', {
+        language: languageNumber,
+      });
+      await updateUserConfigAPI(account.userId, {
+        language: languageNumber,
+      });
+      console.log('ProfileCustomer - API call successful');
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        language: languageNumber,
+      };
+      setUserConfig(newConfig);
+      console.log('ProfileCustomer - local state updated');
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+      console.log('ProfileCustomer - localStorage updated');
+
+      toast.success(t('languageChangedSuccessfully'));
+    } catch (error) {
+      console.error('ProfileCustomer - Failed to update language:', error);
+      toast.error(t('languageChangeFailed'));
+    }
+  };
+
+  const handleEmailNotificationsChange = async (checked: boolean) => {
+    console.log('Switch clicked! New value:', checked);
+    try {
+      // Update user config - only send the receiveEmail field
+      await updateUserConfigAPI(account.userId, {
+        receiveEmail: checked,
+      });
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        receiveEmail: checked,
+      };
+      setUserConfig(newConfig);
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+
+      console.log('Email notifications updated successfully:', checked);
+      toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
+    } catch (error) {
+      console.error('Failed to update email notifications:', error);
+      toast.error(t('emailNotificationsUpdateFailed'));
+    }
+  };
+
+  const handleThemeChange = async (theme: string) => {
+    try {
+      const themeNumber = parseInt(theme);
+      const themeMode = themeNumber === 1 ? 'dark' : 'light';
+
+      // Update theme in ThemeContext
+      setTheme(themeMode);
+
+      // Update user config - only send the theme field
+      await updateUserConfigAPI(account.userId, {
+        theme: themeNumber,
+      });
+
+      // Update local state
+      const newConfig = {
+        ...userConfig,
+        theme: themeNumber,
+      };
+      setUserConfig(newConfig);
+
+      // Save to localStorage
+      saveUserConfigToLocalStorage(newConfig);
+
+      console.log('Theme updated successfully:', themeNumber);
+      toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
+    } catch (error) {
+      console.error('Failed to update theme:', error);
+      toast.error(t('themeUpdateFailed'));
+    }
+  };
+
   const handleSave = async () => {
     setFieldErrors({});
     const newFieldErrors: FieldErrors = {};
@@ -258,7 +488,7 @@ const ProfileCustomer = () => {
     }
     setLoading(true);
     try {
-      let avatarUrl = form.avatar || form.avatarUrl;
+      let avatarUrl = form.avatarUrl;
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
@@ -320,7 +550,18 @@ const ProfileCustomer = () => {
 
       // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
       const finalAvatarUrl = updatedUser?.avatarUrl || avatarUrl;
-      setAccount({ ...form, avatar: finalAvatarUrl });
+      setAccount({
+        userId: form.userId || '',
+        accountId: form.accountId || '',
+        fullName: form.fullName || '',
+        phone: form.phone || '',
+        email: form.email || '',
+        avatarUrl: finalAvatarUrl || '',
+        gender: form.gender ?? 0,
+        dob: form.dob || '',
+        location: form.location || '',
+        createdAt: form.createdAt || '',
+      });
       setAvatarFile(null);
 
       // Dispatch event để cập nhật layout ngay lập tức
@@ -396,7 +637,7 @@ const ProfileCustomer = () => {
     <>
       <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-start justify-center">
-        <div className="w-full max-w-7xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0">
+        <div className="w-full max-w-5xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0">
           <aside className="w-32 md:w-36 bg-gradient-to-b from-indigo-800/90 to-slate-800/90 flex flex-col gap-2 border-r border-indigo-700/30 justify-start py-6 px-4">
             {TABS.map((t) => (
               <button
@@ -435,13 +676,22 @@ const ProfileCustomer = () => {
                     className="hidden"
                     onChange={handleAvatarChange}
                   />
-                  <Button
-                    type="button"
-                    className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                    onClick={() => document.getElementById('edit-avatar-input')?.click()}
-                  >
-                    {t('changeAvatar')}
-                  </Button>
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      onClick={() => document.getElementById('edit-avatar-input')?.click()}
+                    >
+                      {t('changeAvatar')}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      onClick={() => setShowChangePasswordModal(true)}
+                    >
+                      {t('changePassword')}
+                    </Button>
+                  </div>
                 </div>
                 {/* Personal Information */}
                 <div className="w-full flex flex-col items-center justify-center">
@@ -652,6 +902,98 @@ const ProfileCustomer = () => {
                 </div>
               </div>
             )}
+
+            {tab === 'settings' && (
+              <div className="flex flex-col items-center justify-center w-full">
+                <div className="w-full max-w-md">
+                  <h2 className="text-2xl font-bold mb-6 text-center text-white">
+                    {t('userConfig')}
+                  </h2>
+
+                  <div className="space-y-6">
+                    {/* Language Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('language')}
+                      </label>
+                      <Select
+                        value={String(userConfig.language)}
+                        onValueChange={handleLanguageChange}
+                      >
+                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                          <SelectValue placeholder={t('selectLanguage')} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                          <SelectItem
+                            value="0"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('english')}
+                          </SelectItem>
+                          <SelectItem
+                            value="1"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('vietnamese')}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Theme Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('theme')}
+                      </label>
+                      <Select value={String(userConfig.theme)} onValueChange={handleThemeChange}>
+                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                          <SelectValue placeholder={t('selectTheme')} />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                          <SelectItem
+                            value="0"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('light')}
+                          </SelectItem>
+                          <SelectItem
+                            value="1"
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                          >
+                            {t('dark')}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Email Notifications Toggle */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        {t('emailNotifications')}
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          id="receive-email-switch"
+                          checked={userConfig.receiveEmail}
+                          onCheckedChange={handleEmailNotificationsChange}
+                          className={
+                            userConfig.receiveEmail
+                              ? '!bg-green-500 !border-green-500'
+                              : '!bg-red-400 !border-red-400'
+                          }
+                        />
+                        <label
+                          htmlFor="receive-email-switch"
+                          className="text-sm text-gray-300 cursor-pointer"
+                        >
+                          {t('receiveEmailNotifications')}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {tab === 'orders' &&
               (selectedOrder ? (
                 <MyTickets
@@ -752,6 +1094,12 @@ const ProfileCustomer = () => {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
     </>
   );
 };

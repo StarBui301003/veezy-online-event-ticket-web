@@ -1,17 +1,11 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { changePasswordAPI } from '@/services/Admin/auth.service';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
-import { validatePassword } from '@/utils/validation';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -38,13 +32,6 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
     confirmPassword: false,
   });
 
-  const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
-    setShowPasswords((prev) => ({
-      ...prev,
-      [field]: !prev[field],
-    }));
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -70,26 +57,8 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 
     if (!formData.newPassword) {
       newErrors.newPassword = t('newPasswordRequired');
-    } else {
-      const newPasswordValidation = validatePassword(formData.newPassword);
-      if (!newPasswordValidation.isValid) {
-        let errorMessage = t('newPasswordRequired');
-        if (newPasswordValidation.errorMessage) {
-          if (newPasswordValidation.errorMessage.includes('8 characters')) {
-            errorMessage = t('passwordMinLength');
-          } else if (newPasswordValidation.errorMessage.includes('128 characters')) {
-            errorMessage = t('passwordMaxLength');
-          } else if (
-            newPasswordValidation.errorMessage.includes('uppercase') ||
-            newPasswordValidation.errorMessage.includes('lowercase') ||
-            newPasswordValidation.errorMessage.includes('number') ||
-            newPasswordValidation.errorMessage.includes('special character')
-          ) {
-            errorMessage = t('passwordComplexity');
-          }
-        }
-        newErrors.newPassword = errorMessage;
-      }
+    } else if (formData.newPassword.length < 6) {
+      newErrors.newPassword = t('passwordMinLength');
     }
 
     if (!formData.confirmPassword) {
@@ -118,6 +87,8 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
       const response = await changePasswordAPI(formData.currentPassword, formData.newPassword);
 
       if (response.flag) {
+        toast.success(t('passwordChangedLoginRequired'));
+
         // Clear form
         setFormData({
           currentPassword: '',
@@ -128,9 +99,6 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 
         // Close modal
         onClose();
-
-        // Show success message about password change and login requirement
-        toast.success(t('passwordChangedLoginRequired'));
 
         // Wait 3 seconds then logout and redirect to login
         setTimeout(() => {
@@ -146,11 +114,11 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
       } else {
         toast.error(response.message || t('changePasswordFailed'));
       }
-    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Change password error:', error);
 
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data
-        ?.message;
+      const errorMessage = error?.response?.data?.message;
       if (errorMessage) {
         if (errorMessage.includes('Current password is incorrect')) {
           setErrors((prev) => ({ ...prev, currentPassword: t('currentPasswordIncorrect') }));
@@ -179,134 +147,144 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose} modal={true}>
-      <DialogContent className="max-w-md bg-white dark:bg-gray-800 p-0 shadow-lg">
-        <div className="p-4">
-          <DialogHeader>
-            <DialogTitle className="dark:text-white">{t('changePassword')}</DialogTitle>
-          </DialogHeader>
-        </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
+      <div className="bg-gradient-to-br from-slate-800 to-purple-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative mx-4 border border-purple-500/20">
+        <button
+          className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold transition-colors"
+          onClick={handleClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        <h2 className="text-2xl font-bold mb-6 text-center text-white">{t('changePassword')}</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               {t('currentPassword')}
             </label>
             <div className="relative">
-              <input
+              <Input
                 type={showPasswords.currentPassword ? 'text' : 'password'}
                 name="currentPassword"
                 value={formData.currentPassword}
                 onChange={handleInputChange}
-                className={`border px-3 py-2 rounded w-full pr-10 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 ${
-                  errors.currentPassword ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
+                  errors.currentPassword
+                    ? '!border-red-500 !text-white'
+                    : '!border-purple-700 !text-white'
                 }`}
                 placeholder={t('enterCurrentPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                onClick={() => togglePasswordVisibility('currentPassword')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                onClick={() =>
+                  setShowPasswords((prev) => ({ ...prev, currentPassword: !prev.currentPassword }))
+                }
                 disabled={loading}
               >
                 {showPasswords.currentPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
               </button>
             </div>
             {errors.currentPassword && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{errors.currentPassword}</div>
+              <p className="text-red-400 text-xs mt-1 ml-2">{errors.currentPassword}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               {t('newPassword')}
             </label>
             <div className="relative">
-              <input
+              <Input
                 type={showPasswords.newPassword ? 'text' : 'password'}
                 name="newPassword"
                 value={formData.newPassword}
                 onChange={handleInputChange}
-                className={`border px-3 py-2 rounded w-full pr-10 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 ${
-                  errors.newPassword ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
+                  errors.newPassword
+                    ? '!border-red-500 !text-white'
+                    : '!border-purple-700 !text-white'
                 }`}
                 placeholder={t('enterNewPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                onClick={() => togglePasswordVisibility('newPassword')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                onClick={() =>
+                  setShowPasswords((prev) => ({ ...prev, newPassword: !prev.newPassword }))
+                }
                 disabled={loading}
               >
                 {showPasswords.newPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
               </button>
             </div>
             {errors.newPassword && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{errors.newPassword}</div>
+              <p className="text-red-400 text-xs mt-1 ml-2">{errors.newPassword}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
               {t('confirmPassword')}
             </label>
             <div className="relative">
-              <input
+              <Input
                 type={showPasswords.confirmPassword ? 'text' : 'password'}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className={`border px-3 py-2 rounded w-full pr-10 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 ${
-                  errors.confirmPassword ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'
+                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
+                  errors.confirmPassword
+                    ? '!border-red-500 !text-white'
+                    : '!border-purple-700 !text-white'
                 }`}
                 placeholder={t('confirmNewPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                onClick={() => togglePasswordVisibility('confirmPassword')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                onClick={() =>
+                  setShowPasswords((prev) => ({ ...prev, confirmPassword: !prev.confirmPassword }))
+                }
                 disabled={loading}
               >
                 {showPasswords.confirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
               </button>
             </div>
             {errors.confirmPassword && (
-              <div className="text-red-400 text-sm mt-1 ml-2">{errors.confirmPassword}</div>
+              <p className="text-red-400 text-xs mt-1 ml-2">{errors.confirmPassword}</p>
             )}
           </div>
-        </div>
-        <div className="p-4 flex justify-end gap-2">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-full px-4 py-2 font-semibold transition-all duration-200"
               onClick={handleClose}
               disabled={loading}
-              type="button"
             >
               {t('cancel')}
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-              onClick={handleSubmit}
+            </Button>
+            <Button
+              type="submit"
               disabled={loading}
-              type="button"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-full px-4 py-2 font-semibold transition-all duration-200"
             >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <FaSpinner className="animate-spin" />
-                  {t('changing')}
-                </div>
-              ) : (
-                t('changePassword')
-              )}
-            </button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+              {loading ? t('changing') : t('changePassword')}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

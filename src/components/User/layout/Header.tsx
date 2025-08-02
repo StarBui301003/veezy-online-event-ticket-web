@@ -27,6 +27,8 @@ import { Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+import ThemeToggle from '@/components/User/ThemeToggle';
+import { toast } from 'react-toastify';
 
 // Helper: get userId from localStorage
 const getUserId = () => {
@@ -37,22 +39,6 @@ const getUserId = () => {
     return acc.userId || acc.accountId || null;
   } catch {
     return null;
-  }
-};
-
-// Helper: update language in user config
-const handleChangeLanguage = async (lang: 'vi' | 'en') => {
-  i18n.changeLanguage(lang);
-  const userId = getUserId();
-  if (!userId) return;
-  try {
-    const res = await getUserConfig(userId);
-    if (res?.data) {
-      const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
-      await updateUserConfig(userId, newConfig);
-    }
-  } catch {
-    // ignore error
   }
 };
 
@@ -69,6 +55,44 @@ export const Header = () => {
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
   const { unreadCount } = useRealtimeNotifications();
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    try {
+      // Change i18n language immediately for UI responsiveness
+      i18n.changeLanguage(lang);
+
+      const userId = getUserId();
+      if (!userId) {
+        console.warn('No userId found, language changed locally only');
+        return;
+      }
+
+      // Get current user config
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = {
+          ...res.data,
+          language: lang === 'vi' ? 1 : 0,
+        };
+
+        // Update user config via API
+        await updateUserConfig(userId, newConfig);
+
+        // Save to localStorage
+        localStorage.setItem('user_config', JSON.stringify(newConfig));
+
+        // Show success toast using translation
+        toast.success(t('languageChangedSuccessfully'));
+      } else {
+        console.error('Failed to get user config');
+        toast.error(t('languageChangeFailed'));
+      }
+    } catch (error) {
+      console.error('Error updating language:', error);
+      toast.error(t('languageChangeFailed'));
+    }
+  };
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<
@@ -97,6 +121,28 @@ export const Header = () => {
       setSearchResults([]);
     }
   }, [searchTerm]);
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const loadLanguageFromStorage = () => {
+      try {
+        const userConfigStr = localStorage.getItem('user_config');
+        if (userConfigStr) {
+          const userConfig = JSON.parse(userConfigStr);
+          if (userConfig.language !== undefined) {
+            const languageCode = userConfig.language === 1 ? 'vi' : 'en';
+            if (i18nInstance.language !== languageCode) {
+              i18nInstance.changeLanguage(languageCode);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load language from localStorage:', error);
+      }
+    };
+
+    loadLanguageFromStorage();
+  }, [i18nInstance]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,40 +239,13 @@ export const Header = () => {
         )}
       >
         <div className="sm:wrapper flex sm:h-[100px] h-[57px] items-center justify-between px-7 pr-10">
-          <div></div>
-          {/* Logo */}
+          {/* Left side - Logo */}
           <Link to={'/'} className="block shrink-0">
             <img className="sm:h-10 sm:w-[115px] w-[92px] h-[32px]" src={LOGO} alt="Logo" />
           </Link>
-          {/* Navigation */}
-          <div className="sm:flex sm:gap-x-8 hidden items-center">
-            <Link
-              to="/"
-              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              {t('Home')}
-            </Link>
-            <Link
-              to="/events"
-              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              {t('Event')}
-            </Link>
-            <Link
-              to="/news"
-              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              {t('News')}
-            </Link>
-            <Link
-              to="/terms-of-use"
-              className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
-            >
-              {t('Terms of Use')}
-            </Link>
-          </div>
-          {/* desktop search bar */}
-          <div className="search-container flex w-full max-w-sm items-center min-w-70 border border-white/20 bg-white/10 rounded-[46px] ml-16 relative">
+
+          {/* Center - Search bar */}
+          <div className="search-container flex w-full max-w-sm items-center min-w-70 border border-white/20 bg-white/10 rounded-[46px] relative mx-auto">
             <CiSearch className="size-5 text-white ml-[17px]" strokeWidth={1.2} />
             <Input
               type="text"
@@ -266,7 +285,41 @@ export const Header = () => {
             )}
           </div>
 
-          <div className="mr-14 flex items-center gap-4 relative">
+          {/* Right side - Navigation and controls */}
+          <div className="flex items-center gap-4">
+            {/* Navigation */}
+            <div className="sm:flex sm:gap-x-8 hidden items-center">
+              <Link
+                to="/"
+                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              >
+                {t('Home')}
+              </Link>
+              <Link
+                to="/events"
+                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              >
+                {t('Event')}
+              </Link>
+              <Link
+                to="/news"
+                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              >
+                {t('News')}
+              </Link>
+              <Link
+                to="/terms-of-use"
+                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+              >
+                {t('Terms of Use')}
+              </Link>
+            </div>
+
+            {/* Theme Toggle */}
+            <div className="hidden sm:block">
+              <ThemeToggle className="scale-75 mt-3" />
+            </div>
+            {/* Language Dropdown */}
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -277,16 +330,16 @@ export const Header = () => {
                   <IoIosArrowDown className="text-white" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-32 bg-gray-900 border-gray-700">
+              <DropdownMenuContent className="w-32 !bg-gray-900 border-none rounded-md shadow-lg">
                 <DropdownMenuItem
                   onClick={() => handleChangeLanguage('vi')}
-                  className="text-white cursor-pointer"
+                  className="!bg-gray-900 text-white cursor-pointer hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white"
                 >
                   VN
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleChangeLanguage('en')}
-                  className="text-white cursor-pointer"
+                  className="!bg-gray-900 text-white cursor-pointer hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white"
                 >
                   EN
                 </DropdownMenuItem>
@@ -343,7 +396,7 @@ export const Header = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-lg bg-gray-900 border-gray-700 text-white"
+                  className="w-60 rounded-lg !bg-gray-900 border-gray-700 text-white"
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 pl-2 py-2">
@@ -368,7 +421,7 @@ export const Header = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-700" />
                   <DropdownMenuItem
-                    className="text-white focus:text-white pl-5"
+                    className="!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white pl-5"
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
@@ -378,7 +431,7 @@ export const Header = () => {
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={loadingLogout}
-                    className="text-white focus:text-white pl-5"
+                    className="!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white pl-5"
                   >
                     <LogOut className="mr-2" />
                     {loadingLogout ? (

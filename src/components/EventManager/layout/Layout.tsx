@@ -25,6 +25,8 @@ import ScrollToTop from '@/components/common/ScrollToTop';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
+import { toast } from 'react-toastify';
+import ThemeToggle from '@/components/Admin/ThemeToggle';
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -95,21 +97,6 @@ const getUserId = () => {
   }
 };
 
-// Helper: update language in user config
-const handleChangeLanguage = async (lang: 'vi' | 'en') => {
-  i18n.changeLanguage(lang);
-  const userId = getUserId();
-  if (!userId) return;
-  try {
-    const res = await getUserConfig(userId);
-    if (res?.data) {
-      const newConfig = { ...res.data, language: lang === 'vi' ? 1 : 2 };
-      await updateUserConfig(userId, newConfig);
-    }
-  } catch {
-    // ignore error
-  }
-};
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -136,6 +123,66 @@ export function EventManagerLayout() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { t, i18n: i18nInstance } = useTranslation();
+
+  // Helper: update language in user config
+  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    try {
+      // Change i18n language immediately for UI responsiveness
+      i18n.changeLanguage(lang);
+
+      const userId = getUserId();
+      if (!userId) {
+        console.warn('No userId found, language changed locally only');
+        return;
+      }
+
+      // Get current user config
+      const res = await getUserConfig(userId);
+      if (res?.data) {
+        const newConfig = {
+          ...res.data,
+          language: lang === 'vi' ? 1 : 0,
+        };
+
+        // Update user config via API
+        await updateUserConfig(userId, newConfig);
+
+        // Save to localStorage
+        localStorage.setItem('user_config', JSON.stringify(newConfig));
+
+        // Show success toast using translation
+        toast.success(t('languageChangedSuccessfully'));
+      } else {
+        console.error('Failed to get user config');
+        toast.error(t('languageChangeFailed'));
+      }
+    } catch (error) {
+      console.error('Error updating language:', error);
+      toast.error(t('languageChangeFailed'));
+    }
+  };
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    const loadLanguageFromStorage = () => {
+      try {
+        const userConfigStr = localStorage.getItem('user_config');
+        if (userConfigStr) {
+          const userConfig = JSON.parse(userConfigStr);
+          if (userConfig.language !== undefined) {
+            const languageCode = userConfig.language === 1 ? 'vi' : 'en';
+            if (i18nInstance.language !== languageCode) {
+              i18nInstance.changeLanguage(languageCode);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load language from localStorage:', error);
+      }
+    };
+
+    loadLanguageFromStorage();
+  }, [i18nInstance]);
 
   const handleLogout = () => {
     // Xóa tất cả localStorage
@@ -279,13 +326,19 @@ export function EventManagerLayout() {
                 <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
                   Veezy Manager
                 </h1>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{t('eventManagement')}</p>
+              <br />
+              {/* Theme and Language controls */}
+              <div className="flex items-center mb-2 ml-[-30px]">
+                <ThemeToggle className="scale-50" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-800 font-semibold shadow-sm hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-200 text-xs h-7 min-w-[48px]"
+                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-white font-semibold shadow-sm hover:from-gray-600 hover:to-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-200 text-xs h-7 min-w-[48px]"
                       style={{ lineHeight: '1.1', height: '28px' }}
                     >
-                      <Globe className="w-4 h-4 text-blue-500" style={{ marginBottom: '1px' }} />
+                      <Globe className="w-4 h-4 text-purple-300" style={{ marginBottom: '1px' }} />
                       <span className="font-bold text-xs" style={{ marginTop: '1px' }}>
                         {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
                       </span>
@@ -293,14 +346,14 @@ export function EventManagerLayout() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="rounded-xl shadow-xl bg-white p-1 min-w-[90px] border border-gray-100"
+                    className="rounded-xl shadow-xl bg-gray-800 border border-gray-600 p-1 min-w-[90px]"
                   >
                     <DropdownMenuItem
                       onClick={() => handleChangeLanguage('vi')}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
                         i18nInstance.language === 'vi'
-                          ? 'bg-blue-100 text-blue-900'
-                          : 'hover:bg-gray-100'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
                       }`}
                     >
                       <span className="text-base">🇻🇳</span> VN
@@ -309,8 +362,8 @@ export function EventManagerLayout() {
                       onClick={() => handleChangeLanguage('en')}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
                         i18nInstance.language === 'en'
-                          ? 'bg-blue-100 text-blue-900'
-                          : 'hover:bg-gray-100'
+                          ? 'bg-purple-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
                       }`}
                     >
                       <span className="text-base">🇬🇧</span> EN
@@ -318,9 +371,8 @@ export function EventManagerLayout() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <p className="text-xs text-gray-400 mt-1">{t('eventManagement')}</p>
-              <br />
-              <div className="flex items-center gap-2 mt-2">
+              {/* Home button */}
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate('/')}
                   className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"

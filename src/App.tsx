@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Layout } from '@/components/User/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
@@ -6,6 +7,7 @@ import { LoginPage } from '@/pages/authentication/LoginPage';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { OnlineStatusProvider } from '@/contexts/OnlineStatusContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
@@ -54,7 +56,7 @@ import AnalyticsOverview from './pages/EventManager/AnalyticsOverview';
 import FundManagement from './pages/EventManager/FundManagement';
 import ChatSupportManager from './pages/EventManager/ChatSupportManager';
 // Import icons for placeholder pages
-import { Users, Eye, ChartBar } from 'lucide-react';
+import { Users } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
 import AllNotificationsPage from './pages/EventManager/AllNotificationsPage';
@@ -720,25 +722,27 @@ function App() {
     }
   }
   return (
-    <LoadingProvider>
-      <NotificationProvider userId={userId}>
-        <OnlineStatusProvider>
-          <RouterProvider router={router} />
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-          />
-        </OnlineStatusProvider>
-      </NotificationProvider>
-    </LoadingProvider>
+    <ThemeProvider>
+      <LoadingProvider>
+        <NotificationProvider userId={userId}>
+          <OnlineStatusProvider>
+            <RouterProvider router={router} />
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop={false}
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
+            />
+          </OnlineStatusProvider>
+        </NotificationProvider>
+      </LoadingProvider>
+    </ThemeProvider>
   );
 }
 
