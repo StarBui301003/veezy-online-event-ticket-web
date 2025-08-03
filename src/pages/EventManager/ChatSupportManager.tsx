@@ -70,7 +70,7 @@ const ChatSupportManager: React.FC = () => {
       }));
       setEvents(mappedEvents);
     } catch (error) {
-      toast.error('Không thể tải danh sách sự kiện');
+      toast.error('Unable to load event list');
     } finally {
       setIsLoadingEvents(false);
     }
@@ -80,7 +80,7 @@ const ChatSupportManager: React.FC = () => {
     let isMounted = true;
     const setupEventHub = async () => {
       try {
-        const { connectHub, onHubEvent, disconnectHub } = await import('@/services/signalr.service');
+        const { connectHub, onHubEvent } = await import('@/services/signalr.service');
         // Connect to event hub (adjust URL as needed)
         await connectHub('event', 'http://localhost:5004/notificationHub');
         // Listen for real-time event updates
@@ -108,7 +108,7 @@ const ChatSupportManager: React.FC = () => {
       const rooms = await chatService.getEventChatRooms(eventId);
       setChatRooms(rooms);
     } catch (error) {
-      toast.error('Không thể tải danh sách phòng chat');
+      toast.error('Unable to load chat room list');
     } finally {
       setIsLoadingRooms(false);
     }
@@ -121,7 +121,7 @@ const ChatSupportManager: React.FC = () => {
       const msgs = await chatService.getRoomMessages(roomId);
       setMessages(msgs);
     } catch (error) {
-      toast.error('Không thể tải tin nhắn');
+      toast.error('Unable to load messages');
     } finally {
       setIsLoadingMessages(false);
     }
@@ -152,7 +152,8 @@ const ChatSupportManager: React.FC = () => {
       (async () => {
         try {
           const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } = await import('@/services/signalr.service');
-          await connectHub('chat', 'http://localhost:5007/chatHub');
+          const token = localStorage.getItem('access_token');
+          await connectHub('chat', 'http://localhost:5007/chatHub', token || undefined);
           await joinChatRoom(selectedRoom.roomId);
           joinedRoomId = selectedRoom.roomId;
           leaveGroup = async () => {
@@ -174,12 +175,12 @@ const ChatSupportManager: React.FC = () => {
             }
           });
           // Listen for user joined room (backend: UserJoinedRoom)
-          onHubEvent('chat', 'UserJoinedRoom', (connectionId, roomId) => {
+          onHubEvent('chat', 'UserJoinedRoom', (_connectionId, _roomId) => {
             // Optionally handle user join (e.g., show notification or update UI)
             // You may want to reload participants or set someone online
           });
           // Listen for user left room (backend: UserLeftRoom)
-          onHubEvent('chat', 'UserLeftRoom', (connectionId, roomId) => {
+          onHubEvent('chat', 'UserLeftRoom', (_connectionId, _roomId) => {
             // Optionally handle user leave (e.g., show notification or update UI)
           });
           // Listen for user online status (backend: UserOnline)
@@ -249,7 +250,7 @@ const ChatSupportManager: React.FC = () => {
       // Reload messages after send/edit
       loadMessages(selectedRoom.roomId);
     } catch (error) {
-      toast.error('Không thể gửi/chỉnh sửa tin nhắn');
+      toast.error('Unable to send/edit message');
     }
   }, [newMessage, selectedRoom, replyingTo, editingMessage, editingContent, loadMessages]);
 
@@ -257,10 +258,10 @@ const ChatSupportManager: React.FC = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await chatService.deleteMessage(messageId);
-      toast.success('Đã xóa tin nhắn');
+      toast.success('Message deleted');
       if (selectedRoom) loadMessages(selectedRoom.roomId);
     } catch (error) {
-      toast.error('Xóa tin nhắn thất bại');
+      toast.error('Failed to delete message');
     }
   };
 
@@ -317,84 +318,98 @@ const ChatSupportManager: React.FC = () => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Vừa xong';
-    if (hours < 24) return `${hours}h trước`;
-    if (hours < 48) return 'Hôm qua';
-    return date.toLocaleDateString('vi-VN');
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    if (hours < 48) return 'Yesterday';
+    return date.toLocaleDateString('en-US');
   };
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      {/* Sidebar: Event List */}
-      <div className="w-1/4 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Danh sách sự kiện</h2>
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
+          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+            Chat Support Manager
+          </h1>
         </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {isLoadingEvents ? (
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-gray-100 animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                  </div>
-                ))}
-              </div>
-            ) : events.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Không có sự kiện nào</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {events.map((event, idx) => (
-                  <Card
-                    key={event.id || event.roomId || idx}
-                    className={`cursor-pointer transition-all duration-200 ${selectedEvent?.id === event.id ? 'bg-blue-50 border-blue-200 shadow-md' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
-                    onClick={() => setSelectedEvent(event)}
-                  >
-                    <CardContent className="p-3" key={"event-content-" + (event.id || event.roomId || idx)}>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={event.avatar} />
-                          <AvatarFallback>
-                            <Users className="h-5 w-5" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{event.name}</p>
-                          <p className="text-sm text-gray-500 truncate">{event.description}</p>
-                        </div>
+
+        {/* Main Content */}
+        <div className="h-[calc(100vh-200px)] flex gap-4">
+          {/* Sidebar: Event List */}
+          <div className="w-1/4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex flex-col">
+            <div className="p-4 border-b border-white/20">
+              <h2 className="text-lg font-semibold text-white">Event List</h2>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2">
+                {isLoadingEvents ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-white/5 animate-pulse">
+                        <div className="h-4 bg-white/20 rounded mb-2"></div>
+                        <div className="h-3 bg-white/20 rounded w-2/3"></div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    ))}
+                  </div>
+                ) : events.length === 0 ? (
+                  <div className="text-center py-8 text-white/70">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
+                    <p>No events available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {events.map((event, idx) => (
+                      <Card
+                        key={event.id || event.roomId || idx}
+                        className={`cursor-pointer transition-all duration-200 ${
+                          selectedEvent?.id === event.id 
+                            ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
+                            : 'bg-white/5 hover:bg-white/10 border-white/10'
+                        } backdrop-blur-sm border`}
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <CardContent className="p-3" key={"event-content-" + (event.id || event.roomId || idx)}>
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={event.avatar} />
+                              <AvatarFallback className="bg-white/20 text-white">
+                                <Users className="h-5 w-5" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-white truncate">{event.name}</p>
+                              <p className="text-sm text-white/70 truncate">{event.description}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </ScrollArea>
           </div>
-        </ScrollArea>
-      </div>
 
       {/* Middle Panel: Chatroom List */}
-      <div className="w-1/4 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Phòng chat sự kiện</h2>
+      <div className="w-1/4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex flex-col">
+        <div className="p-4 border-b border-white/20">
+          <h2 className="text-lg font-semibold text-white">Event Chat Rooms</h2>
           <div className="space-y-2 mt-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
               <Input
-                placeholder="Tìm kiếm phòng chat..."
+                placeholder="Search chat rooms..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-400"
               />
             </div>
             <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">Tất cả</TabsTrigger>
-                <TabsTrigger value="unread">Chưa đọc</TabsTrigger>
-                <TabsTrigger value="active">Đang hoạt động</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-white/10">
+                <TabsTrigger value="all" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">All</TabsTrigger>
+                <TabsTrigger value="unread" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Unread</TabsTrigger>
+                <TabsTrigger value="active" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Active</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -404,16 +419,16 @@ const ChatSupportManager: React.FC = () => {
             {isLoadingRooms ? (
               <div className="space-y-2">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-gray-100 animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  <div key={i} className="p-3 rounded-lg bg-white/5 animate-pulse">
+                    <div className="h-4 bg-white/20 rounded mb-2"></div>
+                    <div className="h-3 bg-white/20 rounded w-2/3"></div>
                   </div>
                 ))}
               </div>
             ) : chatRooms.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Không có phòng chat nào</p>
+              <div className="text-center py-8 text-white/70">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
+                <p>No chat rooms available</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -423,20 +438,24 @@ const ChatSupportManager: React.FC = () => {
                   return (
                     <Card
                       key={room.roomId || idx}
-                      className={`cursor-pointer transition-all duration-200 ${isSelected ? 'bg-blue-50 border-blue-200 shadow-md' : 'bg-white hover:bg-gray-50 border-gray-200'}`}
+                      className={`cursor-pointer transition-all duration-200 ${
+                        isSelected 
+                          ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
+                          : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      } backdrop-blur-sm border`}
                       onClick={() => setSelectedRoom(room)}
                     >
                       <CardContent className="p-3" key={"room-content-" + (room.roomId || idx)}>
                         <div className="flex items-start space-x-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={room.participants[0]?.avatar} />
-                            <AvatarFallback>
+                            <AvatarFallback className="bg-white/20 text-white">
                               <Users className="h-5 w-5" />
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <p className="font-medium text-gray-900 truncate">{room.roomName}</p>
+                              <p className="font-medium text-white truncate">{room.roomName}</p>
                               {room.unreadCount > 0 && (
                                 <Badge variant="destructive" className="text-xs">
                                   {room.unreadCount > 99 ? '99+' : room.unreadCount}
@@ -444,16 +463,16 @@ const ChatSupportManager: React.FC = () => {
                               )}
                             </div>
                             <div className="flex items-center justify-between mt-1">
-                              <p className="text-sm text-gray-500 truncate">{room.lastMessage?.content || 'Chưa có tin nhắn'}</p>
-                              <span className="text-xs text-gray-400 ml-2">{room.lastMessage ? formatTimestamp(room.lastMessage.timestamp) : ''}</span>
+                              <p className="text-sm text-white/70 truncate">{room.lastMessage?.content || 'No messages yet'}</p>
+                              <span className="text-xs text-white/50 ml-2">{room.lastMessage ? formatTimestamp(room.lastMessage.timestamp) : ''}</span>
                             </div>
                             <div className="flex items-center mt-2 space-x-2">
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs border-white/20 text-white/80">
                                 <Users className="h-3 w-3 mr-1" />
                                 {participantInfo.total}
                               </Badge>
                               {participantInfo.online > 0 && (
-                                <Badge variant="outline" className="text-xs text-green-600">{participantInfo.online} online</Badge>
+                                <Badge variant="outline" className="text-xs text-green-400 border-green-400/30">{participantInfo.online} online</Badge>
                               )}
                             </div>
                           </div>
@@ -472,55 +491,55 @@ const ChatSupportManager: React.FC = () => {
       <div className="flex-1 flex flex-col">
         {selectedRoom ? (
           <>
-            <div className="bg-white border-b border-gray-200 p-4">
+            <div className="bg-white/10 backdrop-blur-sm border-b border-white/20 p-4 rounded-t-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={selectedRoom.participants[0]?.avatar} />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-white/20 text-white">
                       <Users className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{selectedRoom.roomName}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                    <h3 className="font-semibold text-white">{selectedRoom.roomName}</h3>
+                    <div className="flex items-center space-x-2 text-sm text-white/70">
                       <Users className="h-4 w-4" />
-                      <span>{selectedRoom.participants.length} thành viên</span>
+                      <span>{selectedRoom.participants.length} members</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
                     <Users className="h-4 w-4 mr-2" />
-                    Thành viên
+                    Members
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Thông tin phòng</DropdownMenuItem>
-                      <DropdownMenuItem>Lịch sử chat</DropdownMenuItem>
-                      <DropdownMenuItem>Cài đặt thông báo</DropdownMenuItem>
+                    <DropdownMenuContent className="bg-white/10 backdrop-blur-sm border-white/20">
+                      <DropdownMenuItem className="text-white hover:bg-white/10">Room Info</DropdownMenuItem>
+                      <DropdownMenuItem className="text-white hover:bg-white/10">Chat History</DropdownMenuItem>
+                      <DropdownMenuItem className="text-white hover:bg-white/10">Notification Settings</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
               </div>
             </div>
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-4 bg-white/5 backdrop-blur-sm">
               <div className="space-y-4">
                 {isLoadingMessages ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Đang tải tin nhắn...</p>
+                  <div className="text-center py-8 text-white/70">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
+                    <p>Loading messages...</p>
                   </div>
                 ) : currentMessages.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Chưa có tin nhắn nào</p>
-                    <p className="text-sm">Hãy bắt đầu cuộc trò chuyện!</p>
+                  <div className="text-center py-8 text-white/70">
+                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
+                    <p>No messages yet</p>
+                    <p className="text-sm">Start the conversation!</p>
                   </div>
                 ) : (
                   currentMessages.map((message, index) => {
@@ -538,27 +557,27 @@ const ChatSupportManager: React.FC = () => {
                         <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isMyMsg ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           {!isConsecutive && (
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback>
+                              <AvatarFallback className="bg-white/20 text-white">
                                 {safeSenderName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                           )}
                           <div className={`${isConsecutive && !isMyMsg ? 'ml-10' : ''} ${isConsecutive && isMyMsg ? 'mr-10' : ''}`}>
                             {!isConsecutive && (
-                              <p className={`text-xs text-gray-500 mb-1 ${isMyMsg ? 'text-right' : 'text-left'}`}>
+                              <p className={`text-xs text-white/70 mb-1 ${isMyMsg ? 'text-right' : 'text-left'}`}>
                                 {safeSenderName}
                               </p>
                             )}
                             {/* Reply preview */}
                             {message.replyToMessage && (
-                              <div className="text-xs mb-2 p-2 rounded bg-blue-50 border-l-2 border-blue-200">
-                                <div className="font-medium">{message.replyToMessage.senderName}</div>
-                                <div className="truncate opacity-70">{message.replyToMessage.content}</div>
+                              <div className="text-xs mb-2 p-2 rounded bg-white/10 backdrop-blur-sm border-l-2 border-white/30">
+                                <div className="font-medium text-white">{message.replyToMessage.senderName}</div>
+                                <div className="truncate opacity-70 text-white/70">{message.replyToMessage.content}</div>
                               </div>
                             )}
                             {/* Edit mode */}
                             {editingMessage?.messageId === message.messageId ? (
-                              <div className="w-full rounded-xl px-3 py-2 bg-background border">
+                              <div className="w-full rounded-xl px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20">
                                 <Input
                                   value={editingContent}
                                   onChange={(e) => setEditingContent(e.target.value)}
@@ -570,40 +589,40 @@ const ChatSupportManager: React.FC = () => {
                                       cancelEditing();
                                     }
                                   }}
-                                  className="border-none p-0 focus-visible:ring-0 rounded-full"
+                                  className="bg-transparent text-white placeholder:text-white/50 border-none p-0 focus-visible:ring-0 rounded-full"
                                   autoFocus
                                 />
                                 <div className="flex justify-end gap-2 mt-2">
-                                  <Button size="sm" variant="outline" onClick={cancelEditing} className="rounded-full">Cancel</Button>
-                                  <Button size="sm" onClick={handleSendMessage} className="rounded-full">Save</Button>
+                                  <Button size="sm" variant="outline" onClick={cancelEditing} className="rounded-full bg-white/10 text-white hover:bg-white/20 border-white/20">Cancel</Button>
+                                  <Button size="sm" onClick={handleSendMessage} className="rounded-full bg-white/20 text-white hover:bg-white/30">Save</Button>
                                 </div>
                               </div>
                             ) : (
                               <div className="relative">
-                                <div className={`rounded-xl px-4 py-2 max-w-full break-words shadow ${message.isDeleted ? 'bg-gray-100 text-gray-400 italic' : isMyMsg ? 'bg-blue-100 text-blue-900' : 'bg-gray-100 text-gray-800'}`}>
+                                <div className={`rounded-xl px-4 py-2 max-w-full break-words shadow backdrop-blur-sm ${message.isDeleted ? 'bg-white/5 text-white/40 italic' : isMyMsg ? 'bg-white/20 text-white' : 'bg-white/10 text-white'}`}>
                                   {message.content}
                                   {message.isEdited && !message.isDeleted && (
-                                    <span className="text-xs opacity-70 ml-2">(edited)</span>
+                                    <span className="text-xs opacity-70 ml-2 text-white/70">(edited)</span>
                                   )}
                                 </div>
                                 {/* Message options dropdown */}
                                 {!message.isDeleted && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 -right-8 top-1">
+                                      <Button variant="ghost" size="sm" className="absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 -right-8 top-1 text-white hover:bg-white/20">
                                         <MoreVertical className="h-3 w-3" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align={isMyMsg ? 'end' : 'start'}>
-                                      <DropdownMenuItem onClick={() => handleReplyToMessage(message)}>
+                                    <DropdownMenuContent align={isMyMsg ? 'end' : 'start'} className="bg-white/10 backdrop-blur-md border-white/20 text-white">
+                                      <DropdownMenuItem onClick={() => handleReplyToMessage(message)} className="text-white hover:bg-white/20">
                                         Reply
                                       </DropdownMenuItem>
                                       {isMyMsg && (
                                         <>
-                                          <DropdownMenuItem onClick={() => handleEditMessage(message)}>
+                                          <DropdownMenuItem onClick={() => handleEditMessage(message)} className="text-white hover:bg-white/20">
                                             Edit
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleDeleteMessage(message.messageId)} className="text-destructive">
+                                          <DropdownMenuItem onClick={() => handleDeleteMessage(message.messageId)} className="text-red-300 hover:bg-red-500/20 hover:text-red-200">
                                             Delete
                                           </DropdownMenuItem>
                                         </>
@@ -623,37 +642,37 @@ const ChatSupportManager: React.FC = () => {
               </div>
             </ScrollArea>
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            <div className="bg-white/5 backdrop-blur-sm border-t border-white/20 p-4">
               {replyingTo && (
-                <div className="mb-3 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
+                <div className="mb-3 p-3 bg-white/10 backdrop-blur-sm rounded-lg border-l-4 border-white/50">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="text-sm font-medium">Replying to {replyingTo.senderName}</div>
-                      <div className="text-sm text-muted-foreground truncate">{replyingTo.content}</div>
+                      <div className="text-sm font-medium text-white">Replying to {replyingTo.senderName}</div>
+                      <div className="text-sm text-white/70 truncate">{replyingTo.content}</div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={cancelReply} className="p-1 h-6 w-6">Cancel</Button>
+                    <Button variant="ghost" size="sm" onClick={cancelReply} className="p-1 h-6 w-6 text-white hover:bg-white/20">Cancel</Button>
                   </div>
                 </div>
               )}
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                   <Paperclip className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                   <Smile className="h-4 w-4" />
                 </Button>
                 <div className="flex-1 flex space-x-2">
                   <Input
-                    placeholder={replyingTo ? `Reply to ${replyingTo.senderName}...` : editingMessage ? 'Edit message...' : 'Nhập tin nhắn...'}
+                    placeholder={replyingTo ? `Reply to ${replyingTo.senderName}...` : editingMessage ? 'Edit message...' : 'Type a message...'}
                     value={editingMessage ? editingContent : newMessage}
                     onChange={(e) => editingMessage ? setEditingContent(e.target.value) : setNewMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                    className="flex-1"
+                    className="flex-1 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-white/50"
                   />
                   <Button 
                     onClick={handleSendMessage}
                     disabled={editingMessage ? !editingContent.trim() : !newMessage.trim()}
-                    className="px-4"
+                    className="px-4 bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10 disabled:text-white/50"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
@@ -662,14 +681,16 @@ const ChatSupportManager: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-white/5 backdrop-blur-sm">
             <div className="text-center">
-              <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Chọn phòng chat để bắt đầu</h3>
-              <p className="text-gray-500">Chọn một phòng chat từ danh sách để xem và trả lời tin nhắn</p>
+              <MessageCircle className="h-16 w-16 mx-auto mb-4 text-white/50" />
+              <h3 className="text-lg font-medium text-white mb-2">Select a chat room to start</h3>
+              <p className="text-white/70">Choose a chat room from the list to view and reply to messages</p>
             </div>
           </div>
         )}
+        </div>
+        </div>
       </div>
     </div>
   );

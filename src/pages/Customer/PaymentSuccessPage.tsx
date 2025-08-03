@@ -70,13 +70,6 @@ const PaymentSuccessPage = () => {
     ? checkout.totalAmount 
     : Math.max(0, subtotal - discountAmount);
 
-  console.log('Payment details:', { 
-    subtotal, 
-    discountAmount, 
-    finalTotal, 
-    checkoutTotal: checkout?.totalAmount 
-  });
-
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-green-50 p-8 text-center">
       <div className="relative mb-6">

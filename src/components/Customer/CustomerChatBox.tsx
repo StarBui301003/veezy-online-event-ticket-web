@@ -10,8 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UserStatusBadge } from '@/components/ui/user-status-badge';
 import { chatService } from '@/services/chat.service';
 import { useCustomerChat } from '@/hooks/use-customer-chat';
-import { onChat } from '@/services/signalr.service';
-// import { toast } from 'react-toastify';
 
 // Chuẩn hóa message theo ChatMessageDto từ backend
 interface UnifiedMessage {
@@ -52,10 +50,10 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [aiFailureCount, setAiFailureCount] = useState(0);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false); // Track mode switching state
+  const [localModeOverride, setLocalModeOverride] = useState<'ai' | 'human' | null>(null); // Local override for mode
 
 
-  // Chat mode state: 'ai' or 'human'
-  const [chatMode, setChatMode] = useState<'ai' | 'human'>('ai');
   // Track current chat room id for mode switching
   const [roomId, setRoomId] = useState<string | null>(null);
 
@@ -70,31 +68,39 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
     messages: adminMessages,
     openChat: openAdminChat,
     closeChat: closeAdminChat,
+    currentChatMode, // Get the current chat mode from the hook
   } = useCustomerChat({ autoConnect: false });
+
+  // Use the chat mode from the hook (updated by SignalR events) with local override
+  const chatMode = localModeOverride || currentChatMode;
+  
+  // Debug: Log when chatMode changes
+  useEffect(() => {
+    
+    // Reset switching state when mode changes successfully
+    if (isSwitchingMode && chatMode === 'human') {
+      setIsSwitchingMode(false);
+    }
+    
+    // Clear local override if hook mode matches what we expected
+    if (localModeOverride && currentChatMode === localModeOverride) {
+      setLocalModeOverride(null);
+    }
+    
+    // Force re-render by updating a dummy state to ensure UI reflects new mode
+    setNewMessage(prev => prev); // This will trigger a re-render without changing the actual message
+  }, [chatMode, currentChatMode, isSwitchingMode, localModeOverride]);
 
   // Track chatRoom id for mode switching
   useEffect(() => {
     if (chatRoom?.roomId) {
       setRoomId(chatRoom.roomId);
+      
+      // Note: Mode syncing is now handled by useCustomerChat hook
     }
-  }, [chatRoom]);
+  }, [chatRoom, chatMode]);
 
-  // Realtime: Listen for mode changes from SignalR
-  useEffect(() => {
-    const handleModeChanged = (payload: any) => {
-      if (payload && payload.roomId && roomId && payload.roomId === roomId && payload.mode) {
-        if (payload.mode.toLowerCase() === 'ai') {
-          setChatMode('ai');
-        } else if (payload.mode.toLowerCase() === 'human') {
-          setChatMode('human');
-        }
-      }
-    };
-    onChat('OnModeChanged', handleModeChanged);
-    return () => {
-      // No offChat implemented, so nothing to clean up
-    };
-  }, [roomId]);
+  // Realtime: Mode change events are handled by useCustomerChat hook
 
   // Generate message ID
   const generateMessageId = useCallback(() => {
@@ -139,7 +145,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
   }, [generateMessageId, scrollToBottom]);
 
 
-  // Khi mount: luôn mặc định AI mode, mở chatroom admin để admin và AI cùng nhắn chung phòng
+  // Khi mount: chỉ setup welcome message, KHÔNG tạo chat room ngay
   useEffect(() => {
     setMessages([]);
     addLocalMessage(
@@ -148,22 +154,31 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
       false,
       true
     );
-    openAdminChat();
-    setChatMode('ai');
+    // KHÔNG gọi openAdminChat() ở đây nữa - sẽ gọi khi user mở chat
     // Ensure scroll to bottom after welcome message is added and chat is rendered
     setTimeout(() => {
       scrollToBottom();
     }, 400);
-  }, [addLocalMessage, openAdminChat, scrollToBottom]);
+  }, [addLocalMessage, scrollToBottom]); // Bỏ openAdminChat khỏi dependencies
 
-  // Open chat
-  const openChat = useCallback(() => {
+  // Open chat - Tạo chat room khi user mở chat box
+  const openChat = useCallback(async () => {
     setIsOpen(true);
+    
+    // Tạo chat room với admin khi user mở chat lần đầu
+    if (!chatRoom && !roomId) {
+      try {
+        await openAdminChat();
+      } catch (error) {
+        addLocalMessage('Failed to initialize chat. Please try again.', false, true, false, 'System');
+      }
+    }
+    
     // Wait for chat window to render, then scroll
     setTimeout(() => {
       scrollToBottom();
     }, 400);
-  }, [scrollToBottom]);
+  }, [scrollToBottom, openAdminChat, chatRoom, roomId, addLocalMessage]);
 
   // Close chat
   const closeChat = useCallback(() => {
@@ -223,18 +238,26 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
     }
   }, [aiFailureCount, addLocalMessage]);
 
-  // Send AI message (hỗ trợ nguồn tham khảo)
+  // Send AI message (sử dụng endpoint /api/ChatMessage/ai-chat)
   const sendAIMessage = useCallback(async (messageContent: string) => {
+    if (!roomId) {
+      addLocalMessage('Chat room not ready. Please try again in a moment.', false, true, false, 'System');
+      return;
+    }
+    
     try {
       addLocalMessage(messageContent, true);
       const aiMessageId = addLocalMessage('', false, false, true);
       setIsStreaming(true);
       setStreamingMessageId(aiMessageId);
       abortControllerRef.current = new AbortController();
-      // Gọi API AI, có thể trả về string hoặc object
-      const aiResponse = await chatService.processSimpleAIChat(messageContent);
+      
+      // Gọi API AI với roomId thông qua endpoint /api/ChatMessage/ai-chat
+      const aiResponse = await chatService.processAIChat(roomId, messageContent);
+      
       let answer = '';
       let sources: string[] = [];
+      
       if (typeof aiResponse === 'string') {
         // Thử parse nếu là JSON string
         try {
@@ -248,6 +271,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
         answer = (aiResponse as any).Answer || (aiResponse as any).answer || '';
         sources = (aiResponse as any).Sources || (aiResponse as any).sources || [];
       }
+      
       updateStreamingMessage(aiMessageId, answer, true);
       if (sources && sources.length > 0) {
         setMessages(prev => prev.map(msg =>
@@ -256,7 +280,6 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
       }
       setAiFailureCount(0);
     } catch (error: any) {
-      console.error('[UnifiedCustomerChat] Error sending AI message:', error);
       if (error.name === 'AbortError') {
         if (streamingMessageId) {
           updateStreamingMessage(streamingMessageId, 'Đã hủy yêu cầu.', true);
@@ -270,7 +293,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
     } finally {
       abortControllerRef.current = null;
     }
-  }, [addLocalMessage, updateStreamingMessage, streamingMessageId, handleAIFailure]);
+  }, [roomId, addLocalMessage, updateStreamingMessage, streamingMessageId, handleAIFailure]);
 
   // Send message to human support (mode human)
   const sendHumanMessage = useCallback(async (messageContent: string) => {
@@ -328,7 +351,6 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
       } else if (typeof timestamp === 'number') {
         messageDate = new Date(timestamp);
       } else {
-        console.warn('Invalid timestamp format:', timestamp);
         return new Date().toLocaleTimeString('vi-VN', { 
           hour: '2-digit', 
           minute: '2-digit' 
@@ -337,7 +359,6 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
       
       // Check if the date is valid
       if (isNaN(messageDate.getTime())) {
-        console.warn('Invalid date created from timestamp:', timestamp);
         return new Date().toLocaleTimeString('vi-VN', { 
           hour: '2-digit', 
           minute: '2-digit' 
@@ -361,7 +382,6 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
         });
       }
     } catch (error) {
-      console.error('Error formatting timestamp:', error, 'Original timestamp:', timestamp);
       // Return current time as fallback
       return new Date().toLocaleTimeString('vi-VN', { 
         hour: '2-digit', 
@@ -439,16 +459,30 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                 </Avatar>
                 <div>
                   <h3 className="font-semibold text-sm flex items-center">
-                    {chatMode === 'ai' && (
+                    {chatMode === 'ai' ? (
                       <>
                         AI Assistant
                         <Sparkles className="h-3 w-3 ml-1" />
                       </>
+                    ) : chatMode === 'human' ? (
+                      <>
+                        Support Agent
+                        <User className="h-3 w-3 ml-1" />
+                      </>
+                    ) : (
+                      'Customer Support'
                     )}
-                    {/* Only AI mode, so no admin/selection label */}
                   </h3>
                   <p className="text-xs text-blue-100 flex items-center">
-                    {'Smart Assistant'}
+                    {chatMode === 'ai' ? 'Smart Assistant' : chatMode === 'human' ? 'Human Support' : 'Loading...'}
+                    {/* Mode indicator badge */}
+                    <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
+                      chatMode === 'ai' 
+                        ? 'bg-green-500/20 text-green-100 border border-green-400/30' 
+                        : 'bg-orange-500/20 text-orange-100 border border-orange-400/30'
+                    }`}>
+                      {chatMode === 'ai' ? '🤖 AI' : '👤 Human'}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -622,29 +656,79 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                       {/* Input */}
                       <div className="p-4 border-t border-gray-200">
                         {/* Button to chat with admin, only show if AI mode */}
-                        {chatMode === 'ai' && (
+                        {(() => {
+                          return chatMode === 'ai';
+                        })() && (
                           <div className="flex justify-center mb-3">
                             <Button
                               variant="outline"
                               className="border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold rounded-full px-4 py-1 text-sm shadow-sm"
+                              disabled={isSwitchingMode}
                               onClick={async () => {
+                                
                                 if (!roomId) {
+                                  console.error('[CustomerChatBox] Room ID is null - cannot switch to human support');
                                   alert('Chat room not ready. Please try again in a moment.');
                                   return;
                                 }
-                                // Immediately update UI and call backend in background
-                                setChatMode('human');
+                                
+                                setIsSwitchingMode(true);
+                                
+                                // Call backend to switch mode - UI will update via SignalR event
                                 addLocalMessage('You have requested to chat with a support agent. Please wait for a human to join the conversation.', false, false, false, 'System');
-                                chatService.switchRoomMode(roomId, 'Human').catch((err: any) => {
+                                
+                                
+                                try {
+                                  const result = await chatService.switchRoomMode(roomId, 'Human');
+                                  
+                                  // Update mode immediately after successful API call (like ChatboxAdmin)
+                                  if (result && result.mode !== undefined && result.mode !== null) {
+                                    // Handle mode from backend - might be string or number
+                                    let normalizedMode: 'ai' | 'human' = 'human';
+                                    if (typeof result.mode === 'string') {
+                                      normalizedMode = result.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+                                    } else if (typeof result.mode === 'number') {
+                                      normalizedMode = result.mode === 1 ? 'human' : 'ai';
+                                    }
+                                    console.log('[CustomerChatBox] Immediately updating mode to:', normalizedMode);
+                                    setLocalModeOverride(normalizedMode);
+                                  } else {
+                                    // Fallback: assume switch to human mode was successful
+                                    setLocalModeOverride('human');
+                                  }
+                                  
+                                  setIsSwitchingMode(false);
+                                  
+                                } catch (err: any) {
+                                  console.error('[CustomerChatBox] Failed to switch to human support:', err);
                                   alert('Failed to switch to human support: ' + (err?.message || err));
-                                  // Optionally revert UI if needed
-                                  setChatMode('ai');
-                                });
+                                  setIsSwitchingMode(false);
+                                  // Note: No need to revert UI - let SignalR handle mode updates
+                                }
                               }}
                             >
-                              <Users className="h-4 w-4 mr-2" />
-                              Chat with support agent
+                              {isSwitchingMode ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                  Switching...
+                                </>
+                              ) : (
+                                <>
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Chat with support agent
+                                </>
+                              )}
                             </Button>
+                          </div>
+                        )}
+                        
+                        {/* Show mode status for debugging */}
+                        {chatMode === 'human' && (
+                          <div className="flex justify-center mb-3">
+                            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                              <Users className="h-4 w-4 mr-2 inline" />
+                              Connected to Human Support
+                            </div>
                           </div>
                         )}
                         {isStreaming && (
@@ -675,7 +759,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder={'Ask AI Assistant...'}
+                            placeholder={chatMode === 'ai' ? 'Ask AI Assistant...' : 'Message support agent...'}
                             disabled={isStreaming}
                             className="flex-1"
                           />
@@ -695,10 +779,17 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                         
                         <div className="flex items-center justify-center mt-2">
                           <p className="text-xs text-gray-500 flex items-center">
-                            <>
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Powered by AI
-                            </>
+                            {chatMode === 'ai' ? (
+                              <>
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Powered by AI
+                              </>
+                            ) : (
+                              <>
+                                <Users className="h-3 w-3 mr-1" />
+                                Human Support Active
+                              </>
+                            )}
                           </p>
                         </div>
                       </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onChat } from '@/services/signalr.service';
+import { chatService } from '@/services/chat.service';
 
 interface OnlineUser {
   userId: string;
@@ -158,38 +159,26 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
-      // Sử dụng ChatService Admin API endpoint để lấy online users
+      // Skip API call for online users - rely on SignalR events only
+      // The admin online users API endpoint may not be implemented yet
       try {
-        const response = await fetch('/api/chat/admin/online-users', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          // Check if response is JSON
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const users: OnlineUser[] = await response.json();
-            const userMap = new Map<string, OnlineUser>();
-            users.forEach(user => {
-              userMap.set(user.userId, user);
+        // Optional: Try to get online users from chat service if available
+        const users = await chatService.getOnlineUsers();
+        if (users && Array.isArray(users)) {
+          const userMap = new Map<string, OnlineUser>();
+          users.forEach(user => {
+            userMap.set(user.userId, {
+              userId: user.userId,
+              username: user.username,
+              isOnline: user.isOnline,
+              lastActiveAt: user.lastSeen || new Date().toISOString()
             });
-            setOnlineUsers(userMap);
-          } else {
-            console.warn('Chat Admin API returned non-JSON response, using SignalR only');
-          }
-        } else if (response.status === 404) {
-          console.warn('Chat Admin API not available, using SignalR only');
-          // Continue with empty map, will be populated by SignalR events
-        } else if (response.status === 403) {
-          console.warn('Not authorized for admin online users, using SignalR only');
-          // Continue with empty map, will be populated by SignalR events
+          });
+          setOnlineUsers(userMap);
         }
       } catch (apiError) {
-        console.warn('Chat Admin API not available:', apiError);
-        // Continue with empty map, will be populated by SignalR events
+        // Ignore API errors - we'll rely on SignalR events for real-time status
+        console.debug('Online users API not available, using SignalR only');
       }
     } catch (error) {
       console.error('Failed to load online users:', error);

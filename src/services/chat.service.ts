@@ -38,6 +38,7 @@ export interface ChatRoom {
   roomName: string;
   participants: ChatUser[];
   lastMessage?: ChatMessage;
+  lastMessageAt?: string; // Thêm field để sắp xếp theo hoạt động gần nhất
   unreadCount: number;
   roomType: 'Direct' | 'Group' | 'Support';
   createdAt: string;
@@ -52,12 +53,31 @@ interface ChatRoomResponseDto {
   name: string;
   participants: ChatParticipantDto[];
   lastMessage?: ChatMessage;
+  lastMessageAt?: string; // Thêm field cho backend
   unreadCount: number;
   type: 'Direct' | 'Group' | 'Support';
   createdAt: string;
   createdByUserId: string;
   createdByUserName: string;
-  mode?: string; // Add mode from backend
+  mode?: string | number; // Support cả string và number từ backend
+}
+
+// DTO interface for admin chat rooms
+interface ChatRoomWithUserRoleDto {
+  roomId: string;
+  roomName: string;
+  participants: ChatParticipantWithRoleDto[];
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  mode: string | number;
+}
+
+interface ChatParticipantWithRoleDto {
+  userId: string;
+  userName: string;
+  avatarUrl?: string;
+  role: string;
 }
 
 interface ChatParticipantDto {
@@ -177,11 +197,16 @@ class ChatService {
   // Chuyển mode phòng chat (AI/Human)
   async switchRoomMode(roomId: string, mode: 'AI' | 'Human'): Promise<any> {
     try {
+      // ONLY use HTTP API - SignalR broadcast will be handled by backend controller
+      console.log('[ChatService] Switching room mode via HTTP API:', roomId, mode);
       const response = await axios.put(`/api/ChatRoom/${roomId}/mode`, JSON.stringify(mode), {
         headers: { 'Content-Type': 'application/json' },
       });
+      
+      console.log('[ChatService] Room mode switch successful:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('[ChatService] Error switching room mode:', error);
       // Ưu tiên trả về message rõ ràng nếu có
       const msg = error?.response?.data?.message || error?.message || 'Failed to switch mode';
       throw new Error(msg);
@@ -192,8 +217,18 @@ class ChatService {
 
   // Transform backend DTO to frontend interface
   private transformChatRoom(dto: ChatRoomResponseDto): ChatRoom {
+    // Xử lý mode từ backend - có thể là string hoặc number
+    let mode: 'ai' | 'human' = 'ai';
+    if (dto.mode !== undefined && dto.mode !== null) {
+      if (typeof dto.mode === 'string') {
+        mode = dto.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+      } else if (typeof dto.mode === 'number') {
+        mode = dto.mode === 1 ? 'human' : 'ai';
+      }
+    }
+    
     return {
-      roomId: dto.id,
+      roomId: dto.id, // Fix: Always use dto.id as roomId (backend returns id field)
       roomName: dto.name,
       participants: dto.participants.map(p => ({
         userId: p.userId,
@@ -204,22 +239,70 @@ class ChatService {
         role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
       })),
       lastMessage: dto.lastMessage,
+      lastMessageAt: dto.lastMessageAt, // Map LastMessageAt từ backend
       unreadCount: dto.unreadCount,
       roomType: dto.type,
       createdAt: dto.createdAt,
       createdByUserId: dto.createdByUserId,
       createdByUserName: dto.createdByUserName,
-      mode: dto.mode ? (dto.mode.toLowerCase() === 'human' ? 'human' : 'ai') : 'ai',
+      mode: mode,
+    };
+  }
+
+  // Transform ChatRoomWithUserRoleDto (for admin rooms) to frontend interface
+  private transformAdminChatRoom(dto: ChatRoomWithUserRoleDto): ChatRoom {
+    // Xử lý mode từ backend - có thể là string hoặc number
+    let mode: 'ai' | 'human' = 'ai';
+    if (dto.mode !== undefined && dto.mode !== null) {
+      if (typeof dto.mode === 'string') {
+        mode = dto.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+      } else if (typeof dto.mode === 'number') {
+        mode = dto.mode === 1 ? 'human' : 'ai';
+      }
+    }
+    
+    console.log('[transformAdminChatRoom] DTO:', dto);
+    
+    const transformedParticipants = dto.participants.map(p => ({
+      userId: p.userId,
+      username: p.userName,
+      fullName: p.userName, // Use userName as fullName
+      avatarUrl: p.avatarUrl,
+      isOnline: false, // Admin rooms don't have real-time online status
+      role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
+    }));
+    
+    const createdByUserName = transformedParticipants.find(p => p.role !== 'Admin')?.fullName || 
+                             transformedParticipants[0]?.fullName || 
+                             undefined;
+    
+    console.log('[transformAdminChatRoom] createdByUserName:', createdByUserName);
+    
+    return {
+      roomId: dto.roomId, // Use roomId field from ChatRoomWithUserRoleDto
+      roomName: dto.roomName, // Use roomName field from ChatRoomWithUserRoleDto
+      participants: transformedParticipants,
+      lastMessage: undefined, // Admin rooms don't return lastMessage initially
+      lastMessageAt: undefined, // Admin rooms don't return lastMessageAt initially
+      unreadCount: 0, // Admin rooms don't return unreadCount initially
+      roomType: 'Support', // Admin rooms are always Support type
+      createdAt: dto.createdAt,
+      createdByUserId: undefined, // Not provided in ChatRoomWithUserRoleDto
+      // Try to get user name from first non-admin participant or fallback to first participant
+      createdByUserName: createdByUserName,
+      mode: mode,
     };
   }
 
   // Create chat with admin (for customers)
   async createChatWithAdmin(): Promise<ChatRoom> {
     try {
+      console.log('[ChatService] Creating chat with admin - API call starting...');
       const response = await axios.post('/api/ChatRoom/admin-chat');
+      console.log('[ChatService] Chat with admin created successfully:', response.data);
       return this.transformChatRoom(response.data);
     } catch (error) {
-      console.error('Error creating chat with admin:', error);
+      console.error('[ChatService] Error creating chat with admin:', error);
       throw error;
     }
   }
@@ -233,9 +316,13 @@ class ChatService {
         return [];
       }
 
-      const response = await axios.get('/api/chat/admin/rooms');
-      const rooms: ChatRoomResponseDto[] = response.data;
-      return rooms.map(room => this.transformChatRoom(room));
+      console.log('[ChatService] Fetching admin chat rooms from /api/ChatRoom/admin/user-admin-rooms');
+      const response = await axios.get('/api/ChatRoom/admin/user-admin-rooms');
+      console.log('[ChatService] Successfully fetched admin chat rooms:', response.data?.length || 0, 'rooms');
+      
+      const rooms: ChatRoomWithUserRoleDto[] = response.data;
+      
+      return rooms.map(room => this.transformAdminChatRoom(room));
     } catch (error: any) {
       console.error('Error fetching admin chat rooms:', error);
       
@@ -266,7 +353,8 @@ class ChatService {
     try {
       console.log('Fetching messages for roomId:', roomId);
       
-      if (!roomId) {
+      if (!roomId || roomId === 'undefined') {
+        console.error('Invalid roomId provided to getRoomMessages:', roomId);
         throw new Error('Room ID is required');
       }
       
@@ -376,6 +464,12 @@ class ChatService {
   // Mark messages as read
   async markMessagesAsRead(roomId: string): Promise<void> {
     try {
+      // Validate roomId before making request
+      if (!roomId || roomId === 'undefined') {
+        console.warn('Invalid roomId provided to markMessagesAsRead:', roomId);
+        return;
+      }
+      
       await axios.post(`/api/chat/rooms/${roomId}/mark-read`);
       console.log('Messages marked as read for room:', roomId);
     } catch (error) {
@@ -509,102 +603,25 @@ class ChatService {
   }
 
   // AI Chat Integration Methods
-  async createOrGetAIChatRoom(): Promise<{ roomId: string; isNewRoom: boolean }> {
-    try {
-      const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
-      console.log('🔑 Creating AI chat room with token:', token ? 'Present' : 'Missing');
-      
-      const response = await axios.post('/api/AiChat/create-room', {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
 
-      console.log('✅ AI room created/retrieved:', response.data);
-      
-      return {
-        roomId: response.data.roomId || response.data.id,
-        isNewRoom: response.data.isNewRoom !== undefined ? response.data.isNewRoom : true
-      };
-    } catch (error: any) {
-      console.error('❌ Error creating AI chat room:', error);
-      console.error('Response:', error.response?.data);
-      throw new Error(error.response?.data?.message || 'Không thể tạo phòng chat AI.');
-    }
-  }
 
-  async sendAIMessage(roomId: string, message: string): Promise<{ content: string; messageId: string }> {
-    try {
-      const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
-      console.log('🤖 Sending AI message to room:', roomId, 'Message:', message);
-      
-      const response = await axios.post('/api/AiChat/send-message', {
-        roomId: roomId,
-        message: message
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
 
-      console.log('✅ AI message sent, response:', response.data);
-
-      return {
-        content: response.data.content || response.data.message || response.data.response || 'AI response received',
-        messageId: response.data.messageId || response.data.id || Date.now().toString()
-      };
-    } catch (error: any) {
-      console.error('❌ Error sending AI message:', error);
-      console.error('Response:', error.response?.data);
-      throw new Error(error.response?.data?.message || 'Không thể gửi tin nhắn tới AI.');
-    }
-  }
-
-  async transferAIToAdmin(aiRoomId: string): Promise<{ roomId: string; adminRoomId: string }> {
-    try {
-      const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
-      console.log('🔄 Transferring AI to admin, roomId:', aiRoomId);
-      
-      const response = await axios.post(`/api/AiChat/transfer-to-admin/${aiRoomId}`, {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-
-      console.log('✅ Transfer to admin successful:', response.data);
-
-      return {
-        roomId: response.data.roomId || aiRoomId,
-        adminRoomId: response.data.adminRoomId || response.data.roomId
-      };
-    } catch (error: any) {
-      console.error('❌ Error transferring AI to admin:', error);
-      console.error('Response:', error.response?.data);
-      throw new Error(error.response?.data?.message || 'Không thể chuyển chat sang admin.');
-    }
-  }
-
-  async getLinkedAdminRoom(aiRoomId: string): Promise<ChatRoom | null> {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(`/api/ChatRoom/ai/linked-admin-room/${aiRoomId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-
-      return response.data ? this.transformBackendRoomToFrontend(response.data) : null;
-    } catch (error) {
-      console.error('Error getting linked admin room:', error);
-      return null;
-    }
-  }
 
   // Helper methods for data transformation
   private transformBackendRoomToFrontend(backendRoom: any): ChatRoom {
+    // Xử lý mode từ backend - có thể là string hoặc number
+    let mode: 'ai' | 'human' = 'ai';
+    if (backendRoom.mode !== undefined && backendRoom.mode !== null) {
+      if (typeof backendRoom.mode === 'string') {
+        mode = backendRoom.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+      } else if (typeof backendRoom.mode === 'number') {
+        mode = backendRoom.mode === 1 ? 'human' : 'ai';
+      }
+    }
+    
     return {
-      roomId: backendRoom.id || backendRoom.roomId,
-      roomName: backendRoom.name || backendRoom.roomName,
+      roomId: backendRoom.id, // Fix: Always use id field from backend
+      roomName: backendRoom.name,
       participants: (backendRoom.participants || []).map((p: any) => ({
         userId: p.userId,
         username: p.userName || p.username,
@@ -614,11 +631,13 @@ class ChatService {
         role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
       })),
       lastMessage: backendRoom.lastMessage,
+      lastMessageAt: backendRoom.lastMessageAt, // Map LastMessageAt từ backend
       unreadCount: backendRoom.unreadCount || 0,
       roomType: backendRoom.type || backendRoom.roomType || 'Support',
       createdAt: backendRoom.createdAt,
       createdByUserId: backendRoom.createdByUserId,
-      createdByUserName: backendRoom.createdByUserName
+      createdByUserName: backendRoom.createdByUserName,
+      mode: mode
     };
   }
 
