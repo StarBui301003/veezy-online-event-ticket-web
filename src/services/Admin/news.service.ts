@@ -72,6 +72,13 @@ export async function getApprovedNews(params?: NewsFilterParams): Promise<NewsLi
   return res.data;
 }
 
+export async function getAllApprovedNews(params?: NewsFilterParams): Promise<NewsListResponse> {
+  const res = await instance.get(`/api/News/approved`, {
+    params,
+  });
+  return res.data;
+}
+
 export async function getRejectedNews(params?: NewsFilterParams): Promise<NewsListResponse> {
   const res = await instance.get(`/api/News/rejected`, {
     params,

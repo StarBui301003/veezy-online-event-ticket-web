@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getApprovedNews } from '@/services/Admin/news.service';
+import { getAllApprovedNews } from '@/services/Admin/news.service';
 import { hideNews, showNews } from '@/services/Admin/news.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News, NewsFilterParams } from '@/types/Admin/news';
@@ -131,7 +131,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     // Debug: Log search parameters
     console.log('🔍 Approved News Search Parameters:', filterParams);
 
-    getApprovedNews(filterParams)
+    getAllApprovedNews(filterParams)
       .then(async (res) => {
         if (res && res.data) {
           setNews(res.data.items);
