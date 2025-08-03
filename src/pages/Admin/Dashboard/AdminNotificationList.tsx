@@ -160,6 +160,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalItems, setTotalItems] = useState(0);
   const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(Date.now()); // Force re-render trigger
 
   const fetchNotifications = async () => {
     try {
@@ -202,9 +203,6 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   useEffect(() => {
     console.log('AdminNotificationList: Component mounted, setting up event listeners...');
 
-    // Don't create separate connection, use the global one from App.tsx
-    // connectNotificationHub('http://localhost:5003/hubs/notifications');
-
     // Load initial data
     fetchNotifications();
     fetchUnreadCount();
@@ -212,33 +210,39 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     // Listen for realtime notifications
     const reloadNotifications = () => {
       console.log('AdminNotificationList: Reloading notifications...');
+      setLastUpdate(Date.now()); // Trigger re-render
+      // Reload with current state
       fetchNotifications();
       fetchUnreadCount();
     };
 
-    // Listen for admin notifications
-    onNotification('ReceiveAdminNotification', (data) => {
+    // Listen for admin notifications (simplified handlers)
+    onNotification('ReceiveAdminNotification', (data: any) => {
       console.log('AdminNotificationList: Received ReceiveAdminNotification', data);
       reloadNotifications();
     });
-    onNotification('AdminNotificationRead', (data) => {
+    onNotification('AdminNotificationRead', (data: any) => {
       console.log('AdminNotificationList: Received AdminNotificationRead', data);
       reloadNotifications();
     });
     onNotification('AdminAllNotificationsRead', () => {
-      console.log('AdminNotificationList: Received AdminAllNotificationsRead');
+      console.log('AdminNotificationList: Received AdminAllNotificationsRead');  
       reloadNotifications();
     });
-    onNotification('AdminNotificationDeleted', (data) => {
+    onNotification('AdminNotificationDeleted', (data: any) => {
       console.log('AdminNotificationList: Received AdminNotificationDeleted', data);
       reloadNotifications();
     });
 
-    // Don't cleanup global connection on unmount
+    // Don't cleanup global connection on unmount (same pattern as PersonalNotificationList)
     // return () => {
-    //   disconnectNotificationHub();
+    //   console.log('AdminNotificationList: Cleaning up event listeners...');
+    //   offNotification('ReceiveAdminNotification', handleReceiveAdminNotification);
+    //   offNotification('AdminNotificationRead', handleAdminNotificationRead);
+    //   offNotification('AdminAllNotificationsRead', handleAdminAllNotificationsRead);
+    //   offNotification('AdminNotificationDeleted', handleAdminNotificationDeleted);
     // };
-  }, []);
+  }, []); // Empty dependency array to prevent re-binding listeners
 
   useEffect(() => {
     fetchNotifications();

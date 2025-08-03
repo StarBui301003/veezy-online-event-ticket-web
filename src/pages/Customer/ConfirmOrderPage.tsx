@@ -163,8 +163,6 @@ const ConfirmOrderPage = () => {
           orderAmount: subtotal // This should be the total before discount
         };
 
-        console.log('Order payload:', orderPayload); // Debug log
-
         // Gọi API tạo order với thông tin giảm giá
         const orderRes = await createOrder(orderPayload);
         

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatService, ChatMessage, ChatRoom } from '@/services/chat.service';
-import { connectChatHub, onChat, disconnectChatHub, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
-import { config } from '@/utils/config';
+import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom, connections } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
 
 interface UseChatOptions {
@@ -24,6 +23,7 @@ interface UseChatReturn {
   isSendingMessage: boolean;
   isTyping: boolean;
   isAiTyping: boolean;
+  currentChatMode: 'ai' | 'human'; // Add current chat mode
   
   // Actions
   openChat: () => Promise<void>;
@@ -59,6 +59,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [currentChatMode, setCurrentChatMode] = useState<'ai' | 'human'>('ai'); // Track current chat mode
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(() => {
     // Try to restore sent message IDs from session storage
     try {
@@ -74,6 +75,9 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initializationPromiseRef = useRef<Promise<string> | null>(null); // Singleton promise for room initialization
+  const signalRConnectionPromiseRef = useRef<Promise<void> | null>(null); // Singleton promise for SignalR connection
+  const chatRoomRef = useRef<ChatRoom | null>(null); // Add ref to track chatRoom for SignalR events
   // Use the correct ChatHub URL (port 5007) as backend is running there
   const chatHubUrl = 'http://localhost:5007/chatHub';
   const signalRSetupRef = useRef(false);
@@ -225,82 +229,134 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     }
   }, [enableNotifications, isOpen, isMyMessage]);
 
-  // Initialize chat room with admin
+  // Initialize chat room with admin (singleton pattern to prevent duplicate calls)
   const initializeChatRoom = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log('[useCustomerChat] Initializing chat room with admin...');
-      if (onDebug) onDebug('initializeChatRoom:start');
-      
-      const room = await chatService.createChatWithAdmin();
-      console.log('[useCustomerChat] Chat room created/retrieved:', room);
-      if (onDebug) onDebug('initializeChatRoom:room', room);
-      setChatRoom(room);
-      
-      // Add participants to OnlineStatusContext for status tracking
-      if (room.participants) {
-        room.participants.forEach(participant => {
-          if (participant.userId) {
-            window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
-              detail: {
-                userId: participant.userId,
-                username: participant.username || participant.fullName,
-                isOnline: participant.isOnline || true,
-                lastActiveAt: new Date().toISOString()
-              }
-            }));
-            console.log('[useCustomerChat] ➕ Added participant to OnlineStatusContext:', participant.userId);
-          }
-        });
-      }
-      
-      // Load messages
-      const roomMessages = await chatService.getRoomMessages(room.roomId, 1, 50);
-      if (onDebug) onDebug('initializeChatRoom:messages', roomMessages);
-      setMessages(roomMessages);
-      setUnreadCount(room.unreadCount || 0);
-      setCurrentPage(1);
-      setHasMoreMessages(roomMessages.length >= 50);
-      if (onDebug) onDebug('initializeChatRoom:roomId', room.roomId);
-      
-      return room.roomId;
-    } catch (error) {
-      console.error('[useCustomerChat] Error initializing chat room:', error);
-      toast.error('Không thể kết nối tới hỗ trợ. Vui lòng thử lại sau.');
-      throw error;
-    } finally {
-      setIsLoading(false);
+    // If already initializing, return the existing promise
+    if (initializationPromiseRef.current) {
+      console.log('[useCustomerChat] Chat room initialization already in progress, waiting for existing promise...');
+      return await initializationPromiseRef.current;
     }
+
+    // Create and store the initialization promise
+    initializationPromiseRef.current = (async () => {
+      try {
+        setIsLoading(true);
+        console.log('[useCustomerChat] Starting new chat room initialization...');
+        if (onDebug) onDebug('initializeChatRoom:start');
+        
+        const room = await chatService.createChatWithAdmin();
+        console.log('[useCustomerChat] Chat room created/retrieved:', room);
+        if (onDebug) onDebug('initializeChatRoom:room', room);
+        setChatRoom(room);
+        chatRoomRef.current = room; // Keep ref in sync
+        
+        // Add participants to OnlineStatusContext for status tracking
+        if (room.participants) {
+          room.participants.forEach(participant => {
+            if (participant.userId) {
+              window.dispatchEvent(new CustomEvent('addUserToOnlineContext', {
+                detail: {
+                  userId: participant.userId,
+                  username: participant.username || participant.fullName,
+                  isOnline: participant.isOnline || true,
+                  lastActiveAt: new Date().toISOString()
+                }
+              }));
+              console.log('[useCustomerChat] ➕ Added participant to OnlineStatusContext:', participant.userId);
+            }
+          });
+        }
+        
+        // Load messages
+        const roomMessages = await chatService.getRoomMessages(room.roomId, 1, 50);
+        if (onDebug) onDebug('initializeChatRoom:messages', roomMessages);
+        setMessages(roomMessages);
+        setUnreadCount(room.unreadCount || 0);
+        setCurrentPage(1);
+        setHasMoreMessages(roomMessages.length >= 50);
+        if (onDebug) onDebug('initializeChatRoom:roomId', room.roomId);
+        
+        return room.roomId;
+      } catch (error) {
+        console.error('[useCustomerChat] Error initializing chat room:', error);
+        toast.error('Không thể kết nối tới hỗ trợ. Vui lòng thử lại sau.');
+        throw error;
+      } finally {
+        setIsLoading(false);
+        // Clear the promise after completion (success or failure)
+        initializationPromiseRef.current = null;
+      }
+    })();
+
+    return await initializationPromiseRef.current;
   }, [onDebug]);
 
   // Connect to SignalR
   const connectToSignalR = useCallback(async (roomId: string) => {
-    try {
-      setIsConnecting(true);
-      const token = localStorage.getItem('access_token');
-      const url = chatHubUrl;
-      console.log('[useCustomerChat] Connecting to SignalR at:', url);
-      if (onDebug) onDebug('connectToSignalR:start', { url, roomId });
-      await connectChatHub(url, token || undefined);
-      console.log('[useCustomerChat] Joining chat room:', roomId);
-      if (onDebug) onDebug('connectToSignalR:joinRoom', { roomId });
-      await joinChatRoom(roomId);
-      setIsConnected(true);
-      console.log('[useCustomerChat] SignalR connected and joined room');
-      if (onDebug) onDebug('connectToSignalR:connected', { roomId });
-    } catch (error) {
-      console.error('[useCustomerChat] SignalR connection error:', error);
-      if (onDebug) onDebug('connectToSignalR:error', error);
-      toast.error('Kết nối realtime thất bại. Chat vẫn hoạt động nhưng không realtime.');
-    } finally {
-      setIsConnecting(false);
+    // Check if SignalR connection is already in progress
+    if (signalRConnectionPromiseRef.current) {
+      console.log('[useCustomerChat] SignalR connection already in progress, waiting...');
+      await signalRConnectionPromiseRef.current;
+      return;
     }
-  }, [chatHubUrl, onDebug]);
+    
+    // Prevent duplicate connections
+    if (isConnecting || isConnected) {
+      console.log('[useCustomerChat] SignalR connection already in progress or established');
+      return;
+    }
+    
+    // Create singleton promise for this connection attempt
+    signalRConnectionPromiseRef.current = (async () => {
+      try {
+        setIsConnecting(true);
+        const token = localStorage.getItem('access_token');
+        const url = chatHubUrl;
+        console.log('[useCustomerChat] Connecting to SignalR at:', url);
+        if (onDebug) onDebug('connectToSignalR:start', { url, roomId });
+        
+        // Connect and wait for connection to be ready
+        await connectChatHub(url, token || undefined);
+        
+        // Set up event listeners AFTER connection is established
+        if (!signalRSetupRef.current) {
+          console.log('[useCustomerChat] Setting up SignalR event listeners after connection');
+          setupSignalREvents(roomId);
+          signalRSetupRef.current = true;
+          console.log('[useCustomerChat] SignalR event handlers set up after connection');
+        }
+        
+        console.log('[useCustomerChat] Joining chat room:', roomId);
+        if (onDebug) onDebug('connectToSignalR:joinRoom', { roomId });
+        await joinChatRoom(roomId);
+        console.log('[useCustomerChat] Successfully joined chat room:', roomId);
+        setIsConnected(true);
+        console.log('[useCustomerChat] SignalR connected and joined room');
+        if (onDebug) onDebug('connectToSignalR:connected', { roomId });
+      } catch (error) {
+        console.error('[useCustomerChat] SignalR connection error:', error);
+        if (onDebug) onDebug('connectToSignalR:error', error);
+        toast.error('Kết nối realtime thất bại. Chat vẫn hoạt động nhưng không realtime.');
+        throw error;
+      } finally {
+        setIsConnecting(false);
+        signalRConnectionPromiseRef.current = null;
+      }
+    })();
+    
+    await signalRConnectionPromiseRef.current;
+  }, [chatHubUrl, onDebug, isConnecting, isConnected, chatRoom, setCurrentChatMode]);
 
   // Setup SignalR event handlers
-  const setupSignalREvents = useCallback(() => {
-    if (signalRSetupRef.current) return;
+  const setupSignalREvents = useCallback((connectionRoomId?: string) => {
+    if (signalRSetupRef.current) {
+      console.log('[useCustomerChat] SignalR event handlers already set up, skipping...');
+      return;
+    }
     if (onDebug) onDebug('setupSignalREvents:start');
+    
+    console.log('[useCustomerChat] Setting up SignalR event handlers with roomId:', connectionRoomId);
+    console.log('[useCustomerChat] Current SignalR connection state:', connections.chat?.state);
     
     // Listen for new messages (support both 'ReceiveMessage' and 'receivemessage')
     const handleReceiveMessage = (message: ChatMessage) => {
@@ -405,10 +461,142 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       setAdminOnlineStatus(status);
     });
 
+    // Listen for user joined/left room events (support both cases)
+    const handleUserJoined = (userId: string, roomId: string) => {
+      console.log('[useCustomerChat] User joined room:', userId, roomId);
+    };
+    const handleUserLeft = (userId: string, roomId: string) => {
+      console.log('[useCustomerChat] User left room:', userId, roomId);
+    };
+    
+    // Register both uppercase and lowercase variants for compatibility
+    onChat('UserJoinedRoom', handleUserJoined);
+    onChat('userjoinedroom', handleUserJoined);
+    onChat('UserLeftRoom', handleUserLeft);
+    onChat('userleftroom', handleUserLeft);
+
+    // Listen for user online/offline status
+    const handleUserOnline = (userId: string) => {
+      console.log('[useCustomerChat] User came online via SignalR:', userId);
+      // Update online status if needed
+    };
+    
+    const handleUserOffline = (userId: string) => {
+      console.log('[useCustomerChat] User went offline via SignalR:', userId);
+      // Update offline status if needed
+    };
+    
+    // Register online/offline handlers (both cases)
+    onChat('UserOnline', handleUserOnline);
+    onChat('useronline', handleUserOnline);
+    onChat('UserOffline', handleUserOffline);
+    onChat('useroffline', handleUserOffline);
+
+    // CRITICAL: Listen for mode changes from SignalR
+    const handleModeChanged = (payload: any) => {
+      console.log('� [CUSTOMER HOOK EVENT RECEIVED] OnModeChanged payload:', payload);
+      console.log('�🔄 [Customer useCustomerChat OnModeChanged] Received payload:', payload);
+      console.log('🔄 [Customer useCustomerChat OnModeChanged] Current chatRoom from ref:', chatRoomRef.current?.roomId);
+      
+      if (payload && payload.roomId && payload.mode) {
+        // Use ref to avoid stale closure - this is the key fix!
+        const currentChatRoom = chatRoomRef.current;
+        const isCorrectRoom = (
+          payload.roomId === connectionRoomId || // Primary check: match connection roomId from parameter
+          (currentChatRoom?.roomId && payload.roomId === currentChatRoom.roomId) // Use ref instead of closure
+        );
+
+        console.log('🔄 [Customer useCustomerChat OnModeChanged] Validation:', {
+          payloadRoomId: payload?.roomId,
+          connectionRoomId: connectionRoomId,
+          chatRoomIdFromRef: currentChatRoom?.roomId,
+          roomIdMatches: payload?.roomId === connectionRoomId,
+          chatRoomMatches: payload?.roomId === currentChatRoom?.roomId,
+          isCorrectRoom
+        });
+        
+        if (isCorrectRoom) {
+          const normalizedMode = payload.mode.toLowerCase();
+          console.log('🔄 [Customer useCustomerChat OnModeChanged] ✅ VALID - Normalized mode:', normalizedMode);
+          
+          // Update chat mode for the current room
+          if (normalizedMode === 'ai') {
+            console.log('🔄 [Customer useCustomerChat OnModeChanged] 🤖 Switching to AI mode');
+            setCurrentChatMode('ai');
+          } else if (normalizedMode === 'human') {
+            console.log('🔄 [Customer useCustomerChat OnModeChanged] 👤 Switching to Human mode');
+            setCurrentChatMode('human');
+          }
+          
+          // Update chatRoom state and ref to keep them in sync
+          setChatRoom(prevRoom => {
+            if (prevRoom && prevRoom.roomId === payload.roomId) {
+              const updatedRoom = { ...prevRoom, mode: normalizedMode };
+              chatRoomRef.current = updatedRoom; // Keep ref updated
+              return updatedRoom;
+            }
+            return prevRoom;
+          });
+          
+          console.log('🔄 [Customer useCustomerChat OnModeChanged] ✅ Mode changed - UI should update now!');
+          
+          // Show toast notification to customer
+          try {
+            import('react-toastify').then(({ toast }) => {
+              toast.info(`Chat mode changed to ${payload.mode} support by ${payload.changedByName || payload.changedBy || 'Admin'}`);
+            }).catch(err => console.warn('Toast notification failed:', err));
+          } catch (error) {
+            console.warn('Failed to show mode change notification:', error);
+          }
+        } else {
+          console.warn('🔄 [Customer useCustomerChat OnModeChanged] ❌ INVALID payload or roomId mismatch:', { 
+            payload, 
+            connectionRoomId: connectionRoomId,
+            currentChatRoomId: chatRoom?.roomId
+          });
+        }
+      } else {
+        console.warn('🔄 [Customer useCustomerChat OnModeChanged] ❌ INVALID payload:', payload);
+      }
+    };
+    
+    // Register mode change handlers (both cases for compatibility)
+    console.log('[useCustomerChat] Registering OnModeChanged event handlers...');
+    
+    // Test basic connectivity first
+    onChat('test', (data: any) => {
+      console.log('🔥🔥 [TEST EVENT] Received test event:', data);
+    });
+    
+    onChat('OnModeChanged', (payload: any) => {
+      console.log('🔥🔥 [OnModeChanged EVENT] Received via OnModeChanged:', payload);
+      handleModeChanged(payload);
+    });
+    onChat('onmodechanged', (payload: any) => {
+      console.log('🔥🔥 [onmodechanged EVENT] Received via onmodechanged:', payload);
+      handleModeChanged(payload);
+    });
+    onChat('modeChanged', (payload: any) => {
+      console.log('🔥🔥 [modeChanged EVENT] Received via modeChanged:', payload);
+      handleModeChanged(payload);
+    });
+    onChat('ModeChanged', (payload: any) => {
+      console.log('🔥🔥 [ModeChanged EVENT] Received via ModeChanged:', payload);
+      handleModeChanged(payload);
+    });
+    
+    // Add connection status events for debugging
+    onChat('Connected', () => {
+      console.log('🔥🔥 [SignalR] Connected event received');
+    });
+    
+    onChat('Disconnected', () => {
+      console.log('🔥🔥 [SignalR] Disconnected event received');
+    });
     signalRSetupRef.current = true;
     console.log('[useCustomerChat] SignalR event handlers set up');
     if (onDebug) onDebug('setupSignalREvents:done');
-  }, [isMinimized, isOpen, scrollToBottom, getCurrentUser, showNotification, onDebug]);
+  }, [isMinimized, isOpen, scrollToBottom, getCurrentUser, showNotification, onDebug, chatRoom, setCurrentChatMode]);
 
   // Open chat
   const openChat = useCallback(async () => {
@@ -419,7 +607,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       if (!chatRoom) {
         const roomId = await initializeChatRoom();
         if (!signalRSetupRef.current) {
-          setupSignalREvents();
+          setupSignalREvents(roomId);
         }
         await connectToSignalR(roomId);
       }
@@ -576,6 +764,53 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     }
   }, [autoConnect, chatRoom, openChat]);
 
+  // Sync current chat mode from chatRoom when it changes
+  useEffect(() => {
+    if (chatRoom?.mode) {
+      console.log('[useCustomerChat] Syncing mode from chatRoom:', chatRoom.mode);
+      const normalizedMode = chatRoom.mode.toLowerCase() as 'ai' | 'human';
+      setCurrentChatMode(normalizedMode);
+    }
+  }, [chatRoom?.mode]);
+
+  // Additional OnModeChanged listener with proper dependency (like Admin chatbox)
+  useEffect(() => {
+    if (!isConnected || !chatRoom?.roomId) return;
+
+    const handleModeChangedDirect = (payload: any) => {
+      console.log('🔥 [Customer useCustomerChat Direct OnModeChanged] Event received:', payload);
+      
+      if (payload && payload.roomId && payload.mode && payload.roomId === chatRoom.roomId) {
+        const normalizedMode = payload.mode.toLowerCase() as 'ai' | 'human';
+        console.log('🔄 [Customer Direct OnModeChanged] ✅ Valid room match, updating mode to:', normalizedMode);
+        
+        // Update current chat mode immediately
+        setCurrentChatMode(normalizedMode);
+        
+        // Update chatRoom state and ref
+        setChatRoom(prevRoom => {
+          if (prevRoom && prevRoom.roomId === payload.roomId) {
+            const updatedRoom = { ...prevRoom, mode: normalizedMode };
+            chatRoomRef.current = updatedRoom;
+            return updatedRoom;
+          }
+          return prevRoom;
+        });
+        
+        console.log('🔄 [Customer Direct OnModeChanged] ✅ UI should update now!');
+      }
+    };
+
+    console.log('🔧 [Customer useCustomerChat] Setting up direct OnModeChanged listener for room:', chatRoom.roomId);
+    onChat('OnModeChanged', handleModeChangedDirect);
+
+    return () => {
+      console.log('🔧 [Customer useCustomerChat] Cleaning up direct OnModeChanged listener');
+      // Clean up the event listener when component unmounts or dependencies change
+      offChat('OnModeChanged', handleModeChangedDirect);
+    };
+  }, [chatRoom?.roomId, isConnected]);
+
   // Request notification permission
   useEffect(() => {
     if (enableNotifications && 'Notification' in window && Notification.permission === 'default') {
@@ -607,6 +842,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     isSendingMessage,
     isTyping,
     isAiTyping,
+    currentChatMode, // Expose current chat mode
     
     // Actions
     openChat,

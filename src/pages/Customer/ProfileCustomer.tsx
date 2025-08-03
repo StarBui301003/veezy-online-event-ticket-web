@@ -79,11 +79,9 @@ const ProfileCustomer = () => {
   const loadUserConfig = async (userId: string) => {
     try {
       const response = await getUserConfigAPI(userId);
-      console.log('User config loaded:', response);
 
       if (response.data) {
         const configData = response.data;
-        console.log('Config data from API:', configData);
 
         const newConfig = {
           language: configData.language || 0,
@@ -103,7 +101,6 @@ const ProfileCustomer = () => {
           setTheme(themeMode);
         }
 
-        console.log('Updated userConfig:', newConfig);
       }
     } catch (error) {
       console.error('Failed to load user config:', error);
@@ -115,7 +112,6 @@ const ProfileCustomer = () => {
   const saveUserConfigToLocalStorage = (config: any) => {
     try {
       localStorage.setItem('user_config', JSON.stringify(config));
-      console.log('User config saved to localStorage:', config);
     } catch (error) {
       console.error('Failed to save user config to localStorage:', error);
     }
@@ -270,7 +266,6 @@ const ProfileCustomer = () => {
     setLoading(true);
     getUserByIdAPI(userId)
       .then((user) => {
-        console.log('ProfileCustomer - User loaded from API:', user);
         setAccount(user);
         setForm({ ...user });
         setPreviewUrl(user.avatarUrl || '');
@@ -366,9 +361,6 @@ const ProfileCustomer = () => {
 
   // User config handlers
   const handleLanguageChange = async (language: string) => {
-    console.log('ProfileCustomer - handleLanguageChange called with:', language);
-    console.log('ProfileCustomer - account:', account);
-    console.log('ProfileCustomer - account.userId:', account?.userId);
 
     if (!account?.userId) {
       console.error('ProfileCustomer - No account or userId found');
@@ -380,21 +372,13 @@ const ProfileCustomer = () => {
       const languageNumber = parseInt(language);
       const languageCode = languageNumber === 0 ? 'en' : 'vi';
 
-      console.log('ProfileCustomer - languageNumber:', languageNumber);
-      console.log('ProfileCustomer - languageCode:', languageCode);
-
       // Update language in i18n
       await i18n.changeLanguage(languageCode);
-      console.log('ProfileCustomer - i18n language updated');
 
       // Update user config - only send the language field
-      console.log('ProfileCustomer - calling updateUserConfigAPI with:', {
-        language: languageNumber,
-      });
       await updateUserConfigAPI(account.userId, {
         language: languageNumber,
       });
-      console.log('ProfileCustomer - API call successful');
 
       // Update local state
       const newConfig = {
@@ -402,11 +386,9 @@ const ProfileCustomer = () => {
         language: languageNumber,
       };
       setUserConfig(newConfig);
-      console.log('ProfileCustomer - local state updated');
 
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
-      console.log('ProfileCustomer - localStorage updated');
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -416,7 +398,6 @@ const ProfileCustomer = () => {
   };
 
   const handleEmailNotificationsChange = async (checked: boolean) => {
-    console.log('Switch clicked! New value:', checked);
     try {
       // Update user config - only send the receiveEmail field
       await updateUserConfigAPI(account.userId, {
@@ -433,7 +414,6 @@ const ProfileCustomer = () => {
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
 
-      console.log('Email notifications updated successfully:', checked);
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
     } catch (error) {
       console.error('Failed to update email notifications:', error);
@@ -464,7 +444,6 @@ const ProfileCustomer = () => {
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
 
-      console.log('Theme updated successfully:', themeNumber);
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
     } catch (error) {
       console.error('Failed to update theme:', error);
@@ -492,8 +471,6 @@ const ProfileCustomer = () => {
       if (avatarFile instanceof File) {
         const res = await uploadUserAvatarAPI(form.userId, avatarFile);
         avatarUrl = res.data?.avatarUrl || avatarUrl;
-        console.log('ProfileCustomer - Upload response:', res.data);
-        console.log('ProfileCustomer - New avatarUrl:', avatarUrl);
 
         // Cập nhật avatar URL trong form ngay lập tức
         setForm((prev) => ({ ...prev, avatar: avatarUrl }));
@@ -524,7 +501,6 @@ const ProfileCustomer = () => {
       });
       // Lấy lại thông tin user mới nhất từ backend và ghi đè trường avatar
       const updatedUser = await getUserByIdAPI(form.userId);
-      console.log('ProfileCustomer - Updated user from API:', updatedUser);
       if (updatedUser) {
         const accStr = localStorage.getItem('account');
         let acc: any = {};
@@ -533,7 +509,6 @@ const ProfileCustomer = () => {
         }
         // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
         const finalAvatarUrl = updatedUser.avatarUrl || avatarUrl;
-        console.log('ProfileCustomer - Final avatarUrl:', finalAvatarUrl);
 
         const newAccount = {
           ...acc,

@@ -27,6 +27,7 @@ import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import { toast } from 'react-toastify';
 import ThemeToggle from '@/components/Admin/ThemeToggle';
+import { CustomerChatBox } from '@/components/Customer';
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -457,7 +458,7 @@ export function EventManagerLayout() {
                       icon={FaCheckCircle}
                       isActive={isActiveRoute('/event-manager/check-ins')}
                     >
-                      Danh sách tham gia
+                      {t('listcheckins')}
                     </NavItem>
                   </div>
                 )}
@@ -593,6 +594,8 @@ export function EventManagerLayout() {
           </main>
         </div>
       </SidebarProvider>
+      {/* Add CustomerChatBox for Event Managers to communicate with admin */}
+      <CustomerChatBox />
     </>
   );
 }

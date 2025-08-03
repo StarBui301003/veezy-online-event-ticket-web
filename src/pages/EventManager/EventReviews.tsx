@@ -305,8 +305,7 @@ const EventReviews = () => {
               ].map((metric, index) => (
                 <div
                   key={index}
-                  className={`bg-gradient-to-br ${metric.bgGradient} backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/10 transform transition-all duration-500 hover:scale-105 ${animateCards ? 'animate-pulse' : ''}`}
-                  style={{ animationDelay: `${index * 200}ms` }}
+                  className={`bg-gradient-to-br ${metric.bgGradient} backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/10 transform transition-all duration-300 hover:scale-105`}
                 >
                   <div className="flex items-center">
                     <div className={`p-3 bg-gradient-to-r ${metric.gradient} rounded-xl`}>
@@ -395,7 +394,6 @@ const EventReviews = () => {
                   <div
                     key={comment.id || index}
                     className="bg-slate-700/30 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:bg-slate-700/50 transition-all duration-300 transform hover:scale-[1.02]"
-                    style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className="flex items-start gap-4">
                       <div className="p-2 bg-red-500/20 rounded-lg">

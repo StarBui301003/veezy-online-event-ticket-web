@@ -23,7 +23,6 @@ const AttendanceListPage = () => {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [totalAttendees, setTotalAttendees] = useState(0);
-  const [checkedInCount, setCheckedInCount] = useState(0);
   const [eventManagerId, setEventManagerId] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(10); // pageSize fixed, not changing
@@ -87,23 +86,17 @@ const AttendanceListPage = () => {
         const res = await getAttendanceByEvent(selectedEvent, pageNumber, pageSize);
         const data = res?.data || {};
         setAttendances(data.items || []);
-        // setTotalItems removed
         setTotalPages(data.totalPages || 1);
         setTotalAttendees(data.totalItems || 0);
-        setCheckedInCount(0); // API mới không có checkedInAt
       } else {
         setAttendances([]);
-        // setTotalItems removed
         setTotalPages(1);
         setTotalAttendees(0);
-        setCheckedInCount(0);
       }
     } catch {
       setAttendances([]);
-      // setTotalItems removed
       setTotalPages(1);
       setTotalAttendees(0);
-      setCheckedInCount(0);
       setEvents([]);
     } finally {
       setLoading(false);
@@ -199,38 +192,14 @@ const AttendanceListPage = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-green-500/30 shadow-2xl rounded-xl p-6">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-300 text-sm font-semibold">Tổng số người đăng ký</p>
-                <p className="text-3xl font-bold text-green-400">{totalAttendees}</p>
+                <p className="text-blue-300 text-sm font-medium">{t('Total Attendees')}</p>
+                <p className="text-3xl font-bold text-blue-400">{totalAttendees}</p>
               </div>
-              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center border border-green-500/30">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-blue-500/30 shadow-2xl rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-300 text-sm font-semibold">Đã check-in</p>
-                <p className="text-3xl font-bold text-blue-400">{checkedInCount}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/30">
-                <UserCheck className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-2 border-purple-500/30 shadow-2xl rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-300 text-sm font-semibold">Tỷ lệ tham gia</p>
-                <p className="text-3xl font-bold text-purple-400">
-                  {totalAttendees > 0 ? Math.round((checkedInCount / totalAttendees) * 100) : 0}%
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center border border-purple-500/30">
-                <Calendar className="w-6 h-6 text-purple-600" />
+              <div className="p-3 rounded-full bg-blue-500/20">
+                <Users className="text-blue-400" size={24} />
               </div>
             </div>
           </div>

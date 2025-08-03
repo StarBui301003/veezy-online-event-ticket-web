@@ -294,20 +294,6 @@ export default function FundManagement() {
               <p className="text-lg text-gray-300">{t('trackRevenueAndManageWithdrawals')}</p>
             </div>
           </div>
-          
-          <div className="flex gap-4">
-            <Button 
-              onClick={() => fetchFundData(selectedEvent?.eventId || '')}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl"
-            >
-              <RefreshCw className="mr-2" size={20} />
-              {t('refresh')}
-            </Button>
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-6 py-3 rounded-xl">
-              <Download className="mr-2" size={20} />
-              {t('exportReport')}
-            </Button>
-          </div>
         </div>
 
         {/* Event Selector - Card Grid */}
