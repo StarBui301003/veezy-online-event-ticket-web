@@ -3,7 +3,6 @@ import { X, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AICustomerChatBox } from './AICustomerChatBox';
 
 interface EventChatAssistantProps {
   eventId?: string;
@@ -137,8 +136,13 @@ export const EventChatAssistant: React.FC<EventChatAssistantProps> = ({
                 </div>
 
                 {/* Chat Content */}
-                <div className="h-96">
-                  <AICustomerChatBox />
+                <div className="h-96 flex items-center justify-center">
+                  {/* Remove duplicate CustomerChatBox to prevent double API calls */}
+                  <div className="text-center text-gray-500 p-4">
+                    <Bot className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                    <p className="mb-2">Chat đã được tích hợp trong layout chính</p>
+                    <p className="text-sm">Vui lòng sử dụng chat box ở góc dưới bên phải màn hình</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -33,7 +33,6 @@ import {
   disconnectChatHub,
   joinChatRoom,
   leaveChatRoom,
-  connections
 } from '@/services/signalr.service';
 import {
   chatService,
@@ -47,9 +46,15 @@ import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 
 const ChatboxAdmin = () => {
+  // Component render tracking
+  console.log('🔄 [Component] ChatboxAdmin rendering...');
+  
   // State for room mode (ai/human) and permission to switch
   const [roomMode, setRoomMode] = useState<'ai' | 'human'>('ai');
   const [canSwitchMode, setCanSwitchMode] = useState(false);
+
+  // Debug: Log roomMode changes and force re-render counter
+  const [forceRender, setForceRender] = useState(0);
 // ...existing code...
 // States
 const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -65,6 +70,18 @@ const [isConnected, setIsConnected] = useState(false);
 const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
 const [editingContent, setEditingContent] = useState('');
+
+  // Debug useEffect for roomMode and activeRoom changes
+  useEffect(() => {
+    console.log('🔧 [RoomModeDebug] roomMode state changed to:', roomMode);
+    console.log('🔧 [RoomModeDebug] activeRoom mode:', activeRoom?.mode);
+    console.log('🔧 [RoomModeDebug] Component should re-render now...');
+    // Force re-render when roomMode changes
+    setForceRender(prev => {
+      console.log('🔧 [RoomModeDebug] Force render counter:', prev, '->', prev + 1);
+      return prev + 1;
+    });
+  }, [roomMode, activeRoom?.mode]); // Track both roomMode and activeRoom.mode
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -98,37 +115,93 @@ const [editingContent, setEditingContent] = useState('');
   // Listen for mode changes from SignalR
   useEffect(() => {
     const handleModeChanged = (payload: any) => {
+      console.log('🔄 [OnModeChanged] Received payload:', payload);
+      console.log('🔄 [OnModeChanged] Current activeRoom:', activeRoom?.roomId);
+      
+      // CRITICAL DEBUG - Always log when this event is received
+      console.log('🔥 [DEBUG] ADMIN OnModeChanged event received in admin chatbox!', payload);
+      
       if (payload && payload.roomId && payload.mode) {
-        // Update mode for active room if it matches
+        const normalizedMode = payload.mode.toLowerCase();
+        console.log('🔄 [OnModeChanged] Normalized mode:', normalizedMode);
+        
+        // Update mode for active room if it matches - THIS IS THE KEY FIX!
         if (activeRoom?.roomId === payload.roomId) {
-          setRoomMode(payload.mode);
+          console.log('🔄 [OnModeChanged] Updating active room mode to:', normalizedMode);
+          
+          // Update roomMode state
+          setRoomMode((prevMode) => {
+            console.log('🔄 [OnModeChanged] State setter called: prevMode =', prevMode, ', newMode =', normalizedMode);
+            return normalizedMode;
+          });
+          
+          // CRITICAL: Update activeRoom object to trigger component re-renders
+          setActiveRoom((prevRoom) => {
+            if (prevRoom && prevRoom.roomId === payload.roomId) {
+              console.log('🔄 [OnModeChanged] Creating new activeRoom object with updated mode');
+              const updatedRoom = { ...prevRoom, mode: normalizedMode };
+              // Update the ref as well to keep it in sync
+              activeRoomRef.current = updatedRoom;
+              return updatedRoom;
+            }
+            return prevRoom;
+          });
+          
+          // Force re-render by updating forceRender counter
+          setForceRender(prev => {
+            console.log('🔄 [OnModeChanged] Force render counter updated:', prev, '->', prev + 1);
+            return prev + 1;
+          });
         }
+        
         // Update mode for the room in chatRooms list
         setChatRooms((prevRooms) =>
-          prevRooms.map((room) =>
-            room.roomId === payload.roomId
-              ? { ...room, mode: payload.mode }
-              : room
-          )
+          prevRooms.map((room) => {
+            if (room.roomId === payload.roomId) {
+              console.log('🔄 [OnModeChanged] Updating room in list:', room.roomId, 'from', room.mode, 'to', normalizedMode);
+              return { ...room, mode: normalizedMode };
+            }
+            return room;
+          })
         );
+        
+        // Show toast notification
+        toast.info(`Room mode changed to ${payload.mode} by ${payload.changedBy || 'Admin'}`);
+      } else {
+        console.warn('🔄 [OnModeChanged] Invalid payload received:', payload);
       }
     };
+    
+    console.log('🔧 [DEBUG] Setting up OnModeChanged listeners in useEffect...');
+    // Register both cases for compatibility
     onChat('OnModeChanged', handleModeChanged);
+    
     return () => {
-      // TODO: offChat('OnModeChanged', handleModeChanged) if offChat is implemented
+      console.log('🔧 [DEBUG] Cleaning up OnModeChanged listener...');
+      // Import offChat dynamically to avoid circular imports
+      import('@/services/signalr.service').then(({ offChat }) => {
+        offChat('OnModeChanged', handleModeChanged);
+      }).catch(() => {
+        // Ignore if import fails
+      });
     };
   }, [activeRoom?.roomId]);
 
   // Sync initial mode from activeRoom
   useEffect(() => {
-    console.log('[ModeDebug] activeRoom:', activeRoom);
+    console.log('[ModeDebug] activeRoom changed:', activeRoom);
     if (activeRoom && activeRoom.mode) {
       console.log('[ModeDebug] Setting roomMode from activeRoom.mode:', activeRoom.mode);
       setRoomMode(activeRoom.mode);
+      // Force re-render when activeRoom changes
+      setForceRender(prev => {
+        console.log('[ModeDebug] activeRoom change force render:', prev, '->', prev + 1);
+        return prev + 1;
+      });
     }
     // Admin can always switch mode
     setCanSwitchMode(!!activeRoom);
-  }, [activeRoom]);
+  }, [activeRoom, activeRoom?.mode]); // Add activeRoom.mode to dependencies
 
   // Scroll to bottom of messages
   const scrollToBottom = (force: boolean = false) => {
@@ -169,7 +242,9 @@ const [editingContent, setEditingContent] = useState('');
     const connectToChat = async () => {
       try {
         console.log('🔗 Attempting to connect to ChatHub...');
-        await connectChatHub('http://localhost:5007/chatHub');
+        const token = localStorage.getItem('access_token');
+        console.log('🔑 Admin connecting with token:', token ? 'Present' : 'Missing');
+        await connectChatHub('http://localhost:5007/chatHub', token || undefined);
         setIsConnected(true);
         console.log('✅ Connected to ChatHub successfully');
 
@@ -248,6 +323,7 @@ const [editingContent, setEditingContent] = useState('');
                 ? {
                     ...room,
                     lastMessage: message,
+                    lastMessageAt: message.createdAt, // Cập nhật lastMessageAt với thời gian tin nhắn mới
                     // Only increase unread count if it's not the active room and not from current user
                     unreadCount:
                       message.senderId !== currentUser.userId &&
@@ -256,11 +332,17 @@ const [editingContent, setEditingContent] = useState('');
                         : room.unreadCount,
                   }
                 : room
-            );
+            )
+            // Sắp xếp lại theo thứ tự hoạt động gần nhất sau khi cập nhật
+            .sort((a, b) => {
+              const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+              const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+              return new Date(bTime).getTime() - new Date(aTime).getTime();
+            });
 
             console.log(
-              '🏠 Chat rooms after update:',
-              updatedRooms.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content }))
+              '🏠 Chat rooms after update and sort:',
+              updatedRooms.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content, lastMsgAt: r.lastMessageAt }))
             );
             return updatedRooms;
           });
@@ -328,11 +410,79 @@ const [editingContent, setEditingContent] = useState('');
           );
         });
 
-        // Listen for new chat room created (support requests)
-        onChat('NewChatRoomCreated', (room: ChatRoom) => {
-          setChatRooms((prev) => [room, ...prev]);
-          toast.info(`New support request from ${room.participants[0]?.fullName}`);
+        // Handle user joined room event
+        onChat('UserJoinedRoom', (data: { userId: string; roomId: string; userName?: string }) => {
+          console.log('👤 User joined room via SignalR:', data);
+          // This is just for logging - no UI changes needed for admin view
         });
+
+        // Handle user left room event
+        onChat('UserLeftRoom', (data: { userId: string; roomId: string; userName?: string }) => {
+          console.log('👤 User left room via SignalR:', data);
+          // This is just for logging - no UI changes needed for admin view
+        });
+
+        // Listen for new chat room created (support requests)
+        onChat('OnChatRoomCreated', (room: any) => {
+          console.log('🏠 New chat room created via SignalR:', room);
+          console.log('🏠 Room structure debug:', {
+            roomId: room?.roomId,
+            roomName: room?.roomName, 
+            participants: room?.participants,
+            mode: room?.mode,
+            allKeys: Object.keys(room || {})
+          });
+          console.log('🏠 Admin is connected to ChatHub:', isConnected);
+          
+          // Transform backend room data to frontend format
+          const transformedRoom: ChatRoom = {
+            roomId: room.id, // Fix: backend sends 'id', not 'roomId'
+            roomName: room.name || 'Unnamed Room',
+            participants: (room.participants || []).map((p: any) => ({
+              userId: p.userId,
+              username: p.userName || p.username,
+              fullName: p.userName || p.fullName || p.username || 'Unknown User',
+              avatar: p.avatarUrl || p.avatar,
+              isOnline: p.isOnline || false,
+              role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
+            })),
+            lastMessage: room.lastMessage,
+            lastMessageAt: room.lastMessageAt,
+            unreadCount: room.unreadCount || 0,
+            roomType: room.type || 'Support',
+            createdAt: room.createdAt,
+            createdByUserId: room.createdByUserId,
+            createdByUserName: room.createdByUserName,
+            mode: room.mode === 1 ? 'human' : 'ai' // Transform numeric mode to string mode
+          };
+          
+          setChatRooms((prev) => {
+            // Check if room already exists to avoid duplicates
+            const existingRoom = prev.find(r => r.roomId === transformedRoom.roomId);
+            if (existingRoom) {
+              console.log('🏠 Room already exists, skipping add:', transformedRoom.roomId);
+              return prev;
+            }
+            
+            // Add new room and sort by latest activity
+            const updatedRooms = [transformedRoom, ...prev].sort((a, b) => {
+              const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+              const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+              return new Date(bTime).getTime() - new Date(aTime).getTime();
+            });
+            console.log('🏠 Added new room to chat rooms list. Room ID:', transformedRoom.roomId, 'Room Name:', transformedRoom.roomName);
+            return updatedRooms;
+          });
+          toast.info(`New support request from ${transformedRoom.participants?.[0]?.fullName || 'User'}`);
+        });
+
+        // Add error handler for SignalR errors
+        onChat('Error', (errorMessage: string) => {
+          console.error('❌ SignalR Error:', errorMessage);
+          toast.error(`Chat Error: ${errorMessage}`);
+        });
+
+        console.log('✅ Admin ChatHub event listeners setup complete');
       } catch (error) {
         console.error('Failed to connect to ChatHub:', error);
         setIsConnected(false);
@@ -402,11 +552,20 @@ const [editingContent, setEditingContent] = useState('');
         return;
       }
 
+      console.log('[ChatboxAdmin] Fetching admin chat rooms...');
       const rooms = await chatService.getAdminChatRooms();
-      console.log('[ModeDebug] Raw rooms from backend:', rooms);
+      console.log('[ChatboxAdmin] Successfully fetched', rooms.length, 'chat rooms');
+      console.log('[ChatboxAdmin] Raw rooms data:', rooms);
+      
       // Validate and sanitize room data, and ensure mode is always normalized
       const validatedRooms = rooms
-        .filter((room) => room && room.roomId)
+        .filter((room) => {
+          const isValid = room && (room.roomId || (room as any).RoomId || (room as any).id);
+          if (!isValid) {
+            console.warn('[ChatboxAdmin] Filtering out invalid room:', room);
+          }
+          return isValid;
+        })
         .map((room) => {
           // Support both string and numeric mode from backend
           let normalizedMode: 'ai' | 'human' = 'ai';
@@ -415,25 +574,43 @@ const [editingContent, setEditingContent] = useState('');
           } else if (typeof room.mode === 'number') {
             normalizedMode = room.mode === 1 ? 'human' : 'ai';
           }
-          console.log(`[ModeDebug] Room ${room.roomId} mode from backend:`, room.mode, '=> normalized:', normalizedMode);
+          
+          // Get roomId from multiple sources
+          const actualRoomId = room.roomId || (room as any).RoomId || (room as any).id;
+          
+          console.log('[ChatboxAdmin] Processing room:', room);
+          console.log('[ChatboxAdmin] Room fields - roomId:', room.roomId, 'roomName:', room.roomName, 'createdByUserName:', room.createdByUserName);
+          
           return {
             ...room,
-            roomName: room.roomName || 'Unnamed Room',
+            roomId: actualRoomId,
+            roomName: room.roomName || (room as any).RoomName || (room as any).name || 'Unnamed Room',
             createdByUserName: room.createdByUserName || 'Unknown User',
-            participants: (room.participants || []).map((p) => ({
-              ...p,
-              fullName: p?.fullName || 'Unknown User',
-            })),
+            participants: (room.participants || []).map((p: any) => {
+              console.log('[ChatboxAdmin] Processing participant in processRoom:', p);
+              console.log('[ChatboxAdmin] Participant fields - userId:', p?.userId, 'userName:', p?.userName, 'fullName:', p?.fullName, 'username:', p?.username);
+              return {
+                ...p,
+                fullName: p?.fullName || p?.userName || p?.username || 'Unknown User',
+              };
+            }),
             lastMessage: room.lastMessage || null,
             unreadCount: room.unreadCount || 0,
             mode: normalizedMode,
           };
+        })
+        // Sắp xếp theo thứ tự hoạt động gần nhất
+        .sort((a, b) => {
+          const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+          const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
         });
-      console.log('[ModeDebug] Validated rooms after normalization:', validatedRooms);
+        
+      console.log('[ChatboxAdmin] Processed', validatedRooms.length, 'valid rooms');
       setChatRooms(validatedRooms);
 
       // Join all chat rooms via SignalR to receive real-time messages
-      console.log('🏠 Joining all chat rooms via SignalR...');
+      console.log('[ChatboxAdmin] Joining', validatedRooms.length, 'SignalR rooms...');
       for (const room of validatedRooms) {
         try {
           await joinChatRoom(room.roomId);
@@ -546,6 +723,13 @@ const [editingContent, setEditingContent] = useState('');
   // Select a chat room
   const selectRoom = async (room: ChatRoom) => {
     try {
+      // Validate room and roomId
+      if (!room || !room.roomId || room.roomId === 'undefined') {
+        console.error('Invalid room or roomId:', room);
+        toast.error('Invalid room selected');
+        return;
+      }
+      
       // Always normalize mode when selecting room
       let normalizedMode: 'ai' | 'human' = 'ai';
       if (typeof room.mode === 'string') {
@@ -690,12 +874,19 @@ const [editingContent, setEditingContent] = useState('');
   };
 
   // Filter chat rooms
-  const filteredRooms = chatRooms.filter(
-    (room) =>
-      room.createdByUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.roomName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.participants?.some((p) => p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredRooms = chatRooms
+    .filter(
+      (room) =>
+        room.createdByUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.roomName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.participants?.some((p) => p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    // Đảm bảo filteredRooms cũng được sắp xếp theo thứ tự hoạt động gần nhất
+    .sort((a, b) => {
+      const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+      const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
+    });
 
   // Format timestamp
   const formatTime = (timestamp: string | undefined | null) => {
@@ -943,28 +1134,59 @@ const [editingContent, setEditingContent] = useState('');
                             </span>
                           )}
                         {/* Hiển thị trạng thái AI/human */}
-                        <span className={`text-xs px-2 py-1 rounded ${roomMode === 'ai' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{roomMode === 'ai' ? 'AI' : 'Human Support'}
-                          <span style={{fontSize:10,marginLeft:4,color:'#888'}}>({roomMode})</span>
+                        <span 
+                          key={`mode-indicator-${activeRoom.roomId}-${activeRoom.mode}-${forceRender}`}
+                          className={`text-xs px-2 py-1 rounded ${activeRoom.mode === 'ai' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
+                          style={{
+                            backgroundColor: activeRoom.mode === 'ai' ? '#dcfce7 !important' : '#fef3c7 !important',
+                            color: activeRoom.mode === 'ai' ? '#15803d !important' : '#a16207 !important',
+                            fontSize: '12px',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: activeRoom.mode === 'ai' ? '2px solid #22c55e' : '2px solid #f59e0b'
+                          }}
+                        >
+                          {activeRoom.mode === 'ai' ? `AI Support` : `Human Support`}
+                          <span style={{fontSize:10,marginLeft:4,color:'#888'}}>({activeRoom.mode})</span>
                         </span>
                         {/* Mode switch button for admin */}
                         {canSwitchMode && (
                           <Button
+                            key={`mode-button-${activeRoom.roomId}-${activeRoom.mode}-${forceRender}`}
                             size="sm"
                             variant="outline"
                             className="ml-2 text-xs"
+                            style={{
+                              backgroundColor: activeRoom.mode === 'ai' ? '#fef3c7 !important' : '#dcfce7 !important',
+                              color: activeRoom.mode === 'ai' ? '#a16207 !important' : '#15803d !important',
+                              borderColor: activeRoom.mode === 'ai' ? '#fbbf24 !important' : '#22c55e !important',
+                              border: activeRoom.mode === 'ai' ? '2px solid #f59e0b' : '2px solid #22c55e'
+                            }}
                             onClick={async () => {
                               if (!activeRoom?.roomId) {
                                 toast.error('No active room ID');
                                 return;
                               }
-                              const nextMode = roomMode === 'ai' ? 'Human' : 'AI';
+                              const nextMode = activeRoom.mode === 'ai' ? 'Human' : 'AI';
                               try {
                                 // Sử dụng chatService để chuyển mode
                                 const data = await chatService.switchRoomMode(activeRoom.roomId, nextMode);
-                                if (data && data.mode) {
-                                  setRoomMode(data.mode.toLowerCase() === 'human' ? 'human' : 'ai');
+                                if (data && data.mode !== undefined && data.mode !== null) {
+                                  // Xử lý mode từ backend - có thể là string hoặc number
+                                  let normalizedMode: 'ai' | 'human' = 'ai';
+                                  if (typeof data.mode === 'string') {
+                                    normalizedMode = data.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+                                  } else if (typeof data.mode === 'number') {
+                                    normalizedMode = data.mode === 1 ? 'human' : 'ai';
+                                  }
+                                  setRoomMode(normalizedMode);
+                                  setActiveRoom(prev => prev ? { ...prev, mode: normalizedMode } : prev);
+                                  activeRoomRef.current = activeRoom ? { ...activeRoom, mode: normalizedMode } : null;
                                 } else {
-                                  setRoomMode(nextMode.toLowerCase() === 'human' ? 'human' : 'ai');
+                                  const newMode = nextMode.toLowerCase() === 'human' ? 'human' : 'ai';
+                                  setRoomMode(newMode);
+                                  setActiveRoom(prev => prev ? { ...prev, mode: newMode } : prev);
+                                  activeRoomRef.current = activeRoom ? { ...activeRoom, mode: newMode } : null;
                                 }
                                 toast.success(
                                   nextMode === 'Human'
@@ -983,7 +1205,7 @@ const [editingContent, setEditingContent] = useState('');
                               }
                             }}
                           >
-                            {roomMode === 'ai' ? 'Switch to Human Support' : 'Switch to AI Support'}
+                            🔄 {activeRoom.mode === 'ai' ? 'Switch to  Human Support' : 'Switch to  AI Support'}
                           </Button>
                         )}
                       </div>

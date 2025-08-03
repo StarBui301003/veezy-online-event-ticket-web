@@ -232,7 +232,8 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
       // Connect to SignalR and join room
       console.log('🔌 Connecting to SignalR...');
-      await connectChatHub('http://localhost:5007/chatHub');
+      const token = localStorage.getItem('access_token');
+      await connectChatHub('http://localhost:5007/chatHub', token || undefined);
       console.log('✅ SignalR connected');
       setIsConnected(true);
       
