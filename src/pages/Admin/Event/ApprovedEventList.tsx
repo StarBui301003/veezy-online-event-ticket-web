@@ -13,6 +13,7 @@ import {
   EventFilterParams,
   hideEvent,
   showEvent,
+  cancelEvent,
 } from '@/services/Admin/event.service';
 import type { PaginatedEventResponse } from '@/types/Admin/event';
 import { ApprovedEvent } from '@/types/Admin/event';
@@ -33,7 +34,7 @@ import {
 } from '@/components/ui/pagination';
 import { Switch } from '@/components/ui/switch';
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
-import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTimes } from 'react-icons/fa';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
@@ -258,6 +259,19 @@ export const ApprovedEventList = ({
     }
   };
 
+  // Handle cancel event
+  const handleCancelEvent = async (event: ApprovedEvent) => {
+    if (window.confirm('Are you sure you want to cancel this event?')) {
+      try {
+        await cancelEvent(event.eventId);
+        toast.success('Event cancelled successfully');
+        fetchData();
+      } catch {
+        toast.error('Failed to cancel event');
+      }
+    }
+  };
+
   // Items and pagination
   const items = data?.items || [];
   const totalItems = data?.totalItems || 0;
@@ -313,6 +327,32 @@ export const ApprovedEventList = ({
                     setPage(1);
                   }}
                 />
+                {approvedEventSearch && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setApprovedEventSearch('');
+                      setFilters((prev) => ({ ...prev, page: 1 }));
+                      setPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
               </div>
             </div>
 
@@ -558,6 +598,12 @@ export const ApprovedEventList = ({
                           onClick={() => setSelectedEvent(event)}
                         >
                           <FaEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-gray-500 hover:text-white"
+                          onClick={() => handleCancelEvent(event)}
+                        >
+                          <FaTimes className="w-4 h-4" />
                         </button>
                       </TableCell>
                     </TableRow>

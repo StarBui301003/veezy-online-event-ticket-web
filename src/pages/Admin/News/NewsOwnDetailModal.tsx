@@ -4,7 +4,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import type { News } from '@/types/Admin/news';
 import { NO_IMAGE } from '@/assets/img';
@@ -14,23 +13,25 @@ import { getApprovedEvents } from '@/services/Admin/event.service';
 
 interface Props {
   news: News;
-  authorName?: string;
   onClose: () => void;
 }
 
 const NewsOwnDetailModal = ({ news, onClose }: Props) => {
   const [imgLoading, setImgLoading] = useState(!!news.imageUrl);
   const [eventName, setEventName] = useState<string>('unknown');
+  const [loadingEvent, setLoadingEvent] = useState(false);
 
   useEffect(() => {
     if (news?.eventId) {
+      setLoadingEvent(true);
       getApprovedEvents()
         .then((res) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const found = res.data.items?.find((ev: any) => ev.eventId === news.eventId);
+          const found = res.data?.items?.find((ev: any) => ev.eventId === news.eventId);
           setEventName(found?.eventName || news.eventId || 'unknown');
         })
-        .catch(() => setEventName(news.eventId || 'unknown'));
+        .catch(() => setEventName(news.eventId || 'unknown'))
+        .finally(() => setLoadingEvent(false));
     }
   }, [news?.eventId]);
 
@@ -42,7 +43,16 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
 
   // Render content HTML giữ nguyên thẻ p, b, strong, ...
   function renderHtmlContent(html: string) {
-    return <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div
+        className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: html }}
+        style={{
+          lineHeight: '1.6',
+          fontSize: '14px',
+        }}
+      />
+    );
   }
 
   return (
@@ -77,7 +87,7 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Event</label>
             <input
-              value={eventName}
+              value={loadingEvent ? 'Loading...' : eventName}
               readOnly
               tabIndex={0}
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 cursor-text select-all focus:outline-none"
@@ -96,7 +106,7 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Status</label>
             <input
-              value={news.status ? 'Active' : 'Inactive'}
+              value={news.status || 'Unknown'}
               readOnly
               className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
             />
@@ -140,11 +150,15 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Description</label>
-          <div className="bg-gray-100 border rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto">
+          <div className="bg-gray-100 border rounded px-3 py-2 w-full mb-1 min-h-[60px] max-h-[150px] overflow-y-auto">
             {news.newsDescription ? (
               <div
-                className="prose prose-sm max-w-none"
+                className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: news.newsDescription }}
+                style={{
+                  lineHeight: '1.5',
+                  fontSize: '13px',
+                }}
               />
             ) : (
               <span className="text-gray-400">No description</span>
@@ -153,7 +167,7 @@ const NewsOwnDetailModal = ({ news, onClose }: Props) => {
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">Content</label>
-          <div className="bg-gray-100 border rounded px-2 py-1 w-full mb-1 min-h-[60px]">
+          <div className="bg-gray-100 border rounded px-3 py-2 w-full mb-1 min-h-[120px] max-h-[300px] overflow-y-auto">
             {news.newsContent ? (
               renderHtmlContent(news.newsContent)
             ) : (

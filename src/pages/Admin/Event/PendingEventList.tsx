@@ -30,6 +30,7 @@ import PendingEventDetailModal from '@/pages/Admin/Event/PendingEventDetailModal
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { useCategoryMapping } from '@/contexts/CategoryMappingContext';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -50,6 +51,7 @@ export const PendingEventList = ({
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
+  const { initializeMapping } = useCategoryMapping();
 
   // Search and filter states
   const [pendingEventSearch, setPendingEventSearch] = useState('');
@@ -78,16 +80,23 @@ export const PendingEventList = ({
     }
   }, []); // Only run once on mount
 
-  // Fetch all categories for filter
+  // Fetch all categories for filter and initialize category mapping
   useEffect(() => {
     (async () => {
-      const res = await getPendingEventsWithFilter({ page: 1, pageSize: 100 });
-      const categoryNames = Array.from(
-        new Set(res.data.items.flatMap((event) => event.categoryName || []))
-      );
-      setAllCategories(categoryNames);
+      try {
+        // Initialize category mapping first
+        await initializeMapping();
+
+        const res = await getPendingEventsWithFilter({ page: 1, pageSize: 100 });
+        const categoryNames = Array.from(
+          new Set(res.data.items.flatMap((event) => event.categoryName || []))
+        );
+        setAllCategories(categoryNames);
+      } catch (error) {
+        console.error('Failed to initialize category mapping:', error);
+      }
     })();
-  }, []);
+  }, [initializeMapping]);
 
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
@@ -129,7 +138,7 @@ export const PendingEventList = ({
     const filterParams = {
       searchTerm: pendingEventSearch,
       createdByFullName: filters.createdByFullName,
-      categoryIds: filters.categoryIds,
+      categoryNames: filters.categoryNames, // Use categoryNames instead of categoryIds
       location: filters.location,
       startFrom: filters.startFrom,
       startTo: filters.startTo,
@@ -277,7 +286,7 @@ export const PendingEventList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search all columns......"
+                  placeholder="Search all columns..."
                   value={pendingEventSearch}
                   onChange={(e) => {
                     setPendingEventSearch(e.target.value);
@@ -286,6 +295,32 @@ export const PendingEventList = ({
                     setPage(1);
                   }}
                 />
+                {pendingEventSearch && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setPendingEventSearch('');
+                      setFilters((prev) => ({ ...prev, page: 1 }));
+                      setPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
               </div>
             </div>
 
@@ -304,12 +339,12 @@ export const PendingEventList = ({
                     <>
                       <div className="px-2 py-1 text-sm font-semibold">Category</div>
                       <DropdownMenuItem
-                        onSelect={() => updateFilter('categoryIds', undefined)}
+                        onSelect={() => updateFilter('categoryNames', undefined)}
                         className="flex items-center gap-2"
                       >
                         <input
                           type="checkbox"
-                          checked={!filters.categoryIds || filters.categoryIds.length === 0}
+                          checked={!filters.categoryNames || filters.categoryNames.length === 0}
                           readOnly
                           className="mr-2"
                         />
@@ -319,17 +354,17 @@ export const PendingEventList = ({
                         <DropdownMenuItem
                           key={category}
                           onSelect={() => {
-                            const currentIds = filters.categoryIds || [];
-                            const newIds = currentIds.includes(category)
-                              ? currentIds.filter((id) => id !== category)
-                              : [...currentIds, category];
-                            updateFilter('categoryIds', newIds);
+                            const currentNames = filters.categoryNames || [];
+                            const newNames = currentNames.includes(category)
+                              ? currentNames.filter((name) => name !== category)
+                              : [...currentNames, category];
+                            updateFilter('categoryNames', newNames);
                           }}
                           className="flex items-center gap-2"
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categoryIds?.includes(category) || false}
+                            checked={filters.categoryNames?.includes(category) || false}
                             readOnly
                             className="mr-2"
                           />

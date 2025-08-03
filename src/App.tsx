@@ -8,6 +8,7 @@ import { LoadingProvider } from '@/contexts/LoadingContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { OnlineStatusProvider } from '@/contexts/OnlineStatusContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { CategoryMappingProvider } from '@/contexts/CategoryMappingContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
@@ -86,6 +87,7 @@ import {
   onAnalytics,
   disconnectAnalyticsHub,
 } from './services/signalr.service';
+
 import { Register } from './pages/authentication/Register';
 import EventManagerProfile from './pages/Customer/EventManagerProfile';
 import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
@@ -726,19 +728,21 @@ function App() {
       <LoadingProvider>
         <NotificationProvider userId={userId}>
           <OnlineStatusProvider>
-            <RouterProvider router={router} />
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
+            <CategoryMappingProvider>
+              <RouterProvider router={router} />
+              <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="colored"
+              />
+            </CategoryMappingProvider>
           </OnlineStatusProvider>
         </NotificationProvider>
       </LoadingProvider>

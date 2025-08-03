@@ -144,11 +144,30 @@ export const useAdminValidation = (
                 if (customMessage) {
                     toast.error(customMessage);
                 } else if (generalErrors.length > 0) {
+                    // Show the first general error
                     toast.error(generalErrors[0]);
                 } else if (Object.keys(apiFieldErrors).length > 0) {
-                    toast.error('Please check your input fields');
+                    // Show the first field error
+                    const firstFieldError = Object.values(apiFieldErrors)[0];
+                    if (firstFieldError && firstFieldError.length > 0) {
+                        toast.error(firstFieldError[0]);
+                    } else {
+                        toast.error('Please check your input fields');
+                    }
                 } else {
-                    toast.error('An error occurred. Please try again.');
+                    // Try to extract error message from axios error
+                    if (error && typeof error === 'object' && 'response' in error) {
+                        const response = (error as any).response;
+                        if (response?.data?.message) {
+                            toast.error(response.data.message);
+                        } else if (response?.data?.title) {
+                            toast.error(response.data.title);
+                        } else {
+                            toast.error('An error occurred. Please try again.');
+                        }
+                    } else {
+                        toast.error('An error occurred. Please try again.');
+                    }
                 }
             }
         },

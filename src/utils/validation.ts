@@ -82,7 +82,20 @@ export const validatePassword = (password: string): ValidationResult => {
 
 export const validatePhone = (phone: string): ValidationResult => {
   if (!phone || !phone.trim()) {
-    return { isValid: true }; // Phone is optional
+    return { isValid: true }; // Phone is optional by default
+  }
+
+  if (!phoneRegex.test(phone)) {
+    return { isValid: false, errorMessage: 'Invalid Vietnamese phone number format. Please use format: 0xxxxxxxxx or +84xxxxxxxxx' };
+  }
+
+  return { isValid: true };
+};
+
+// New function for required phone validation
+export const validateRequiredPhone = (phone: string): ValidationResult => {
+  if (!phone || !phone.trim()) {
+    return { isValid: false, errorMessage: 'Phone number is required' };
   }
 
   if (!phoneRegex.test(phone)) {
@@ -848,7 +861,7 @@ export const validateNewsForm = (formData: {
 export const validateCreateAdminForm = (formData: {
   username: string;
   email: string;
-  phone: string;
+  phone: string; // Changed back to required
   password: string;
   fullName: string;
   dateOfBirth: string;
@@ -868,8 +881,8 @@ export const validateCreateAdminForm = (formData: {
     errors.email = [emailResult.errorMessage!];
   }
 
-  // Phone validation (optional)
-  const phoneResult = validatePhone(formData.phone);
+  // Phone validation (required)
+  const phoneResult = validateRequiredPhone(formData.phone);
   if (!phoneResult.isValid) {
     errors.phone = [phoneResult.errorMessage!];
   }
@@ -904,7 +917,7 @@ export const validateCreateAdminForm = (formData: {
 export const validateEditUserForm = (formData: {
   fullName: string;
   email: string;
-  phone?: string;
+  phone: string; // Changed to required to match EditUserRequest
   dob?: string;
   gender: number;
 }): FieldErrors => {
@@ -922,12 +935,10 @@ export const validateEditUserForm = (formData: {
     errors.email = [emailResult.errorMessage!];
   }
 
-  // Phone validation (optional)
-  if (formData.phone) {
-    const phoneResult = validatePhone(formData.phone);
-    if (!phoneResult.isValid) {
-      errors.phone = [phoneResult.errorMessage!];
-    }
+  // Phone validation (required)
+  const phoneResult = validateRequiredPhone(formData.phone);
+  if (!phoneResult.isValid) {
+    errors.phone = [phoneResult.errorMessage!];
   }
 
   // Date of birth validation (optional)
@@ -1148,7 +1159,7 @@ export const parseAdminBackendErrors = (error: unknown): BackendErrorResponse =>
     };
   }
 
-  // Handle ASP.NET Core ValidationProblemDetails format
+  // Handle ASP.NET Core ValidationProblemDetails format with errors object
   if ('errors' in responseData && typeof (responseData as { errors?: unknown }).errors === 'object') {
     const errors = (responseData as { errors: Record<string, unknown> }).errors;
     const fieldErrors: FieldErrors = {};
@@ -1156,7 +1167,7 @@ export const parseAdminBackendErrors = (error: unknown): BackendErrorResponse =>
     Object.entries(errors).forEach(([backendFieldName, messages]) => {
       const frontendFieldName = mapAdminBackendFieldToFrontend(backendFieldName);
       if (Array.isArray(messages)) {
-        fieldErrors[frontendFieldName] = [messages[0]];
+        fieldErrors[frontendFieldName] = messages.map(msg => String(msg));
       } else if (typeof messages === 'string') {
         fieldErrors[frontendFieldName] = [messages];
       }

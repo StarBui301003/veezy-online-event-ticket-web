@@ -32,7 +32,9 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [showApproveInput, setShowApproveInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [approvalReason, setApprovalReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
@@ -80,10 +82,18 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
   };
 
   const handleApprove = async () => {
+    if (!approvalReason.trim()) {
+      toast.error('Please enter approval reason!');
+      return;
+    }
     setApproveLoading(true);
     setLoading(true);
     try {
-      const res = await approvedRejectEvent(event.eventId, EventApproveStatus.Approved, '');
+      const res = await approvedRejectEvent(
+        event.eventId,
+        EventApproveStatus.Approved,
+        approvalReason
+      );
       if (res.flag) {
         toast.success('Event approved successfully!');
         onClose();
@@ -180,7 +190,6 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
           )}
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
             <div>
               <label className="block text-xs text-gray-500 mb-1">Name</label>
               <input
@@ -414,16 +423,42 @@ export const PendingEventDetailModal = ({ event, onClose, onActionDone }: Props)
                   Cancel
                 </button>
               </>
-            ) : (
+            ) : showApproveInput ? (
               <>
+                <input
+                  className="border px-2 py-1 rounded w-full mb-2"
+                  placeholder="Enter approval reason"
+                  value={approvalReason}
+                  onChange={(e) => setApprovalReason(e.target.value)}
+                  disabled={loading}
+                />
                 <button
-                  className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-                  style={{ boxSizing: 'border-box' }}
+                  className=" border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500 mr-2 flex items-center justify-center"
                   onClick={handleApprove}
                   disabled={loading || approveLoading}
                   type="button"
                 >
                   {approveLoading && <FaSpinner className="animate-spin mr-2" />}
+                  Submit
+                </button>
+                <button
+                  className="border-2 border-[#24b4fb] bg-white rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-[#24b4fb] hover:bg-[#24b4fb] hover:text-white hover:border-[#24b4fb]"
+                  onClick={() => setShowApproveInput(false)}
+                  disabled={loading || approveLoading}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+                  style={{ boxSizing: 'border-box' }}
+                  onClick={() => setShowApproveInput(true)}
+                  disabled={loading || approveLoading}
+                  type="button"
+                >
                   Approve
                 </button>
                 <button

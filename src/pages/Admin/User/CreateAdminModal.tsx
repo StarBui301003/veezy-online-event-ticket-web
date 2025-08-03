@@ -10,7 +10,7 @@ import {
 import { createAdminAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
 import type { CreateAdminRequest } from '@/types/Admin/user';
-import { FaSpinner } from 'react-icons/fa';
+import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { validateCreateAdminForm } from '@/utils/validation';
 import {
   useAdminValidation,
@@ -34,16 +34,17 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
   const [form, setForm] = useState<CreateAdminRequest>({
     username: '',
     email: '',
-    phone: '',
+    phone: '', // Required field
     password: '',
     gender: 0,
     fullName: '',
     dateOfBirth: '',
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Use validation hook
-  const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
+  const { handleApiError, getFieldError, getErrorClass, clearFieldError, setFieldErrors } =
     useAdminValidation({
       showToastOnValidation: false, // Only show inline errors, no toast for validation
       showToastOnApiError: true, // Keep toast for API errors
@@ -100,16 +101,20 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
 
   const handleCreate = async () => {
     // Validate form using comprehensive validation
-    const isValid = validateForm(form, validateCreateAdminForm);
+    const errors = validateCreateAdminForm(form);
+    const hasErrors = Object.keys(errors).length > 0;
 
-    if (!isValid) {
+    if (hasErrors) {
+      // Set all validation errors at once
+      setFieldErrors(errors);
       return;
     }
 
     setLoading(true);
     try {
+      // Phone is now required, so no need to convert to undefined
       await createAdminAPI(form);
-      toast.success(t('adminAccountCreatedSuccessfully'));
+      toast.success(t('adminAccountCreatedSuccessfully') || 'Admin account created successfully!');
       setForm({
         username: '',
         email: '',
@@ -122,7 +127,15 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
       onClose();
       if (onCreated) onCreated();
     } catch (error: unknown) {
-      handleApiError(error);
+      // Handle API error with custom message
+      if (error instanceof Error) {
+        handleApiError(error, error.message);
+      } else {
+        handleApiError(
+          error,
+          t('createAdminFailed') || 'Failed to create admin account. Please try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -185,14 +198,24 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">{t('password')}</label>
-            <input
-              className={getErrorClass('password', 'border px-3 py-2 rounded w-full')}
-              type="password"
-              value={form.password}
-              onChange={handlePasswordChange}
-              disabled={loading}
-              placeholder={t('enterPassword')}
-            />
+            <div className="relative">
+              <input
+                className={getErrorClass('password', 'border px-3 py-2 rounded w-full pr-10')}
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={handlePasswordChange}
+                disabled={loading}
+                placeholder={t('enterPassword')}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+              </button>
+            </div>
             {getFieldError('password') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
                 {getFieldError('password')}
@@ -219,11 +242,13 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             <select
               className={getErrorClass('gender', 'border px-3 py-2 rounded w-full')}
               value={form.gender}
-              onChange={e => handleGenderChange(e.target.value)}
+              onChange={(e) => handleGenderChange(e.target.value)}
               disabled={loading}
             >
-              {GENDER_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {GENDER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
             {getFieldError('gender') && (
@@ -238,7 +263,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
               className={getErrorClass('dateOfBirth', 'border px-3 py-2 rounded w-full')}
               type="date"
               value={form.dateOfBirth}
-              onChange={e => setForm(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+              onChange={(e) => setForm((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
               disabled={loading}
               placeholder={t('enterDateOfBirth')}
             />

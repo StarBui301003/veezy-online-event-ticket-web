@@ -27,7 +27,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getPendingNews } from '@/services/Admin/news.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
-import type { News, NewsListResponse, NewsFilterParams } from '@/types/Admin/news';
+import type { News, NewsFilterParams } from '@/types/Admin/news';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import PendingNewsDetailModal from './PendingNewsDetailModal';
 
@@ -102,10 +102,7 @@ export const PendingNewsList = ({
   useEffect(() => {
     connectNewsHub('http://localhost:5004/newsHub');
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current);
-      if (onChangePending) {
-        setTimeout(() => onChangePending(), 600);
-      }
+      fetchData();
     };
     onNews('OnNewsCreated', reload);
     onNews('OnNewsUpdated', reload);
@@ -117,7 +114,7 @@ export const PendingNewsList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
+  const fetchData = () => {
     setLoading(true);
 
     // Separate pagination parameters from filter parameters
@@ -152,13 +149,13 @@ export const PendingNewsList = ({
           setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
         } else {
-          setNews([]);
+          setNews([]); // Use empty array if API fails or returns empty
           setTotalItems(0);
           setTotalPages(1);
         }
       })
       .catch(() => {
-        setNews([]);
+        setNews([]); // Use empty array if API fails or returns empty
         setTotalItems(0);
         setTotalPages(1);
       })
@@ -166,12 +163,6 @@ export const PendingNewsList = ({
         setTimeout(() => setLoading(false), 500);
       });
   };
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingNewsSearch, selectedEventId, selectedAuthorName] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, pendingNewsSearch, selectedEventId, selectedAuthorName]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
@@ -212,12 +203,22 @@ export const PendingNewsList = ({
     setPage(1);
   };
 
-  // Load data when component mounts, activeTab changes, or pagination changes
+  // Single useEffect to handle all data fetching
   useEffect(() => {
     if (activeTab !== 'pending') return;
     fetchData();
-  }, [activeTab, page, pageSize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeTab,
+    filters,
+    sortBy,
+    sortDescending,
+    pendingNewsSearch,
+    selectedEventId,
+    selectedAuthorName,
+  ]);
 
+  // Fetch author names when news data changes
   useEffect(() => {
     const fetchAuthors = async () => {
       const ids = Array.from(new Set(news.map((n) => n.authorId).filter(Boolean)));
@@ -529,10 +530,10 @@ export const PendingNewsList = ({
                       >
                         {item.authorName || item.authorId || 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell>
                         {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell>
                         {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">

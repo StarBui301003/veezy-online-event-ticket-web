@@ -84,8 +84,17 @@ export const EventManagerList = () => {
         setTotalItems(response.data.totalItems);
         setTotalPages(response.data.totalPages);
         // Don't update filters here to avoid infinite loop
+      } else {
+        // Handle API response error
+        toast.error(response.message || 'Failed to fetch event manager users');
       }
     } catch (error) {
+      // Handle API error with specific message
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to fetch event manager users');
+      } else {
+        toast.error('Failed to fetch event manager users');
+      }
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
@@ -112,6 +121,15 @@ export const EventManagerList = () => {
       fetchUsers();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ensure initial sort is applied
+  useEffect(() => {
+    // Set initial sort to createdAt descending
+    if (!sortBy || sortBy !== 'createdAt') {
+      setSortBy('createdAt');
+      setSortDescending(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -163,7 +181,12 @@ export const EventManagerList = () => {
       toast.success(`User ${user.isActive ? 'deactivated' : 'activated'} successfully!`);
       fetchUsers(); // Refresh the list
     } catch (error) {
-      toast.error('Failed to toggle user status!');
+      // Handle API error with specific message
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to toggle user status!');
+      } else {
+        toast.error('Failed to toggle user status!');
+      }
       console.error('Error toggling user status:', error);
     }
   };
@@ -427,10 +450,10 @@ export const EventManagerList = () => {
                 <TableHead className="text-center" style={{ width: '15%' }}>
                   <div
                     className="flex items-center justify-center gap-1 cursor-pointer"
-                    onClick={() => handleSort('createdat')}
+                    onClick={() => handleSort('createdAt')}
                   >
                     Created At
-                    {getSortIcon('createdat')}
+                    {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
                 <TableHead className="text-center" style={{ width: '15%' }}>

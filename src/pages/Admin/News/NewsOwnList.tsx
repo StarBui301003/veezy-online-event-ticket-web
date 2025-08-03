@@ -23,14 +23,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getOwnNews, hideNews, showNews } from '@/services/Admin/news.service';
+import { getOwnNews, hideNews, showNews, deleteNews } from '@/services/Admin/news.service';
 import CreateNewsModal from './CreateNewsModal';
+import EditNewsModal from './EditNewsModal';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
 import { getUserByIdAPI } from '@/services/Admin/user.service';
 import type { News, NewsFilterParams } from '@/types/Admin/news';
-import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaRegTrashAlt } from 'react-icons/fa';
+import { MdOutlineEdit } from 'react-icons/md';
 import NewsOwnDetailModal from './NewsOwnDetailModal';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-toastify';
@@ -46,6 +48,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editNews, setEditNews] = useState<News | null>(null);
   const [authorId, setAuthorId] = useState<string>('');
 
   // Search and filter states
@@ -240,6 +243,18 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
     }
   };
 
+  // Delete handler
+  const handleDelete = async (item: News) => {
+    if (!window.confirm('Are you sure you want to delete this news?')) return;
+    try {
+      await deleteNews(item.newsId);
+      toast.success('News deleted successfully!');
+      fetchData();
+    } catch {
+      toast.error('Cannot delete this news!');
+    }
+  };
+
   return (
     <div className="pl-1 pt-3">
       <SpinnerOverlay show={loading} />
@@ -324,22 +339,6 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {/* Author Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Author</div>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('authorFullName', undefined)}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!filters.authorFullName}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>All Authors</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-
                   {/* Date Range Filters */}
                   <div className="px-2 py-1 text-sm font-semibold">Created Date Range</div>
                   <DropdownMenuItem
@@ -449,44 +448,37 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}
                     </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button
-                            className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                            title="View details"
-                            onClick={() => {
-                              setSelectedNews(item);
-                            }}
-                          >
-                            <FaEye className="w-4 h-4" />
-                          </button>
-                        </DialogTrigger>
-                        <NewsOwnDetailModal news={item} onClose={() => setSelectedNews(null)} />
-                      </Dialog>
                       <button
-                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
-                        title="Edit"
-                        onClick={() => {
-                          // TODO: Implement edit functionality
-                          console.log('Edit button clicked for:', item.newsId);
-                        }}
+                        className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
+                        title="View details"
+                        onClick={() => setSelectedNews(item)}
                       >
-                        Edit
+                        <FaEye className="w-4 h-4" />
                       </button>
                       <button
-                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-                        title="Delete"
-                        onClick={() => {
-                          // TODO: Implement delete functionality
-                          console.log('Delete button clicked for:', item.newsId);
-                        }}
+                        className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+                        title="Edit"
+                        onClick={() => setEditNews(item)}
                       >
-                        Delete
+                        <MdOutlineEdit className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+                        title="Delete"
+                        onClick={() => handleDelete(item)}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4" />
                       </button>
                     </TableCell>
                   </TableRow>
                 ))
               )}
+              {/* Add empty rows to maintain table height */}
+              {Array.from({ length: Math.max(0, 5 - news.length) }, (_, idx) => (
+                <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                  <TableCell colSpan={6} className="border-0"></TableCell>
+                </TableRow>
+              ))}
             </TableBody>
             <TableFooter>
               <TableRow>
@@ -612,7 +604,20 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
         </div>
       </div>
 
-      {/* Create News Modal */}
+      {/* Modals */}
+      {editNews && (
+        <EditNewsModal
+          news={editNews}
+          onClose={() => setEditNews(null)}
+          onUpdated={() => {
+            setEditNews(null);
+            fetchData(); // Refresh data after editing
+          }}
+        />
+      )}
+      {selectedNews && (
+        <NewsOwnDetailModal news={selectedNews} onClose={() => setSelectedNews(null)} />
+      )}
       <CreateNewsModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}

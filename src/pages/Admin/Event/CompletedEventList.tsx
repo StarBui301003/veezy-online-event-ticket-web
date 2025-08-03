@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useState, useRef } from 'react';
 import {
@@ -236,8 +237,13 @@ export const CompletedEventList = ({
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
         fetchData();
-      } catch (error) {
-        toast.error('Failed to delete event');
+      } catch (error: any) {
+        // Show backend response message from JSON structure
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error('Failed to delete event');
+        }
       }
     }
   };
@@ -282,7 +288,7 @@ export const CompletedEventList = ({
                     color: 'rgb(19,19,19)',
                     fontSize: 13.4,
                   }}
-                  placeholder="Search all columns......"
+                  placeholder="Search all columns..."
                   value={completedEventSearch}
                   onChange={(e) => {
                     setCompletedEventSearch(e.target.value);
@@ -291,6 +297,32 @@ export const CompletedEventList = ({
                     setPage(1);
                   }}
                 />
+                {completedEventSearch && (
+                  <button
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-red-500 hover:text-red-600 focus:outline-none bg-white rounded-full"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      height: 24,
+                      width: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onClick={() => {
+                      setCompletedEventSearch('');
+                      setFilters((prev) => ({ ...prev, page: 1 }));
+                      setPage(1);
+                    }}
+                    tabIndex={-1}
+                    type="button"
+                    aria-label="Clear search"
+                  >
+                    &#10005;
+                  </button>
+                )}
               </div>
             </div>
 

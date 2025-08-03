@@ -24,13 +24,14 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { getRejectedNews } from '@/services/Admin/news.service';
+import { getRejectedNews, deleteNews } from '@/services/Admin/news.service';
 
 import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News, NewsFilterParams } from '@/types/Admin/news';
-import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaRegTrashAlt } from 'react-icons/fa';
 import { Switch } from '@/components/ui/switch';
 import RejectedNewsDetailModal from './RejectedNewsDetailModal';
+import { toast } from 'react-toastify';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -41,7 +42,6 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
   const [pageSize, setPageSize] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState('');
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
 
   // Search and filter states
@@ -138,13 +138,13 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
           setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
         } else {
-          setNews([]);
+          setNews([]); // Use empty array if API fails or returns empty
           setTotalItems(0);
           setTotalPages(1);
         }
       })
       .catch(() => {
-        setNews([]);
+        setNews([]); // Use empty array if API fails or returns empty
         setTotalItems(0);
         setTotalPages(1);
       })
@@ -171,22 +171,7 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   useEffect(() => {}, [news]);
 
-  const filteredNews = news.filter(
-    (item) => !search || item.newsTitle.toLowerCase().includes(search.trim().toLowerCase())
-  );
-  const pagedNews = filteredNews;
-
-  // Pagination handlers
-  const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
-    setPage(newPage);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
-    setPageSize(newPageSize);
-    setPage(1);
-  };
+  const pagedNews = news;
 
   // Sort handlers
   const handleSort = (field: string) => {
@@ -209,10 +194,16 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     );
   };
 
-  // Filter handlers
-  const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-    setPage(1);
+  // Delete handler
+  const handleDelete = async (item: News) => {
+    if (!window.confirm('Are you sure you want to delete this news?')) return;
+    try {
+      await deleteNews(item.newsId);
+      toast.success('News deleted successfully!');
+      fetchData();
+    } catch {
+      toast.error('Cannot delete this news!');
+    }
   };
 
   return (
@@ -503,6 +494,13 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
                         onClick={() => setSelectedNews(item)}
                       >
                         <FaEye className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+                        title="Delete"
+                        onClick={() => handleDelete(item)}
+                      >
+                        <FaRegTrashAlt className="w-4 h-4" />
                       </button>
                     </TableCell>
                   </TableRow>

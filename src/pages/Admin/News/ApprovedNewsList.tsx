@@ -138,13 +138,13 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
           setTotalItems(res.data.totalItems);
           setTotalPages(res.data.totalPages);
         } else {
-          setNews([]);
+          setNews([]); // Use empty array if API fails or returns empty
           setTotalItems(0);
           setTotalPages(1);
         }
       })
       .catch(() => {
-        setNews([]);
+        setNews([]); // Use empty array if API fails or returns empty
         setTotalItems(0);
         setTotalPages(1);
       })
@@ -511,10 +511,10 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                         }
                       />
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'Unknown'}
                     </TableCell>
                     <TableCell className="text-center flex items-center justify-center gap-2">

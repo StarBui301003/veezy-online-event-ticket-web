@@ -7,6 +7,7 @@ import instance from '@/services/axios.customize';
 import type { EventApproveStatus } from '@/types/Admin/event';
 import { Category } from '@/types/Admin/category';
 import type { PaginatedCategoryResponse } from '@/types/Admin/category';
+import { getCategoryIdsFromNames, initializeCategoryMapping } from './category.service';
 import qs from 'qs';
 
 // New filter interface for events
@@ -19,6 +20,7 @@ export interface EventFilterParams {
   searchTerm?: string;
   createdByFullName?: string;
   categoryIds?: string[];
+  categoryNames?: string[]; // New field for category names
   location?: string;
   startFrom?: string;
   startTo?: string;
@@ -29,11 +31,28 @@ export interface EventFilterParams {
   sortDescending?: boolean;
 }
 
+// Helper function to convert category names to IDs
+const convertCategoryNamesToIds = async (params: EventFilterParams): Promise<EventFilterParams> => {
+  if (params.categoryNames && params.categoryNames.length > 0) {
+    // Initialize category mapping if needed
+    await initializeCategoryMapping();
+
+    const categoryIds = getCategoryIdsFromNames(params.categoryNames);
+    return {
+      ...params,
+      categoryIds: [...(params.categoryIds || []), ...categoryIds],
+      categoryNames: undefined // Remove categoryNames from final params
+    };
+  }
+  return params;
+};
+
 // New comprehensive event filter functions
 export async function getPendingEventsWithFilter(params: EventFilterParams) {
-  console.log('🚀 API Call - getPendingEventsWithFilter:', params);
+  const processedParams = await convertCategoryNamesToIds(params);
+  console.log('🚀 API Call - getPendingEventsWithFilter:', processedParams);
   const res = await instance.get<EventListResponse>('/api/Event/pending', {
-    params,
+    params: processedParams,
     paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
   });
   console.log('📥 API Response - getPendingEventsWithFilter:', res.data);
@@ -41,9 +60,10 @@ export async function getPendingEventsWithFilter(params: EventFilterParams) {
 }
 
 export async function getApprovedEventsWithFilter(params: EventFilterParams) {
-  console.log('🚀 API Call - getApprovedEventsWithFilter:', params);
+  const processedParams = await convertCategoryNamesToIds(params);
+  console.log('🚀 API Call - getApprovedEventsWithFilter:', processedParams);
   const res = await instance.get<EventListResponse>('/api/Event/approved', {
-    params,
+    params: processedParams,
     paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
   });
   console.log('📥 API Response - getApprovedEventsWithFilter:', res.data);

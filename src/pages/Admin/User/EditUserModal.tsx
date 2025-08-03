@@ -25,6 +25,7 @@ import {
   createFieldChangeHandler,
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
+import { toast } from 'react-toastify';
 
 interface Props {
   user: User | UserAccountResponse;
@@ -61,7 +62,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
   const { t } = useTranslation();
 
   // Use validation hook
-  const { validateForm, handleApiError, getFieldError, clearFieldError } = useAdminValidation({
+  const { handleApiError, getFieldError, clearFieldError, setFieldErrors } = useAdminValidation({
     showToastOnValidation: false, // Only show inline errors, no toast for validation
     showToastOnApiError: true, // Keep toast for API errors
   });
@@ -107,19 +108,53 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
     clearFieldError
   );
 
+  const handleLocationChange = createFieldChangeHandler(
+    'location',
+    (value: string) => {
+      setForm((prev) => ({ ...prev, location: value }));
+    },
+    clearFieldError
+  );
+
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(
+          t('invalidFileFormat') ||
+            'Invalid file format. Please upload JPG, PNG, GIF, or WebP images only.'
+        );
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast.error(
+          t('fileTooLarge') || 'File size too large. Please upload files smaller than 5MB.'
+        );
+        return;
+      }
+
       setAvatarFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleEdit = async () => {
     // Validate form using comprehensive validation
-    const isValid = validateForm(form, validateEditUserForm);
+    const errors = validateEditUserForm(form);
+    const hasErrors = Object.keys(errors).length > 0;
 
-    if (!isValid) {
+    if (hasErrors) {
+      // Set all validation errors at once
+      setFieldErrors(errors);
       return;
     }
 
@@ -133,9 +168,39 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
         dob: form.dob,
         gender: form.gender,
       });
+
       if (avatarFile instanceof File) {
-        await uploadUserAvatarAPI(form.userId, avatarFile);
+        try {
+          await uploadUserAvatarAPI(form.userId, avatarFile);
+        } catch (avatarError: unknown) {
+          // Handle avatar upload errors specifically
+          if (avatarError instanceof Error) {
+            const errorMessage = avatarError.message;
+            if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+              toast.error(
+                t('invalidAvatarFormat') ||
+                  'Invalid avatar format. Please upload a valid image file (JPG, PNG, GIF, WebP).'
+              );
+            } else if (errorMessage.includes('413') || errorMessage.includes('Payload Too Large')) {
+              toast.error(
+                t('avatarFileTooLarge') ||
+                  'Avatar file is too large. Please upload a smaller image.'
+              );
+            } else {
+              toast.error(t('avatarUploadFailed') || 'Failed to upload avatar. Please try again.');
+            }
+          } else {
+            toast.error(t('avatarUploadFailed') || 'Failed to upload avatar. Please try again.');
+          }
+          // Don't close modal on avatar upload failure, let user try again
+          setLoading(false);
+          return;
+        }
       }
+
+      // Show success toast
+      toast.success(t('userUpdatedSuccessfully') || 'User updated successfully!');
+
       if (onUpdated) {
         if (isUserAccountResponse) {
           // Convert back to UserAccountResponse format
@@ -146,7 +211,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
             phone: form.phone,
             location: form.location,
             dob: form.dob,
-            gender: form.gender.toString(),
+            gender: form.gender,
             avatarUrl: avatarFile ? previewUrl : user.avatarUrl,
           };
           onUpdated(updatedUserAccount);
@@ -157,7 +222,30 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
       onClose();
       setAvatarFile(null);
     } catch (error: unknown) {
-      handleApiError(error);
+      // Handle API error with custom message
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+          handleApiError(
+            error,
+            t('invalidUserData') || 'Invalid user data. Please check your input and try again.'
+          );
+        } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+          handleApiError(
+            error,
+            t('userNotFound') || 'User not found. Please refresh and try again.'
+          );
+        } else if (errorMessage.includes('409') || errorMessage.includes('Conflict')) {
+          handleApiError(
+            error,
+            t('userDataConflict') || 'User data conflict. The email or phone may already be in use.'
+          );
+        } else {
+          handleApiError(error, errorMessage);
+        }
+      } else {
+        handleApiError(error, t('updateUserFailed') || 'Failed to update user. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -262,6 +350,20 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
               />
               {getFieldError('dob') && (
                 <p className="text-red-500 text-xs mt-1">{getFieldError('dob')}</p>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                {t('location')}
+              </label>
+              <input
+                name="location"
+                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                value={form.location}
+                onChange={handleLocationChange}
+              />
+              {getFieldError('location') && (
+                <p className="text-red-500 text-xs mt-1">{getFieldError('location')}</p>
               )}
             </div>
           </div>
