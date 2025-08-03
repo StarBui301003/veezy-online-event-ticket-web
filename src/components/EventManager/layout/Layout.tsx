@@ -457,7 +457,7 @@ export function EventManagerLayout() {
                       icon={FaCheckCircle}
                       isActive={isActiveRoute('/event-manager/check-ins')}
                     >
-                      Danh sách tham gia
+                      {t('listcheckins')}
                     </NavItem>
                   </div>
                 )}
