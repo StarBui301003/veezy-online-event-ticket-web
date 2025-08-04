@@ -161,7 +161,7 @@ export function AdminLayout() {
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 justify-between">
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-7 w-7 -ml-1 text-black dark:text-white" />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
@@ -253,7 +253,7 @@ export function AdminLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <div className="morphing-gradient-bg flex flex-1 flex-col p-4 pt-0 relative dark:bg-gray-900">
+          <div className="morphing-gradient-bg dark:morphing-gradient-bg-dark flex flex-1 flex-col p-4 pt-0 relative bg-gray-50 dark:bg-gray-900">
             <SpinnerOverlay show={loading} />
             <Outlet />
           </div>

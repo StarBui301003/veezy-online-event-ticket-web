@@ -28,7 +28,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
   const { t } = useTranslation();
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t('lists')}</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-gray-900 dark:text-white">{t('lists')}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) =>
           item.items && item.items.length > 0 ? (
@@ -40,17 +40,23 @@ export function NavMain({ items }: { items: NavItem[] }) {
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
-                    {item.icon && <item.icon />}
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    {item.icon && <item.icon className="text-gray-600 dark:text-gray-300" />}
                     <span>{item.title}</span>
-                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-gray-600 dark:text-gray-300" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
+                        <SidebarMenuSubButton
+                          asChild
+                          className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
                           <a href={subItem.url}>
                             <span>{subItem.title}</span>
                           </a>
@@ -63,9 +69,13 @@ export function NavMain({ items }: { items: NavItem[] }) {
             </Collapsible>
           ) : (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
                 <a href={item.url} className="flex items-center w-full">
-                  {item.icon && <item.icon />}
+                  {item.icon && <item.icon className="text-gray-600 dark:text-gray-300" />}
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>

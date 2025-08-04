@@ -133,7 +133,7 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-blue-50 transition"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-blue-50 dark:hover:bg-gray-700 transition"
             >
               <div className="relative">
                 {user.avatar && user.avatar.trim() !== '' ? (
@@ -170,7 +170,7 @@ export function NavUser() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl bg-white/95 border border-blue-100 p-2 z-[9999]"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl shadow-2xl bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-600 p-2 z-[9999]"
             side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
@@ -203,18 +203,22 @@ export function NavUser() {
                   </div>
                 )}
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold text-blue-900">{user.username}</span>
-                  <span className="truncate text-xs text-blue-500">{user.email}</span>
+                  <span className="truncate font-semibold text-blue-900 dark:text-white">
+                    {user.username}
+                  </span>
+                  <span className="truncate text-xs text-blue-500 dark:text-blue-300">
+                    {user.email}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                className="focus:bg-blue-100 focus:text-blue-900 hover:bg-blue-50 transition rounded-md"
+                className="focus:bg-blue-100 dark:focus:bg-gray-700 focus:text-blue-900 dark:focus:text-white hover:bg-blue-50 dark:hover:bg-gray-700 transition rounded-md text-gray-900 dark:text-white dark:bg-transparent"
                 onClick={() => navigate('/admin/profile')}
               >
-                <FiUser className="mr-2 text-blue-500" />
+                <FiUser className="mr-2 text-blue-500 dark:text-blue-400" />
                 <span className="font-medium">{t('profile')}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -222,9 +226,9 @@ export function NavUser() {
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={loadingLogout}
-              className="focus:bg-red-100 focus:text-red-700 hover:bg-red-50 transition rounded-md"
+              className="focus:bg-red-100 dark:focus:bg-red-500 focus:text-red-700 dark:focus:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-md text-gray-900 dark:text-white dark:bg-transparent"
             >
-              <LogOut className="mr-2 text-red-500" />
+              <LogOut className="mr-2 text-red-500 dark:text-red-400" />
               <span className="font-medium">{loadingLogout ? t('loggingOut') : t('logOut')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

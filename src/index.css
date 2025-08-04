@@ -25,6 +25,14 @@ input[type='password']::-webkit-input-password-toggle-button {
   background-size: 400% 400%;
   animation: morphingGradient 10s ease infinite;
 }
+
+.dark .morphing-gradient-bg {
+  background: linear-gradient(-45deg, #3366f3, #00afca, #274099d6, #008f62);
+  background-size: 400% 400%;
+  animation: morphingGradient 10s ease infinite;
+}
+
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
