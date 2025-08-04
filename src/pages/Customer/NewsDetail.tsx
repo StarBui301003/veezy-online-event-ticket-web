@@ -80,32 +80,12 @@ const NewsDetail: React.FC = () => {
 
   return (
     <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen font-inter">
-      {/* Modern Header */}
-      <header className="bg-gradient-to-r from-gray-900/90 to-black/90 backdrop-blur-lg border-b border-gray-700/50 pt-20 pb-8 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center">
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-full px-6 py-2 mb-4">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent tracking-wide">
-                TIN TỨC
-              </h1>
-            </div>
-            <div className="text-sm text-gray-400 font-medium tracking-wider">
-              {news.createdAt && new Date(news.createdAt).toLocaleDateString('vi-VN', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Modern Header removed as requested */}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Enhanced Breadcrumb */}
-        <nav className="mb-8 opacity-0 animate-fade-in">
+        <nav className="mb-8 mt-24 opacity-0 animate-fade-in">
           <div className="flex items-center text-sm text-gray-400 bg-gray-800/30 backdrop-blur-sm rounded-lg px-4 py-3 border border-gray-700/50">
             <button 
               onClick={() => handleNavigate('/')}

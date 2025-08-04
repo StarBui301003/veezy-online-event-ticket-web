@@ -177,45 +177,58 @@ export const HomePage = () => {
                 {t('viewMore')}
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {events.slice(0, 3).map((event) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.slice(0, 3).map((event, idx) => (
                 <motion.div
                   key={event.eventId}
-                  className="group relative rounded-2xl overflow-hidden shadow-lg bg-gray-900 border border-gray-800 hover:border-blue-500 hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                  whileHover={{ scale: 1.04 }}
+                  className="group bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl hover:border-white/40"
+                  initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.5, delay: idx * 0.05 }}
+                  whileHover={{ boxShadow: '0 8px 32px 0 rgba(0,0,0,0.18)' }}
+                  onClick={() => navigate(`/event/${event.eventId}`)}
                 >
-                  <Link to={`/event/${event.eventId}`}>
-                    <div className="relative h-40 w-full overflow-hidden">
+                  <Link to={`/event/${event.eventId}`} className="block">
+                    {/* Image */}
+                    <div className="relative w-full h-48 sm:h-52 md:h-60 overflow-hidden">
                       <img
-                        src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
+                        src={event.eventCoverImageUrl || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}
                         alt={event.eventName}
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         loading="lazy"
                         onError={handleImgError}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     </div>
+
+                    {/* Content */}
                     <div className="p-4">
-                      <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-400 transition-colors duration-200 line-clamp-1">
+                      <h3 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors duration-200 line-clamp-2">
                         {event.eventName}
                       </h3>
-                      <div className="flex flex-col gap-0.5 text-xs text-gray-300">
+                      <p className="text-gray-200 text-sm mb-3 line-clamp-2">
+                        {event.eventDescription}
+                      </p>
+                      <div className="flex items-center gap-2 text-sm text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
                         <span>
-                          <b className="text-gray-400">{t('startAt')}:</b>{' '}
-                          <span className="text-white">
-                            {new Date(event.startAt).toLocaleString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                            })}
-                          </span>
+                          {new Date(event.startAt).toLocaleString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
                         </span>
-                        <span>
-                          <b className="text-gray-400">{t('location')}:</b>{' '}
-                          <span className="text-white">{event.eventLocation || t('tba')}</span>
-                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-300 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 flex-shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">{event.eventLocation || t('tba')}</span>
                       </div>
                     </div>
                   </Link>

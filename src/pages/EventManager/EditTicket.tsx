@@ -5,7 +5,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { updateTicket, getTicketsByEvent } from '@/services/Event Manager/event.service';
 import {
   FaTicketAlt,
-  FaImage,
   FaMoneyBill,
   FaHashtag,
   FaCalendarAlt,
@@ -31,75 +30,61 @@ export default function EditTicket() {
   const [error, setError] = useState<string | null>(null);
 
   // Lấy thông tin vé hiện tại
-        useEffect(() => {
-      if (!eventId || !ticketId) return;
-      (async () => {
-        setLoading(true);
-        try {
-          const tickets = await getTicketsByEvent(eventId);
-          const ticket = tickets.find((t: TicketFormWithId) => t.ticketId === ticketId);
-          if (ticket) {
-            const toInputDate = (d: string) =>
-              d ? new Date(d).toISOString().slice(0, 16) : "";
-            setForm({
-              ticketId: ticket.ticketId,
-              name: ticket.ticketName,
-              description: ticket.ticketDescription,
-              price: ticket.ticketPrice,
-              quantity: ticket.quantityAvailable,
-              saleStartTime: toInputDate(ticket.startSellAt || ticket.saleStartTime),
-              saleEndTime: toInputDate(ticket.endSellAt || ticket.saleEndTime),
-              maxTicketsPerOrder: ticket.maxTicketsPerOrder ?? 1, // đảm bảo luôn có giá trị
-              isTransferable: ticket.isTransferable,
-              imageUrl: "",
-            });
-          }
-        } finally {
-          setLoading(false);
+  useEffect(() => {
+    if (!eventId || !ticketId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const tickets = await getTicketsByEvent(eventId);
+        const ticket = tickets.find((t: TicketFormWithId) => t.ticketId === ticketId);
+        if (ticket) {
+          const toInputDate = (d: string) =>
+            d ? new Date(d).toISOString().slice(0, 16) : "";
+          setForm({
+            ticketId: ticket.ticketId,
+            name: ticket.ticketName,
+            description: ticket.ticketDescription,
+            price: ticket.ticketPrice,
+            quantity: ticket.quantityAvailable,
+            saleStartTime: toInputDate(ticket.startSellAt || ticket.saleStartTime),
+            saleEndTime: toInputDate(ticket.endSellAt || ticket.saleEndTime),
+            maxTicketsPerOrder: ticket.maxTicketsPerOrder ?? 1, // đảm bảo luôn có giá trị
+          });
         }
-      })();
-    }, [eventId, ticketId]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [eventId, ticketId]);
 
-    // Setup realtime connection for ticket updates
-    useEffect(() => {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      connectTicketHub(token || undefined);
-      
-      // Listen for ticket update confirmations
-      onTicket('TicketUpdated', (data: any) => {
-        if (data.ticketId === ticketId) {
-          toast.success('Vé đã được cập nhật thành công!');
-          navigate(`/event-manager/events/${eventId}/tickets`);
-        }
-      });
+  // Setup realtime connection for ticket updates
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    connectTicketHub(token || undefined);
+    
+    // Listen for ticket update confirmations
+    onTicket('TicketUpdated', (data: any) => {
+      if (data.ticketId === ticketId) {
+        toast.success('Vé đã được cập nhật thành công!');
+        navigate(`/event-manager/events/${eventId}/tickets`);
+      }
+    });
 
-      onTicket('TicketUpdateFailed', (data: any) => {
-        if (data.ticketId === ticketId) {
-          toast.error('Không thể cập nhật vé. Vui lòng thử lại!');
-        }
-      });
-    }, [eventId, ticketId, navigate]);
+    onTicket('TicketUpdateFailed', (data: any) => {
+      if (data.ticketId === ticketId) {
+        toast.error('Không thể cập nhật vé. Vui lòng thử lại!');
+      }
+    });
+  }, [eventId, ticketId, navigate]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setForm((prev: TicketFormWithId | null) => {
       if (!prev) return null;
       return {
         ...prev,
-        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+        [name]: type === 'number' ? Number(value) : value,
       };
-    });
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Nếu có uploadImage thì dùng, còn không thì dùng URL.createObjectURL
-    // const url = await uploadImage(file);
-    const url = URL.createObjectURL(file);
-    setForm((prev: TicketFormWithId | null) => {
-      if (!prev) return null;
-      return { ...prev, imageUrl: url };
     });
   };
 
@@ -119,7 +104,7 @@ export default function EditTicket() {
     if (!eventId || !ticketId) return setError(t('ticketEventNotFound'));
 
     try {
-           // ...existing code...
+      setLoading(true);
       await updateTicket(ticketId, {
         eventId,
         name: form.name,
@@ -129,8 +114,6 @@ export default function EditTicket() {
         saleStartTime: form.saleStartTime,
         saleEndTime: form.saleEndTime,
         maxTicketsPerOrder: Number(form.maxTicketsPerOrder),
-        isTransferable: form.isTransferable,
-        imageUrl: form.imageUrl, // giữ ảnh cũ nếu chưa chọn ảnh mới
       });
       navigate(-1);
     } catch (err: any) {
@@ -249,7 +232,7 @@ export default function EditTicket() {
             <label className="font-bold text-pink-300 flex items-center gap-2">
               <FaExchangeAlt /> {t('ticketMaxTicketsPerOrder')}
             </label>
-                       <input
+            <input
               name="maxTicketsPerOrder"
               type="number"
               min={1}
@@ -260,50 +243,7 @@ export default function EditTicket() {
               required
             />
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              name="isTransferable"
-              type="checkbox"
-              checked={form.isTransferable}
-              onChange={handleChange}
-              id="isTransferable"
-              className="w-5 h-5 accent-pink-500 rounded"
-            />
-            <label
-              htmlFor="isTransferable"
-              className="font-bold text-pink-300 flex items-center gap-2"
-            >
-              {t('ticketTransferable')}
-            </label>
-          </div>
-          <div className="space-y-2">
-            <label className="font-bold text-pink-300 flex items-center gap-2">
-              <FaImage /> {t('ticketImage')} (tùy chọn)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept="image/*"
-                id="ticket-image"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-              <label
-                htmlFor="ticket-image"
-                className="bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white px-4 py-2 rounded-lg cursor-pointer transition-all duration-200 font-bold shadow-lg"
-              >
-                {t('chooseImage')}
-              </label>
-                            
-                            {form.imageUrl && (
-                <img
-                  src={form.imageUrl}
-                  alt="ticket"
-                  className="h-16 w-24 object-cover rounded-xl border-2 border-pink-400 shadow-lg"
-                />
-              )}
-            </div>
-          </div>
+          
           {error && (
             <div className="bg-red-100 text-red-700 rounded-lg px-4 py-3 font-bold text-center shadow-lg">
               {error}

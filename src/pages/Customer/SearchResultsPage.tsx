@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchEvents } from '@/services/search.service';
+import { getAllCategories } from '@/services/Event Manager/event.service';
+import { getProvinces } from 'sub-vn';
 import { 
   Loader2, 
   Calendar, 
   MapPin, 
-  Filter, 
   X, 
   Search,
   Clock,
@@ -13,10 +14,10 @@ import {
   Star,
   Grid3X3,
   List,
-  SlidersHorizontal
+  Filter
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { format, isAfter, startOfDay, endOfDay, addDays, startOfWeek, endOfWeek } from 'date-fns';
 
 interface SearchResult {
   id: string;
@@ -36,20 +37,26 @@ export const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [categories, setCategories] = useState<{ categoryId: string; categoryName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('date');
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState('relevance');
   
   const [filters, setFilters] = useState({
     date: 'all',
     category: 'all',
-    location: 'all',
+    location: '',
     priceRange: 'all',
     dateFrom: '',
     dateTo: ''
   });
+
+  // State cho location dropdown
+  const [locationInput, setLocationInput] = useState('');
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const locationInputRef = useRef<HTMLInputElement>(null);
   
   const { t } = useTranslation();
 
@@ -70,7 +77,7 @@ export const SearchResultsPage = () => {
         setResults(eventResults);
       } catch (err) {
         console.error('Error fetching search results:', err);
-        setError(t('search.errorFetchingResults'));
+        setError(t('searchErrorFetchingResults'));
       } finally {
         setLoading(false);
       }
@@ -79,54 +86,81 @@ export const SearchResultsPage = () => {
     fetchSearchResults();
   }, [query, t]);
 
-  // Get unique categories and locations for filters
-  const categories = [...new Set(results.map(item => item.category).filter(Boolean))] as string[];
-  const locations = [...new Set(results.map(item => item.location).filter(Boolean))] as string[];
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getAllCategories();
+        setCategories(data);
+      } catch {
+        setCategories([]);
+      }
+    };
+    fetchCategories();
+  }, []);
+  
+  // Lấy danh sách tỉnh/thành phố Việt Nam từ thư viện sub-vn
+  const provinces = getProvinces();
+  
+  // Lọc location theo input, ưu tiên bắt đầu bằng ký tự nhập
+  const filteredLocations = locationInput
+    ? provinces
+        .filter(p => p.name.toLowerCase().includes(locationInput.toLowerCase()))
+        .sort((a, b) => {
+          // Ưu tiên những tỉnh bắt đầu bằng ký tự tìm kiếm
+          const aStarts = a.name.toLowerCase().startsWith(locationInput.toLowerCase());
+          const bStarts = b.name.toLowerCase().startsWith(locationInput.toLowerCase());
+          if (aStarts && !bStarts) return -1;
+          if (!aStarts && bStarts) return 1;
+          return a.name.localeCompare(b.name);
+        })
+        .slice(0, 8)
+    : provinces.slice(0, 8);
 
   // Apply filters and sorting
   const filteredAndSortedResults = () => {
-    let filtered = results.filter(event => {
+    const filtered = results.filter(event => {
       const eventDate = new Date(event.date);
-      const today = new Date();
+      const today = startOfDay(new Date());
       
-      // Date filter
+      // Date filter - bỏ past filter
       let matchesDate = true;
-      if (filters.date === 'upcoming') {
-        matchesDate = isAfter(eventDate, today);
-      } else if (filters.date === 'past') {
-        matchesDate = isBefore(eventDate, today);
-      } else if (filters.date === 'today') {
-        matchesDate = eventDate >= startOfDay(today) && eventDate <= endOfDay(today);
+      if (filters.date === 'today') {
+        const todayEnd = endOfDay(new Date());
+        matchesDate = eventDate >= today && eventDate <= todayEnd;
       } else if (filters.date === 'thisWeek') {
-        const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-        matchesDate = eventDate >= today && eventDate <= weekFromNow;
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Bắt đầu từ thứ 2
+        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+        matchesDate = eventDate >= weekStart && eventDate <= weekEnd;
+      } else if (filters.date === 'upcoming') {
+        matchesDate = isAfter(eventDate, today);
       }
       
       // Custom date range
       if (filters.dateFrom && filters.dateTo) {
-        const fromDate = new Date(filters.dateFrom);
-        const toDate = new Date(filters.dateTo);
+        const fromDate = startOfDay(new Date(filters.dateFrom));
+        const toDate = endOfDay(new Date(filters.dateTo));
         matchesDate = eventDate >= fromDate && eventDate <= toDate;
       }
       
       const matchesCategory = filters.category === 'all' || event.category === filters.category;
-      const matchesLocation = filters.location === 'all' || event.location === filters.location;
+      const matchesLocation = !filters.location || event.location?.includes(filters.location);
       
-      // Price range filter
+      // Price range filter (giá VNĐ)
       let matchesPrice = true;
       if (filters.priceRange !== 'all' && event.price !== undefined) {
         switch (filters.priceRange) {
           case 'free':
             matchesPrice = event.price === 0;
             break;
-          case 'under50':
-            matchesPrice = event.price > 0 && event.price < 50;
+          case 'under100k':
+            matchesPrice = event.price > 0 && event.price < 100000;
             break;
-          case '50to100':
-            matchesPrice = event.price >= 50 && event.price <= 100;
+          case '100k-500k':
+            matchesPrice = event.price >= 100000 && event.price <= 500000;
             break;
-          case 'over100':
-            matchesPrice = event.price > 100;
+          case 'over500k':
+            matchesPrice = event.price > 500000;
             break;
         }
       }
@@ -140,16 +174,16 @@ export const SearchResultsPage = () => {
         case 'date':
           return new Date(a.date).getTime() - new Date(b.date).getTime();
         case 'name':
-          return a.name.localeCompare(b.name);
-        case 'rating':
-          return (b.rating || 0) - (a.rating || 0);
+          return a.name.localeCompare(b.name, 'vi');
         case 'price':
           return (a.price || 0) - (b.price || 0);
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
         default:
-          return 0; // relevance
+          return 0;
       }
     });
-
+    
     return filtered;
   };
 
@@ -159,14 +193,56 @@ export const SearchResultsPage = () => {
     setFilters({
       date: 'all',
       category: 'all',
-      location: 'all',
+      location: '',
       priceRange: 'all',
       dateFrom: '',
       dateTo: ''
     });
+    setLocationInput('');
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== 'all' && value !== '');
+  const hasActiveFilters = filters.date !== 'all' || 
+                          filters.category !== 'all' || 
+                          filters.location !== '' || 
+                          filters.priceRange !== 'all' ||
+                          filters.dateFrom !== '' ||
+                          filters.dateTo !== '';
+
+  // Format Vietnamese currency
+  const formatVNDPrice = (price: number) => {
+    if (price === 0) return t('free');
+    return price.toLocaleString('vi-VN') + 'đ';
+  };
+
+  // Quick date selection helpers
+  const setQuickDate = (type: string) => {
+    const today = new Date();
+    let from = '';
+    let to = '';
+    
+    switch (type) {
+      case 'today':
+        from = format(today, 'yyyy-MM-dd');
+        to = format(today, 'yyyy-MM-dd');
+        break;
+      case 'tomorrow':
+        const tomorrow = addDays(today, 1);
+        from = format(tomorrow, 'yyyy-MM-dd');
+        to = format(tomorrow, 'yyyy-MM-dd');
+        break;
+      case 'thisWeek':
+        from = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        to = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        break;
+      case 'nextWeek':
+        const nextWeek = addDays(today, 7);
+        from = format(startOfWeek(nextWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        to = format(endOfWeek(nextWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        break;
+    }
+    
+    setFilters({...filters, dateFrom: from, dateTo: to, date: 'all'});
+  };
 
   if (loading) {
     return (
@@ -177,8 +253,8 @@ export const SearchResultsPage = () => {
               <Loader2 className="animate-spin h-16 w-16 text-blue-500" />
               <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-pulse"></div>
             </div>
-            <p className="text-xl font-medium">{t('search.loading')}</p>
-            <p className="text-gray-400">{t('search.searchingEvents')}</p>
+            <p className="text-xl font-medium">{t('searchLoading')}</p>
+            <p className="text-gray-400">{t('searchSearchingEvents')}</p>
           </div>
         </div>
       </div>
@@ -193,13 +269,13 @@ export const SearchResultsPage = () => {
           <div className="flex items-center gap-3 mb-4">
             <Search className="h-8 w-8 text-blue-400" />
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              {t('search.resultsFor', { query })}
+              {t('searchResultsFor')} "{query}"
             </h1>
           </div>
           
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p className="text-gray-300 text-lg">
-              <span className="font-semibold text-white">{filteredResults.length}</span> {t('search.events').toLowerCase()} {t('search.found')}
+              <span className="font-semibold text-white">{filteredResults.length}</span> {t('eventsFound')}
               {hasActiveFilters && (
                 <span className="ml-2 text-sm text-blue-400">
                   ({t('filtered')})
@@ -208,18 +284,32 @@ export const SearchResultsPage = () => {
             </p>
             
             <div className="flex items-center gap-4">
+              {/* Filter Toggle Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  showFilters ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:text-white'
+                }`}
+              >
+                <Filter className="h-4 w-4" />
+                {t('filters')}
+                {hasActiveFilters && (
+                  <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    {Object.values(filters).filter(v => v !== 'all' && v !== '').length}
+                  </span>
+                )}
+              </button>
+              
               {/* Sort Dropdown */}
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-300">{t('sortBy')}:</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-gray-800 border border-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:bg-gray-700/70 transition-colors"
                 >
-                  <option value="relevance">{t('relevance')}</option>
                   <option value="date">{t('date')}</option>
                   <option value="name">{t('name')}</option>
-                  <option value="rating">{t('rating')}</option>
                   <option value="price">{t('price')}</option>
                 </select>
               </div>
@@ -247,152 +337,163 @@ export const SearchResultsPage = () => {
                   <List className="h-4 w-4" />
                 </button>
               </div>
-              
-              {/* Filter Toggle */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                  showFilters || hasActiveFilters
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25' 
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                <span className="hidden sm:inline">{t('filters')}</span>
-                {hasActiveFilters && (
-                  <span className="bg-white text-blue-600 text-xs px-2 py-1 rounded-full font-medium">
-                    {Object.values(filters).filter(value => value !== 'all' && value !== '').length}
-                  </span>
-                )}
-              </button>
             </div>
           </div>
         </div>
-        
-        {/* Filters Panel */}
+
+        {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 backdrop-blur-sm border border-gray-600/50 rounded-xl p-6 mb-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Filter className="h-5 w-5 text-blue-400" />
-                <h3 className="text-xl font-semibold">{t('filters')}</h3>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 hover:text-white transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                    {t('clearAll')}
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="p-1.5 text-gray-400 hover:text-white transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 mb-8 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
+            {/* Date Filter */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-300">
+                <Clock className="inline h-4 w-4 mr-2" />
+                {t('date')}
+              </label>
+              <select
+                value={filters.date}
+                onChange={(e) => setFilters({...filters, date: e.target.value})}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                <option value="all">{t('allDates')}</option>
+                <option value="today">{t('today')}</option>
+                <option value="thisWeek">{t('thisWeek')}</option>
+                <option value="upcoming">{t('upcoming')}</option>
+              </select>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Date Filter */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  <Clock className="inline h-4 w-4 mr-2" />
-                  {t('date')}
-                </label>
-                <select
-                  value={filters.date}
-                  onChange={(e) => setFilters({...filters, date: e.target.value})}
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="all">{t('allDates')}</option>
-                  <option value="today">{t('today')}</option>
-                  <option value="thisWeek">{t('thisWeek')}</option>
-                  <option value="upcoming">{t('upcoming')}</option>
-                  <option value="past">{t('past')}</option>
-                </select>
-                
-                {/* Custom Date Range */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <input
-                    type="date"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-                    className="bg-gray-700/50 border border-gray-600 rounded-md py-1.5 px-2 text-white text-sm focus:ring-2 focus:ring-blue-500"
-                    placeholder={t('from')}
-                  />
-                  <input
-                    type="date"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-                    className="bg-gray-700/50 border border-gray-600 rounded-md py-1.5 px-2 text-white text-sm focus:ring-2 focus:ring-blue-500"
-                    placeholder={t('to')}
-                  />
+            {/* Category Filter */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-300">
+                {t('category')}
+              </label>
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters({...filters, category: e.target.value})}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                <option value="all">{t('allCategories')}</option>
+                {categories.map((cat) => (
+                  <option key={cat.categoryId} value={cat.categoryName}>
+                    {cat.categoryName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Location Filter */}
+            <div className="space-y-3 relative">
+              <label className="block text-sm font-medium text-gray-300">
+                <MapPin className="inline h-4 w-4 mr-2" />
+                {t('location')}
+              </label>
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={locationInput}
+                onChange={e => {
+                  setLocationInput(e.target.value);
+                  setShowLocationDropdown(true);
+                }}
+                onFocus={() => setShowLocationDropdown(true)}
+                onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
+                placeholder={t('selectLocation')}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                autoComplete="off"
+              />
+              {showLocationDropdown && (
+                <div className="absolute z-50 w-full bg-gray-800 border border-gray-600 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+                  {filteredLocations.length === 0 ? (
+                    <div className="px-4 py-2 text-gray-400">{t('noResults')}</div>
+                  ) : (
+                    filteredLocations.map((province) => (
+                      <div
+                        key={province.code}
+                        className={`px-4 py-2 cursor-pointer hover:bg-blue-600 hover:text-white transition-colors ${
+                          filters.location === province.name ? 'bg-blue-600 text-white' : ''
+                        }`}
+                        onMouseDown={() => {
+                          setFilters({...filters, location: province.name});
+                          setLocationInput(province.name);
+                          setShowLocationDropdown(false);
+                        }}
+                      >
+                        {province.name}
+                      </div>
+                    ))
+                  )}
                 </div>
-              </div>
-              
-              {/* Category Filter */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  {t('category')}
-                </label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => setFilters({...filters, category: e.target.value})}
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              )}
+              {/* Clear location button */}
+              {filters.location && (
+                <button
+                  type="button"
+                  className="absolute right-3 top-9 text-gray-400 hover:text-white transition-colors"
+                  onClick={() => {
+                    setFilters({...filters, location: ''});
+                    setLocationInput('');
+                  }}
                 >
-                  <option value="all">{t('allCategories')}</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            {/* Price Range Filter */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-300">
+                {t('priceRange')}
+              </label>
+              <select
+                value={filters.priceRange}
+                onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
+                className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                <option value="all">{t('allPrices')}</option>
+                <option value="free">{t('free')}</option>
+                <option value="under100k">{t('under')} 100K</option>
+                <option value="100k-500k">100K - 500K</option>
+                <option value="over500k">{t('over')} 500K</option>
+              </select>
+            </div>
+                      </div>
+
+            {/* Custom Date Range */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">{t('fromDate')}</label>
+                <input
+                  type="date"
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                  className="bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:ring-2 focus:ring-blue-500 w-full"
+                />
               </div>
-              
-              {/* Location Filter */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  <MapPin className="inline h-4 w-4 mr-2" />
-                  {t('location')}
-                </label>
-                <select
-                  value={filters.location}
-                  onChange={(e) => setFilters({...filters, location: e.target.value})}
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="all">{t('allLocations')}</option>
-                  {locations.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Price Range Filter */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  {t('priceRange')}
-                </label>
-                <select
-                  value={filters.priceRange}
-                  onChange={(e) => setFilters({...filters, priceRange: e.target.value})}
-                  className="w-full bg-gray-700/50 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="all">{t('allPrices')}</option>
-                  <option value="free">{t('free')}</option>
-                  <option value="under50">{t('under')} $50</option>
-                  <option value="50to100">$50 - $100</option>
-                  <option value="over100">{t('over')} $100</option>
-                </select>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">{t('toDate')}</label>
+                <input
+                  type="date"
+                  value={filters.dateTo}
+                  onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                  className="bg-gray-700/50 border border-gray-600 rounded-lg py-2 px-3 text-white text-sm focus:ring-2 focus:ring-blue-500 w-full"
+                />
               </div>
             </div>
-          </div>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <div className="pt-4 border-t border-gray-700">
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
+              >
+                <X className="h-4 w-4" />
+                {t('clearAllFilters')}
+              </button>
+            </div>
+          )}
+        </div>
         )}
         
         {/* Error State */}
@@ -409,10 +510,10 @@ export const SearchResultsPage = () => {
             <div className="mb-6">
               <Search className="h-24 w-24 text-gray-600 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-300 mb-2">
-                {t('search.noEventsFound')}
+                {t('searchNoEventsFound')}
               </h3>
               <p className="text-gray-500 max-w-md mx-auto">
-                {t('search.tryDifferentKeywords')}
+                {t('searchTryDifferentKeywords')}
               </p>
             </div>
             
@@ -429,7 +530,7 @@ export const SearchResultsPage = () => {
                 to="/events" 
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-lg shadow-blue-600/25"
               >
-                {t('search.browseAllEvents')}
+                {t('searchBrowseAllEvents')}
               </Link>
             </div>
           </div>
@@ -450,7 +551,7 @@ export const SearchResultsPage = () => {
                 }`}
               >
                 {/* Image */}
-                <div className={viewMode === 'grid' ? 'h-56 overflow-hidden' : 'flex-shrink-0 w-48 h-32 rounded-xl overflow-hidden'}>
+                <div className={viewMode === 'grid' ? 'h-56 overflow-hidden relative' : 'flex-shrink-0 w-48 h-32 rounded-xl overflow-hidden relative'}>
                   <img
                     src={result.imageUrl || '/images/event-placeholder.jpg'}
                     alt={result.name}
@@ -496,7 +597,7 @@ export const SearchResultsPage = () => {
                     <div className="flex items-center text-sm text-gray-300">
                       <Calendar className="h-4 w-4 mr-2 text-blue-400" />
                       <span className="font-medium">
-                        {format(new Date(result.date), 'MMM d, yyyy • h:mm a')}
+                        {format(new Date(result.date), 'dd/MM/yyyy • HH:mm')}
                       </span>
                     </div>
                     
@@ -512,13 +613,13 @@ export const SearchResultsPage = () => {
                       <div className="flex items-center gap-4">
                         {result.price !== undefined && (
                           <span className="text-sm font-semibold text-green-400">
-                            {result.price === 0 ? t('free') : `$${result.price}`}
+                            {formatVNDPrice(result.price)}
                           </span>
                         )}
                         {result.attendees && (
                           <div className="flex items-center gap-1 text-xs text-gray-400">
                             <Users className="h-3 w-3" />
-                            <span>{result.attendees}</span>
+                            <span>{result.attendees.toLocaleString('vi-VN')}</span>
                           </div>
                         )}
                       </div>
@@ -529,7 +630,7 @@ export const SearchResultsPage = () => {
                           ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                           : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
                       }`}>
-                        {isAfter(new Date(result.date), new Date()) ? t('upcoming') : t('past')}
+                        {isAfter(new Date(result.date), new Date()) ? t('upcoming') : t('ended')}
                       </span>
                     </div>
                   </div>

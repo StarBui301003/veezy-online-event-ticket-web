@@ -101,6 +101,7 @@
     "react-toastify": "^11.0.5",
     "recharts": "^3.0.2",
     "slick-carousel": "^1.8.1",
+    "sub-vn": "^0.0.2",
     "swiper": "^11.2.10",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7"

@@ -75,6 +75,7 @@ export interface NewsPayload {
 }
 
 export interface News {
+  eventLocation: ReactI18NextChildren | Iterable<ReactI18NextChildren>;
   newsId: string;
   eventId: string;
   newsDescription: string;
