@@ -84,7 +84,7 @@ export default function CollaboratorManager() {
 
   // SignalR real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/notificationHub');
+    connectIdentityHub('http://localhost:5001/hubs/notifications');
     connectEventHub('http://localhost:5004/notificationHub');
 
     // Listen for collaborator updates
