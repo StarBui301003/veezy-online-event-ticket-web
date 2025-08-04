@@ -221,6 +221,13 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
       console.log('AdminNotificationList: Received ReceiveAdminNotification', data);
       reloadNotifications();
     });
+    
+    // Listen for new admin notification created events
+    onNotification('OnAdminNotificationCreated', (data: any) => {
+      console.log('AdminNotificationList: Received OnAdminNotificationCreated', data);
+      reloadNotifications();
+    });
+    
     onNotification('AdminNotificationRead', (data: any) => {
       console.log('AdminNotificationList: Received AdminNotificationRead', data);
       reloadNotifications();

@@ -188,9 +188,10 @@ export default function AllNotificationsPage() {
       
       // Connect to SignalR hub
       try {
-        connectNotificationHub();
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined);
         
-        // Subscribe to notifications
+        // Subscribe to new notifications
         onNotification('ReceiveNotification', (newNotification: Notification) => {
           if (!isMounted) return;
           
@@ -201,6 +202,83 @@ export default function AllNotificationsPage() {
             createdAt: newNotification.createdAt || new Date().toISOString(),
             createdAtVietnam: newNotification.createdAtVietnam || new Date().toLocaleString('vi-VN')
           }, ...prev]);
+        });
+
+        // Subscribe to notification read events
+        onNotification('NotificationRead', (data: { notificationId: string, userId: string }) => {
+          if (!isMounted || data.userId !== userId) return;
+          
+          console.log('Notification marked as read via SignalR:', data);
+          setNotifications(prev => 
+            prev.map(n => 
+              n.notificationId === data.notificationId 
+                ? { ...n, isRead: true, readAt: new Date().toISOString() }
+                : n
+            )
+          );
+        });
+
+        // Subscribe to all notifications read events
+        onNotification('AllNotificationsRead', (readUserId: string) => {
+          if (!isMounted || readUserId !== userId) return;
+          
+          console.log('All notifications marked as read via SignalR');
+          setNotifications(prev => 
+            prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+          );
+        });
+
+        // Subscribe to notifications fetched events (auto-refresh)
+        onNotification('UserNotificationsFetched', (data: any) => {
+          if (!isMounted) return;
+          
+          console.log('User notifications refreshed via SignalR:', data);
+          // Auto-refresh the UI with new data
+          if (data && Array.isArray(data.items)) {
+            const processedItems = data.items.map((item: any) => ({
+              notificationId: item.notificationId || '',
+              userId: item.userId || '',
+              notificationTitle: item.notificationTitle || 'No Title',
+              notificationMessage: item.notificationMessage || 'No message',
+              notificationType: item.notificationType || 0,
+              isRead: item.isRead || false,
+              redirectUrl: item.redirectUrl || '',
+              createdAt: item.createdAt || new Date().toISOString(),
+              createdAtVietnam: item.createdAtVietnam || item.createdAt || new Date().toISOString(),
+              readAt: item.readAt,
+              readAtVietnam: item.readAtVietnam || item.readAt
+            }));
+            
+            const sortedItems = [...processedItems].sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            
+            setNotifications(sortedItems);
+          }
+        });
+
+        // Subscribe to notification deletion events (if implemented)
+        onNotification('NotificationDeleted', (data: { notificationId: string, userId: string }) => {
+          if (!isMounted || data.userId !== userId) return;
+          
+          console.log('Notification deleted via SignalR:', data);
+          setNotifications(prev => 
+            prev.filter(n => n.notificationId !== data.notificationId)
+          );
+        });
+
+        // Subscribe to notification updates (if notification content changes)
+        onNotification('NotificationUpdated', (updatedNotification: Notification) => {
+          if (!isMounted || updatedNotification.userId !== userId) return;
+          
+          console.log('Notification updated via SignalR:', updatedNotification);
+          setNotifications(prev => 
+            prev.map(n => 
+              n.notificationId === updatedNotification.notificationId 
+                ? { ...updatedNotification }
+                : n
+            )
+          );
         });
       } catch (error) {
         console.error('SignalR connection error:', error);

@@ -38,7 +38,7 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5005/notificationHub');
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
     connectEventHub('http://localhost:5004/notificationHub');
 
     // Listen for event updates
@@ -77,7 +77,7 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates for predictions
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5005/notificationHub');
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
     connectEventHub('http://localhost:5004/notificationHub');
 
     // Listen for analytics updates

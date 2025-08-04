@@ -78,7 +78,7 @@ export default function EventListWithTicketManager() {
   // SignalR real-time updates
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
-    connectTicketHub('http://localhost:5003/notificationHub');
+    connectTicketHub('http://localhost:5005/notificationHub');
 
     // Listen for real-time event updates
     onEvent('EventCreated', () => {

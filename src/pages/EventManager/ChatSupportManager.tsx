@@ -106,9 +106,48 @@ const ChatSupportManager: React.FC = () => {
     setIsLoadingRooms(true);
     try {
       const rooms = await chatService.getEventChatRooms(eventId);
-      setChatRooms(rooms);
+      console.log('Fetched chat rooms:', rooms);
+      if (rooms.length > 0) {
+        console.log('First room structure:', JSON.stringify(rooms[0], null, 2));
+      }
+
+      // Transform rooms to handle backend field names
+      const transformedRooms = Array.isArray(rooms)
+        ? rooms.map((room: any) => ({
+            ...room,
+            // Handle both backend field names (PascalCase) and frontend (camelCase)
+            roomId: room.roomId || room.id || room.Id,
+            roomName: room.roomName || room.name || room.Name || 'Unnamed Room',
+            participants: (room.participants || []).map((p: any) => ({
+              userId: p.userId || p.UserId,
+              username: p.username || p.userName || p.UserName,
+              fullName: p.fullName || p.userName || p.UserName || p.username || 'Unknown User',
+              avatar: p.avatar || p.avatarUrl || p.AvatarUrl,
+              isOnline: p.isOnline || p.IsOnline || false,
+              role: p.role || p.Role || 'Customer',
+            })),
+            lastMessage: room.lastMessage || room.LastMessage,
+            lastMessageAt: room.lastMessageAt || room.LastMessageAt,
+            unreadCount: room.unreadCount || room.UnreadCount || 0,
+            roomType: room.roomType || room.type || room.Type || 'Support',
+            createdAt: room.createdAt || room.CreatedAt,
+            createdByUserId: room.createdByUserId || room.CreatedByUserId,
+            createdByUserName: room.createdByUserName || room.CreatedByUserName,
+            // Remove AI mode since this is customer-event manager chat only
+          }))
+          // Sort by latest activity
+          .sort((a, b) => {
+            const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+            const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+            return new Date(bTime).getTime() - new Date(aTime).getTime();
+          })
+        : [];
+
+      setChatRooms(transformedRooms);
     } catch (error) {
+      console.error('Error loading chat rooms:', error);
       toast.error('Unable to load chat room list');
+      setChatRooms([]);
     } finally {
       setIsLoadingRooms(false);
     }
@@ -118,10 +157,36 @@ const ChatSupportManager: React.FC = () => {
   const loadMessages = useCallback(async (roomId: string) => {
     setIsLoadingMessages(true);
     try {
-      const msgs = await chatService.getRoomMessages(roomId);
-      setMessages(msgs);
+      const messages = await chatService.getRoomMessages(roomId);
+      console.log('Fetched messages:', messages);
+      if (messages.length > 0) {
+        console.log('First message structure:', JSON.stringify(messages[0], null, 2));
+      }
+
+      // Transform messages to handle backend field names (no AI bot handling needed for customer-event manager chat)
+      const transformedMessages = Array.isArray(messages)
+        ? messages.map((msg: any) => ({
+            ...msg,
+            // Handle both backend field names (PascalCase) and frontend (camelCase)
+            messageId: msg.messageId || msg.Id,
+            senderId: msg.senderId || msg.SenderUserId,
+            senderName: msg.senderName || msg.SenderUserName || 'Unknown User',
+            content: msg.content || msg.Content,
+            timestamp: msg.timestamp || msg.CreatedAt,
+            createdAt: msg.createdAt || msg.CreatedAt,
+            roomId: msg.roomId || msg.RoomId,
+            isDeleted: msg.isDeleted || msg.IsDeleted || false,
+            isEdited: msg.isEdited || msg.IsEdited || false,
+            replyToMessageId: msg.replyToMessageId || msg.ReplyToMessageId,
+            replyToMessage: msg.replyToMessage || msg.ReplyToMessage,
+          }))
+        : [];
+
+      setMessages(transformedMessages);
     } catch (error) {
+      console.error('Error fetching messages:', error);
       toast.error('Unable to load messages');
+      setMessages([]);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -131,6 +196,18 @@ const ChatSupportManager: React.FC = () => {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
+
+  // Auto scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [messages.length]);
+
   // When event selected, load chatrooms
   useEffect(() => {
     if (selectedEvent) {
@@ -160,20 +237,97 @@ const ChatSupportManager: React.FC = () => {
             if (joinedRoomId) await leaveChatRoom(joinedRoomId);
           };
           // Listen for new messages (backend: ReceiveMessage)
-          onHubEvent('chat', 'ReceiveMessage', async (msg) => {
+          onHubEvent('chat', 'ReceiveMessage', async (messageDto) => {
             if (!isMounted) return;
-            if (msg && msg.roomId === selectedRoom.roomId) {
-              // If any critical field is missing, reload all messages for the room
-              if (!msg.senderName || !msg.messageId || !msg.content || !msg.timestamp || !msg.senderId) {
-                await loadMessages(selectedRoom.roomId);
-                return;
-              }
+            
+            console.log('📩 Received SignalR message:', messageDto);
+            console.log('📩 Message DTO structure:', {
+              id: messageDto.Id,
+              roomId: messageDto.RoomId,
+              senderUserId: messageDto.SenderUserId,
+              senderUserName: messageDto.SenderUserName,
+              content: messageDto.Content,
+              createdAt: messageDto.CreatedAt,
+            });
+
+            // Transform backend DTO to frontend interface (no AI bot handling for customer-event manager chat)
+            const senderId = messageDto.SenderUserId || messageDto.senderUserId;
+            const senderName = messageDto.SenderUserName || messageDto.senderUserName || 'Unknown User';
+
+            const message: ChatMessage = {
+              messageId: messageDto.Id || messageDto.id,
+              senderId: senderId,
+              senderName: senderName,
+              content: messageDto.Content || messageDto.content,
+              timestamp: messageDto.CreatedAt || messageDto.createdAt,
+              createdAt: messageDto.CreatedAt || messageDto.createdAt,
+              isRead: false,
+              messageType: 'Text' as const,
+              roomId: messageDto.RoomId || messageDto.roomId,
+              isDeleted: messageDto.IsDeleted || messageDto.isDeleted || false,
+              isEdited: messageDto.IsEdited || messageDto.isEdited || false,
+              replyToMessageId: messageDto.ReplyToMessageId || messageDto.replyToMessageId,
+              replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage,
+            };
+
+            console.log('🔄 Transformed message:', message);
+
+            // Add message to current room if it belongs to the active room
+            if (message.roomId === selectedRoom.roomId) {
               setMessages(prev => {
-                if (prev.some(m => m.messageId === msg.messageId)) return prev;
-                return [...prev, msg];
+                if (prev.some(m => m.messageId === message.messageId)) return prev;
+                const newMessages = [...prev, message];
+                // Scroll to bottom after adding new message
+                setTimeout(() => {
+                  if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }, 100);
+                return newMessages;
               });
             }
           });
+          
+          // Listen for message deleted
+          onHubEvent('chat', 'MessageDeleted', (data: { messageId: string; deletedBy: string }) => {
+            console.log('🗑️ Message deleted:', data);
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.messageId === data.messageId
+                  ? { ...msg, isDeleted: true, content: '[Message deleted]' }
+                  : msg
+              )
+            );
+          });
+
+          // Listen for message updated
+          onHubEvent('chat', 'MessageUpdated', (updatedMessageDto: any) => {
+            console.log('✏️ Message updated:', updatedMessageDto);
+            const senderId = updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId;
+            const senderName = updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown User';
+
+            const updatedMessage: ChatMessage = {
+              messageId: updatedMessageDto.Id || updatedMessageDto.id,
+              senderId: senderId,
+              senderName: senderName,
+              content: updatedMessageDto.Content || updatedMessageDto.content,
+              timestamp: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
+              createdAt: updatedMessageDto.CreatedAt || updatedMessageDto.createdAt,
+              isRead: false,
+              messageType: 'Text' as const,
+              roomId: updatedMessageDto.RoomId || updatedMessageDto.roomId,
+              isDeleted: updatedMessageDto.IsDeleted || updatedMessageDto.isDeleted || false,
+              isEdited: updatedMessageDto.IsEdited || updatedMessageDto.isEdited || true,
+              replyToMessageId:
+                updatedMessageDto.ReplyToMessageId || updatedMessageDto.replyToMessageId,
+              replyToMessage: updatedMessageDto.ReplyToMessage || updatedMessageDto.replyToMessage,
+            };
+
+            setMessages((prev) =>
+              prev.map((msg) => (msg.messageId === updatedMessage.messageId ? updatedMessage : msg))
+            );
+          });
+          
           // Listen for user joined room (backend: UserJoinedRoom)
           onHubEvent('chat', 'UserJoinedRoom', (_connectionId, _roomId) => {
             // Optionally handle user join (e.g., show notification or update UI)
@@ -312,24 +466,64 @@ const ChatSupportManager: React.FC = () => {
     return { total: totalParticipants, online: onlineParticipants };
   };
 
-  // Format timestamp
-  const formatTimestamp = (timestamp: string) => {
+  // Format timestamp (similar to ChatboxAdmin)
+  const formatTimestamp = (timestamp: string | undefined | null) => {
+    // Kiểm tra timestamp có hợp lệ không
+    if (!timestamp) {
+      return 'Now';
+    }
+
     const date = new Date(timestamp);
+
+    // Kiểm tra xem date có hợp lệ không
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h ago`;
-    if (hours < 48) return 'Yesterday';
-    return date.toLocaleDateString('en-US');
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) {
+      return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
+  };
+
+  // Format time for messages (similar to ChatboxAdmin)
+  const formatTime = (timestamp: string | undefined | null) => {
+    // Kiểm tra timestamp có hợp lệ không
+    if (!timestamp) {
+      return 'Now';
+    }
+
+    const date = new Date(timestamp);
+
+    // Kiểm tra xem date có hợp lệ không
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) {
+      return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else {
+      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#2a1435] via-[#4a1ca8] to-[#ff4da6] text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">
             Chat Support Manager
           </h1>
         </div>
@@ -359,32 +553,55 @@ const ChatSupportManager: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {events.map((event, idx) => (
-                      <Card
-                        key={event.id || event.roomId || idx}
-                        className={`cursor-pointer transition-all duration-200 ${
-                          selectedEvent?.id === event.id 
-                            ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
-                            : 'bg-white/5 hover:bg-white/10 border-white/10'
-                        } backdrop-blur-sm border`}
-                        onClick={() => setSelectedEvent(event)}
-                      >
-                        <CardContent className="p-3" key={"event-content-" + (event.id || event.roomId || idx)}>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={event.avatar} />
-                              <AvatarFallback className="bg-white/20 text-white">
-                                <Users className="h-5 w-5" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white truncate">{event.name}</p>
-                              <p className="text-sm text-white/70 truncate">{event.description}</p>
+                    {events.map((event, idx) => {
+                      // Calculate unread count from current chatRooms for this event
+                      // Since we load chatRooms when an event is selected, only show unread for selected event
+                      const eventUnreadCount = selectedEvent?.id === event.id 
+                        ? chatRooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
+                        : 0;
+                      const eventRoomCount = selectedEvent?.id === event.id ? chatRooms.length : 0;
+                      
+                      return (
+                        <Card
+                          key={event.id || event.roomId || idx}
+                          className={`cursor-pointer transition-all duration-200 ${
+                            selectedEvent?.id === event.id 
+                              ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
+                              : 'bg-white/5 hover:bg-white/10 border-white/10'
+                          } backdrop-blur-sm border`}
+                          onClick={() => setSelectedEvent(event)}
+                        >
+                          <CardContent className="p-3" key={"event-content-" + (event.id || event.roomId || idx)}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={event.avatar} />
+                                  <AvatarFallback className="bg-white/20 text-white">
+                                    <Users className="h-5 w-5" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-white truncate">{event.name}</p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className="text-xs text-white/70">
+                                      {selectedEvent?.id === event.id 
+                                        ? `${eventRoomCount} chat rooms` 
+                                        : 'Click to view'
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {eventUnreadCount > 0 && (
+                                <Badge variant="destructive" className="text-xs ml-2">
+                                  {eventUnreadCount > 99 ? '99+' : eventUnreadCount}
+                                </Badge>
+                              )}
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -455,7 +672,9 @@ const ChatSupportManager: React.FC = () => {
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <p className="font-medium text-white truncate">{room.roomName}</p>
+                              <p className="font-medium text-white truncate">
+                                {room.createdByUserName || room.participants[0]?.fullName || 'Unknown Customer'}
+                              </p>
                               {room.unreadCount > 0 && (
                                 <Badge variant="destructive" className="text-xs">
                                   {room.unreadCount > 99 ? '99+' : room.unreadCount}
@@ -464,7 +683,9 @@ const ChatSupportManager: React.FC = () => {
                             </div>
                             <div className="flex items-center justify-between mt-1">
                               <p className="text-sm text-white/70 truncate">{room.lastMessage?.content || 'No messages yet'}</p>
-                              <span className="text-xs text-white/50 ml-2">{room.lastMessage ? formatTimestamp(room.lastMessage.timestamp) : ''}</span>
+                              <span className="text-xs text-white/50 ml-2">
+                                {formatTimestamp(room.lastMessageAt || room.lastMessage?.timestamp || room.lastMessage?.createdAt || room.createdAt)}
+                              </span>
                             </div>
                             <div className="flex items-center mt-2 space-x-2">
                               <Badge variant="outline" className="text-xs border-white/20 text-white/80">
@@ -501,7 +722,9 @@ const ChatSupportManager: React.FC = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold text-white">{selectedRoom.roomName}</h3>
+                    <h3 className="font-semibold text-white">
+                      {selectedRoom.createdByUserName || selectedRoom.participants[0]?.fullName || 'Unknown Customer'}
+                    </h3>
                     <div className="flex items-center space-x-2 text-sm text-white/70">
                       <Users className="h-4 w-4" />
                       <span>{selectedRoom.participants.length} members</span>
@@ -545,14 +768,15 @@ const ChatSupportManager: React.FC = () => {
                   currentMessages.map((message, index) => {
                     const isMyMsg = isMyMessage(message);
                     const isConsecutive = index > 0 && currentMessages[index - 1].senderId === message.senderId;
-                    // Fallback for senderName
-                    const safeSenderName = message.senderName || 'U';
+                    // Regular sender name handling (no AI bot for customer-event manager chat)
+                    const safeSenderName = message.senderName || 'Unknown User';
+                    
                     return (
                       <motion.div
                         key={message.messageId || index}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${isMyMsg ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isMyMsg ? 'justify-end' : 'justify-start'} group`}
                       >
                         <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isMyMsg ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           {!isConsecutive && (
@@ -564,15 +788,20 @@ const ChatSupportManager: React.FC = () => {
                           )}
                           <div className={`${isConsecutive && !isMyMsg ? 'ml-10' : ''} ${isConsecutive && isMyMsg ? 'mr-10' : ''}`}>
                             {!isConsecutive && (
-                              <p className={`text-xs text-white/70 mb-1 ${isMyMsg ? 'text-right' : 'text-left'}`}>
-                                {safeSenderName}
-                              </p>
+                              <div className={`flex items-center gap-2 mb-1 ${isMyMsg ? 'flex-row-reverse' : ''}`}>
+                                <span className={`text-xs text-white/70 ${isMyMsg ? 'text-right' : 'text-left'}`}>
+                                  {safeSenderName}
+                                </span>
+                                <span className="text-xs text-white/50">
+                                  {formatTime(message.timestamp || message.createdAt)}
+                                </span>
+                              </div>
                             )}
                             {/* Reply preview */}
                             {message.replyToMessage && (
                               <div className="text-xs mb-2 p-2 rounded bg-white/10 backdrop-blur-sm border-l-2 border-white/30">
                                 <div className="font-medium text-white">{message.replyToMessage.senderName}</div>
-                                <div className="truncate opacity-70 text-white/70">{message.replyToMessage.content}</div>
+                                <div className="truncate opacity-75 text-white/70">{message.replyToMessage.content}</div>
                               </div>
                             )}
                             {/* Edit mode */}
