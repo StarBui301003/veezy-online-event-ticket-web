@@ -331,7 +331,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="bg-gray-50 dark:bg-gray-900">
+        <CardContent className="bg-gray-50 dark:bg-gray-900 rounded-b-xl">
           <div className="flex items-center justify-center" style={{ minHeight: 600 }}>
             <RingLoader color="#3B82F6" size={64} />
           </div>

@@ -231,7 +231,7 @@ export function AdminLayout() {
                 >
                   <DropdownMenuItem
                     onClick={() => handleChangeLanguage('vi')}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold text-gray-900 dark:text-white ${
                       i18nInstance.language === 'vi'
                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -241,7 +241,7 @@ export function AdminLayout() {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => handleChangeLanguage('en')}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-150 font-semibold text-gray-900 dark:text-white ${
                       i18nInstance.language === 'en'
                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'

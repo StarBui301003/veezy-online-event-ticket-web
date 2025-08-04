@@ -81,11 +81,11 @@ export function DatePicker({
           <Button
             variant={'outline'}
             className={cn(
-              'w-full justify-start text-left font-normal bg-white border hover:bg-gray-50 rounded text-black',
-              !date && 'text-muted-foreground',
+              'w-full justify-start text-left font-normal bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 rounded text-black dark:text-white border-gray-200 dark:border-gray-600',
+              !date && 'text-muted-foreground dark:text-gray-400',
               error
                 ? 'border-red-500 focus:border-red-500'
-                : 'border-gray-300 focus:border-gray-300',
+                : 'border-gray-300 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-500',
               className
             )}
           >
@@ -93,27 +93,35 @@ export function DatePicker({
             {date ? format(date, 'PPP') : <span>Pick a date</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded">
-          <div className="flex justify-between p-3 bg-gray-50 border-b border-gray-200 rounded-t">
+        <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg rounded">
+          <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t">
             <Select onValueChange={handleMonthChange} value={months[getMonth(date)]}>
-              <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
+              <SelectTrigger className="w-[110px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 {months.map((month) => (
-                  <SelectItem key={month} value={month}>
+                  <SelectItem
+                    key={month}
+                    value={month}
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
                     {month}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select onValueChange={handleYearChange} value={getYear(date).toString()}>
-              <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
+              <SelectTrigger className="w-[110px] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
                 {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
+                  <SelectItem
+                    key={year}
+                    value={year.toString()}
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
                     {year}
                   </SelectItem>
                 ))}
@@ -121,7 +129,7 @@ export function DatePicker({
             </Select>
           </div>
 
-          <div className="p-3 bg-white">
+          <div className="p-3 bg-white dark:bg-gray-800">
             <Calendar
               mode="single"
               selected={date}
