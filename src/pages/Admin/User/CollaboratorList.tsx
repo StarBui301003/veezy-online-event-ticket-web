@@ -125,16 +125,6 @@ export const CollaboratorList = () => {
       console.log('👤 Collaborator created:', data);
       fetchUsers();
     });
-
-    onIdentity('CollaboratorUpdated', (data: any) => {
-      console.log('👤 Collaborator updated:', data);
-      fetchUsers();
-    });
-
-    onIdentity('CollaboratorDeleted', (data: any) => {
-      console.log('👤 Collaborator deleted:', data);
-      fetchUsers();
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

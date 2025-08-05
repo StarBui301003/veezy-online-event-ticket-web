@@ -94,12 +94,9 @@ const OrderListAdmin = () => {
       fetchData();
     };
     onOrder('OnOrderCreated', reload);
-    onOrder('OnOrderStatusChanged', reload);
-    onOrder('OnOrderPaid', reload);
-    onOrder('OnOrderCancelled', reload);
-    onOrder('OnOrderRefunded', reload);
-    onOrder('OnOrderExpired', reload);
-    onOrder('OnOrderFailed', reload);
+    onOrder('OnOrderStatusUpdated', reload);
+    onOrder('OnOrderDeleted', reload);
+    onOrder('OnOrderPaidFree', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

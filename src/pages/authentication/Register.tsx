@@ -170,25 +170,66 @@ export const Register = () => {
   const handleRegisterWithFace = async (faceFile?: File) => {
     if (faceRegisteringRef.current) return; // Chặn double submit bằng ref
     faceRegisteringRef.current = true;
+    
+    // Clear previous errors
+    setFieldErrors({});
+
+    // Validate all required fields (same as normal registration)
+    const newFieldErrors: FieldErrors = {};
+
+    if (!username.trim()) {
+      newFieldErrors.username = ['Username is required!'];
+    }
+
+    if (!fullName.trim()) {
+      newFieldErrors.fullname = ['Full name is required!'];
+    }
+
+    if (!email.trim()) {
+      newFieldErrors.email = ['Email is required!'];
+    }
+
+    if (!phone.trim()) {
+      newFieldErrors.phone = ['Phone number is required!'];
+    }
+
+    if (!password.trim()) {
+      newFieldErrors.password = ['Password is required!'];
+    }
+
+    if (!confirmPassword.trim()) {
+      newFieldErrors.confirmpassword = ['Confirm password is required!'];
+    } else if (password !== confirmPassword) {
+      newFieldErrors.confirmpassword = ['Passwords do not match!'];
+    }
+
+    if (!date) {
+      newFieldErrors.dateofbirth = ['Please select your date of birth!'];
+    } else {
+      const dateOfBirth = format(date, 'yyyy-MM-dd', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const dateValidation = validateDateOfBirth(dateOfBirth);
+      if (!dateValidation.isValid) {
+        newFieldErrors.dateofbirth = [dateValidation.errorMessage!];
+      }
+    }
+
+    // Face validation
+    const file = faceFile;
+    if (!file) {
+      newFieldErrors.face = ['Please capture your face!'];
+    }
+
+    // If there are validation errors, show them and return
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      faceRegisteringRef.current = false;
+      return;
+    }
+
+    // Check role after field validation
     if (!role) {
       setShowRoleModal(true);
       toast.error('Please choose your role!');
-      faceRegisteringRef.current = false;
-      return;
-    }
-    if (!username || !fullName || !email || !password || !confirmPassword || !date) {
-      toast.error('Please fill in all fields!');
-      faceRegisteringRef.current = false;
-      return;
-    }
-    const file = faceFile;
-    if (!file) {
-      toast.error('Please capture your face!');
-      faceRegisteringRef.current = false;
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match!');
       faceRegisteringRef.current = false;
       return;
     }
@@ -220,10 +261,62 @@ export const Register = () => {
         toast.error(response?.message || 'Registration failed!');
       }
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'message' in err) {
-        toast.error((err as { message?: string }).message || 'Registration failed!');
+      console.error('Face registration error:', err);
+      
+      // Parse backend errors for field-specific display (same as normal registration)
+      const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(err);
+
+      // Check for face-specific errors from backend
+      let hasFaceError = false;
+      let faceErrorMessage = '';
+      
+      if (err && typeof err === 'object') {
+        if ('response' in err && typeof (err as any).response?.data?.message === 'string') {
+          const backendMessage = (err as any).response.data.message;
+          
+          // Check for face-specific errors from AI service
+          if (
+            backendMessage.includes('This face is already registered to another account') ||
+            backendMessage.includes('already registered') ||
+            backendMessage.includes('Liveness check failed') ||
+            backendMessage.includes('No face detected') ||
+            backendMessage.includes('Multiple faces detected') ||
+            backendMessage.includes('Fake detected') ||
+            backendMessage.includes('Face too small') ||
+            backendMessage.includes('Face too blurry') ||
+            backendMessage.includes('Invalid face angle') ||
+            backendMessage.includes('Poor image quality') ||
+            backendMessage.includes('Only accept JPG, JPEG or PNG') ||
+            backendMessage.includes('Must smaller than 5MB') ||
+            backendMessage.includes('Face image is required') ||
+            backendMessage.includes('AI service not response') ||
+            backendMessage.includes('Authentication failed')
+          ) {
+            hasFaceError = true;
+            faceErrorMessage = backendMessage;
+          }
+        }
+      }
+
+      // Set field errors for inline display
+      const finalFieldErrors = { ...backendFieldErrors };
+      if (hasFaceError) {
+        finalFieldErrors.face = [faceErrorMessage];
+      }
+      
+      setFieldErrors(finalFieldErrors);
+
+      // Show toast for errors
+      if (hasFaceError) {
+        toast.error(faceErrorMessage);
+      } else if (generalErrors.length > 0) {
+        toast.error(generalErrors[0]);
+      } else if (Object.keys(backendFieldErrors).length > 0) {
+        // If we have field errors, show a general message
+        toast.error('Please check your input fields');
       } else {
-        toast.error('Registration failed!');
+        // Fallback error
+        toast.error('Face registration failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -504,12 +597,30 @@ export const Register = () => {
               </Button>
 
               <Button
-                onClick={() => setShowFaceModal(true)}
+                onClick={() => {
+                  // Clear face error when opening modal
+                  if (hasFieldError(fieldErrors, 'face')) {
+                    setFieldErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.face;
+                      return newErrors;
+                    });
+                  }
+                  setShowFaceModal(true);
+                }}
                 disabled={loading}
-                className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-4"
+                className={`bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full w-full py-3 text-lg font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-4 ${
+                  hasFieldError(fieldErrors, 'face') ? 'border-2 border-red-500' : ''
+                }`}
               >
                 Face Registration
               </Button>
+              
+              {getFieldError(fieldErrors, 'face') && (
+                <div className="text-red-400 text-sm mt-1 ml-2 mb-4">
+                  {getFieldError(fieldErrors, 'face')}
+                </div>
+              )}
 
               <div className="text-center text-sm mt-4">
                 Already have an account?{' '}
@@ -526,6 +637,16 @@ export const Register = () => {
         <FaceCapture
           onCapture={({ image }) => {
             if (faceRegisteringRef.current) return; // Chặn double callback bằng ref
+            
+            // Clear face error when successfully capturing
+            if (hasFieldError(fieldErrors, 'face')) {
+              setFieldErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors.face;
+                return newErrors;
+              });
+            }
+            
             setShowFaceModal(false);
             handleRegisterWithFace(
               new File([image], 'face.jpg', { type: image.type || 'image/jpeg' })

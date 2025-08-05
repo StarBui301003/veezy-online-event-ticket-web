@@ -98,6 +98,7 @@ export const PendingReportList = ({
     const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportStatusChanged', reload);
+    onFeedback('OnReportListFetched', reload);
   }, []);
 
   useEffect(() => {

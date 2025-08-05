@@ -318,10 +318,9 @@ const ReportDetailModal = ({
       }
     };
     onFeedback('OnReportCreated', handleRealtime);
+    onFeedback('OnReportStatusChanged', handleRealtime);
     return () => {
-      onFeedback('OnReportUpdated', handleRealtime);
-      onFeedback('OnReportDeleted', handleRealtime);
-      onFeedback('OnReportStatusUpdated', handleRealtime);
+      // Cleanup listeners
     };
   }, [report.reportId, onClose]);
 
