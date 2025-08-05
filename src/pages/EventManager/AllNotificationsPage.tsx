@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { CheckCircle, ArrowLeft, Loader2, Bell, BellOff, RefreshCw, CheckCheck } from 'lucide-react';
 import { getUserNotifications, markAllNotificationsRead, markNotificationRead } from '@/services/notification.service';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -42,31 +42,24 @@ export default function AllNotificationsPage() {
     } 
   })() : null;
 
-  const loadNotifications = async (showLoader = true) => {
+  const loadNotifications = useCallback(async (showLoader = true) => {
     if (!userId) {
       setLoading(false);
       setError('User ID not found');
       return;
     }
-    
     if (showLoader) setLoading(true);
     else setRefreshing(true);
-    
     setError(null);
-    
     try {
-      console.log('Loading notifications for userId:', userId);
-      const res = await getUserNotifications(userId, 1, 100);
+      const userRole = isEventManager ? 2 : 1;
+      const res = await getUserNotifications(userId, 1, 100, userRole);
       console.log('API Response:', res);
-      
       // Check for API success using 'flag' field (as per API spec)
       if (res?.data?.flag === true) {
-        const items = Array.isArray(res.data.data?.items) 
-          ? res.data.data.items 
+        const items = Array.isArray(res.data.data?.items)
+          ? res.data.data.items
           : [];
-        
-        console.log('Raw items:', items);
-        
         if (items.length === 0) {
           console.log('No notifications found');
           setNotifications([]);
@@ -84,13 +77,10 @@ export default function AllNotificationsPage() {
             readAt: item.readAt,
             readAtVietnam: item.readAtVietnam || item.readAt
           }));
-          
           console.log('Processed items:', processedItems);
-          
-          const sortedItems = [...processedItems].sort((a, b) => 
+          const sortedItems = [...processedItems].sort((a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-          
           setNotifications(sortedItems);
         }
       } else {
@@ -99,15 +89,14 @@ export default function AllNotificationsPage() {
         setError(errorMsg);
         setNotifications([]);
       }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+    } catch {
+      setError('Failed to fetch notifications');
       setNotifications([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [userId, isEventManager]);
 
   const handleMarkAllAsRead = async () => {
     if (!userId || notifications.length === 0) return;
@@ -171,6 +160,7 @@ export default function AllNotificationsPage() {
   const formatNotificationDate = (date: string) => {
     try {
       return format(new Date(date), 'PPpp');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return date;
     }
@@ -229,13 +219,13 @@ export default function AllNotificationsPage() {
         });
 
         // Subscribe to notifications fetched events (auto-refresh)
-        onNotification('UserNotificationsFetched', (data: any) => {
+        onNotification('UserNotificationsFetched', (data: { items: Notification[] }) => {
           if (!isMounted) return;
           
           console.log('User notifications refreshed via SignalR:', data);
           // Auto-refresh the UI with new data
           if (data && Array.isArray(data.items)) {
-            const processedItems = data.items.map((item: any) => ({
+            const processedItems = data.items.map((item: Notification) => ({
               notificationId: item.notificationId || '',
               userId: item.userId || '',
               notificationTitle: item.notificationTitle || 'No Title',
@@ -291,7 +281,7 @@ export default function AllNotificationsPage() {
     return () => {
       isMounted = false;
     };
-  }, [userId]);
+  }, [userId, loadNotifications]);
 
   if (loading) {
     return (

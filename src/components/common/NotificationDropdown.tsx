@@ -5,28 +5,29 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 
 interface NotificationDropdownProps {
   userId?: string;
+  userRole?: number;
   onViewAll: () => void;
   t: (key: string) => string;
   onRedirect?: (url: string) => void;
 }
 
-export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
+const NotificationDropdown = ({
   userId,
+  userRole,
   onViewAll,
   t,
   onRedirect,
-}) => {
-
+}: NotificationDropdownProps) => {
   // Use the hook for API and UI update
   const {
     notifications,
-    unreadCount,
     markAsRead,
     markAllAsRead,
-    onNotificationClick,
     refreshNotifications
-  } = useRealtimeNotifications();
+  } = useRealtimeNotifications(userRole);
 
+  // Calculate unread count from notifications to ensure accuracy
+  const actualUnreadCount = notifications.filter(n => !n.isRead).length;
 
   // Always call the hook's markAllAsRead(userId) which does both UI and API
   const handleMarkAllAsRead = async () => {
@@ -48,6 +49,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         }
         if (notification.redirectUrl) {
           onRedirect?.(notification.redirectUrl);
+        } else {
+          onViewAll();
         }
       } catch (error) {
         console.error('Error handling notification click:', error);
@@ -63,9 +66,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
           <div className="flex items-center gap-2 relative">
             <span className="relative">
               <Bell className="w-5 h-5 text-white" />
-              {unreadCount > 0 && (
+              {actualUnreadCount > 0 && (
                 <span className="absolute -top-1 -right-2 min-w-[18px] h-5 px-1 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-gray-900">
-                  {unreadCount}
+                  {actualUnreadCount}
                 </span>
               )}
             </span>
@@ -73,14 +76,13 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               {t('notifications') || 'Thông báo'}
             </h3>
           </div>
-          
           <button
             onClick={() => {
-              if (userId && unreadCount > 0) handleMarkAllAsRead();
+              if (userId && actualUnreadCount > 0) handleMarkAllAsRead();
             }}
-            disabled={notifications.length === 0 || unreadCount === 0}
+            disabled={notifications.length === 0 || actualUnreadCount === 0}
             className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all text-xs font-medium shadow-sm ${
-              notifications.length === 0 || unreadCount === 0
+              notifications.length === 0 || actualUnreadCount === 0
                 ? 'text-gray-500 cursor-not-allowed bg-gray-800'
                 : 'text-blue-200 bg-blue-800/40 hover:bg-blue-700/60 active:bg-blue-900/60 hover:scale-105 active:scale-95 border border-blue-700/40'
             }`}
@@ -88,18 +90,18 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
             title={
               notifications.length === 0 
                 ? t('noNotifications') || 'Không có thông báo' 
-                : unreadCount === 0 
+                : actualUnreadCount === 0 
                 ? t('allRead') || 'Tất cả đã đọc'
                 : t('markAllAsRead') || 'Đánh dấu tất cả đã đọc'
             }
           >
-            {unreadCount === 0 ? (
+            {actualUnreadCount === 0 ? (
               <CheckCheck className="w-4 h-4" />
             ) : (
               <Check className="w-4 h-4" />
             )}
             <span className="hidden sm:inline">
-              {unreadCount === 0 
+              {actualUnreadCount === 0 
                 ? (t('allRead') || 'Đã đọc hết')
                 : (t('markAllAsRead') || 'Đọc tất cả')
               }
@@ -137,7 +139,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     ? 'bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-l-4 border-blue-500' 
                     : 'hover:bg-gray-800/60'
                 }`}
-                onClick={() => handleNotificationClick(notification)}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); handleNotificationClick(notification); }}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 {/* Unread indicator dot */}
@@ -202,8 +204,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       {/* Footer */}
       <div className="p-4 border-t border-gray-800 bg-gray-900">
         <button
-          className="w-full py-3 text-center text-blue-200 font-semibold rounded-xl transition-all text-sm bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50 hover:scale-[1.02] active:scale-[0.98] hover:shadow-md"
-          onClick={onViewAll}
+          className="w-full py-3 text-center text-blue-200 font-semibold rounded-xl transition-all text-sm bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50 hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative"
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onViewAll(); }}
         >
           {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
         </button>
@@ -233,3 +235,5 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     </div>
   );
 };
+
+export default NotificationDropdown;

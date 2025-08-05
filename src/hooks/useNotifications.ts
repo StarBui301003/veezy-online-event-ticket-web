@@ -18,6 +18,7 @@ export interface Notification {
   createdAtVietnam?: string;
   readAt?: string;
   readAtVietnam?: string;
+  userRole?: number; // Add this line for role-based filtering
 }
 
 interface UseNotificationsOptions {

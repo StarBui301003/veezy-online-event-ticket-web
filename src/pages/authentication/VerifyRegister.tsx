@@ -107,7 +107,11 @@ export const VerifyRegister = () => {
         <button
           type="button"
           className="absolute top-6 left-6 text-blue-600 hover:text-blue-800 transition-colors bg-transparent"
-          onClick={() => navigate('/register')}
+          onClick={() => {
+            sessionStorage.removeItem('registerEmail');
+            localStorage.removeItem('registerEmail');
+            navigate('/register');
+          }}
           aria-label="Back"
         >
           <IoArrowBack size={28} />
@@ -157,7 +161,14 @@ export const VerifyRegister = () => {
 
         <p className="text-sm text-gray-500">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-600">
+          <a
+            href="/login"
+            className="text-blue-600"
+            onClick={() => {
+              sessionStorage.removeItem('registerEmail');
+              localStorage.removeItem('registerEmail');
+            }}
+          >
             Log in
           </a>
         </p>

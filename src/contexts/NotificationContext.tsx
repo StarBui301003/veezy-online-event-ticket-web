@@ -17,9 +17,10 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 interface NotificationProviderProps {
   children: React.ReactNode;
   userId?: string;
+  userRole?: number;
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, userId }) => {
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, userId, userRole }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -70,18 +71,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Refresh notifications from server
   const refreshNotifications = useCallback(async () => {
     if (!userId) return;
-    
     try {
-      const res = await getUserNotifications(userId, 1, 50);
+      const res = await getUserNotifications(userId, 1, 50, userRole);
       const items = res.data?.data?.items || [];
-      
+      // Only filter by userRole if userRole is provided and not in event dashboard
       setNotifications(items);
       const unreadItems = items.filter((n: Notification) => !n.isRead);
       setUnreadCount(unreadItems.length);
     } catch (error) {
       console.error('[NotificationContext] Failed to refresh notifications:', error);
     }
-  }, [userId]);
+  }, [userId, userRole]);
 
   // Initial fetch and setup realtime listener
   useEffect(() => {

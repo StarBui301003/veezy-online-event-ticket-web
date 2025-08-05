@@ -106,9 +106,25 @@ export async function updateEvent(eventId: string, data: CreateEventData) {
 
 // === Delete Event Image ===
 export async function deleteEventImage(imageUrl: string) {
-  return instance.delete(
-    `/api/Event/delete-image?imageUrl=${encodeURIComponent(imageUrl)}`
-  );
+  try {
+    // Get just the filename from the URL
+    const fileName = imageUrl.split('/').pop();
+    
+    const response = await instance.delete(
+      `/api/Event/delete-image?imageUrl=${encodeURIComponent(fileName)}`
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.warn('Image deletion failed, but continuing:', {
+      error: error.response?.data || error.message,
+      status: error.response?.status,
+      imageUrl
+    });
+    
+    // Return a resolved promise to prevent the error from propagating
+    return { flag: false };
+  }
 }
 
 // === Get My Events With Status & Search ===

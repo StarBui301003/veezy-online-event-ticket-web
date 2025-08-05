@@ -21,6 +21,7 @@ interface NotificationItem {
   readAt?: string;
   readAtVietnam?: string;
   username?: string;
+  userRole?: number; // Add this line for role-based filtering
 }
 
 interface PaginatedResponse {
@@ -32,11 +33,14 @@ interface PaginatedResponse {
   hasPreviousPage: boolean;
 }
 
-export async function getUserNotifications(userId: string, page = 1, pageSize = 100) {
+export async function getUserNotifications(userId: string, page = 1, pageSize = 100, userRole?: number) {
   try {
-    console.log(`Calling API: /api/Notification/user/${userId}?page=${page}&pageSize=${pageSize}`);
+    const params: any = { page, pageSize };
+    if (userRole !== undefined) params.userRole = userRole;
+    console.log(`Calling API: /api/Notification/user/${userId} with`, params);
     const response = await instance.get<ApiResponse<PaginatedResponse>>(
-      `/api/Notification/user/${userId}?page=${page}&pageSize=${pageSize}`
+      `/api/Notification/user/${userId}`,
+      { params }
     );
     console.log('API Response:', response);
     return response;

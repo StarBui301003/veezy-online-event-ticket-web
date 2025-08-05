@@ -3,12 +3,13 @@ import { Bell, Filter, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
-import { NotificationDropdown } from '@/components/common/NotificationDropdown';
+import NotificationDropdown from '@/components/common/NotificationDropdown';
 import ExportButtons from './components/ExportButtons';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import RevenueChartSection from './components/RevenueChartSection';
 import TicketStatsSection from './components/TicketStatsSection';
 import DashboardSummaryCards from './components/DashboardSummaryCards';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
 // TimePeriod enum matching API
 const TimePeriod = {
@@ -44,12 +45,12 @@ export default function EventManagerDashboard() {
   const [notifDropdown, setNotifDropdown] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(TimePeriod.Last30Days);
   const [groupBy, setGroupBy] = useState(GroupBy.Day);
-  const [loading, setLoading] = useState(false);
+
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [activeTab, setActiveTab] = useState('revenue'); // New state for tab switching
-  const { unreadCount } = useRealtimeNotifications();
+  const { unreadCount } = useRealtimeNotifications(2); // Only event manager notifications
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
@@ -126,202 +127,205 @@ export default function EventManagerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
-            Dashboard
-          </h1>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg backdrop-blur-sm border transition-all ${
-                showAdvancedFilters 
-                  ? 'bg-purple-600/30 border-purple-400/50 text-purple-200' 
-                  : 'bg-white/10 border-white/20 hover:bg-white/20 text-white'
-              }`}
-            >
-              <Filter size={18} />
-              <span className="hidden sm:inline">Bộ lọc</span>
-            </button>
-
-            <ExportButtons />
-
-            <div className="relative">
+    <NotificationProvider userId={userId} userRole={2}>
+      <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
+            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+              Dashboard
+            </h1>
+            
+            <div className="flex flex-wrap items-center gap-3">
               <button
-                onClick={() => setNotifDropdown(!notifDropdown)}
-                className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all relative"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg backdrop-blur-sm border transition-all ${
+                  showAdvancedFilters 
+                    ? 'bg-purple-600/30 border-purple-400/50 text-purple-200' 
+                    : 'bg-white/10 border-white/20 hover:bg-white/20 text-white'
+                }`}
               >
-                <Bell size={20} className="text-purple-400" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
+                <Filter size={18} />
+                <span className="hidden sm:inline">Bộ lọc</span>
               </button>
-              {notifDropdown && (
-                <div className="absolute right-0 mt-2 z-50">
-                  <NotificationDropdown
-                    userId={userId}
-                    onViewAll={() => setNotifDropdown(false)}
-                    onRedirect={() => setNotifDropdown(false)}
-                    t={t}
-                  />
-                </div>
-              )}
+
+              <ExportButtons />
+
+              <div className="relative">
+                <button
+                  onClick={() => setNotifDropdown(!notifDropdown)}
+                  className="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all relative"
+                >
+                  <Bell size={20} className="text-purple-400" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                {notifDropdown && (
+                  <div className="absolute right-0 mt-2 z-50">
+                    <NotificationDropdown
+                      userId={userId}
+                      userRole={2}
+                      onViewAll={() => setNotifDropdown(false)}
+                      onRedirect={() => setNotifDropdown(false)}
+                      t={t}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Period Filter */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 mb-4">
-            {periodTabs.filter(tab => 
-              [1, 3, 5, 12, 13, 9, 16].includes(tab.id)
-            ).map((tab) => (
+          {/* Period Filter */}
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2 mb-4">
+              {periodTabs.filter(tab => 
+                [1, 3, 5, 12, 13, 9, 16].includes(tab.id)
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => handlePeriodChange(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedPeriod === tab.id
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                      : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:bg-white/20 hover:text-white'
+                  }`}
+                >
+                  <span className="text-lg">{tab.icon}</span>
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.shortLabel}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Date Range */}
+          {selectedPeriod === TimePeriod.Custom && (
+            <div className="mb-6 p-4 rounded-lg bg-white/10 backdrop-blur-sm border border-purple-400/30">
+              <h3 className="text-lg font-semibold mb-4 text-purple-200">Chọn khoảng thời gian tùy chỉnh</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-purple-200">Từ ngày</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-purple-200">Đến ngày</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <Card className="mb-6 bg-white/10 backdrop-blur-sm border-purple-400/30">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-4 text-purple-200">Bộ lọc nâng cao</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-purple-200">Nhóm dữ liệu theo</label>
+                    <select
+                      value={groupBy}
+                      onChange={(e) => setGroupBy(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    >
+                      {groupByOptions.map(option => (
+                        <option key={option.value} value={option.value} className="bg-gray-800">
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Current Filter Status */}
+          <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-300/30">
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-purple-300" />
+                <span className="text-purple-200">Thời gian:</span>
+                <span className="font-semibold text-white">{getCurrentPeriodLabel()}</span>
+                {selectedPeriod === TimePeriod.Custom && customStartDate && customEndDate && (
+                  <span className="text-sm text-purple-200">
+                    ({new Date(customStartDate).toLocaleDateString('vi-VN')} - {new Date(customEndDate).toLocaleDateString('vi-VN')})
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-blue-300" />
+                <span className="text-blue-200">Nhóm:</span>
+                <span className="font-semibold text-white">{groupByOptions.find(opt => opt.value === groupBy)?.label}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <DashboardSummaryCards filter={currentFilter} />
+
+          {/* Chart Tabs */}
+          <div className="mb-6">
+            <div className="flex gap-2 mb-4">
               <button
-                key={tab.id}
-                onClick={() => handlePeriodChange(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedPeriod === tab.id
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                onClick={() => setActiveTab('revenue')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  activeTab === 'revenue'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
                     : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:bg-white/20 hover:text-white'
                 }`}
               >
-                <span className="text-lg">{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden">{tab.shortLabel}</span>
+                Doanh thu
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Custom Date Range */}
-        {selectedPeriod === TimePeriod.Custom && (
-          <div className="mb-6 p-4 rounded-lg bg-white/10 backdrop-blur-sm border border-purple-400/30">
-            <h3 className="text-lg font-semibold mb-4 text-purple-200">Chọn khoảng thời gian tùy chỉnh</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-purple-200">Từ ngày</label>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-purple-200">Đến ngày</label>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-              </div>
+              <button
+                onClick={() => setActiveTab('tickets')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  activeTab === 'tickets'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:bg-white/20 hover:text-white'
+                }`}
+              >
+                Thống kê vé
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Advanced Filters */}
-        {showAdvancedFilters && (
-          <Card className="mb-6 bg-white/10 backdrop-blur-sm border-purple-400/30">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4 text-purple-200">Bộ lọc nâng cao</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-purple-200">Nhóm dữ liệu theo</label>
-                  <select
-                    value={groupBy}
-                    onChange={(e) => setGroupBy(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg border border-purple-300/30 bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  >
-                    {groupByOptions.map(option => (
-                      <option key={option.value} value={option.value} className="bg-gray-800">
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Current Filter Status */}
-        <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-300/30">
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-purple-300" />
-              <span className="text-purple-200">Thời gian:</span>
-              <span className="font-semibold text-white">{getCurrentPeriodLabel()}</span>
-              {selectedPeriod === TimePeriod.Custom && customStartDate && customEndDate && (
-                <span className="text-sm text-purple-200">
-                  ({new Date(customStartDate).toLocaleDateString('vi-VN')} - {new Date(customEndDate).toLocaleDateString('vi-VN')})
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-blue-300" />
-              <span className="text-blue-200">Nhóm:</span>
-              <span className="font-semibold text-white">{groupByOptions.find(opt => opt.value === groupBy)?.label}</span>
-            </div>
-          </div>
+          {/* Chart Content */}
+          {activeTab === 'revenue' && (
+            <RevenueChartSection 
+              filter={{
+                CustomStartDate: customStartDate,
+                CustomEndDate: customEndDate,
+                GroupBy: groupBy,
+                Period: selectedPeriod
+              }}
+            />
+          )}
+          {activeTab === 'tickets' && (
+            <TicketStatsSection 
+              filter={{
+                CustomStartDate: customStartDate,
+                CustomEndDate: customEndDate,
+                GroupBy: groupBy,
+                Period: selectedPeriod
+              }}
+            />
+          )}
         </div>
-
-        {/* Summary Cards */}
-        <DashboardSummaryCards filter={currentFilter} />
-
-        {/* Chart Tabs */}
-        <div className="mb-6">
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setActiveTab('revenue')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'revenue'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:bg-white/20 hover:text-white'
-              }`}
-            >
-              Doanh thu
-            </button>
-            <button
-              onClick={() => setActiveTab('tickets')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeTab === 'tickets'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
-                  : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:bg-white/20 hover:text-white'
-              }`}
-            >
-              Thống kê vé
-            </button>
-          </div>
-        </div>
-
-        {/* Chart Content */}
-        {activeTab === 'revenue' && (
-          <RevenueChartSection 
-            filter={{
-              CustomStartDate: customStartDate,
-              CustomEndDate: customEndDate,
-              GroupBy: groupBy,
-              Period: selectedPeriod
-            }}
-          />
-        )}
-        {activeTab === 'tickets' && (
-          <TicketStatsSection 
-            filter={{
-              CustomStartDate: customStartDate,
-              CustomEndDate: customEndDate,
-              GroupBy: groupBy,
-              Period: selectedPeriod
-            }}
-          />
-        )}
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

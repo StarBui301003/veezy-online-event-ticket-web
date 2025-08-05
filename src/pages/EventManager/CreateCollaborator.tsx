@@ -4,7 +4,6 @@ import { createCollaboratorAccount, addCollaborator, getEventById } from '@/serv
 import { toast } from 'react-toastify';
 import { FaUsers, FaSave } from "react-icons/fa";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { validateFields, collaboratorValidationConfig } from '@/lib/formValidation';
 import { useTranslation } from 'react-i18next';
 
 interface Event {
@@ -39,7 +38,7 @@ export default function CreateCollaborator() {
     fullName: "",
     dateOfBirth: ""
   });
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof CollaboratorFormData, string[]>>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
 
   // Get current user's accountId for emId field
@@ -65,7 +64,7 @@ export default function CreateCollaborator() {
         })
         .catch((error) => {
           console.error("Failed to fetch event:", error);
-          toast.error(t("event_manager.create_collaborator.errorLoadingEvent"));
+          toast.error(t("error_createFailed"));
         })
         .finally(() => {
           setLoading(false);
@@ -75,65 +74,106 @@ export default function CreateCollaborator() {
     }
   }, [eventId, t]);
 
-  // Validate form using shared logic
-  const validateForm = () => {
-    // Convert formData to Record<string, string> for validateFields
-    const data: Record<string, string> = Object.fromEntries(Object.entries(formData));
-    const errors = validateFields(data, collaboratorValidationConfig, t);
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+  // Simple validation function
+  const validateField = (name: string, value: string) => {
+    const newErrors = { ...errors };
+    
+    // Required field validation
+    if (!value.trim()) {
+      newErrors[name] = t('validation_required');
+    } else {
+      delete newErrors[name];
+      
+      // Email format validation
+      if (name === 'email' && !/^\S+@\S+\.\S+$/.test(value)) {
+        newErrors[name] = t('validation_invalidEmail');
+      }
+      
+      // Phone format validation (simple check for digits only)
+      if (name === 'phone' && !/^\d+$/.test(value)) {
+        newErrors[name] = t('validation_invalidPhone');
+      }
+      
+      // Password length check
+      if (name === 'password' && value.length < 6) {
+        newErrors[name] = t('validation_passwordMinLength', { min: 6 });
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof CollaboratorFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Validate on change
+    validateField(field, value);
+  };
+
+  const handleBlur = (field: keyof CollaboratorFormData) => {
+    validateField(field, formData[field]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all fields
+    let isValid = true;
+    Object.entries(formData).forEach(([field, value]) => {
+      if (!validateField(field, value)) {
+        isValid = false;
+      }
+    });
+    
+    if (!isValid) {
+      toast.error(t('validation_fixErrors'));
+      return;
+    }
+    
     if (!currentUserAccountId) {
-      toast.warn(t("event_manager.create_collaborator.errorNoEventManager"));
+      toast.error(t('validation_noEventManager'));
       return;
     }
-    if (!validateForm()) {
-      toast.warn(t("event_manager.create_collaborator.errorFillAllFields"));
-      return;
-    }
+    
     setIsSubmitting(true);
+    
     try {
       const accountData = {
         ...formData,
         emId: currentUserAccountId
       };
+      
       const accountResult = await createCollaboratorAccount(accountData);
-      if (accountResult.flag && accountResult.data?.accountId) {
-        if (eventId) {
-          const addResult = await addCollaborator(eventId, accountResult.data.accountId);
-          if (addResult.flag) {
-            toast.success(t("event_manager.create_collaborator.successCreateAndAddCollaborator"));
-            navigate('/event-manager/collaborators');
-          } else {
-            toast.warn(`${t("event_manager.create_collaborator.accountCreated")}, ${t("event_manager.create_collaborator.errorAddingToEvent")}: ${addResult.message}`);
-            navigate('/event-manager/collaborators');
-          }
+      
+      if (!accountResult.flag) {
+        throw new Error(accountResult.message || t('error_createFailed'));
+      }
+      
+      if (eventId) {
+        const addResult = await addCollaborator(eventId, accountResult.data.accountId);
+        if (!addResult.flag) {
+          toast.warn(t('warning_accountCreatedButNotAdded', { message: addResult.message }));
         } else {
-          toast.success(t("event_manager.create_collaborator.successCreateCollaborator"));
-          navigate('/event-manager/collaborators');
+          toast.success(t('success_collaboratorAdded'));
         }
       } else {
-        toast.error(accountResult.message || t("event_manager.create_collaborator.errorCreateCollaborator"));
+        toast.success(t('success_collaboratorCreated'));
       }
-    } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || t("event_manager.create_collaborator.errorOccurred"));
+      
+      navigate('/event-manager/collaborators');
+      
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || t('error_unknownError');
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (field: keyof CollaboratorFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] flex items-center justify-center">
-        <div className="text-white text-xl">{t("event_manager.create_collaborator.loading")}</div>
+        <div className="text-white text-xl">{t("createCollaborator_loading")}</div>
       </div>
     );
   }
@@ -147,11 +187,11 @@ export default function CreateCollaborator() {
             <FaUsers className="text-4xl text-pink-400" />
             <div>
               <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-yellow-400">
-                {t("event_manager.create_collaborator.createNewCollaborator")}
+                {t("createCollaborator_title")}
               </h1>
               {event && (
                 <p className="text-slate-300 mt-2">
-                  {t("event_manager.create_collaborator.createAccountAndAddToEvent")}: <span className="text-yellow-300 font-semibold">{event.eventName}</span>
+                  {t("createCollaborator_createAccountAndAddToEvent")}: <span className="text-yellow-300 font-semibold">{event.eventName}</span>
                 </p>
               )}
             </div>
@@ -165,66 +205,70 @@ export default function CreateCollaborator() {
               {/* Username */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.username")} *
+                  {t("createCollaborator_username")} *
                 </label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${formErrors.username?.length ? 'border-red-500' : 'border-pink-500/30'}`}
-                  placeholder={t("event_manager.create_collaborator.enterUsername")}
+                  onBlur={() => handleBlur('username')}
+                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${errors.username ? 'border-red-500' : 'border-pink-500/30'}`}
+                  placeholder={t("createCollaborator_enterUsername")}
                 />
-                {formErrors.username && Array.isArray(formErrors.username) && formErrors.username.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.username && (
+                  <div className="text-red-400 text-xs mt-1">{errors.username}</div>
+                )}
               </div>
 
               {/* Email */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.email")} *
+                  {t("createCollaborator_email")} *
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${formErrors.email?.length ? 'border-red-500' : 'border-pink-500/30'}`}
-                  placeholder={t("event_manager.create_collaborator.emailPlaceholder")}
+                  onBlur={() => handleBlur('email')}
+                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${errors.email ? 'border-red-500' : 'border-pink-500/30'}`}
+                  placeholder={t("createCollaborator_emailPlaceholder")}
                 />
-                {formErrors.email && Array.isArray(formErrors.email) && formErrors.email.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.email && (
+                  <div className="text-red-400 text-xs mt-1">{errors.email}</div>
+                )}
               </div>
 
               {/* Phone */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.phone")} *
+                  {t("createCollaborator_phone")} *
                 </label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${formErrors.phone?.length ? 'border-red-500' : 'border-pink-500/30'}`}
-                  placeholder={t("event_manager.create_collaborator.phonePlaceholder")}
+                  onBlur={() => handleBlur('phone')}
+                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${errors.phone ? 'border-red-500' : 'border-pink-500/30'}`}
+                  placeholder={t("createCollaborator_phonePlaceholder")}
                 />
-                {formErrors.phone && Array.isArray(formErrors.phone) && formErrors.phone.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.phone && (
+                  <div className="text-red-400 text-xs mt-1">{errors.phone}</div>
+                )}
               </div>
 
               {/* Password */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.password")} *
+                  {t("createCollaborator_password")} *
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 pr-12 text-white placeholder-pink-400 ${formErrors.password?.length ? 'border-red-500' : 'border-pink-500/30'}`}
-                    placeholder={t("event_manager.create_collaborator.enterPassword")}
+                    onBlur={() => handleBlur('password')}
+                    className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 pr-12 text-white placeholder-pink-400 ${errors.password ? 'border-red-500' : 'border-pink-500/30'}`}
+                    placeholder={t("createCollaborator_enterPassword")}
                   />
                   <button
                     type="button"
@@ -235,42 +279,44 @@ export default function CreateCollaborator() {
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {formErrors.password && Array.isArray(formErrors.password) && formErrors.password.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.password && (
+                  <div className="text-red-400 text-xs mt-1">{errors.password}</div>
+                )}
               </div>
 
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.fullName")} *
+                  {t("createCollaborator_fullName")} *
                 </label>
                 <input
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${formErrors.fullName?.length ? 'border-red-500' : 'border-pink-500/30'}`}
-                  placeholder={t("event_manager.create_collaborator.fullNamePlaceholder")}
+                  onBlur={() => handleBlur('fullName')}
+                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${errors.fullName ? 'border-red-500' : 'border-pink-500/30'}`}
+                  placeholder={t("createCollaborator_fullNamePlaceholder")}
                 />
-                {formErrors.fullName && Array.isArray(formErrors.fullName) && formErrors.fullName.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.fullName && (
+                  <div className="text-red-400 text-xs mt-1">{errors.fullName}</div>
+                )}
               </div>
 
               {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-bold text-pink-300 mb-2">
-                  {t("event_manager.create_collaborator.dateOfBirth")} *
+                  {t("createCollaborator_dateOfBirth")} *
                 </label>
                 <input
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${formErrors.dateOfBirth?.length ? 'border-red-500' : 'border-pink-500/30'}`}
+                  onBlur={() => handleBlur('dateOfBirth')}
+                  className={`w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-white placeholder-pink-400 ${errors.dateOfBirth ? 'border-red-500' : 'border-pink-500/30'}`}
                 />
-                {formErrors.dateOfBirth && Array.isArray(formErrors.dateOfBirth) && formErrors.dateOfBirth.map((msg, idx) => (
-                  <div className="text-red-400 text-xs mt-1" key={idx}>{msg}</div>
-                ))}
+                {errors.dateOfBirth && (
+                  <div className="text-red-400 text-xs mt-1">{errors.dateOfBirth}</div>
+                )}
               </div>
             </div>
 
@@ -281,7 +327,7 @@ export default function CreateCollaborator() {
                 onClick={() => navigate('/event-manager/collaborators')}
                 className="px-8 py-4 bg-gray-600 text-white rounded-xl hover:bg-gray-500 transition-all duration-200 font-bold"
               >
-                {t("event_manager.create_collaborator.cancel")}
+                {t("createCollaborator_cancel")}
               </button>
               <button
                 type="submit"
@@ -289,7 +335,7 @@ export default function CreateCollaborator() {
                 className="px-8 py-4 bg-gradient-to-r from-pink-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white rounded-xl font-bold transition-all duration-200 flex items-center gap-2 disabled:opacity-50"
               >
                 <FaSave />
-                {isSubmitting ? t("event_manager.create_collaborator.creating") : t("event_manager.create_collaborator.createCollaborator")}
+                {isSubmitting ? t("createCollaborator_creating") : t("createCollaborator_createCollaborator")}
               </button>
             </div>
           </form>

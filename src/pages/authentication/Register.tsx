@@ -19,17 +19,24 @@ import FaceCapture from '@/components/common/FaceCapture';
 import { registerWithFaceAPI } from '@/services/auth.service';
 
 export const Register = () => {
-  const [date, setDate] = useState<Date>();
+  // Restore from sessionStorage if available
+  const [date, setDate] = useState<Date | undefined>(() => {
+    const saved = sessionStorage.getItem('register_date');
+    return saved ? new Date(saved) : undefined;
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [username, setUsername] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState(() => sessionStorage.getItem('register_username') || '');
+  const [fullName, setFullName] = useState(() => sessionStorage.getItem('register_fullName') || '');
+  const [phone, setPhone] = useState(() => sessionStorage.getItem('register_phone') || '');
+  const [email, setEmail] = useState(() => sessionStorage.getItem('register_email') || '');
+  const [password, setPassword] = useState(() => sessionStorage.getItem('register_password') || '');
+  const [confirmPassword, setConfirmPassword] = useState(() => sessionStorage.getItem('register_confirmPassword') || '');
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<number | null>(null);
+  const [role, setRole] = useState<number | null>(() => {
+    const saved = sessionStorage.getItem('register_role');
+    return saved ? Number(saved) : null;
+  });
   const [showRoleModal, setShowRoleModal] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [showFaceModal, setShowFaceModal] = useState(false);
@@ -37,6 +44,16 @@ export const Register = () => {
   const faceRegisteringRef = useRef(false);
 
   const navigate = useNavigate();
+
+  // Save to sessionStorage on change
+  useEffect(() => { sessionStorage.setItem('register_username', username); }, [username]);
+  useEffect(() => { sessionStorage.setItem('register_fullName', fullName); }, [fullName]);
+  useEffect(() => { sessionStorage.setItem('register_phone', phone); }, [phone]);
+  useEffect(() => { sessionStorage.setItem('register_email', email); }, [email]);
+  useEffect(() => { sessionStorage.setItem('register_password', password); }, [password]);
+  useEffect(() => { sessionStorage.setItem('register_confirmPassword', confirmPassword); }, [confirmPassword]);
+  useEffect(() => { sessionStorage.setItem('register_role', role !== null ? String(role) : ''); }, [role]);
+  useEffect(() => { if (date) sessionStorage.setItem('register_date', date.toISOString()); }, [date]);
 
   const handleRegister = async () => {
     // Clear previous errors
@@ -109,6 +126,15 @@ export const Register = () => {
       });
 
       sessionStorage.setItem('registerEmail', email);
+      // Clear form data from sessionStorage after successful register
+      sessionStorage.removeItem('register_username');
+      sessionStorage.removeItem('register_fullName');
+      sessionStorage.removeItem('register_phone');
+      sessionStorage.removeItem('register_email');
+      sessionStorage.removeItem('register_password');
+      sessionStorage.removeItem('register_confirmPassword');
+      sessionStorage.removeItem('register_role');
+      sessionStorage.removeItem('register_date');
 
       if (response && response.flag && response.code === 200) {
         toast.success('Registration successful! Please verify your email.');

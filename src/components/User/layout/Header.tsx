@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { NotificationDropdown } from '@/components/common/NotificationDropdown';
+import NotificationDropdown from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
 import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
@@ -463,6 +463,7 @@ export const Header = () => {
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
+                    userRole={1}
                     onViewAll={() => {
                       setNotifDropdown(false);
                       navigate('/notifications');

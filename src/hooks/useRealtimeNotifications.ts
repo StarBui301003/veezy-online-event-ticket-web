@@ -2,14 +2,14 @@ import { useNotificationContext } from '@/contexts/NotificationContext';
 import { markNotificationRead, markAllNotificationsRead } from '@/services/notification.service';
 import { useCallback } from 'react';
 
-export const useRealtimeNotifications = () => {
+export const useRealtimeNotifications = (userRole?: number) => {
   const { 
     notifications, 
     unreadCount, 
     markAsRead, 
     markAllAsRead, 
     refreshNotifications 
-  } = useNotificationContext();
+  } = useNotificationContext(userRole);
 
   // Mark single notification as read (with API call)
   const handleMarkAsRead = useCallback(async (notificationId: string, userId: string) => {
