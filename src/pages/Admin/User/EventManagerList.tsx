@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { getEventManagersWithFilter, UserFilterParams } from '@/services/Admin/user.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+import { connectIdentityHub } from '@/services/signalr.service';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
@@ -122,20 +122,7 @@ export const EventManagerList = () => {
     connectIdentityHub('http://localhost:5001/hubs/notifications');
 
     // Listen for real-time event manager updates
-    onIdentity('EventManagerCreated', (data: any) => {
-      console.log('👤 Event Manager created:', data);
-      fetchUsers();
-    });
-
-    onIdentity('EventManagerUpdated', (data: any) => {
-      console.log('👤 Event Manager updated:', data);
-      fetchUsers();
-    });
-
-    onIdentity('EventManagerDeleted', (data: any) => {
-      console.log('👤 Event Manager deleted:', data);
-      fetchUsers();
-    });
+    // No specific events for EventManager in backend currently
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

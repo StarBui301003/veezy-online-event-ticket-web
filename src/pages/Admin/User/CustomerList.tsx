@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { getCustomersWithFilter, UserFilterParams } from '@/services/Admin/user.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+import { connectIdentityHub } from '@/services/signalr.service';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
@@ -120,20 +120,7 @@ export const CustomerList = () => {
     connectIdentityHub('http://localhost:5001/hubs/notifications');
 
     // Listen for real-time customer user updates
-    onIdentity('CustomerCreated', (data: any) => {
-      console.log('👤 Customer created:', data);
-      fetchUsers();
-    });
-
-    onIdentity('CustomerUpdated', (data: any) => {
-      console.log('👤 Customer updated:', data);
-      fetchUsers();
-    });
-
-    onIdentity('CustomerDeleted', (data: any) => {
-      console.log('👤 Customer deleted:', data);
-      fetchUsers();
-    });
+    // No specific events for Customer in backend currently
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

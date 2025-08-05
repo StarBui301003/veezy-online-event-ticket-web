@@ -126,16 +126,6 @@ export const AdminList = () => {
       console.log('👤 Admin created:', data);
       fetchUsers();
     });
-
-    onIdentity('AdminUpdated', (data: any) => {
-      console.log('👤 Admin updated:', data);
-      fetchUsers();
-    });
-
-    onIdentity('AdminDeleted', (data: any) => {
-      console.log('👤 Admin deleted:', data);
-      fetchUsers();
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -27,7 +27,7 @@ import {
 import { RingLoader } from 'react-spinners';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
-interface AdminNotificationListProps {
+interface PersonalNotificationListProps {
   className?: string;
   onUnreadCountChange?: (count: number) => void;
 }
@@ -170,7 +170,7 @@ const formatDate = (dateString: string) => {
   }
 };
 
-export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({ className }) => {
+export const PersonalNotificationList: React.FC<PersonalNotificationListProps> = ({ className }) => {
   const { getCardClass, getBorderClass, getTextClass } = useThemeClasses();
   const [notifications, setNotifications] = useState<PersonalNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +230,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
   // Không có API đếm unread cho cá nhân, có thể bỏ hoặc tính thủ công nếu muốn
 
   useEffect(() => {
-    console.log('AdminNotificationList: Component mounted, setting up event listeners...');
+    console.log('PersonalNotificationList: Component mounted, setting up event listeners...');
 
     // Don't create separate connection, use the global one from App.tsx
     // connectNotificationHub('http://localhost:5003/hubs/notifications');
@@ -241,26 +241,23 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
 
     // Listen for realtime notifications
     const reloadNotifications = () => {
-      console.log('AdminNotificationList: Reloading notifications...');
+      console.log('PersonalNotificationList: Reloading notifications...');
       fetchNotifications();
+      fetchUnreadCount();
     };
 
-    // Listen for admin notifications
-    onNotification('ReceiveAdminNotification', (data) => {
-      console.log('AdminNotificationList: Received ReceiveAdminNotification', data);
-      reloadNotifications();
-    });
-    onNotification('AdminNotificationRead', (data) => {
-      console.log('AdminNotificationList: Received AdminNotificationRead', data);
-      reloadNotifications();
-    });
-    onNotification('AdminAllNotificationsRead', () => {
-      console.log('AdminNotificationList: Received AdminAllNotificationsRead');
-      reloadNotifications();
-    });
-    onNotification('AdminNotificationDeleted', (data) => {
-      console.log('AdminNotificationList: Received AdminNotificationDeleted', data);
-      reloadNotifications();
+    // Listen for personal notifications (correct event name)
+    onNotification('ReceiveNotification', (data) => {
+      console.log('PersonalNotificationList: Received ReceiveNotification', data);
+      // Check if this notification is for the current user
+      const account = localStorage.getItem('account');
+      const currentUserId = account ? JSON.parse(account).userId : '';
+      if (data && data.userId === currentUserId) {
+        console.log('PersonalNotificationList: Notification is for current user, reloading...');
+        reloadNotifications();
+      } else {
+        console.log('PersonalNotificationList: Notification is not for current user, ignoring...');
+      }
     });
 
     // Don't cleanup global connection on unmount
@@ -374,7 +371,7 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
                   <button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 dark:bg-gray-700 backdrop-blur-md font-medium isolation-auto border border-gray-200 dark:border-gray-600 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group text-gray-900 dark:text-gray-100 hover:text-gray-50"
+                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 dark:bg-gray-700 backdrop-blur-md font-medium isolation-auto border border-gray-200 dark:border-gray-600 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group text-gray-900 dark:text-gray-100 hover:text-white"
                   >
                     Mark all read
                     <CheckCircle className="w-4 h-4" />

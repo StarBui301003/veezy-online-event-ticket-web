@@ -1055,6 +1055,8 @@ const ProfileCustomer = () => {
                   setShowFaceModal(false);
                   await refetchFaceAuth();
                 } catch (e: unknown) {
+                  console.error('Face update error:', e);
+                  
                   let msg = 'Face update failed!';
                   if (
                     typeof e === 'object' &&
@@ -1065,12 +1067,27 @@ const ProfileCustomer = () => {
                   ) {
                     const m = (e as { response: { data: { message: string } } }).response.data
                       .message;
+                    
+                    // Check for all possible face authentication errors
                     if (
                       m.includes('This face is already registered to another account') ||
+                      m.includes('already registered') ||
                       m.includes('Liveness check failed') ||
-                      m.includes('No face detected in photo') ||
+                      m.includes('No face detected') ||
                       m.includes('Multiple faces detected') ||
-                      m.includes('Fake detected. Please use live photo')
+                      m.includes('Fake detected') ||
+                      m.includes('Face too small') ||
+                      m.includes('Face too blurry') ||
+                      m.includes('Invalid face angle') ||
+                      m.includes('Poor image quality') ||
+                      m.includes('Only accept JPG, JPEG or PNG') ||
+                      m.includes('Must smaller than 5MB') ||
+                      m.includes('Face image is required') ||
+                      m.includes('AI service not response') ||
+                      m.includes('An error occurred while processing the face image') ||
+                      m.includes('Face embedding is null') ||
+                      m.includes('Invalid token') ||
+                      m.includes('Account not found')
                     ) {
                       msg = m;
                     }

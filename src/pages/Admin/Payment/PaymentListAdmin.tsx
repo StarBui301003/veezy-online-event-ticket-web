@@ -91,9 +91,8 @@ const PaymentListAdmin = () => {
       fetchData();
     };
     onPayment('OnPaymentCreated', reload);
-    onPayment('OnPaymentStatusChanged', reload);
-    onPayment('OnPaymentSuccess', reload);
-    onPayment('OnPaymentFailed', reload);
+    onPayment('OnPaymentVerified', reload);
+    onPayment('OnPaymentListFetched', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
