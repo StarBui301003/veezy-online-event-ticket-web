@@ -70,13 +70,15 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
   return (
     <>
       <Dialog open={!!event} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-          <div className="p-4">
+        <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+          <div className="p-6 border-b border-gray-200 dark:border-0">
             <DialogHeader>
-              <DialogTitle>Event Details</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                Event Details
+              </DialogTitle>
             </DialogHeader>
           </div>
-          <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+          <div className="space-y-2 max-h-[70vh] overflow-y-auto p-6">
             {/* Cover Image */}
             <div className="flex flex-col items-center mb-4">
               <div className="w-69 h-48 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
@@ -271,7 +273,7 @@ export const ApprovedEventDetailModal = ({ event, onClose }: Props) => {
             </div>
             {/* Ticket List */}
             <div>
-              <b>Tickets:</b>
+              <label className="block text-xs text-gray-500 mb mt-5">Ticket</label>
               <div className="mt-2 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow">
                 {loadingTickets ? (
                   <div className="text-gray-500 p-4">Loading tickets...</div>

@@ -24,7 +24,8 @@ export enum AdminNotificationType {
     UserReport = 7,
     ContentReport = 8,
     NewPost = 9,
-    Other = 10
+    ChatMessage = 10,
+    Other = 11
 }
 
 
@@ -34,7 +35,8 @@ export enum AdminNotificationTargetType {
     Event = 1,
     News = 2,
     Report = 3,
-    User = 4
+    User = 4,
+    Chat = 5
 }
 
 export interface AdminNotificationResponse {

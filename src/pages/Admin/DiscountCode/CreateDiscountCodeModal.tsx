@@ -25,6 +25,7 @@ import {
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
 import { formatCurrency } from '@/utils/format';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface Props {
   open: boolean;
@@ -45,6 +46,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   });
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
+
+  // Use theme classes
+  const { getProfileInputClass } = useThemeClasses();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -186,27 +190,33 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-600">
           <DialogHeader>
-            <DialogTitle>Create Discount Code</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Create Discount Code
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-gray-800">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Event</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Event</label>
             <Select onValueChange={handleEventChange} disabled={loading} value={form.eventId}>
               <SelectTrigger
                 className={getErrorClass(
                   'eventId',
-                  'border-gray-200 w-full border px-3 py-2 rounded'
+                  'border-gray-200 dark:border-gray-600 w-full border px-3 py-2 rounded text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <SelectValue placeholder="Select event" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 {events.map((event) => (
-                  <SelectItem key={event.eventId} value={event.eventId.toString()}>
+                  <SelectItem
+                    key={event.eventId}
+                    value={event.eventId.toString()}
+                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
                     {event.eventName}
                   </SelectItem>
                 ))}
@@ -218,9 +228,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Code</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Code</label>
             <input
-              className={getErrorClass('code', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('code', getProfileInputClass())}
               name="code"
               value={form.code}
               onChange={handleCodeChange}
@@ -233,7 +243,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Discount Type</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Discount Type
+            </label>
             <Select
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
@@ -242,15 +254,30 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               <SelectTrigger
                 className={getErrorClass(
                   'discountType',
-                  'border-gray-200 border px-3 py-2 rounded w-full'
+                  'border-gray-200 dark:border-gray-600 border px-3 py-2 rounded w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Percentage</SelectItem>
-                <SelectItem value="1">Amount</SelectItem>
-                <SelectItem value="3">Other</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                <SelectItem
+                  value="0"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Percentage
+                </SelectItem>
+                <SelectItem
+                  value="1"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Amount
+                </SelectItem>
+                <SelectItem
+                  value="3"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Other
+                </SelectItem>
               </SelectContent>
             </Select>
             {getFieldError('discountType') && (
@@ -259,11 +286,11 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
               Value {form.discountType === 0 ? '(%)' : '(VND)'}
             </label>
             <input
-              className={getErrorClass('value', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('value', getProfileInputClass())}
               name="value"
               type="number"
               value={form.value || ''}
@@ -284,11 +311,12 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Minimum Amount (VND) <span className="text-gray-400">- Optional</span>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Minimum Amount (VND){' '}
+              <span className="text-gray-400 dark:text-gray-500">- Optional</span>
             </label>
             <input
-              className={getErrorClass('minimum', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('minimum', getProfileInputClass())}
               name="minimum"
               type="number"
               value={form.minimum || ''}
@@ -305,11 +333,12 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
 
           {form.discountType !== 1 && (
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
-                Maximum Discount (VND) <span className="text-gray-400">- Optional</span>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Maximum Discount (VND){' '}
+                <span className="text-gray-400 dark:text-gray-500">- Optional</span>
               </label>
               <input
-                className={getErrorClass('maximum', 'border px-3 py-2 rounded w-full')}
+                className={getErrorClass('maximum', getProfileInputClass())}
                 name="maximum"
                 type="number"
                 value={form.maximum || ''}
@@ -326,9 +355,9 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           )}
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Max Usage</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max Usage</label>
             <input
-              className={getErrorClass('maxUsage', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('maxUsage', getProfileInputClass())}
               name="maxUsage"
               type="number"
               value={form.maxUsage}
@@ -344,9 +373,11 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Expired At</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Expired At
+            </label>
             <input
-              className={getErrorClass('expiredAt', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass('expiredAt', getProfileInputClass())}
               name="expiredAt"
               type="datetime-local"
               value={form.expiredAt}
@@ -358,7 +389,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
             )}
           </div>
         </div>
-        <div className="p-4 flex justify-end gap-2">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-600 flex justify-end gap-2">
           <DialogFooter>
             <button
               className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"

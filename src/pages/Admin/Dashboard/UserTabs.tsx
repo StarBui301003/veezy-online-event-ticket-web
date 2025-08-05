@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react';
 import { getUserAnalytics } from '@/services/Admin/dashboard.service';
 import {
@@ -117,26 +118,30 @@ export default function UserTabs() {
 
   useEffect(() => {
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   const cardClass =
-    'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
+    'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-800/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4 flex flex-col justify-between';
 
   // Pie colors
   const PIE_COLORS = ['#60a5fa', '#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#f59e42'];
 
   return (
-    <div className="space-y-6 p-3">
+    <div className="space-y-6 p-3 min-h-screen">
       {/* Filter trên cùng */}
       <div className="flex gap-4 items-center mb-4">
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
+          <SelectTrigger className="border-gray-200 dark:border-gray-600 w-40 border px-3 py-2 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
             <SelectValue placeholder="Select filter" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
             {FILTERS.map((f) => (
-              <SelectItem key={f.value} value={String(f.value)}>
+              <SelectItem
+                key={f.value}
+                value={String(f.value)}
+                className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
                 {f.label}
               </SelectItem>
             ))}
@@ -148,14 +153,14 @@ export default function UserTabs() {
               type="date"
               value={startDate ? startDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1 rounded"
+              className="border px-3 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
               placeholder="Start date"
             />
             <input
               type="date"
               value={endDate ? endDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1 rounded"
+              className="border px-3 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
               placeholder="End date"
             />
           </>
@@ -170,32 +175,32 @@ export default function UserTabs() {
         ) : (
           <>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Total Users</div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Total Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {growth.totalUsers.toLocaleString()}
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">New Users</div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">New Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {growth.newUsers.toLocaleString()}
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Active New Users</div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Active New Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {growth.activeNewUsers.toLocaleString()}
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Inactive New Users</div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Inactive New Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {growth.inactiveNewUsers.toLocaleString()}
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Online Users</div>
-              <div className="text-2xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Online Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                 {growth.onlineUsers.toLocaleString()}
               </div>
             </div>
@@ -205,8 +210,8 @@ export default function UserTabs() {
       {/* Biểu đồ phụ demographics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
         {/* PieChart usersByRole */}
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <h4 className="font-semibold mb-2">Users by Role</h4>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
+          <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Users by Role</h4>
           {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
@@ -237,8 +242,8 @@ export default function UserTabs() {
           )}
         </div>
         {/* PieChart usersByGender */}
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <h4 className="font-semibold mb-2">Users by Gender</h4>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
+          <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Users by Gender</h4>
           {demographics &&
           demographics.usersByGender &&
           Object.keys(demographics.usersByGender).length > 0 ? (
@@ -271,8 +276,10 @@ export default function UserTabs() {
           )}
         </div>
         {/* BarChart usersByAgeGroup */}
-        <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
-          <h4 className="font-semibold mb-2">Users by Age Group</h4>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
+          <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
+            Users by Age Group
+          </h4>
           {demographics &&
           demographics.usersByAgeGroup &&
           Object.keys(demographics.usersByAgeGroup).length > 0 ? (
@@ -296,7 +303,9 @@ export default function UserTabs() {
             </div>
           )}
           {demographics && demographics.averageAge && (
-            <div className="text-xs text-gray-500 mt-2">Avg. Age: {demographics.averageAge}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Avg. Age: {demographics.averageAge}
+            </div>
           )}
         </div>
       </div>

@@ -108,7 +108,7 @@ const ReportDetailModal = ({
           console.log('📰 News data fetched:', news);
           console.log('📰 News eventName:', news.eventName);
           console.log('📰 News eventId:', news.eventId);
-          
+
           // Nếu có eventId nhưng không có eventName, thì fetch event name
           if (news.eventId && !news.eventName) {
             try {
@@ -116,7 +116,7 @@ const ReportDetailModal = ({
               console.log('📰 Event data fetched for news:', eventData);
               setNewsData({
                 ...news,
-                eventName: eventData.eventName
+                eventName: eventData.eventName,
               });
             } catch (eventError) {
               console.error('Failed to fetch event data for news:', eventError);
@@ -327,16 +327,20 @@ const ReportDetailModal = ({
 
   return (
     <Dialog open={!!report} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-7xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('reportDetail')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('reportDetail')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('targetType')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('targetType')}
+              </label>
               <input
                 value={
                   targetTypeMap?.[report.targetType] ??
@@ -353,55 +357,67 @@ const ReportDetailModal = ({
                     : `Type ${report.targetType}`)
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('reporter')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('reporter')}
+              </label>
               <input
                 value={reporterName || report.reporterId}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
-              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('status')}
+              </label>
+              <div className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300">
                 {getStatusText(report.status)}
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('reason')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('reason')}
+              </label>
               <input
                 value={report.reason}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">{t('description')}</label>
-              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('description')}
+              </label>
+              <div className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto text-gray-600 dark:text-gray-300">
                 {report.description ? (
                   <span>{report.description}</span>
                 ) : (
-                  <span className="text-gray-400">{t('noDescription')}</span>
+                  <span className="text-gray-400 dark:text-gray-500">{t('noDescription')}</span>
                 )}
               </div>
             </div>
             {showNote && (
               <div className="md:col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">{t('note')}</label>
-                <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px]">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  {t('note')}
+                </label>
+                <div className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 min-h-[40px] text-gray-600 dark:text-gray-300">
                   {report.note ? (
                     <span>{report.note}</span>
                   ) : (
-                    <span className="text-gray-400">{t('noNote')}</span>
+                    <span className="text-gray-400 dark:text-gray-500">{t('noNote')}</span>
                   )}
                 </div>
               </div>
             )}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('createdAt')}
+              </label>
               <input
                 value={
                   report.createdAt
@@ -415,11 +431,13 @@ const ReportDetailModal = ({
                     : 'N/A'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('updatedAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('updatedAt')}
+              </label>
               <input
                 value={
                   report.updatedAt
@@ -433,7 +451,7 @@ const ReportDetailModal = ({
                     : 'N/A'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>

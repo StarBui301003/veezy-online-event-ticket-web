@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Bell, CheckCircle, Trash2, Eye, AlertCircle, Calendar, Clock, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import {
   getAdminNotifications,
   markAdminNotificationAsRead,
@@ -101,29 +102,29 @@ const getNotificationIcon = (type: AdminNotificationType) => {
 const getNotificationBadgeColor = (type: AdminNotificationType) => {
   switch (type) {
     case AdminNotificationType.NewEvent:
-      return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800';
     case AdminNotificationType.NewPost:
-      return 'bg-green-100 text-green-800 hover:bg-green-200';
+      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800';
     case AdminNotificationType.NewReport:
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
+      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800';
     case AdminNotificationType.PaymentIssue:
-      return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 hover:bg-orange-200 dark:hover:bg-orange-800';
     case AdminNotificationType.SystemAlert:
-      return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+      return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 hover:bg-purple-200 dark:hover:bg-purple-800';
     case AdminNotificationType.NewUser:
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800';
     case AdminNotificationType.EventApproval:
-      return 'bg-green-100 text-green-800 hover:bg-green-200';
+      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800';
     case AdminNotificationType.EventRejection:
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
+      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800';
     case AdminNotificationType.UserReport:
-      return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 hover:bg-orange-200 dark:hover:bg-orange-800';
     case AdminNotificationType.ContentReport:
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
+      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800';
     case AdminNotificationType.Other:
-      return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600';
     default:
-      return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600';
   }
 };
 
@@ -150,6 +151,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   className,
   onUnreadCountChange,
 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -160,7 +162,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalItems, setTotalItems] = useState(0);
   const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
   const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(Date.now()); // Force re-render trigger
+  const [, setLastUpdate] = useState(Date.now()); // Force re-render trigger
 
   const fetchNotifications = async () => {
     try {
@@ -221,19 +223,19 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
       console.log('AdminNotificationList: Received ReceiveAdminNotification', data);
       reloadNotifications();
     });
-    
+
     // Listen for new admin notification created events
     onNotification('OnAdminNotificationCreated', (data: any) => {
       console.log('AdminNotificationList: Received OnAdminNotificationCreated', data);
       reloadNotifications();
     });
-    
+
     onNotification('AdminNotificationRead', (data: any) => {
       console.log('AdminNotificationList: Received AdminNotificationRead', data);
       reloadNotifications();
     });
     onNotification('AdminAllNotificationsRead', () => {
-      console.log('AdminNotificationList: Received AdminAllNotificationsRead');  
+      console.log('AdminNotificationList: Received AdminAllNotificationsRead');
       reloadNotifications();
     });
     onNotification('AdminNotificationDeleted', (data: any) => {
@@ -308,13 +310,103 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     }
   };
 
+  // Get navigation path based on notification type and target type
+  const getNavigationPath = (notification: AdminNotification): string | null => {
+    // Check if this notification type should navigate
+    const navigableTypes = [
+      AdminNotificationType.NewEvent,
+      AdminNotificationType.EventApproval,
+      AdminNotificationType.EventRejection,
+      AdminNotificationType.NewReport,
+      AdminNotificationType.UserReport,
+      AdminNotificationType.ContentReport,
+      AdminNotificationType.NewPost,
+      AdminNotificationType.PaymentIssue,
+      AdminNotificationType.NewUser,
+      AdminNotificationType.ChatMessage,
+    ];
+
+    if (!navigableTypes.includes(notification.type)) {
+      return null; // Don't navigate for system alerts and other types
+    }
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case AdminNotificationType.NewEvent:
+      case AdminNotificationType.EventApproval:
+      case AdminNotificationType.EventRejection:
+        if (notification.type === AdminNotificationType.EventApproval) {
+          return '/admin/event-list?tab=approved';
+        } else if (notification.type === AdminNotificationType.EventRejection) {
+          return '/admin/event-list?tab=rejected';
+        } else {
+          return '/admin/event-list?tab=pending';
+        }
+
+      case AdminNotificationType.NewReport:
+      case AdminNotificationType.UserReport:
+      case AdminNotificationType.ContentReport:
+        return '/admin/report-list';
+
+      case AdminNotificationType.NewPost:
+        return '/admin/news-list';
+
+      case AdminNotificationType.PaymentIssue:
+        return '/admin/payment-list';
+
+      case AdminNotificationType.NewUser:
+        return '/admin/user-list';
+
+      case AdminNotificationType.ChatMessage:
+        return '/admin/chatbox';
+
+      default:
+        return null;
+    }
+  };
+
+  // Handle notification click - mark as read and navigate based on type
+  const handleNotificationClick = async (notification: AdminNotification) => {
+    try {
+      // Mark as read first
+      if (!notification.isRead) {
+        await markAdminNotificationAsRead(notification.notificationId);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.notificationId === notification.notificationId
+              ? { ...n, isRead: true, readAt: new Date().toISOString() }
+              : n
+          )
+        );
+        fetchUnreadCount();
+      }
+
+      // Get navigation path and navigate if applicable
+      const navigationPath = getNavigationPath(notification);
+      if (navigationPath) {
+        navigate(navigationPath);
+      } else {
+        // For system alerts and other types, just mark as read
+        toast.success('Notification marked as read');
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+      toast.error('Failed to process notification');
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+      <Card
+        className={
+          className +
+          ' bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg dark:shadow-gray-900/20'
+        }
+      >
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+          <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
+            <Bell className="h-5 w-5 text-blue-500" />
             Admins Notifications
             {unreadCount > 0 && (
               <Badge
@@ -326,9 +418,9 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-gray-50 dark:bg-gray-900 rounded-b-xl">
           <div className="flex items-center justify-center" style={{ minHeight: 600 }}>
-            <RingLoader color="#2563EB" size={64} />
+            <RingLoader color="#3B82F6" size={64} />
           </div>
         </CardContent>
       </Card>
@@ -339,11 +431,16 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const endIdx = notifications.length === 0 ? 0 : Math.min(page * pageSize, totalItems);
 
   return (
-    <Card className={className}>
-      <CardHeader>
+    <Card
+      className={
+        className +
+        ' bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg dark:shadow-gray-900/20 rounded-xl'
+      }
+    >
+      <CardHeader className="border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
+            <Bell className="h-5 w-5 text-blue-500" />
             Admins Notifications
             {unreadCount > 0 && (
               <Badge
@@ -363,13 +460,28 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                 setPage(1);
               }}
             >
-              <SelectTrigger className="border-gray-200 w-32 border px-3 py-2 rounded text-sm">
+              <SelectTrigger className="border-gray-200 dark:border-gray-600 w-32 border px-3 py-2 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
+                <SelectItem
+                  value="all"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  All
+                </SelectItem>
+                <SelectItem
+                  value="unread"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Unread
+                </SelectItem>
+                <SelectItem
+                  value="read"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Read
+                </SelectItem>
               </SelectContent>
             </Select>
             <button
@@ -388,24 +500,24 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                   <button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 backdrop-blur-md font-medium isolation-auto border-1 border-gray-300 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group"
+                    className="flex justify-center gap-2 items-center text-sm bg-gray-200 dark:bg-gray-700 backdrop-blur-md font-medium isolation-auto border-1 border-gray-300 dark:border-gray-600 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-3 py-1.5 overflow-hidden rounded-full group text-gray-900 dark:text-gray-100 hover:text-gray-50"
                   >
                     Mark all read
                     <CheckCircle className="w-4 h-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>Mark all notifications as read</p>
+                <TooltipContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                  <p className="text-gray-900 dark:text-gray-100">Mark all notifications as read</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="bg-gray-50 dark:bg-gray-900 rounded-b-xl">
         {notifications.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
             <p>No notifications</p>
           </div>
         ) : (
@@ -415,11 +527,12 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                 {notifications.map((notification, index) => (
                   <div key={notification.notificationId}>
                     <div
-                      className={`p-4 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      className={`p-4 rounded-[8px] border transition-all duration-200 cursor-pointer ${
                         notification.isRead
-                          ? 'bg-gray-200 border-gray-300/40 shadow-sm hover:bg-gray-100 hover:shadow-md'
-                          : 'bg-white border-blue-200 shadow-sm hover:bg-blue-50 hover:shadow-md'
+                          ? 'bg-gray-200 dark:bg-gray-700 border-gray-300/40 dark:border-gray-600/40 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 hover:shadow-md'
+                          : 'bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-600 shadow-sm hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-md'
                       }`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-1">
@@ -431,7 +544,9 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                               <div className="flex items-center gap-2 mb-1">
                                 <h4
                                   className={`font-medium text-sm ${
-                                    notification.isRead ? 'text-gray-600' : 'text-gray-900'
+                                    notification.isRead
+                                      ? 'text-gray-600 dark:text-gray-300'
+                                      : 'text-gray-900 dark:text-gray-100'
                                   }`}
                                 >
                                   {notification.title}
@@ -447,13 +562,15 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                               </div>
                               <p
                                 className={`text-sm ${
-                                  notification.isRead ? 'text-gray-500' : 'text-gray-700'
+                                  notification.isRead
+                                    ? 'text-gray-500 dark:text-gray-400'
+                                    : 'text-gray-700 dark:text-gray-300'
                                 }`}
                               >
                                 {notification.message}
                               </p>
                               <div className="flex items-center gap-4 mt-2">
-                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                                   <Clock className="h-3 w-3" />
                                   {formatDate(notification.createdAt)}
                                 </div>
@@ -476,13 +593,15 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                         onClick={() =>
                                           handleMarkAsRead(notification.notificationId)
                                         }
-                                        className="h-8 w-8 p-0"
+                                        className="h-8 w-8 p-0 dark:text-white"
                                       >
                                         <CheckCircle className="h-4 w-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Mark this notification as read</p>
+                                    <TooltipContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                                      <p className="text-gray-900 dark:text-gray-100">
+                                        Mark this notification as read
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -501,8 +620,10 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Delete this notification</p>
+                                  <TooltipContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                                    <p className="text-gray-900 dark:text-gray-100">
+                                      Delete this notification
+                                    </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -526,7 +647,9 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                         <PaginationPrevious
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
                           aria-disabled={page === 1}
-                          className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                          className={`${
+                            page === 1 ? 'pointer-events-none opacity-50' : ''
+                          } text-gray-700 dark:text-gray-100 hover:text-gray-900 dark:hover:text-white`}
                         />
                       </PaginationItem>
                       {(() => {
@@ -569,18 +692,20 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                         return pages.map((item, index) => (
                           <PaginationItem key={index}>
                             {item === '...' ? (
-                              <span className="px-2 py-1 text-gray-500">...</span>
+                              <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                ...
+                              </span>
                             ) : (
                               <PaginationLink
                                 isActive={item === page}
                                 onClick={() => setPage(item as number)}
-                                className={`transition-colors rounded 
-                                  ${
-                                    item === page
-                                      ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                      : 'text-gray-700 hover:bg-slate-200 hover:text-black'
-                                  }
-                                  px-2 py-1 mx-0.5`}
+                                className={`transition-colors rounded-[8px]
+                                   ${
+                                     item === page
+                                       ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
+                                       : 'text-gray-700 dark:text-gray-100 hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
+                                   }
+                                   px-2 py-1 mx-0.5`}
                                 style={{
                                   minWidth: 32,
                                   textAlign: 'center',
@@ -598,21 +723,23 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                         <PaginationNext
                           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                           aria-disabled={page === totalPages}
-                          className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
+                          className={`${
+                            page === totalPages ? 'pointer-events-none opacity-50' : ''
+                          } text-gray-700 dark:text-gray-100 hover:text-gray-900 dark:hover:text-white`}
                         />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>
                 </div>
                 <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-gray-700 dark:text-gray-100">
                     {notifications.length === 0
                       ? '0 of 0'
                       : `${startIdx}-${endIdx} of ${totalItems}`}
                   </span>
-                  <span className="text-sm text-gray-700">Rows per page</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-100">Rows per page</span>
                   <select
-                    className="border rounded px-2 py-1 text-sm bg-white"
+                    className="border rounded-[8px] px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
                     value={pageSize}
                     onChange={(e) => {
                       setPageSize(Number(e.target.value));

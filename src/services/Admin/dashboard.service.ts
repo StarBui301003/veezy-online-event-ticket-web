@@ -6,6 +6,7 @@ import type {
   AdminEventAnalyticsResponse,
   AdminFinancialAnalyticsResponse,
   AdminNewsAnalyticsResponse,
+  ExportAnalyticsResponse,
 } from '@/types/Admin/dashboard';
 
 export async function getAdminOverviewDashboard(params?: Record<string, any>): Promise<AdminOverviewRealtimeResponse> {
@@ -33,4 +34,29 @@ export async function getFinancialAnalytics(params?: Record<string, any>): Promi
 export async function getNewAnalytics(params?: Record<string, any>): Promise<AdminNewsAnalyticsResponse> {
   const res = await instance.get('/api/analytics/admin/news/analytics', { params });
   return res.data;
+}
+
+export async function exportAnalyticsToExcel(
+  analyticsType: string = 'all',
+  filter?: Record<string, string | number>,
+  language: number = 0
+): Promise<ExportAnalyticsResponse> {
+  const params = {
+    analyticsType,
+    language,
+    ...filter,
+  };
+
+  const res = await instance.get('/api/analytics/admin/analytics/export/excel', {
+    params,
+    responseType: 'blob'
+  });
+
+  return {
+    isSuccess: true,
+    statusCode: 200,
+    message: 'Export successful',
+    data: res.data,
+    errors: null,
+  };
 }

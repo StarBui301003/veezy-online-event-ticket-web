@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
@@ -22,23 +22,30 @@ interface ThemeToggleProps {
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
   const { t } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleThemeToggle = async () => {
+    // Prevent multiple rapid clicks
+    if (isLoading) {
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       const newTheme = theme === 'light' ? 'dark' : 'light';
       const themeNumber = newTheme === 'dark' ? 1 : 0;
 
-      // Update theme immediately for UI responsiveness
-      toggleTheme();
-
       const userId = getUserId();
       if (!userId) {
         console.warn('No userId found, theme changed locally only');
+        // Update theme locally if no userId
+        setTheme(newTheme);
         return;
       }
 
-      // Get current user config
+      // Get current user config first
       const res = await getUserConfig(userId);
       if (res?.data) {
         const newConfig = {
@@ -46,8 +53,11 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
           theme: themeNumber,
         };
 
-        // Update user config via API
+        // Update user config via API first
         await updateUserConfig(userId, newConfig);
+
+        // Only update UI after successful API call
+        setTheme(newTheme);
 
         // Save to localStorage
         localStorage.setItem('user_config', JSON.stringify(newConfig));
@@ -61,19 +71,30 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
     } catch (error) {
       console.error('Error updating theme:', error);
       toast.error(t('themeUpdateFailed'));
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <label className={`inline-flex items-center relative ${className}`}>
+    <label
+      className={`inline-flex items-center relative ${className} ${
+        isLoading ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+      }`}
+    >
       <input
         className="peer hidden"
         id="toggle"
         type="checkbox"
         checked={theme === 'dark'}
         onChange={handleThemeToggle}
+        disabled={isLoading}
       />
-      <div className="relative w-[110px] h-[50px] bg-[#e9e6e6] peer-checked:bg-zinc-500 border border-gray-300 dark:border-gray-600 rounded-full after:absolute after:content-[''] after:w-[40px] after:h-[40px] after:bg-gradient-to-r from-orange-500 to-yellow-400 peer-checked:after:from-zinc-900 peer-checked:after:to-zinc-900 after:rounded-full after:top-[5px] after:left-[5px] active:after:w-[50px] peer-checked:after:left-[105px] peer-checked:after:translate-x-[-100%] shadow-sm duration-300 after:duration-300 after:shadow-md"></div>
+      <div
+        className={`relative w-[110px] h-[50px] bg-[#e9e6e6] peer-checked:bg-zinc-500 border border-gray-300 dark:border-gray-600 rounded-full after:absolute after:content-[''] after:w-[40px] after:h-[40px] after:bg-gradient-to-r from-orange-500 to-yellow-400 peer-checked:after:from-zinc-900 peer-checked:after:to-zinc-900 after:rounded-full after:top-[5px] after:left-[5px] active:after:w-[50px] peer-checked:after:left-[105px] peer-checked:after:translate-x-[-100%] shadow-sm duration-300 after:duration-300 after:shadow-md ${
+          isLoading ? 'opacity-70' : ''
+        }`}
+      ></div>
       <svg
         height="0"
         width="100"

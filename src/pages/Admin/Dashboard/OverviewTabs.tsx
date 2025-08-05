@@ -6,7 +6,10 @@ import type {
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { toast } from 'react-toastify';
 import { AdminNotificationList } from './AdminNotificationList';
-import { getAdminOverviewDashboard } from '@/services/Admin/dashboard.service';
+import {
+  getAdminOverviewDashboard,
+  exportAnalyticsToExcel,
+} from '@/services/Admin/dashboard.service';
 import { RadialBarChart, RadialBar, Tooltip, ResponsiveContainer } from 'recharts';
 import { Clock, Download } from 'lucide-react';
 import {
@@ -21,7 +24,7 @@ import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 // import { PersonNotificationList } from './PersonNotificationList';
 
 const cardClass =
-  'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
+  'w-full min-w-[180px] max-w-[200px] bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-800/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4 flex flex-col justify-between';
 
 function CustomRadialTooltip({
   active,
@@ -84,15 +87,21 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col h-[700px]">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 flex flex-col h-[700px]">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800">System Metrics Overview</h3>
-          <p className="text-sm text-gray-500">Key metrics requiring attention</p>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+            System Metrics Overview
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Key metrics requiring attention
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-orange-500" />
-          <span className="text-sm font-medium text-gray-600">{metrics.length} metrics</span>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+            {metrics.length} metrics
+          </span>
         </div>
       </div>
       <div className="flex flex-col items-center my-4">
@@ -113,20 +122,28 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
         </ResponsiveContainer>
       </div>
       <div className="mt-6 space-y-3">
-        <h4 className="font-semibold text-sm text-gray-700 mb-3">Quick Actions</h4>
+        <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-3">
+          Quick Actions
+        </h4>
         <div className="grid grid-cols-1 gap-2">
           {metrics.map((item, index) => (
             <div
               key={index}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }}></div>
-                <span className="font-medium text-gray-800 text-sm">{item.name}</span>
+                <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">
+                  {item.name}
+                </span>
               </div>
               <div className="text-right">
-                <span className="text-lg font-bold text-gray-900">{item.value}</span>
-                <span className="text-xs text-gray-500 ml-1">/ {item.total}</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  {item.value}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                  / {item.total}
+                </span>
               </div>
             </div>
           ))}
@@ -151,6 +168,7 @@ export const OverviewTabs = () => {
   const [filter, setFilter] = useState<string>('4'); // Mặc định All
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -196,6 +214,55 @@ export const OverviewTabs = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
+  // Export function
+  const handleExportData = async () => {
+    try {
+      setExporting(true);
+
+      // Prepare filter parameters based on current state
+      const filterParams: Record<string, string | number> = {};
+
+      if (filter === '5') {
+        if (!startDate || !endDate) {
+          toast.error('Please select both start and end dates for custom export');
+          return;
+        }
+        if (endDate < startDate) {
+          toast.error('End date must be after start date');
+          return;
+        }
+        filterParams.period = 5;
+        filterParams.customStartDate = startDate.toISOString().slice(0, 10);
+        filterParams.customEndDate = endDate.toISOString().slice(0, 10);
+      } else if (filter !== '4') {
+        filterParams.period = parseInt(filter, 10);
+      }
+
+      const response = await exportAnalyticsToExcel('all', filterParams);
+
+      if (response.isSuccess) {
+        // Create download link
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `admin-analytics-all-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast.success('Export completed successfully!');
+      } else {
+        toast.error('Export failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) return <SpinnerOverlay show />;
   if (!data)
     return (
@@ -205,16 +272,20 @@ export const OverviewTabs = () => {
     );
 
   return (
-    <div className="space-y-6 p-3">
+    <div className="space-y-6 p-3  min-h-screen">
       <div className="flex gap-4 items-center justify-between mb-4">
         <div className="flex gap-4 items-center">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
+            <SelectTrigger className="border-gray-200 dark:border-gray-600 w-40 border px-3 py-2 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
               <SelectValue placeholder="Select filter" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
               {OVERVIEW_FILTERS.map((f) => (
-                <SelectItem key={f.value} value={String(f.value)}>
+                <SelectItem
+                  key={f.value}
+                  value={String(f.value)}
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
                   {f.label}
                 </SelectItem>
               ))}
@@ -226,14 +297,14 @@ export const OverviewTabs = () => {
                 type="date"
                 value={startDate ? startDate.toISOString().slice(0, 10) : ''}
                 onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-                className="border px-3 py-1 rounded"
+                className="border px-3 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
                 placeholder="Start date"
               />
               <input
                 type="date"
                 value={endDate ? endDate.toISOString().slice(0, 10) : ''}
                 onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-                className="border px-3 py-1  rounded"
+                className="border px-3 py-1  rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
                 placeholder="End date"
               />
             </>
@@ -241,54 +312,58 @@ export const OverviewTabs = () => {
         </div>
         <button
           type="button"
-          className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-          onClick={() => {
-            // TODO: Implement export functionality
-            toast.info('Export functionality coming soon!');
-          }}
+          disabled={exporting}
+          className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleExportData}
         >
           <Download className="w-4 h-4" />
-          Export Data
+          {exporting ? 'Exporting...' : 'Export Data'}
         </button>
       </div>
       {/* 5 card tổng quan */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full">
         <div className={cardClass}>
-          <div className="text-gray-500 font-medium">Users</div>
-          <div className="text-2xl font-bold text-gray-800">{data.totalUsers.toLocaleString()}</div>
-          <div className="text-xs text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400 font-medium">Users</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            {data.totalUsers.toLocaleString()}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             Active: {data.activeUsers?.toLocaleString?.() ?? 0}
           </div>
         </div>
         <div className={cardClass}>
-          <div className="text-gray-500 font-medium">Events</div>
-          <div className="text-2xl font-bold text-gray-800">
+          <div className="text-gray-500 dark:text-gray-400 font-medium">Events</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {data.totalEvents.toLocaleString()}
           </div>
-          <div className="text-xs text-gray-500">Active: {data.activeEvents}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Active: {data.activeEvents}
+          </div>
         </div>
         <div className={cardClass}>
-          <div className="text-gray-500 font-medium">News</div>
-          <div className="text-2xl font-bold text-gray-800">
+          <div className="text-gray-500 dark:text-gray-400 font-medium">News</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {data.totalNews?.toLocaleString?.() ?? 0}
           </div>
-          <div className="text-xs text-gray-500">Active: {data.activeNews ?? 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Active: {data.activeNews ?? 0}
+          </div>
         </div>
         <div className={cardClass}>
-          <div className="text-gray-500 font-medium">Tickets Sold</div>
-          <div className="text-2xl font-bold text-gray-800">
+          <div className="text-gray-500 dark:text-gray-400 font-medium">Tickets Sold</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {data.totalTicketsSold?.toLocaleString?.() ?? 0}
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             Total tickets: {data.totalTickets?.toLocaleString?.() ?? 0}
           </div>
         </div>
         <div className={cardClass}>
-          <div className="text-gray-500 font-medium">Revenue</div>
-          <div className="text-2xl font-bold text-gray-800">
+          <div className="text-gray-500 dark:text-gray-400 font-medium">Revenue</div>
+          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
             {data.totalRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
             Platform: {data.platformRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
           </div>
         </div>
@@ -304,7 +379,7 @@ export const OverviewTabs = () => {
           </div>
         </div>
         <div className="w-full">
-          <AdminNotificationList className="bg-white w-full" />
+          <AdminNotificationList className="bg-white dark:bg-gray-800 w-full" />
         </div>
       </div>
     </div>

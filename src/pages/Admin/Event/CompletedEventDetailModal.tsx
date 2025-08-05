@@ -69,16 +69,18 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-5xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>Completed Event Details</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Completed Event Details
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-6">
           {/* Cover Image */}
           <div className="flex flex-col items-center mb-4">
-            <div className="w-69 h-48 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
+            <div className="w-69 h-48 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mt-1">
               <img
                 src={event.eventCoverImageUrl || NO_IMAGE}
                 alt="cover"
@@ -90,12 +92,14 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Hiển thị từng content riêng biệt nếu có */}
           {event.contents && event.contents.length > 0 && (
             <div className="mb-4">
-              <label className="block text-xs text-gray-500 mb-1">Contents</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Contents
+              </label>
               <div className="flex flex-col gap-6">
                 {event.contents.map((c, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col md:flex-row gap-4 items-start bg-gray-100 rounded px-2 py-2 border"
+                    className="flex flex-col md:flex-row gap-4 items-start bg-gray-100 dark:bg-gray-700 rounded px-2 py-2 border dark:border-gray-600"
                   >
                     <div>
                       <img
@@ -106,10 +110,14 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-gray-700 mb-1">#{idx + 1}</div>
-                      <div className="text-gray-700 text-sm whitespace-pre-line">
+                      <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        #{idx + 1}
+                      </div>
+                      <div className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-line">
                         {c.description || (
-                          <span className="italic text-gray-400">No description</span>
+                          <span className="italic text-gray-400 dark:text-gray-500">
+                            No description
+                          </span>
                         )}
                       </div>
                     </div>
@@ -121,39 +129,45 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Name</label>
               <input
                 value={event.eventName ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Location</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Location
+              </label>
               <input
                 value={event.eventLocation ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Category</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Category
+              </label>
               <input
                 value={categoryNames.length > 0 ? categoryNames.join(', ') : 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
               <input
                 value="Completed"
                 readOnly
-                className="bg-green-200 border rounded px-2 py-1 w-full mb-1 text-green-800 font-medium"
+                className="bg-green-200 dark:bg-green-700 border dark:border-green-600 rounded px-2 py-1 w-full mb-1 text-green-800 dark:text-green-200 font-medium"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Start At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Start At
+              </label>
               <input
                 value={
                   event.startAt
@@ -167,11 +181,11 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
                     : 'unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">End At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End At</label>
               <input
                 value={
                   event.endAt
@@ -185,46 +199,54 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
                     : 'unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Tags</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tags</label>
               <input
                 value={event.tags && event.tags.length > 0 ? event.tags.join(', ') : 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bank Account</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Bank Account
+              </label>
               <input
                 value={event.bankAccount ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Description
+            </label>
             <textarea
               value={event.eventDescription ?? 'unknown'}
               readOnly
-              className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+              className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               rows={2}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Approved By</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Approved By
+              </label>
               <input
                 value={event.approvedBy ? approvedByName : 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Approved At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Approved At
+              </label>
               <input
                 value={
                   event.approvedAt
@@ -238,19 +260,23 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
                     : 'unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created By</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Created By
+              </label>
               <input
                 value={event.createdBy ? createdByName : 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Created At
+              </label>
               <input
                 value={
                   event.createdAt
@@ -264,13 +290,13 @@ export const CompletedEventDetailModal = ({ event, onClose }: Props) => {
                     : 'unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>
           {/* Ticket List */}
           <div>
-            <b>Tickets:</b>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb mt-5">Ticket</label>
             <div className="mt-2 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow">
               {loadingTickets ? (
                 <div className="text-gray-500 p-4">Loading tickets...</div>

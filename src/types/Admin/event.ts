@@ -97,3 +97,14 @@ export interface PaginatedEventResponse {
   };
   message: string | null;
 }
+
+export interface SuggestQuantityResponseDto {
+  suggested_quantity: number;
+}
+
+export interface SuggestQuantityResponse {
+  flag: boolean;
+  code: number;
+  data: SuggestQuantityResponseDto;
+  message: string | null;
+}

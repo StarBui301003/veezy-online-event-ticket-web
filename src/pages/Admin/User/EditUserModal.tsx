@@ -1,11 +1,5 @@
 import { useState, ChangeEvent } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import { editUserAPI, uploadUserAvatarAPI } from '@/services/Admin/user.service';
@@ -26,6 +20,7 @@ import {
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
 import { toast } from 'react-toastify';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface Props {
   user: User | UserAccountResponse;
@@ -36,6 +31,7 @@ interface Props {
 }
 
 export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }: Props) => {
+  const { getProfileInputClass, getSelectClass } = useThemeClasses();
   // Check if user is UserAccountResponse (has accountId property)
   const isUserAccountResponse = 'accountId' in user;
 
@@ -253,15 +249,17 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
 
   return (
     <Dialog open={!!user} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('editUser')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('editUser')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div className="flex flex-col items-center gap-2 mb-4">
-            <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 flex items-center justify-center overflow-hidden shadow">
+            <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shadow">
               {previewUrl ? (
                 <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
               ) : (
@@ -277,7 +275,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
             />
             <button
               type="button"
-              className="mt-2 w-[100px] h-[38px] rounded-[8px] bg-[#f3f7fe] text-[#3b82f6] border-none cursor-pointer font-medium text-base transition duration-300 hover:bg-[#3b82f6] hover:text-white hover:shadow-[0_0_0_5px_#3b83f65f]"
+              className="mt-2 w-[100px] h-[38px] rounded-[8px] bg-[#f3f7fe] dark:bg-gray-700 text-[#3b82f6] dark:text-blue-400 border-none cursor-pointer font-medium text-base transition duration-300 hover:bg-[#3b82f6] hover:text-white hover:shadow-[0_0_0_5px_#3b83f65f] dark:hover:bg-blue-600"
               onClick={() => document.getElementById('edit-avatar-input')?.click()}
               tabIndex={-1}
             >
@@ -286,12 +284,12 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {t('fullName')}
               </label>
               <input
                 name="fullName"
-                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
                 value={form.fullName}
                 onChange={handleFullNameChange}
               />
@@ -300,10 +298,12 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">{t('email')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('email')}
+              </label>
               <input
                 name="email"
-                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
                 value={form.email}
                 onChange={handleEmailChange}
                 disabled={disableEmail}
@@ -313,10 +313,12 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">{t('phone')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('phone')}
+              </label>
               <input
                 name="phone"
-                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
                 value={form.phone}
                 onChange={handlePhoneChange}
               />
@@ -325,26 +327,45 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">{t('gender')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('gender')}
+              </label>
               <Select value={String(form.gender)} onValueChange={handleGenderChange}>
-                <SelectTrigger className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300">
+                <SelectTrigger
+                  className={`border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`}
+                >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">{t('male')}</SelectItem>
-                  <SelectItem value="1">{t('female')}</SelectItem>
-                  <SelectItem value="2">{t('other')}</SelectItem>
+                <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                  <SelectItem
+                    value="0"
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    {t('male')}
+                  </SelectItem>
+                  <SelectItem
+                    value="1"
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    {t('female')}
+                  </SelectItem>
+                  <SelectItem
+                    value="2"
+                    className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    {t('other')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {t('dateOfBirth')}
               </label>
               <input
                 name="dob"
                 type="date"
-                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
                 value={form.dob ? form.dob.slice(0, 10) : ''}
                 onChange={handleDobChange}
               />
@@ -353,12 +374,12 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
               )}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-1">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
                 {t('location')}
               </label>
               <input
                 name="location"
-                className="border border-gray-200 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300"
+                className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
                 value={form.location}
                 onChange={handleLocationChange}
               />
@@ -369,32 +390,30 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
           </div>
         </div>
 
-        <div className="p-4 flex justify-end gap-2">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
-              onClick={onClose}
-              disabled={loading}
-              type="button"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-              onClick={handleEdit}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <FaSpinner className="animate-spin" />
-                  {t('editing')}
-                </div>
-              ) : (
-                t('edit')
-              )}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            disabled={loading}
+            type="button"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
+            onClick={handleEdit}
+            disabled={loading}
+            type="button"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <FaSpinner className="animate-spin" />
+                {t('editing')}
+              </div>
+            ) : (
+              t('edit')
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

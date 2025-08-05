@@ -60,16 +60,18 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-5xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('eventDetails')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('eventDetails')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-6">
           {/* Cover Image */}
           <div className="flex flex-col items-center mb-4">
-            <div className="w-69 h-48 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1">
+            <div className="w-69 h-48 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mt-1">
               <img
                 src={event.eventCoverImageUrl || NO_IMAGE}
                 alt="cover"
@@ -81,12 +83,14 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Hiển thị từng content riêng biệt nếu có */}
           {event.contents && event.contents.length > 0 && (
             <div className="mb-4">
-              <label className="block text-xs text-gray-500 mb-1">{t('contents')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('contents')}
+              </label>
               <div className="flex flex-col gap-6">
                 {event.contents.map((c, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col md:flex-row gap-4 items-start bg-gray-100 rounded px-2 py-2 border"
+                    className="flex flex-col md:flex-row gap-4 items-start bg-gray-100 dark:bg-gray-700 rounded px-2 py-2 border dark:border-gray-600"
                   >
                     <div>
                       <img
@@ -97,10 +101,14 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-gray-700 mb-1">#{idx + 1}</div>
-                      <div className="text-gray-700 text-sm whitespace-pre-line">
+                      <div className="font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        #{idx + 1}
+                      </div>
+                      <div className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-line">
                         {c.description || (
-                          <span className="italic text-gray-400">{t('noDescription')}</span>
+                          <span className="italic text-gray-400 dark:text-gray-500">
+                            {t('noDescription')}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -112,31 +120,39 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
           {/* Info fields as input/textarea (style giống category detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('name')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('name')}
+              </label>
               <input
                 value={event.eventName ?? t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('location')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('location')}
+              </label>
               <input
                 value={event.eventLocation ?? t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('category')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('category')}
+              </label>
               <input
                 value={categoryNames.length > 0 ? categoryNames.join(', ') : t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('startAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('startAt')}
+              </label>
               <input
                 value={
                   event.startAt
@@ -150,11 +166,13 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                     : t('unknown')
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('endAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('endAt')}
+              </label>
               <input
                 value={
                   event.endAt
@@ -168,46 +186,56 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                     : t('unknown')
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('tags')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('tags')}
+              </label>
               <input
                 value={event.tags && event.tags.length > 0 ? event.tags.join(', ') : t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('bankAccount')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('bankAccount')}
+              </label>
               <input
                 value={event.bankAccount ?? t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('description')}</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              {t('description')}
+            </label>
             <textarea
               value={event.eventDescription ?? t('unknown')}
               readOnly
-              className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+              className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               rows={2}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('approvedBy')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('approvedBy')}
+              </label>
               <input
                 value={event.approvedBy ? approvedByName : t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('approvedAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('approvedAt')}
+              </label>
               <input
                 value={
                   event.approvedAt
@@ -221,19 +249,23 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                     : t('unknown')
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('createdBy')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('createdBy')}
+              </label>
               <input
                 value={event.createdBy ? createdByName : t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                {t('createdAt')}
+              </label>
               <input
                 value={
                   event.createdAt
@@ -247,16 +279,18 @@ export const RejectedEventDetailModal = ({ event, onClose }: Props) => {
                     : t('unknown')
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('rejectionReason')}</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              {t('rejectionReason')}
+            </label>
             <textarea
               value={event.rejectionReason ?? t('unknown')}
               readOnly
-              className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+              className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               rows={2}
             />
           </div>

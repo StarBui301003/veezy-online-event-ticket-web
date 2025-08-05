@@ -37,11 +37,26 @@ import EditUserModal from '@/pages/Admin/User/EditUserModal';
 import { useTranslation } from 'react-i18next';
 import { deactivateUserAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CollaboratorList = () => {
   const { t } = useTranslation();
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListDropdownItemClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [users, setUsers] = useState<UserAccountResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
@@ -209,7 +224,7 @@ export const CollaboratorList = () => {
       )}
 
       <div className="overflow-x-auto mb-10">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             <div className="flex-1 flex items-center gap-2">
               <div
@@ -229,20 +244,7 @@ export const CollaboratorList = () => {
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder={t('search')}
                   value={collaboratorSearch}
                   onChange={(e) => {
@@ -286,11 +288,16 @@ export const CollaboratorList = () => {
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1 text-sm font-semibold">Status</div>
+                <DropdownMenuContent
+                  align="end"
+                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                >
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Status
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -302,7 +309,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', true)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -314,7 +321,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', false)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -325,10 +332,12 @@ export const CollaboratorList = () => {
                     <span>Inactive</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <div className="px-2 py-1 text-sm font-semibold">Online Status</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Online Status
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -340,7 +349,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', true)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -352,7 +361,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', false)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -363,10 +372,12 @@ export const CollaboratorList = () => {
                     <span>Offline</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <div className="px-2 py-1 text-sm font-semibold">Email Verified</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Email Verified
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isEmailVerified', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -378,7 +389,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isEmailVerified', true)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -390,7 +401,7 @@ export const CollaboratorList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isEmailVerified', false)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -405,13 +416,15 @@ export const CollaboratorList = () => {
             </div>
           </div>
 
-          <Table>
+          <Table className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}>
             <TableHeader>
-              <TableRow className="bg-purple-200 hover:bg-purple-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-purple-200 hover:bg-purple-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-center font-semibold" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>
+                <TableHead className="font-semibold" style={{ width: '20%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('fullname')}
@@ -420,7 +433,7 @@ export const CollaboratorList = () => {
                     {getSortIcon('fullname')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="font-semibold" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('username')}
@@ -429,7 +442,7 @@ export const CollaboratorList = () => {
                     {getSortIcon('username')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>
+                <TableHead className="font-semibold" style={{ width: '20%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('email')}
@@ -438,16 +451,16 @@ export const CollaboratorList = () => {
                     {getSortIcon('email')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center font-semibold" style={{ width: '10%' }}>
                   Status
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center font-semibold" style={{ width: '10%' }}>
                   Online
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
                   Email Verified
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
+                <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
                   <div
                     className="flex items-center justify-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createdAt')}
@@ -456,35 +469,63 @@ export const CollaboratorList = () => {
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '15%' }}>
+                <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}>
               {users.length === 0 ? (
                 <>
-                  {/* Show 5 empty rows when no data */}
-                  {Array.from({ length: 5 }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={9} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Show "No collaborators found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={9}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No collaborators found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={9} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               ) : (
                 <>
                   {users.map((user, idx) => (
-                    <TableRow key={user.userId} className="hover:bg-purple-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={user.userId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {(filters.page - 1) * filters.pageSize + idx + 1}
                       </TableCell>
-                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {user.fullName}
                       </TableCell>
-                      <TableCell className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {user.username}
                       </TableCell>
-                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {user.email}
                       </TableCell>
                       <TableCell className="text-center">
@@ -545,16 +586,23 @@ export const CollaboratorList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, 5 - users.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                  {Array.from({ length: Math.max(0, filters.pageSize - users.length) }, (_, idx) => (
+                    <TableRow
+                      key={`empty-${idx}`}
+                      className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
                       <TableCell colSpan={9} className="border-0"></TableCell>
                     </TableRow>
                   ))}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
                 <TableCell colSpan={9}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
@@ -564,7 +612,9 @@ export const CollaboratorList = () => {
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, filters.page - 1))}
                               aria-disabled={filters.page === 1}
-                              className={filters.page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              className={`${
+                                filters.page === 1 ? 'pointer-events-none opacity-50' : ''
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -607,16 +657,18 @@ export const CollaboratorList = () => {
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === filters.page}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === filters.page
-                                          ? 'bg-purple-500 text-white border hover:bg-purple-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-purple-500 text-white border-purple-500 hover:bg-purple-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -638,16 +690,16 @@ export const CollaboratorList = () => {
                                 handlePageChange(Math.min(totalPages, filters.page + 1))
                               }
                               aria-disabled={filters.page === totalPages}
-                              className={
+                              className={`${
                                 filters.page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              }`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${(filters.page - 1) * filters.pageSize + 1}-${Math.min(
@@ -655,9 +707,11 @@ export const CollaboratorList = () => {
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
                       <select
-                        className="border rounded px-2 py-1 text-sm bg-white"
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
                         value={filters.pageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >

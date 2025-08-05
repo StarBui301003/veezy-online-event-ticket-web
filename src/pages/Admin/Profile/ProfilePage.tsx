@@ -55,6 +55,10 @@ const ProfilePage = () => {
     receiveNotify: false, // Default to false, will be updated by API
   });
 
+  // Loading states for theme and language changes
+  const [isThemeLoading, setIsThemeLoading] = useState(false);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
+
   const { t, i18n } = useTranslation();
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
   const { theme, setTheme } = useTheme();
@@ -215,6 +219,13 @@ const ProfilePage = () => {
   };
 
   const handleLanguageChange = async (language: string) => {
+    // Prevent multiple rapid clicks
+    if (isLanguageLoading) {
+      return;
+    }
+
+    setIsLanguageLoading(true);
+
     try {
       const languageNumber = parseInt(language);
       const languageCode = languageNumber === 0 ? 'en' : 'vi';
@@ -241,6 +252,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Failed to update language:', error);
       toast.error(t('languageChangeFailed'));
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -271,17 +284,24 @@ const ProfilePage = () => {
   };
 
   const handleThemeChange = async (theme: string) => {
+    // Prevent multiple rapid clicks
+    if (isThemeLoading) {
+      return;
+    }
+
+    setIsThemeLoading(true);
+
     try {
       const themeNumber = parseInt(theme);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
-      // Update theme in ThemeContext
-      setTheme(themeMode);
-
-      // Update user config - only send the theme field
+      // Update user config via API first
       await updateUserConfigAPI(account.userId, {
         theme: themeNumber,
       });
+
+      // Only update UI after successful API call
+      setTheme(themeMode);
 
       // Update local state
       const newConfig = {
@@ -298,6 +318,8 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Failed to update theme:', error);
       toast.error(t('themeUpdateFailed'));
+    } finally {
+      setIsThemeLoading(false);
     }
   };
 
@@ -489,7 +511,7 @@ const ProfilePage = () => {
               <div className="flex flex-col gap-1 mt-1 w-full justify-center items-center">
                 <button
                   type="button"
-                  className="w-[80px] h-[35px] rounded-[6px] bg-[#f3f7fe] text-[#3b82f6] border-none cursor-pointer font-medium text-sm transition duration-300 hover:bg-[#3b82f6] hover:text-white hover:shadow-[0_0_0_5px_#3b83f65f]"
+                  className="w-[100px] h-[35px] rounded-[6px] bg-[#f3f7fe] text-[#3b82f6] border-none cursor-pointer font-medium text-sm transition duration-300 hover:bg-[#3b82f6] hover:text-white hover:shadow-[0_0_0_5px_#3b83f65f]"
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
@@ -502,14 +524,14 @@ const ProfilePage = () => {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className="w-[120px] h-[35px] rounded-[6px] bg-gradient-to-r from-blue-600 to-green-500 text-white font-medium text-sm transition duration-300 hover:from-blue-700 hover:to-green-600 shadow"
+                    className="w-[150px] h-[35px] rounded-[6px] bg-gradient-to-r from-blue-600 to-green-500 text-white font-medium text-sm transition duration-300 hover:from-blue-700 hover:to-green-600 shadow"
                     onClick={() => setShowFaceModal(true)}
                   >
                     {t('updateFace')}
                   </button>
                   <button
                     type="button"
-                    className="w-[120px] h-[35px] rounded-[6px] bg-gradient-to-r from-purple-600 to-pink-500 text-white font-medium text-sm transition duration-300 hover:from-purple-700 hover:to-pink-600 shadow"
+                    className="w-[150px] h-[35px] rounded-[6px] bg-gradient-to-r from-purple-600 to-pink-500 text-white font-medium text-sm transition duration-300 hover:from-purple-700 hover:to-pink-600 shadow"
                     onClick={() => setShowChangePasswordModal(true)}
                   >
                     {t('changePassword')}
@@ -585,13 +607,28 @@ const ProfilePage = () => {
                       setForm((prev: any) => ({ ...prev, gender: Number(val) }))
                     }
                   >
-                    <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700">
+                    <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                       <SelectValue placeholder={t('selectGender')} />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">{t('male')}</SelectItem>
-                      <SelectItem value="1">{t('female')}</SelectItem>
-                      <SelectItem value="2">{t('other')}</SelectItem>
+                    <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                      <SelectItem
+                        value="0"
+                        className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        {t('male')}
+                      </SelectItem>
+                      <SelectItem
+                        value="1"
+                        className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        {t('female')}
+                      </SelectItem>
+                      <SelectItem
+                        value="2"
+                        className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        {t('other')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -694,12 +731,22 @@ const ProfilePage = () => {
                   {t('language')}
                 </label>
                 <Select value={String(userConfig.language)} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700">
+                  <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <SelectValue placeholder={t('selectLanguage')} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">{t('english')}</SelectItem>
-                    <SelectItem value="1">{t('vietnamese')}</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                    <SelectItem
+                      value="0"
+                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      {t('english')}
+                    </SelectItem>
+                    <SelectItem
+                      value="1"
+                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      {t('vietnamese')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -710,12 +757,22 @@ const ProfilePage = () => {
                   {t('theme')}
                 </label>
                 <Select value={String(userConfig.theme)} onValueChange={handleThemeChange}>
-                  <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700">
+                  <SelectTrigger className="border border-gray-200 dark:border-gray-600 rounded px-2 py-1 w-full shadow-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <SelectValue placeholder={t('selectTheme')} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">{t('light')}</SelectItem>
-                    <SelectItem value="1">{t('dark')}</SelectItem>
+                  <SelectContent className="bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600">
+                    <SelectItem
+                      value="0"
+                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      {t('light')}
+                    </SelectItem>
+                    <SelectItem
+                      value="1"
+                      className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      {t('dark')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

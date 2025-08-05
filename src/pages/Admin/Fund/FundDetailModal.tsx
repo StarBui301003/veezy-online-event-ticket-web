@@ -62,116 +62,136 @@ const FundDetailModal = ({
 
   return (
     <Dialog open={!!withdrawal} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>Withdrawal Detail</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Withdrawal Detail
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[50vh] overflow-y-auto p-4">
+        <div className="space-y-2 max-h-[50vh] overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Event Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Event Name
+              </label>
               <input
                 value={withdrawal.eventName}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bank Account</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Bank Account
+              </label>
               <input
                 value={withdrawal.bankAccount}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bank Account Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Bank Account Name
+              </label>
               <input
                 value={withdrawal.bankAccountName}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Bank Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Bank Name
+              </label>
               <input
                 value={withdrawal.bankName}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Amount</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Amount</label>
               <input
                 value={formatCurrency(withdrawal.amount)}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
               <input
                 value={withdrawal.transactionStatus}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Created At
+              </label>
               <input
                 value={withdrawal.createdAt ? new Date(withdrawal.createdAt).toLocaleString() : ''}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Processed At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Processed At
+              </label>
               <input
                 value={
                   withdrawal.processedAt ? new Date(withdrawal.processedAt).toLocaleString() : ''
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Initiated By Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Initiated By Name
+              </label>
               <input
                 value={withdrawal.initiatedByName}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Processed By Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Processed By Name
+              </label>
               <input
                 value={withdrawal.processedByName || ''}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
 
             <div className="md:col-span-2">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Transaction Description</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Transaction Description
+                </label>
                 <textarea
                   value={withdrawal.transactionDescription}
                   readOnly
                   rows={5}
-                  className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 resize-none overflow-y-auto"
+                  className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 resize-none overflow-y-auto text-gray-600 dark:text-gray-300"
                   style={{ minHeight: '120px', maxHeight: '120px' }}
                 />
               </div>
-              <label className="block text-xs text-gray-500 mb-1">Notes</label>
-              <div className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 min-h-[40px]">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+              <div className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 min-h-[40px] text-gray-600 dark:text-gray-300">
                 {withdrawal.notes ? (
                   <span>{withdrawal.notes}</span>
                 ) : (
-                  <span className="text-gray-400">No notes</span>
+                  <span className="text-gray-400 dark:text-gray-500">No notes</span>
                 )}
               </div>
             </div>

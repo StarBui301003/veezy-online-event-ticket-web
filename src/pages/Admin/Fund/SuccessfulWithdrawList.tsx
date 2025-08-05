@@ -31,10 +31,23 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { connectFundHub, onFund } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
-const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => void }) => {
+const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?: () => void }) => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [data, setData] = useState<PaginatedResponseDto<WithdrawalRequestDto> | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WithdrawalRequestDto | null>(null);
@@ -198,7 +211,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
   const refreshData = () => {
     setSuccessfulSearch(''); // Reset search when refresh
     setFilters((prev) => ({ ...prev, Page: 1 })); // Reset to page 1
-    onPendingChanged?.(); // Call callback to update badge
+    onSuccessfulChanged?.(); // Call callback to update badge
   };
 
   // Items and pagination
@@ -265,7 +278,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
       <SpinnerOverlay show={loading} />
 
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 rounded-xl shadow ${getAdminListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -287,20 +300,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={successfulSearch}
                   onChange={(e) => {
@@ -346,16 +346,18 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className={`w-56 ${getAdminListDropdownClass()}`}>
                   {/* Amount Range Filters */}
-                  <div className="px-2 py-1 text-sm font-semibold">Amount Range</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Amount Range
+                  </div>
                   <DropdownMenuItem
                     className="flex flex-col items-start p-4"
                     onSelect={(e) => e.preventDefault()}
                   >
                     <div className="space-y-4 w-full">
                       <div className="space-y-2">
-                        <div className="flex justify-between text-xs text-gray-600">
+                        <div className="flex justify-between text-xs text-gray-600 dark:text-gray-300">
                           <span>Min: {formatCurrency(amountRange[0])}</span>
                           <span>Max: {formatCurrency(amountRange[1])}</span>
                         </div>
@@ -378,7 +380,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                               fetchData();
                             }, 0);
                           }}
-                          className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                          className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-700 dark:text-gray-300"
                         >
                           Reset
                         </button>
@@ -391,13 +393,17 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
           </div>
 
           {/* Table */}
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-green-200 hover:bg-green-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-green-200 hover:bg-green-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-center text-gray-900" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>
+                <TableHead className="text-gray-900" style={{ width: '20%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('eventName')}
@@ -406,7 +412,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     {getSortIcon('eventName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('amount')}
@@ -416,7 +422,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     {getSortIcon('amount')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('transactionStatus')}
@@ -426,7 +432,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     {getSortIcon('transactionStatus')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('initiatedByName')}
@@ -435,7 +441,7 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     {getSortIcon('initiatedByName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createdAt')}
@@ -444,33 +450,60 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center">Details</TableHead>
+                <TableHead className="text-center text-gray-900">Details</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
                 <>
-                  {/* Show 5 empty rows when no data */}
-                  {Array.from({ length: 5 }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={7} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Show "No successful withdraw requests found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No successful withdraw requests found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.PageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={7} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               ) : (
                 <>
                   {items.map((item, idx) => (
-                    <TableRow key={item.transactionId} className="hover:bg-green-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={item.transactionId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {(filters.Page - 1) * filters.PageSize + idx + 1}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className={`truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
                         title={item.eventName}
                       >
                         {item.eventName}
                       </TableCell>
-                      <TableCell className="text-center" style={{ textAlign: 'center' }}>
+                      <TableCell
+                        className={`text-center ${getAdminListTableCellClass()}`}
+                        style={{ textAlign: 'center' }}
+                      >
                         {formatCurrency(item.amount)}
                       </TableCell>
                       <TableCell
@@ -479,10 +512,14 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                       >
                         {getStatusBadge(item.transactionStatus)}
                       </TableCell>
-                      <TableCell className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {item.initiatedByName || 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center flex gap-2 justify-center">
@@ -498,10 +535,13 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                   {/* Add empty rows to maintain table height */}
                   {Array.from(
                     {
-                      length: Math.max(0, 5 - items.length),
+                      length: Math.max(0, filters.PageSize - items.length),
                     },
                     (_, idx) => (
-                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
                         <TableCell colSpan={7} className="border-0"></TableCell>
                       </TableRow>
                     )
@@ -509,9 +549,13 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={7}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={7} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -520,7 +564,9 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
                               aria-disabled={filters.Page === 1}
-                              className={filters.Page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              className={`${
+                                filters.Page === 1 ? 'pointer-events-none opacity-50' : ''
+                              } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -563,16 +609,18 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === filters.Page}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === filters.Page
-                                          ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-green-500 text-white border-green-500 hover:bg-green-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -594,16 +642,16 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                                 handlePageChange(Math.min(totalPages, filters.Page + 1))
                               }
                               aria-disabled={filters.Page === totalPages}
-                              className={
+                              className={`${
                                 filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${(filters.Page - 1) * filters.PageSize + 1}-${Math.min(
@@ -611,9 +659,11 @@ const SuccessfulWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () =>
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
                       <select
-                        className="border rounded px-2 py-1 text-sm bg-white"
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
                         value={filters.PageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >

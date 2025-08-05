@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { getFinancialAnalytics } from '@/services/Admin/dashboard.service';
 import {
@@ -41,7 +42,7 @@ const FILTERS = [
 ];
 
 const cardClass =
-  'w-full min-w-[180px] max-w-[220px] bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 p-4 flex flex-col justify-between';
+  'w-full min-w-[180px] max-w-[220px] bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-800/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4 flex flex-col justify-between';
 
 export default function FinancialTabs() {
   const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
@@ -108,7 +109,9 @@ export default function FinancialTabs() {
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
         // Defensive: always ensure platformFees is an array
-        const safePlatformFees = Array.isArray(data.platformFees) ? data.platformFees : (data.platformFees?.topContributingEvents || []);
+        const safePlatformFees = Array.isArray(data.platformFees)
+          ? data.platformFees
+          : data.platformFees?.topContributingEvents || [];
         if (
           !summary ||
           JSON.stringify(data.summary) !== JSON.stringify(summary) ||
@@ -140,7 +143,7 @@ export default function FinancialTabs() {
 
   useEffect(() => {
     reloadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
   // PieChart colors
@@ -174,16 +177,20 @@ export default function FinancialTabs() {
   }
 
   return (
-    <div className="space-y-6 p-3">
+    <div className="space-y-6 p-3 min-h-screen">
       {/* Filter trên cùng */}
       <div className="flex gap-4 items-center mb-4">
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="border-gray-200 w-40 border px-3 py-2 rounded">
+          <SelectTrigger className="border-gray-200 dark:border-gray-600 w-40 border px-3 py-2 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
             <SelectValue placeholder="Select filter" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600">
             {FILTERS.map((f) => (
-              <SelectItem key={f.value} value={String(f.value)}>
+              <SelectItem
+                key={f.value}
+                value={String(f.value)}
+                className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
                 {f.label}
               </SelectItem>
             ))}
@@ -195,14 +202,14 @@ export default function FinancialTabs() {
               type="date"
               value={startDate ? startDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1 rounded"
+              className="border px-3 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
               placeholder="Start date"
             />
             <input
               type="date"
               value={endDate ? endDate.toISOString().slice(0, 10) : ''}
               onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-              className="border px-3 py-1 rounded"
+              className="border px-3 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
               placeholder="End date"
             />
           </>
@@ -217,20 +224,20 @@ export default function FinancialTabs() {
         ) : (
           <>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Total Revenue</div>
-              <div className="text-xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Total Revenue</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
                 {summary.totalRevenue.toLocaleString('vi-VN')}₫
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Net Revenue</div>
-              <div className="text-xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Net Revenue</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
                 {summary.netRevenue.toLocaleString('vi-VN')}₫
               </div>
             </div>
             <div className={cardClass}>
-              <div className="text-gray-500 font-medium">Platform Fee</div>
-              <div className="text-xl font-bold text-gray-800">
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Platform Fee</div>
+              <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
                 {summary.platformFee.toLocaleString('vi-VN')}₫
               </div>
             </div>
@@ -238,8 +245,8 @@ export default function FinancialTabs() {
         )}
       </div>
       <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow p-4">
-          <h3 className="font-semibold mb-2">Revenue Timeline</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
+          <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Revenue Timeline</h3>
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
@@ -266,8 +273,10 @@ export default function FinancialTabs() {
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-white rounded-xl shadow p-4">
-          <h3 className="font-semibold mb-2">Top Events by Revenue</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
+          <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
+            Top Events by Revenue
+          </h3>
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
@@ -300,8 +309,8 @@ export default function FinancialTabs() {
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-white rounded-xl shadow p-4">
-          <h3 className="font-semibold mb-2">Platform Fee</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
+          <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Platform Fee</h3>
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />

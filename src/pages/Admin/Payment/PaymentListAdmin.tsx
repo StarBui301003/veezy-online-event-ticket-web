@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Pagination,
@@ -27,23 +26,34 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import PaymentDetailModal from './PaymentDetailModal';
-import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import GenerateTicketModal from './GenerateTicketModal';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTicketAlt } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { connectPaymentHub, onPayment } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
-import {
-  PAYMENT_STATUS_LABEL,
-  PAYMENT_STATUS_COLOR,
-  PAYMENT_METHOD_LABEL,
-} from '@/types/Admin/order';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 const PaymentListAdmin = () => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [data, setData] = useState<AdminPaymentListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AdminPayment | null>(null);
+  const [showGenerateTicketModal, setShowGenerateTicketModal] = useState(false);
 
   // Search and filter states
   const [paymentSearch, setPaymentSearch] = useState('');
@@ -205,10 +215,6 @@ const PaymentListAdmin = () => {
   };
 
   // Filter handlers
-  const updateFilter = (key: keyof PaymentFilterParams, value: string | number | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, Page: 1 }));
-  };
-
   const refreshData = () => {
     setPaymentSearch(''); // Reset search when refresh
     setFilters((prev) => ({ ...prev, Page: 1 })); // Reset to page 1
@@ -314,7 +320,7 @@ const PaymentListAdmin = () => {
       <SpinnerOverlay show={loading} />
 
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -336,20 +342,7 @@ const PaymentListAdmin = () => {
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={paymentSearch}
                   onChange={(e) => {
@@ -388,6 +381,13 @@ const PaymentListAdmin = () => {
 
             {/* Filter dropdown (right) */}
             <div className="flex items-center gap-2">
+              <button
+                className="flex gap-2 items-center border-2 border-purple-500 bg-purple-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-purple-600 hover:text-white hover:border-purple-500"
+                onClick={() => setShowGenerateTicketModal(true)}
+              >
+                <FaTicketAlt />
+                Generate Ticket
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
@@ -395,9 +395,14 @@ const PaymentListAdmin = () => {
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent
+                  align="end"
+                  className={`w-64 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                >
                   {/* Amount Range Filters */}
-                  <div className="px-2 py-1 text-sm font-semibold">Amount Range</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Amount Range
+                  </div>
                   <DropdownMenuItem
                     className="flex flex-col items-start p-4"
                     onSelect={(e) => e.preventDefault()}
@@ -405,8 +410,12 @@ const PaymentListAdmin = () => {
                     <div className="space-y-4 w-full">
                       <div className="space-y-2">
                         <div className="flex justify-between text-xs text-gray-600">
-                          <span>Min: {formatCurrency(amountRange[0])}</span>
-                          <span>Max: {formatCurrency(amountRange[1])}</span>
+                          <span className="dark:text-white">
+                            Min: {formatCurrency(amountRange[0])}
+                          </span>
+                          <span className="dark:text-white">
+                            Max: {formatCurrency(amountRange[1])}
+                          </span>
                         </div>
                         <Slider
                           value={amountRange}
@@ -440,14 +449,18 @@ const PaymentListAdmin = () => {
           </div>
 
           {/* Table */}
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-green-200 hover:bg-green-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-blue-200 hover:bg-blue-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-gray-900 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
 
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('orderId')}
@@ -456,7 +469,7 @@ const PaymentListAdmin = () => {
                     {getSortIcon('orderId')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-center text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer justify-center"
                     onClick={() => handleSort('amount')}
@@ -465,7 +478,7 @@ const PaymentListAdmin = () => {
                     {getSortIcon('amount')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-center text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer justify-center"
                     onClick={() => handleSort('paymentMethod')}
@@ -474,7 +487,7 @@ const PaymentListAdmin = () => {
                     {getSortIcon('paymentMethod')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-center text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer justify-center"
                     onClick={() => handleSort('paymentStatus')}
@@ -483,7 +496,7 @@ const PaymentListAdmin = () => {
                     {getSortIcon('paymentStatus')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('paidAt')}
@@ -492,50 +505,80 @@ const PaymentListAdmin = () => {
                     {getSortIcon('paidAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center">Details</TableHead>
+                <TableHead className="text-center text-gray-900">Details</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
                 <>
-                  {/* Show 5 empty rows when no data */}
-                  {Array.from({ length: 5 }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={7} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Show "No payments found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No payments found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.PageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={7} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               ) : (
                 <>
                   {items.map((item, idx) => (
-                    <TableRow key={item.paymentId || idx} className="hover:bg-green-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={item.paymentId || idx}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {(filters.Page - 1) * filters.PageSize + idx + 1}
                       </TableCell>
 
-                      <TableCell className="font-mono text-sm">{item.orderId || 'N/A'}</TableCell>
-                      <TableCell className="text-center font-semibold">
+                      <TableCell className={`font-mono text-sm ${getAdminListTableCellClass()}`}>
+                        {item.orderId || 'N/A'}
+                      </TableCell>
+                      <TableCell
+                        className={`text-center font-semibold ${getAdminListTableCellClass()}`}
+                      >
                         {item.amount ? formatCurrency(parseFloat(item.amount)) : 'N/A'}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         <div className="flex justify-center">
                           {item.paymentMethod !== null ? (
                             getMethodBadge(item.paymentMethod)
                           ) : (
-                            <span className="text-gray-500">N/A</span>
+                            <span className="text-gray-500 dark:text-gray-400">N/A</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         <div className="flex justify-center">
                           {item.paymentStatus !== null ? (
                             getStatusBadge(item.paymentStatus)
                           ) : (
-                            <span className="text-gray-500">N/A</span>
+                            <span className="text-gray-500 dark:text-gray-400">N/A</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell
+                        className={`truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {item.paidAt ? new Date(item.paidAt).toLocaleString('vi-VN') : 'N/A'}
                       </TableCell>
                       <TableCell className="text-center flex gap-2 justify-center">
@@ -551,10 +594,13 @@ const PaymentListAdmin = () => {
                   {/* Add empty rows to maintain table height */}
                   {Array.from(
                     {
-                      length: Math.max(0, 5 - items.length),
+                      length: Math.max(0, filters.PageSize - items.length),
                     },
                     (_, idx) => (
-                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
                         <TableCell colSpan={7} className="border-0"></TableCell>
                       </TableRow>
                     )
@@ -562,9 +608,13 @@ const PaymentListAdmin = () => {
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={7}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={7} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -573,7 +623,9 @@ const PaymentListAdmin = () => {
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
                               aria-disabled={filters.Page === 1}
-                              className={filters.Page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              className={`${
+                                filters.Page === 1 ? 'pointer-events-none opacity-50' : ''
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -616,16 +668,18 @@ const PaymentListAdmin = () => {
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === filters.Page}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === filters.Page
-                                          ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -647,16 +701,16 @@ const PaymentListAdmin = () => {
                                 handlePageChange(Math.min(totalPages, filters.Page + 1))
                               }
                               aria-disabled={filters.Page === totalPages}
-                              className={
+                              className={`${
                                 filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${(filters.Page - 1) * filters.PageSize + 1}-${Math.min(
@@ -664,9 +718,11 @@ const PaymentListAdmin = () => {
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
                       <select
-                        className="border rounded px-2 py-1 text-sm bg-white"
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
                         value={filters.PageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >
@@ -693,6 +749,12 @@ const PaymentListAdmin = () => {
           onRefresh={refreshData}
         />
       )}
+
+      {/* Generate Ticket Modal */}
+      <GenerateTicketModal
+        open={showGenerateTicketModal}
+        onClose={() => setShowGenerateTicketModal(false)}
+      />
     </div>
   );
 };

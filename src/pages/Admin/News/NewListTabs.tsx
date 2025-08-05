@@ -79,16 +79,16 @@ export function NewsListTabs() {
   }, []);
 
   return (
-    <div className="p-6">
+    <div className="p-6 min-h-screen">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full p-0">
-        <TabsList className="flex w-[500px] items-center rounded-[99px] py-4 gap-2 bg-white shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)]">
+        <TabsList className="flex w-[500px] items-center rounded-[99px] py-4 gap-2 m-2 bg-white dark:bg-gray-800 shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] dark:shadow-gray-900/20">
           <TabsTrigger
             value="pending"
             className={cn(
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in pr-6',
               activeTab === 'pending'
                 ? '!text-white bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-yellow-300 shadow-lg shadow-yellow-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center'
-                : 'hover:bg-gray-200 text-gray-600'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
             <span className="w-4 h-4 flex items-center justify-center">
@@ -119,7 +119,7 @@ export function NewsListTabs() {
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
               activeTab === 'approved'
                 ? '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 text-center'
-                : 'hover:bg-gray-200 text-gray-600'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
             <FiCheckCircle className="w-4 h-4" />
@@ -132,7 +132,7 @@ export function NewsListTabs() {
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
               activeTab === 'rejected'
                 ? '!text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 shadow-lg shadow-red-500/50 dark:shadow-lg dark:shadow-red-800/80 font-medium rounded-lg text-sm px-5 py-2.5 text-center '
-                : 'hover:bg-gray-200 text-gray-600'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
             <FiX className="w-4 h-4" />
@@ -144,7 +144,7 @@ export function NewsListTabs() {
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
               activeTab === 'own'
                 ? '!text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 shadow-lg shadow-blue-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center'
-                : 'hover:bg-gray-200 text-gray-600'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
             <FaUser className="w-4 h-4" />

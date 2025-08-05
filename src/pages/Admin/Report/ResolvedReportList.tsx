@@ -29,6 +29,7 @@ import { getResolvedReportsWithFilter } from '@/services/Admin/report.service';
 import type { Report, PaginatedReportResponse, ReportFilterParams } from '@/types/Admin/report';
 import { FaEye, FaSort, FaSortUp, FaSortDown, FaFilter } from 'react-icons/fa';
 import ReportDetailModal from './ReportDetailModal';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -53,6 +54,20 @@ export const ResolvedReportList = ({
   setPage: (page: number) => void;
   setPageSize: (size: number) => void;
 }) => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListDropdownItemClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [data, setData] = useState<PaginatedReportResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -162,7 +177,7 @@ export const ResolvedReportList = ({
       <SpinnerOverlay show={loading} />
       {viewReport && <ReportDetailModal report={viewReport} onClose={() => setViewReport(null)} />}
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
@@ -183,20 +198,7 @@ export const ResolvedReportList = ({
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search by reporter name, target name, reason, description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -236,12 +238,14 @@ export const ResolvedReportList = ({
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className={`w-56 ${getAdminListDropdownClass()}`}>
                   {/* Target Type Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Target Type</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Target Type
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('targetType', undefined)}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                   >
                     <input
                       type="checkbox"
@@ -249,11 +253,11 @@ export const ResolvedReportList = ({
                       readOnly
                       className="mr-2"
                     />
-                    <span>All Types</span>
+                    <span className="text-gray-900 dark:text-white">All Types</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('targetType', 0)}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                   >
                     <input
                       type="checkbox"
@@ -261,11 +265,11 @@ export const ResolvedReportList = ({
                       readOnly
                       className="mr-2"
                     />
-                    <span>News</span>
+                    <span className="text-gray-900 dark:text-white">News</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('targetType', 1)}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                   >
                     <input
                       type="checkbox"
@@ -273,11 +277,11 @@ export const ResolvedReportList = ({
                       readOnly
                       className="mr-2"
                     />
-                    <span>Event</span>
+                    <span className="text-gray-900 dark:text-white">Event</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('targetType', 2)}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                   >
                     <input
                       type="checkbox"
@@ -285,11 +289,11 @@ export const ResolvedReportList = ({
                       readOnly
                       className="mr-2"
                     />
-                    <span>Event Manager</span>
+                    <span className="text-gray-900 dark:text-white">Event Manager</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('targetType', 3)}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                   >
                     <input
                       type="checkbox"
@@ -297,22 +301,26 @@ export const ResolvedReportList = ({
                       readOnly
                       className="mr-2"
                     />
-                    <span>Comment</span>
+                    <span className="text-gray-900 dark:text-white">Comment</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-green-200 hover:bg-green-200">
-                <TableHead className="pl-4" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-green-200 hover:bg-green-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-gray-900 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead
+                  className="text-gray-900"
                   style={{ width: '15%' }}
-                  className="cursor-pointer"
                   onClick={() => handleSort('targetName')}
                 >
                   <div className="flex items-center gap-1">
@@ -321,8 +329,8 @@ export const ResolvedReportList = ({
                   </div>
                 </TableHead>
                 <TableHead
+                  className="text-gray-900"
                   style={{ width: '10%' }}
-                  className="cursor-pointer"
                   onClick={() => handleSort('targetType')}
                 >
                   <div className="flex items-center gap-1">
@@ -331,8 +339,8 @@ export const ResolvedReportList = ({
                   </div>
                 </TableHead>
                 <TableHead
+                  className="text-gray-900"
                   style={{ width: '15%' }}
-                  className="cursor-pointer"
                   onClick={() => handleSort('reporterName')}
                 >
                   <div className="flex items-center gap-1">
@@ -341,8 +349,8 @@ export const ResolvedReportList = ({
                   </div>
                 </TableHead>
                 <TableHead
+                  className="text-gray-900"
                   style={{ width: '20%' }}
-                  className="cursor-pointer"
                   onClick={() => handleSort('reason')}
                 >
                   <div className="flex items-center gap-1">
@@ -352,8 +360,8 @@ export const ResolvedReportList = ({
                 </TableHead>
 
                 <TableHead
+                  className="text-gray-900"
                   style={{ width: '15%' }}
-                  className="cursor-pointer"
                   onClick={() => handleSort('createdAt')}
                 >
                   <div className="flex items-center gap-1">
@@ -361,32 +369,69 @@ export const ResolvedReportList = ({
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }} className="text-center">
+                <TableHead style={{ width: '10%' }} className="text-gray-900 text-center">
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                    No resolved reports found
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show "No resolved reports found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No resolved reports found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: Math.max(0, 4 - items.length),
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={7} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               ) : (
                 <>
                   {items.map((report, idx) => (
-                    <TableRow key={report.reportId} className="hover:bg-green-50">
-                      <TableCell className="pl-4">
+                    <TableRow
+                      key={report.reportId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`pl-4 ${getAdminListTableCellClass()}`}>
                         {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell>{report.targetName}</TableCell>
-                      <TableCell>{targetTypeMap[report.targetType] || 'Unknown'}</TableCell>
-                      <TableCell>{report.reporterName}</TableCell>
-                      <TableCell className="truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className={getAdminListTableCellClass()}>
+                        {report.targetName}
+                      </TableCell>
+                      <TableCell className={getAdminListTableCellClass()}>
+                        {targetTypeMap[report.targetType] || 'Unknown'}
+                      </TableCell>
+                      <TableCell className={getAdminListTableCellClass()}>
+                        {report.reporterName}
+                      </TableCell>
+                      <TableCell
+                        className={`truncate max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {report.reason}
                       </TableCell>
-                      <TableCell>{new Date(report.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className={getAdminListTableCellClass()}>
+                        {new Date(report.createdAt).toLocaleDateString()}
+                      </TableCell>
                       <TableCell
                         className="text-center"
                         style={{
@@ -396,7 +441,7 @@ export const ResolvedReportList = ({
                         }}
                       >
                         <button
-                          className="border-2 border-green-400 bg-green-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-green-500 hover:text-white"
+                          className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
                           title="View Details"
                           onClick={() => setViewReport(report)}
                         >
@@ -407,16 +452,23 @@ export const ResolvedReportList = ({
                   ))}
                   {/* Add empty rows to maintain table height */}
                   {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
+                    <TableRow
+                      key={`empty-${idx}`}
+                      className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
                       <TableCell colSpan={7} className="border-0"></TableCell>
                     </TableRow>
                   ))}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={7}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={7} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -425,9 +477,9 @@ export const ResolvedReportList = ({
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
                               aria-disabled={(filters.page || 1) === 1}
-                              className={
+                              className={`${
                                 (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -469,16 +521,18 @@ export const ResolvedReportList = ({
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === (filters.page || 1)}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === (filters.page || 1)
-                                          ? 'bg-green-500 text-white border hover:bg-green-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-green-500 text-white border-green-500 hover:bg-green-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -500,18 +554,18 @@ export const ResolvedReportList = ({
                                 handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
                               }
                               aria-disabled={(filters.page || 1) === totalPages}
-                              className={
+                              className={`${
                                 (filters.page || 1) === totalPages
                                   ? 'pointer-events-none opacity-50'
                                   : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? 'No items'
                           : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
@@ -519,40 +573,20 @@ export const ResolvedReportList = ({
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {filters.pageSize || 5}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => handlePageSizeChange(size)}
-                              className={
-                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
-                              }
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
+                      <select
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
+                        value={filters.pageSize || 5}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

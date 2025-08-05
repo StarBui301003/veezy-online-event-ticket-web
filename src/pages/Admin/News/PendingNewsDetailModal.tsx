@@ -1,18 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { News } from '@/types/Admin/news';
 import { ApprovedNews, RejectedNews } from '@/services/Admin/news.service';
 import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
 import { NO_IMAGE } from '@/assets/img';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface Props {
   news: News | null;
@@ -22,6 +17,7 @@ interface Props {
 }
 
 export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone }: Props) => {
+  const { getProfileInputClass } = useThemeClasses();
   const [loading, setLoading] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
   const [rejectLoading, setRejectLoading] = useState(false);
@@ -74,16 +70,18 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
 
   return (
     <Dialog open={!!news} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>News Details</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              News Details
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           {/* Cover Image */}
           <div className="flex flex-col items-center mb-4">
-            <div className="w-full h-48 rounded border bg-gray-100 flex items-center justify-center overflow-hidden mt-1 relative">
+            <div className="w-full h-48 rounded border bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden mt-1 relative">
               <img
                 src={news.imageUrl || NO_IMAGE}
                 alt="news"
@@ -95,31 +93,39 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
           {/* Info fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('title')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('title')}
+              </label>
               <input
                 value={news.newsTitle ?? t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('authorName')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('authorName')}
+              </label>
               <input
                 value={authorName || t('unknown')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('status')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('status')}
+              </label>
               <input
                 value={news.status ? t('active') : t('inactive')}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">{t('createdAt')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('createdAt')}
+              </label>
               <input
                 value={
                   news.createdAt
@@ -133,11 +139,13 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
                     : t('unknown')
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Updated At</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Updated At
+              </label>
               <input
                 value={
                   news.updatedAt
@@ -151,98 +159,100 @@ export const PendingNewsDetailModal = ({ news, authorName, onClose, onActionDone
                     : 'unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
-            <div className="bg-gray-100 border rounded px-2 py-1 w-full mb-1 min-h-[40px] max-h-[120px] overflow-y-auto">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Description
+            </label>
+            <div className="bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full min-h-[40px] max-h-[120px] overflow-y-auto">
               {news.newsDescription ? (
                 <div
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none text-gray-800 dark:text-gray-200"
                   dangerouslySetInnerHTML={{ __html: news.newsDescription }}
                 />
               ) : (
-                <span className="text-gray-400">No description</span>
+                <span className="text-gray-400 dark:text-gray-500">No description</span>
               )}
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Content</label>
-            <div className="bg-gray-100 border rounded px-2 py-1 w-full mb-1 min-h-[60px]">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Content
+            </label>
+            <div className="bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full min-h-[60px]">
               {news.newsContent ? (
                 <div
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none text-gray-800 dark:text-gray-200"
                   dangerouslySetInnerHTML={{ __html: news.newsContent }}
                 />
               ) : (
-                <span className="text-gray-400">No content</span>
+                <span className="text-gray-400 dark:text-gray-500">No content</span>
               )}
             </div>
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter>
-            {showRejectInput ? (
-              <>
-                <input
-                  className="border px-2 py-1 rounded w-full mb-2"
-                  placeholder="Enter rejection reason"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  disabled={loading}
-                />
-                <button
-                  className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-red-600 hover:text-white hover:border-red-500 mr-2 flex items-center justify-center"
-                  onClick={handleReject}
-                  disabled={loading || rejectLoading}
-                  type="button"
-                >
-                  {rejectLoading && <FaSpinner className="animate-spin mr-2" />}
-                  Submit
-                </button>
-                <button
-                  className="border-2 border-[#24b4fb] bg-white rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-[#24b4fb] hover:bg-[#24b4fb] hover:text-white hover:border-[#24b4fb]"
-                  onClick={() => setShowRejectInput(false)}
-                  disabled={loading || rejectLoading}
-                  type="button"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-                  style={{ boxSizing: 'border-box' }}
-                  onClick={handleApprove}
-                  disabled={loading || approveLoading}
-                  type="button"
-                >
-                  {approveLoading && <FaSpinner className="animate-spin mr-2" />}
-                  Approve
-                </button>
-                <button
-                  className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-red-600 hover:text-white-500 hover:border-red-500"
-                  style={{ boxSizing: 'border-box' }}
-                  onClick={() => setShowRejectInput(true)}
-                  disabled={loading || approveLoading}
-                  type="button"
-                >
-                  Reject
-                </button>
-                <button
-                  className="border-2 border-red-500 bg-white rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500"
-                  onClick={onClose}
-                  disabled={loading || approveLoading}
-                  type="button"
-                >
-                  Close
-                </button>
-              </>
-            )}
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          {showRejectInput ? (
+            <>
+              <input
+                className={`border rounded px-3 py-2 w-full mb-2 transition-colors ${getProfileInputClass()}`}
+                placeholder="Enter rejection reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                disabled={loading}
+              />
+              <button
+                className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-red-600 hover:text-white hover:border-red-500 flex items-center justify-center"
+                onClick={handleReject}
+                disabled={loading || rejectLoading}
+                type="button"
+              >
+                {rejectLoading && <FaSpinner className="animate-spin mr-2" />}
+                Submit
+              </button>
+              <button
+                className="border-2 border-[#24b4fb] bg-white rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-[#24b4fb] hover:bg-[#24b4fb] hover:text-white hover:border-[#24b4fb]"
+                onClick={() => setShowRejectInput(false)}
+                disabled={loading || rejectLoading}
+                type="button"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
+                style={{ boxSizing: 'border-box' }}
+                onClick={handleApprove}
+                disabled={loading || approveLoading}
+                type="button"
+              >
+                {approveLoading && <FaSpinner className="animate-spin mr-2" />}
+                Approve
+              </button>
+              <button
+                className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-red-600 hover:text-white-500 hover:border-red-500"
+                style={{ boxSizing: 'border-box' }}
+                onClick={() => setShowRejectInput(true)}
+                disabled={loading || approveLoading}
+                type="button"
+              >
+                Reject
+              </button>
+              <button
+                className="border-2 border-red-500 bg-white rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500"
+                onClick={onClose}
+                disabled={loading || approveLoading}
+                type="button"
+              >
+                Close
+              </button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

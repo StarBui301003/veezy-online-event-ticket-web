@@ -87,7 +87,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
   };
   return (
-    <Sidebar variant="sidebar" {...props}>
+    <Sidebar
+      variant="sidebar"
+      className="bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 [&_[data-sidebar=sidebar]]:bg-white [&_[data-sidebar=sidebar]]:dark:bg-gray-800"
+      {...props}
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -97,8 +101,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <img src={LOGO_RECTANGLE} alt="Logo" className="h-8 w-8 object-contain" />
                 </div>
                 <div className="grid flex-1 text-left text-base leading-tight ml-2">
-                  <span className="truncate font-bold text-lg">{t('vezzy')}</span>
-                  <span className="truncate text-xs">{t('admin')}</span>
+                  <span className="truncate font-bold text-lg text-gray-900 dark:text-white">
+                    {t('vezzy')}
+                  </span>
+                  <span className="truncate text-xs text-gray-600 dark:text-gray-300">
+                    {t('admin')}
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
