@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import type { AdminPayment } from '@/types/Admin/order';
 import { formatCurrency } from '@/utils/format';
@@ -18,32 +12,40 @@ interface Props {
 const PaymentDetailModal = ({ payment, onClose }: Props) => {
   return (
     <Dialog open={!!payment} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>Payment Detail</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Payment Detail
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[50vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Order ID</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Order ID
+              </label>
               <input
                 value={payment.orderId || 'N/A'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Amount</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Amount
+              </label>
               <input
                 value={payment.amount ? formatCurrency(parseFloat(payment.amount)) : 'N/A'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Payment Method</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Payment Method
+              </label>
               <input
                 value={(() => {
                   if (payment.paymentMethod === null) return 'N/A';
@@ -62,11 +64,13 @@ const PaymentDetailModal = ({ payment, onClose }: Props) => {
                   }
                 })()}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Status
+              </label>
               <input
                 value={(() => {
                   if (payment.paymentStatus === null) return 'N/A';
@@ -91,37 +95,39 @@ const PaymentDetailModal = ({ payment, onClose }: Props) => {
                   }
                 })()}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Transaction Code</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Transaction Code
+              </label>
               <input
                 value={payment.transactionCode || 'N/A'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Paid At</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Paid At
+              </label>
               <input
                 value={payment.paidAt ? new Date(payment.paidAt).toLocaleString() : 'N/A'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter>
-            <button
-              className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-400"
-              onClick={onClose}
-              type="button"
-            >
-              Close
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            type="button"
+          >
+            Close
+          </button>
         </div>
       </DialogContent>
     </Dialog>

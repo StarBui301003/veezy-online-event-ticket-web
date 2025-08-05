@@ -30,10 +30,24 @@ import { FaEye, FaSort, FaSortUp, FaSortDown, FaFilter } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
 import { useTranslation } from 'react-i18next';
 import AnalyzeCommentModal from './AnalyzeCommentModal';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CommentList = () => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [data, setData] = useState<PaginatedCommentResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -160,7 +174,7 @@ export const CommentList = () => {
       <AnalyzeCommentModal open={showAnalyzeModal} onClose={() => setShowAnalyzeModal(false)} />
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           {/* Search input và nút Analyze cùng hàng */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -182,20 +196,7 @@ export const CommentList = () => {
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -235,9 +236,14 @@ export const CommentList = () => {
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent
+                  align="end"
+                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                >
                   {/* Date Range Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Created Date Range</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Created Date Range
+                  </div>
                   <DropdownMenuItem
                     className="flex flex-col items-start p-3"
                     onSelect={(e) => e.preventDefault()}
@@ -279,14 +285,18 @@ export const CommentList = () => {
               </button>
             </div>
           </div>
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-blue-200 hover:bg-blue-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-gray-900 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '22%' }}
                   onClick={() => handleSort('fullName')}
                 >
@@ -296,7 +306,7 @@ export const CommentList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-left cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '15%' }}
                   onClick={() => handleSort('eventName')}
                 >
@@ -306,7 +316,7 @@ export const CommentList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-left cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '25%' }}
                   onClick={() => handleSort('content')}
                 >
@@ -316,7 +326,7 @@ export const CommentList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('createdAt')}
                 >
@@ -326,7 +336,7 @@ export const CommentList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('updatedAt')}
                 >
@@ -335,45 +345,74 @@ export const CommentList = () => {
                     {getSortIcon('updatedAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '5%' }}>
+                <TableHead style={{ width: '5%' }} className="text-gray-900 text-center">
                   {t('actions')}
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
-                    {t('noCommentsFound')}
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show "No comments found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={8}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No comments found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={8} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               ) : (
                 <>
                   {items.map((comment, idx) => (
-                    <TableRow key={comment.commentId} className="hover:bg-blue-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={comment.commentId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {comment.fullName || 'Unknown User'}
                       </TableCell>
-                      <TableCell className="text-left max-w-[200px]">
+                      <TableCell
+                        className={`text-left max-w-[200px] ${getAdminListTableCellClass()}`}
+                      >
                         <div className="truncate" title={comment.eventName || 'Unknown Event'}>
                           {comment.eventName || 'Unknown Event'}
                         </div>
                       </TableCell>
                       <TableCell
-                        className="text-left max-w-[200px] truncate"
+                        className={`text-left max-w-[200px] truncate ${getAdminListTableCellClass()}`}
                         title={comment.content}
                       >
                         {comment.content.length > 50
                           ? comment.content.slice(0, 50) + '...'
                           : comment.content}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">
@@ -389,17 +428,29 @@ export const CommentList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={8} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(
+                    {
+                      length: Math.max(0, filters.pageSize - items.length),
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={8} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={8}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={8} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -408,9 +459,9 @@ export const CommentList = () => {
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
                               aria-disabled={(filters.page || 1) === 1}
-                              className={
+                              className={`${
                                 (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             >
                               {t('previous')}
                             </PaginationPrevious>
@@ -454,16 +505,18 @@ export const CommentList = () => {
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === (filters.page || 1)}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === (filters.page || 1)
-                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-green-500 text-white border-green-500 hover:bg-green-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -485,11 +538,11 @@ export const CommentList = () => {
                                 handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
                               }
                               aria-disabled={(filters.page || 1) === totalPages}
-                              className={
+                              className={`${
                                 (filters.page || 1) === totalPages
                                   ? 'pointer-events-none opacity-50'
                                   : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             >
                               {t('next')}
                             </PaginationNext>
@@ -498,7 +551,7 @@ export const CommentList = () => {
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
@@ -506,40 +559,20 @@ export const CommentList = () => {
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {filters.pageSize || 5}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => handlePageSizeChange(size)}
-                              className={
-                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
-                              }
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {t('rowsPerPage')}
+                      </span>
+                      <select
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
+                        value={filters.pageSize || 5}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

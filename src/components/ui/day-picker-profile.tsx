@@ -106,9 +106,13 @@ export function DatePickerProfile({
               <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 {months.map((month) => (
-                  <SelectItem key={month} value={month}>
+                  <SelectItem
+                    key={month}
+                    value={month}
+                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
                     {month}
                   </SelectItem>
                 ))}
@@ -121,9 +125,13 @@ export function DatePickerProfile({
               <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
+                  <SelectItem
+                    key={year}
+                    value={year.toString()}
+                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
                     {year}
                   </SelectItem>
                 ))}

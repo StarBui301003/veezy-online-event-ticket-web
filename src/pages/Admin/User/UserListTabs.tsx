@@ -100,16 +100,16 @@ export default function UserListTabs() {
             <span>Admin</span>
           </TabsTrigger>
           <TabsTrigger
-            value="eventmanager"
+            value="customer"
             className={cn(
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
-              activeTab === 'eventmanager'
-                ? '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 text-center'
+              activeTab === 'customer'
+                ? '!text-white bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 text-center'
                 : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
-            <FaUserTie className="w-4 h-4" />
-            <span>Event Manager</span>
+            <FaUser className="w-4 h-4" />
+            <span>Customer</span>
           </TabsTrigger>
           <TabsTrigger
             value="collaborator"
@@ -124,37 +124,34 @@ export default function UserListTabs() {
             <span>Collaborator</span>
           </TabsTrigger>
           <TabsTrigger
-            value="customer"
+            value="eventmanager"
             className={cn(
               'relative flex items-center justify-center gap-2 h-[30px] flex-1 min-w-[50px] text-[0.8rem] font-medium !rounded-[99px] transition-all duration-150 ease-in',
-              activeTab === 'customer'
-                ? '!text-white bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 text-center'
+              activeTab === 'eventmanager'
+                ? '!text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 text-center'
                 : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'
             )}
           >
-            <FaUser className="w-4 h-4" />
-            <span>Customer</span>
+            <FaUserTie className="w-4 h-4" />
+            <span>Event Manager</span>
           </TabsTrigger>
         </TabsList>
-
-        <div>
-          <TabsContent value="admin">
-            {loadedTabs.includes('admin') && <AdminList key={`admin-${refreshKey}`} />}
-          </TabsContent>
-          <TabsContent value="eventmanager">
-            {loadedTabs.includes('eventmanager') && (
-              <EventManagerList key={`eventmanager-${refreshKey}`} />
-            )}
-          </TabsContent>
-          <TabsContent value="collaborator">
-            {loadedTabs.includes('collaborator') && (
-              <CollaboratorList key={`collaborator-${refreshKey}`} />
-            )}
-          </TabsContent>
-          <TabsContent value="customer">
-            {loadedTabs.includes('customer') && <CustomerList key={`customer-${refreshKey}`} />}
-          </TabsContent>
-        </div>
+        <TabsContent value="admin" className="mt-0">
+          {loadedTabs.includes('admin') && <AdminList key={`admin-${refreshKey}`} />}
+        </TabsContent>
+        <TabsContent value="customer" className="mt-0">
+          {loadedTabs.includes('customer') && <CustomerList key={`customer-${refreshKey}`} />}
+        </TabsContent>
+        <TabsContent value="collaborator" className="mt-0">
+          {loadedTabs.includes('collaborator') && (
+            <CollaboratorList key={`collaborator-${refreshKey}`} />
+          )}
+        </TabsContent>
+        <TabsContent value="eventmanager" className="mt-0">
+          {loadedTabs.includes('eventmanager') && (
+            <EventManagerList key={`eventmanager-${refreshKey}`} />
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );

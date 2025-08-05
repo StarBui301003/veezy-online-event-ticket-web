@@ -1,12 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { createNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
@@ -18,6 +12,7 @@ import {
   createCustomChangeHandler,
 } from '@/hooks/use-admin-validation';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 import {
   Select,
@@ -48,6 +43,7 @@ interface CreateNewsFormData {
 }
 
 export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) => {
+  const { getProfileInputClass, getSelectClass } = useThemeClasses();
   const [form, setForm] = useState<CreateNewsFormData>({
     eventId: '',
     newsDescription: '',
@@ -173,15 +169,19 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-3xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('createNews')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('createNews')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('event')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('event')}
+            </label>
             <Select
               value={form.eventId || '__no_event__'}
               onValueChange={handleEventChange}
@@ -190,21 +190,21 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               <SelectTrigger
                 className={getErrorClass(
                   'eventId',
-                  'border-gray-200 border px-3 py-2 rounded w-full'
+                  `border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`
                 )}
               >
                 <SelectValue placeholder={t('selectEvent')} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 {events.length === 0 ? (
-                  <SelectItem value="__no_event__" disabled>
+                  <SelectItem value="__no_event__" disabled className="text-gray-500 dark:text-gray-400">
                     {t('noEventFound')}
                   </SelectItem>
                 ) : (
                   <>
-                    <SelectItem value="__no_event__">{t('noEvent')}</SelectItem>
+                    <SelectItem value="__no_event__" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">{t('noEvent')}</SelectItem>
                     {events.map((ev) => (
-                      <SelectItem key={ev.eventId} value={ev.eventId}>
+                      <SelectItem key={ev.eventId} value={ev.eventId} className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
                         {ev.eventName}
                       </SelectItem>
                     ))}
@@ -219,9 +219,14 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('newsTitle')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('newsTitle')}
+            </label>
             <input
-              className={getErrorClass('newsTitle', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'newsTitle',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.newsTitle}
               onChange={handleTitleChange}
               disabled={loading}
@@ -234,9 +239,14 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('newsDescription')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('newsDescription')}
+            </label>
             <textarea
-              className={getErrorClass('newsDescription', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'newsDescription',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.newsDescription}
               onChange={(e) => handleDescriptionChange(e)}
               disabled={loading}
@@ -250,7 +260,9 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Content</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Content
+            </label>
             <RichTextEditor
               value={form.newsContent}
               onChange={handleContentChange}
@@ -263,7 +275,9 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Image</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Image
+            </label>
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <label
@@ -308,7 +322,9 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Status
+            </label>
             <Select
               value={form.status ? 'true' : 'false'}
               onValueChange={handleStatusChange}
@@ -317,14 +333,14 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               <SelectTrigger
                 className={getErrorClass(
                   'status',
-                  'border-gray-200 border px-3 py-2 rounded w-full'
+                  `border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`
                 )}
               >
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                <SelectItem value="true" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Active</SelectItem>
+                <SelectItem value="false" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Inactive</SelectItem>
               </SelectContent>
             </Select>
             {getFieldError('status') && (
@@ -335,32 +351,30 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
         </div>
 
-        <div className="p-4 flex justify-end gap-2">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-              onClick={onClose}
-              disabled={loading}
-              type="button"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
-              onClick={handleCreate}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin" />
-                  {t('creating')}
-                </>
-              ) : (
-                t('create')
-              )}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            disabled={loading}
+            type="button"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
+            onClick={handleCreate}
+            disabled={loading}
+            type="button"
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                {t('creating')}
+              </>
+            ) : (
+              t('create')
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

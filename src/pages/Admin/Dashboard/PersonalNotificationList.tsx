@@ -25,6 +25,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { RingLoader } from 'react-spinners';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface AdminNotificationListProps {
   className?: string;
@@ -170,6 +171,7 @@ const formatDate = (dateString: string) => {
 };
 
 export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({ className }) => {
+  const { getCardClass, getBorderClass, getTextClass } = useThemeClasses();
   const [notifications, setNotifications] = useState<PersonalNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -317,14 +319,9 @@ export const PersonalNotificationList: React.FC<AdminNotificationListProps> = ({
   // Show loading state
   if (loading) {
     return (
-      <Card
-        className={
-          className +
-          ' bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg dark:shadow-gray-900/20'
-        }
-      >
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-          <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
+      <Card className={`${className} ${getCardClass()} shadow-lg`}>
+        <CardHeader className={`border-b ${getBorderClass()}`}>
+          <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
             <Bell className="h-5 w-5 text-blue-500" />
             Personal Notifications
             {unreadCount > 0 && (

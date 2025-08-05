@@ -49,10 +49,25 @@ import DiscountCodeDetailModal from '@/pages/Admin/DiscountCode/DiscountCodeDeta
 import CreateDiscountCodeModal from '@/pages/Admin/DiscountCode/CreateDiscountCodeModal';
 import EditDiscountCodeModal from '@/pages/Admin/DiscountCode/EditDiscountCodeModal';
 import { formatDiscountValue, formatMinMaxAmount, getDiscountTypeLabel } from '@/utils/format';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const DiscountCodeList = () => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListDropdownItemClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const [data, setData] = useState<DiscountCodeResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -202,7 +217,7 @@ export const DiscountCodeList = () => {
         onCreated={reloadList}
       />
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
@@ -223,20 +238,7 @@ export const DiscountCodeList = () => {
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -276,12 +278,17 @@ export const DiscountCodeList = () => {
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent
+                  align="end"
+                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                >
                   {/* Discount Type Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Discount Type</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Discount Type
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('discountType', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -293,7 +300,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('discountType', 0)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -305,7 +312,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('discountType', 1)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -318,10 +325,12 @@ export const DiscountCodeList = () => {
                   <DropdownMenuSeparator />
 
                   {/* Expired Status Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Expired Status</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Expired Status
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isExpired', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -333,7 +342,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isExpired', true)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -345,7 +354,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isExpired', false)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -358,10 +367,12 @@ export const DiscountCodeList = () => {
                   <DropdownMenuSeparator />
 
                   {/* Availability Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Availability</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Availability
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isAvailable', undefined)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -373,7 +384,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isAvailable', true)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -385,7 +396,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isAvailable', false)}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -408,14 +419,18 @@ export const DiscountCodeList = () => {
               </button>
             </div>
           </div>
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-blue-200 hover:bg-blue-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-gray-900 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('code')}
                 >
@@ -425,7 +440,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '15%' }}
                   onClick={() => handleSort('eventName')}
                 >
@@ -435,7 +450,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('discountType')}
                 >
@@ -445,7 +460,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('value')}
                 >
@@ -455,7 +470,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('minimum')}
                 >
@@ -465,7 +480,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('maximum')}
                 >
@@ -475,7 +490,7 @@ export const DiscountCodeList = () => {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="text-center cursor-pointer"
+                  className="text-gray-900"
                   style={{ width: '10%' }}
                   onClick={() => handleSort('expiredAt')}
                 >
@@ -484,57 +499,79 @@ export const DiscountCodeList = () => {
                     {getSortIcon('expiredAt')}
                   </div>
                 </TableHead>
-                <TableHead
-                  className="text-center cursor-pointer"
-                  style={{ width: '10%' }}
-                  onClick={() => handleSort('createdAt')}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Created At
-                    {getSortIcon('createdAt')}
-                  </div>
-                </TableHead>
-                <TableHead style={{ width: '10%' }} className="text-center">
+
+                <TableHead style={{ width: '10%' }} className="text-gray-900 text-center">
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center py-4 text-gray-500">
-                    No discount codes found.
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show "No discount codes found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={11}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No discount codes found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={11} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               ) : (
                 <>
                   {items.map((item, idx) => (
-                    <TableRow key={item.discountId} className="hover:bg-blue-50">
-                      <TableCell className="pl-4">
+                    <TableRow
+                      key={item.discountId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`pl-4 ${getAdminListTableCellClass()}`}>
                         {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell className="text-center">{item.code}</TableCell>
-                      <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
+                        {item.code}
+                      </TableCell>
+                      <TableCell
+                        className={`truncate whitespace-nowrap overflow-hidden text-ellipsis text-center ${getAdminListTableCellClass()}`}
+                      >
                         {item.eventName || 'N/A'}
                       </TableCell>
-                      <TableCell className="truncate whitespace-nowrap overflow-hidden text-ellipsis text-center">
+                      <TableCell
+                        className={`truncate whitespace-nowrap overflow-hidden text-ellipsis text-center ${getAdminListTableCellClass()}`}
+                      >
                         {getDiscountTypeLabel(item.discountType)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {formatDiscountValue(item.value, item.discountType)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {formatMinMaxAmount(item.minimum)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {formatMinMaxAmount(item.maximum)}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {new Date(item.expiredAt).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {new Date(item.createdAt).toLocaleString()}
-                      </TableCell>
+
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
@@ -572,17 +609,29 @@ export const DiscountCodeList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={11} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(
+                    {
+                      length: Math.max(0, filters.pageSize - items.length),
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={11} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={11}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={11} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center">
                       <Pagination>
@@ -591,9 +640,9 @@ export const DiscountCodeList = () => {
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
                               aria-disabled={(filters.page || 1) === 1}
-                              className={
+                              className={`${
                                 (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -635,16 +684,18 @@ export const DiscountCodeList = () => {
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === (filters.page || 1)}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === (filters.page || 1)
-                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-purple-500 text-white border-purple-500 hover:bg-purple-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -666,18 +717,18 @@ export const DiscountCodeList = () => {
                                 handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
                               }
                               aria-disabled={(filters.page || 1) === totalPages}
-                              className={
+                              className={`${
                                 (filters.page || 1) === totalPages
                                   ? 'pointer-events-none opacity-50'
                                   : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
@@ -685,40 +736,20 @@ export const DiscountCodeList = () => {
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {filters.pageSize || 5}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => handlePageSizeChange(size)}
-                              className={
-                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
-                              }
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
+                      <select
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
+                        value={filters.pageSize || 5}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Bell, CheckCircle, Trash2, Eye, AlertCircle, Calendar, Clock, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import {
   getAdminNotifications,
   markAdminNotificationAsRead,
@@ -150,6 +151,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   className,
   onUnreadCountChange,
 }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -160,7 +162,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   const [totalItems, setTotalItems] = useState(0);
   const [status, setStatus] = useState<'all' | 'unread' | 'read'>('all');
   const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(Date.now()); // Force re-render trigger
+  const [, setLastUpdate] = useState(Date.now()); // Force re-render trigger
 
   const fetchNotifications = async () => {
     try {
@@ -308,6 +310,91 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
     }
   };
 
+  // Get navigation path based on notification type and target type
+  const getNavigationPath = (notification: AdminNotification): string | null => {
+    // Check if this notification type should navigate
+    const navigableTypes = [
+      AdminNotificationType.NewEvent,
+      AdminNotificationType.EventApproval,
+      AdminNotificationType.EventRejection,
+      AdminNotificationType.NewReport,
+      AdminNotificationType.UserReport,
+      AdminNotificationType.ContentReport,
+      AdminNotificationType.NewPost,
+      AdminNotificationType.PaymentIssue,
+      AdminNotificationType.NewUser,
+      AdminNotificationType.ChatMessage,
+    ];
+
+    if (!navigableTypes.includes(notification.type)) {
+      return null; // Don't navigate for system alerts and other types
+    }
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case AdminNotificationType.NewEvent:
+      case AdminNotificationType.EventApproval:
+      case AdminNotificationType.EventRejection:
+        if (notification.type === AdminNotificationType.EventApproval) {
+          return '/admin/event-list?tab=approved';
+        } else if (notification.type === AdminNotificationType.EventRejection) {
+          return '/admin/event-list?tab=rejected';
+        } else {
+          return '/admin/event-list?tab=pending';
+        }
+
+      case AdminNotificationType.NewReport:
+      case AdminNotificationType.UserReport:
+      case AdminNotificationType.ContentReport:
+        return '/admin/report-list';
+
+      case AdminNotificationType.NewPost:
+        return '/admin/news-list';
+
+      case AdminNotificationType.PaymentIssue:
+        return '/admin/payment-list';
+
+      case AdminNotificationType.NewUser:
+        return '/admin/user-list';
+
+      case AdminNotificationType.ChatMessage:
+        return '/admin/chatbox';
+
+      default:
+        return null;
+    }
+  };
+
+  // Handle notification click - mark as read and navigate based on type
+  const handleNotificationClick = async (notification: AdminNotification) => {
+    try {
+      // Mark as read first
+      if (!notification.isRead) {
+        await markAdminNotificationAsRead(notification.notificationId);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.notificationId === notification.notificationId
+              ? { ...n, isRead: true, readAt: new Date().toISOString() }
+              : n
+          )
+        );
+        fetchUnreadCount();
+      }
+
+      // Get navigation path and navigate if applicable
+      const navigationPath = getNavigationPath(notification);
+      if (navigationPath) {
+        navigate(navigationPath);
+      } else {
+        // For system alerts and other types, just mark as read
+        toast.success('Notification marked as read');
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+      toast.error('Failed to process notification');
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -445,6 +532,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                           ? 'bg-gray-200 dark:bg-gray-700 border-gray-300/40 dark:border-gray-600/40 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 hover:shadow-md'
                           : 'bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-600 shadow-sm hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-md'
                       }`}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-1">
@@ -566,25 +654,39 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                       </PaginationItem>
                       {(() => {
                         const pages = [];
+                        const maxVisiblePages = 7;
 
-                        if (totalPages <= 3) {
-                          // Hiển thị tất cả trang nếu tổng số trang <= 3
+                        if (totalPages <= maxVisiblePages) {
+                          // Hiển thị tất cả trang nếu tổng số trang <= 7
                           for (let i = 1; i <= totalPages; i++) {
                             pages.push(i);
                           }
                         } else {
-                          // Chỉ hiển thị: trang đầu, trang hiện tại, trang cuối
-                          pages.push(1);
-                          if (page > 2) {
+                          // Logic hiển thị trang với dấu "..."
+                          if (page <= 4) {
+                            // Trang hiện tại ở đầu
+                            for (let i = 1; i <= 5; i++) {
+                              pages.push(i);
+                            }
                             pages.push('...');
-                          }
-                          if (page !== 1 && page !== totalPages) {
-                            pages.push(page);
-                          }
-                          if (page < totalPages - 1) {
+                            pages.push(totalPages);
+                          } else if (page >= totalPages - 3) {
+                            // Trang hiện tại ở cuối
+                            pages.push(1);
                             pages.push('...');
+                            for (let i = totalPages - 4; i <= totalPages; i++) {
+                              pages.push(i);
+                            }
+                          } else {
+                            // Trang hiện tại ở giữa
+                            pages.push(1);
+                            pages.push('...');
+                            for (let i = page - 1; i <= page + 1; i++) {
+                              pages.push(i);
+                            }
+                            pages.push('...');
+                            pages.push(totalPages);
                           }
-                          pages.push(totalPages);
                         }
 
                         return pages.map((item, index) => (

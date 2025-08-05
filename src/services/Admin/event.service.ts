@@ -204,3 +204,11 @@ export async function deleteEvent(eventId: string) {
   return res.data;
 }
 
+// AI suggest quantity for event
+export async function suggestEventQuantity(eventId: string) {
+  const res = await instance.get<SuggestQuantityResponse>(`/api/Event/suggest-quantity`, {
+    params: { eventId }
+  });
+  return res.data;
+}
+

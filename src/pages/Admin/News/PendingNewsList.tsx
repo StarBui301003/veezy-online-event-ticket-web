@@ -30,6 +30,7 @@ import { connectNewsHub, onNews } from '@/services/signalr.service';
 import type { News, NewsFilterParams } from '@/types/Admin/news';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import PendingNewsDetailModal from './PendingNewsDetailModal';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -40,6 +41,20 @@ export const PendingNewsList = ({
   onChangePending?: () => void;
   activeTab: string;
 }) => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListDropdownClass,
+    getAdminListDropdownItemClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
+
   const [news, setNews] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -197,12 +212,6 @@ export const PendingNewsList = ({
     );
   };
 
-  // Filter handlers
-  const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-    setPage(1);
-  };
-
   // Single useEffect to handle all data fetching
   useEffect(() => {
     if (activeTab !== 'pending') return;
@@ -258,7 +267,7 @@ export const PendingNewsList = ({
     <div className="p-3">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -280,20 +289,7 @@ export const PendingNewsList = ({
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={pendingNewsSearch}
                   onChange={(e) => {
@@ -341,12 +337,14 @@ export const PendingNewsList = ({
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuContent align="end" className={`w-80 ${getAdminListDropdownClass()}`}>
                   {/* Event Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Event</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Event
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => setSelectedEventId('')}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input type="checkbox" checked={!selectedEventId} readOnly className="mr-2" />
                     <span>All Events</span>
@@ -354,7 +352,7 @@ export const PendingNewsList = ({
                   {selectedEventId && (
                     <DropdownMenuItem
                       onSelect={() => setSelectedEventId('')}
-                      className="text-xs text-gray-500 hover:text-gray-700"
+                      className={`text-xs ${getAdminListDropdownItemClass()}`}
                     >
                       Clear Filter
                     </DropdownMenuItem>
@@ -371,7 +369,7 @@ export const PendingNewsList = ({
                       <DropdownMenuItem
                         key={eventId}
                         onSelect={() => setSelectedEventId(eventId)}
-                        className="flex items-center gap-2"
+                        className={getAdminListDropdownItemClass()}
                       >
                         <input
                           type="checkbox"
@@ -388,10 +386,12 @@ export const PendingNewsList = ({
                   <DropdownMenuSeparator />
 
                   {/* Author Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Author</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Author
+                  </div>
                   <DropdownMenuItem
                     onSelect={() => setSelectedAuthorName('')}
-                    className="flex items-center gap-2"
+                    className={getAdminListDropdownItemClass()}
                   >
                     <input
                       type="checkbox"
@@ -404,7 +404,7 @@ export const PendingNewsList = ({
                   {selectedAuthorName && (
                     <DropdownMenuItem
                       onSelect={() => setSelectedAuthorName('')}
-                      className="text-xs text-gray-500 hover:text-gray-700"
+                      className={`text-xs ${getAdminListDropdownItemClass()}`}
                     >
                       Clear Filter
                     </DropdownMenuItem>
@@ -421,7 +421,7 @@ export const PendingNewsList = ({
                       <DropdownMenuItem
                         key={authorName}
                         onSelect={() => setSelectedAuthorName(authorName)}
-                        className="flex items-center gap-2"
+                        className={getAdminListDropdownItemClass()}
                       >
                         <input
                           type="checkbox"
@@ -439,13 +439,17 @@ export const PendingNewsList = ({
               </DropdownMenu>
             </div>
           </div>
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-yellow-200 hover:bg-yellow-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-yellow-200 hover:bg-yellow-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-center text-gray-900" style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>
+                <TableHead className="text-gray-900 " style={{ width: '20%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('newsTitle')}
@@ -454,7 +458,7 @@ export const PendingNewsList = ({
                     {getSortIcon('newsTitle')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900 " style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('eventName')}
@@ -463,7 +467,7 @@ export const PendingNewsList = ({
                     {getSortIcon('eventName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '12%' }}>
+                <TableHead className="text-gray-900 " style={{ width: '12%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('authorName')}
@@ -472,7 +476,7 @@ export const PendingNewsList = ({
                     {getSortIcon('authorName')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '12%' }}>
+                <TableHead className="text-center text-gray-900 " style={{ width: '12%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createdAt')}
@@ -481,7 +485,7 @@ export const PendingNewsList = ({
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '12%' }}>
+                <TableHead className="text-center text-gray-900 " style={{ width: '12%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('updatedAt')}
@@ -490,50 +494,72 @@ export const PendingNewsList = ({
                     {getSortIcon('updatedAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center" style={{ width: '10%' }}>
+                <TableHead className="text-center text-gray-900 " style={{ width: '10%' }}>
                   Action
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}>
               {pagedNews.length === 0 ? (
                 <>
-                  {/* Show 5 empty rows when no data */}
-                  {Array.from({ length: 5 }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={6} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Show "No pending news found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No pending news found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={7} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               ) : (
                 <>
                   {news.map((item, idx) => (
-                    <TableRow key={item.newsId} className="hover:bg-yellow-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={item.newsId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className="text-center text-gray-900 dark:text-white">
                         {((page || 1) - 1) * (pageSize || 5) + idx + 1}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={item.newsTitle}
                       >
                         {item.newsTitle}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={item.eventName || 'N/A'}
                       >
                         {item.eventName || 'N/A'}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={item.authorName || item.authorId || 'Unknown'}
                       >
                         {item.authorName || item.authorId || 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-gray-900 dark:text-white">
                         {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-gray-900 dark:text-white">
                         {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : 'Unknown'}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">
@@ -548,17 +574,24 @@ export const PendingNewsList = ({
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, 5 - pagedNews.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={6} className="border-0"></TableCell>
+                  {Array.from({ length: Math.max(0, pageSize - news.length) }, (_, idx) => (
+                    <TableRow
+                      key={`empty-${idx}`}
+                      className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell colSpan={7} className="border-0"></TableCell>
                     </TableRow>
                   ))}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={7}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={7} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -567,7 +600,9 @@ export const PendingNewsList = ({
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              className={`${
+                                page === 1 ? 'pointer-events-none opacity-50' : ''
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -610,16 +645,18 @@ export const PendingNewsList = ({
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === page}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === page
-                                          ? 'bg-yellow-500 text-white border hover:bg-yellow-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-green-500 text-white border-green-500 hover:bg-green-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -639,16 +676,16 @@ export const PendingNewsList = ({
                             <PaginationNext
                               onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
-                              className={
+                              className={`${
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${(page - 1) * pageSize + 1}-${Math.min(
@@ -656,9 +693,11 @@ export const PendingNewsList = ({
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
                       <select
-                        className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left"
+                        className={`flex items-center gap-1 px-2 py-1 border rounded text-sm transition min-w-[48px] text-left ${getAdminListPageSizeSelectClass()}`}
                         value={pageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >

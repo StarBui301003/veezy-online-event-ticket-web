@@ -101,7 +101,7 @@ export default function EventListTabs() {
   }, []);
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-6 min-h-screen">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="flex w-[650px] items-center rounded-[99px] py-4 gap-2 m-2 bg-white dark:bg-gray-800 shadow-[0_0_1px_0_rgba(24,94,224,0.15),_0_6px_12px_0_rgba(24,94,224,0.15)] dark:shadow-gray-900/20">
           <TabsTrigger

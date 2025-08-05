@@ -39,6 +39,7 @@ import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { Category } from '@/types/Admin/category';
 import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
@@ -55,6 +56,20 @@ export const CanceledEventList = ({
   setPageSize: (size: number) => void;
   onTotalChange?: (total: number) => void;
 }) => {
+  const {
+    getProfileInputClass,
+    getEventListCardClass,
+    getEventListTableClass,
+    getEventListTableHeaderClass,
+    getEventListTableRowClass,
+    getEventListDropdownClass,
+    getEventListDropdownItemClass,
+    getEventListPageSizeSelectClass,
+    getEventListTableBorderClass,
+    getEventListTableCellBorderClass,
+    getEventListTableHeaderBorderClass,
+    getAdminListPaginationClass,
+  } = useThemeClasses();
   const [data, setData] = useState<PaginatedEventResponse['data'] | null>(null);
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,7 +276,7 @@ export const CanceledEventList = ({
     <div className="p-3">
       <SpinnerOverlay show={loading} />
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getEventListCardClass()}`}>
           {/* Filter/Search UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -283,20 +298,7 @@ export const CanceledEventList = ({
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
                   placeholder="Search all columns..."
                   value={canceledEventSearch}
                   onChange={(e) => {
@@ -344,14 +346,16 @@ export const CanceledEventList = ({
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className={`w-56 ${getEventListDropdownClass()}`}>
                   {/* Category Filter - only show if categories exist */}
                   {allCategories.length > 0 && (
                     <>
-                      <div className="px-2 py-1 text-sm font-semibold">Category</div>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Category
+                      </div>
                       <DropdownMenuItem
                         onSelect={() => updateFilter('categoryIds', undefined)}
-                        className="flex items-center gap-2"
+                        className={`flex items-center gap-2 ${getEventListDropdownItemClass()}`}
                       >
                         <input
                           type="checkbox"
@@ -359,7 +363,7 @@ export const CanceledEventList = ({
                           readOnly
                           className="mr-2"
                         />
-                        <span>All</span>
+                        <span className="text-gray-900 dark:text-white">All</span>
                       </DropdownMenuItem>
                       {allCategories.map((category) => (
                         <DropdownMenuItem
@@ -371,7 +375,7 @@ export const CanceledEventList = ({
                               : [...currentIds, category];
                             updateFilter('categoryIds', newIds);
                           }}
-                          className="flex items-center gap-2"
+                          className={`flex items-center gap-2 ${getEventListDropdownItemClass()}`}
                         >
                           <input
                             type="checkbox"
@@ -379,7 +383,7 @@ export const CanceledEventList = ({
                             readOnly
                             className="mr-2"
                           />
-                          <span>{category}</span>
+                          <span className="text-gray-900 dark:text-white">{category}</span>
                         </DropdownMenuItem>
                       ))}
                       <DropdownMenuSeparator />
@@ -387,7 +391,9 @@ export const CanceledEventList = ({
                   )}
 
                   {/* Date Range Filters */}
-                  <div className="px-2 py-1 text-sm font-semibold">Start Date Range</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Start Date Range
+                  </div>
                   <DropdownMenuItem
                     className="flex flex-col items-start p-3"
                     onSelect={(e) => e.preventDefault()}
@@ -402,7 +408,7 @@ export const CanceledEventList = ({
                           updateFilter('startFrom', e.target.value);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                       <input
                         type="date"
@@ -413,7 +419,7 @@ export const CanceledEventList = ({
                           updateFilter('startTo', e.target.value);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                   </DropdownMenuItem>
@@ -423,13 +429,15 @@ export const CanceledEventList = ({
           </div>
 
           {/* Table */}
-          <Table className="min-w-full">
+          <Table className={`${getEventListTableClass()} ${getEventListTableBorderClass()}`}>
             <TableHeader>
-              <TableRow className="bg-gray-200 hover:bg-gray-200">
-                <TableHead className="text-center" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-gray-200 hover:bg-gray-200 ${getEventListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-center text-gray-900 " style={{ width: '5%' }}>
                   #
                 </TableHead>
-                <TableHead style={{ width: '20%' }}>
+                <TableHead className="text-gray-900" style={{ width: '20%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('eventName')}
@@ -438,7 +446,7 @@ export const CanceledEventList = ({
                     {getSortIcon('eventName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>
+                <TableHead className="text-gray-900" style={{ width: '10%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('categoryName')}
@@ -447,7 +455,7 @@ export const CanceledEventList = ({
                     {getSortIcon('categoryName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>
+                <TableHead className="text-gray-900" style={{ width: '10%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('startAt')}
@@ -456,7 +464,7 @@ export const CanceledEventList = ({
                     {getSortIcon('startAt')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>
+                <TableHead className="text-gray-900" style={{ width: '10%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('endAt')}
@@ -465,7 +473,7 @@ export const CanceledEventList = ({
                     {getSortIcon('endAt')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('approvedByName')}
@@ -474,7 +482,7 @@ export const CanceledEventList = ({
                     {getSortIcon('approvedByName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '15%' }}>
+                <TableHead className="text-gray-900" style={{ width: '15%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createByName')}
@@ -483,7 +491,7 @@ export const CanceledEventList = ({
                     {getSortIcon('createByName')}
                   </div>
                 </TableHead>
-                <TableHead style={{ width: '10%' }}>
+                <TableHead className="text-gray-900" style={{ width: '10%' }}>
                   <div
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createdAt')}
@@ -492,34 +500,56 @@ export const CanceledEventList = ({
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
-                <TableHead className="text-center">Details</TableHead>
+                <TableHead className="text-center text-gray-900">Details</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody className={`${getEventListTableClass()} ${getEventListTableBorderClass()}`}>
               {items.length === 0 ? (
                 <>
-                  {/* Show 5 empty rows when no data */}
-                  {Array.from({ length: 5 }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={8} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Show "No canceled events found" message */}
+                  <TableRow
+                    className={`${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={9}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      No canceled events found.
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={9} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               ) : (
                 <>
                   {items.map((event, idx) => (
-                    <TableRow key={event.eventId} className="hover:bg-gray-50">
-                      <TableCell className="text-center">
+                    <TableRow
+                      key={event.eventId}
+                      className={`${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
+                    >
+                      <TableCell className="text-center text-gray-900 dark:text-white">
                         {((page || 1) - 1) * (pageSize || 5) + idx + 1}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={event.eventName}
                       >
                         {event.eventName}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={
                           event.categoryName && event.categoryName.length > 0
                             ? event.categoryName.join(', ')
@@ -530,28 +560,28 @@ export const CanceledEventList = ({
                           ? event.categoryName.join(', ')
                           : 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white">
                         {event.startAt ? new Date(event.startAt).toLocaleDateString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white">
                         {event.endAt ? new Date(event.endAt).toLocaleDateString() : 'Unknown'}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={event.approvedByName || 'Unknown'}
                       >
                         {event.approvedByName || 'Unknown'}
                       </TableCell>
                       <TableCell
-                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="truncate max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white"
                         title={event.createByName || 'Unknown'}
                       >
                         {event.createByName || 'Unknown'}
                       </TableCell>
-                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className="truncate max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-900 dark:text-white">
                         {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
-                      <TableCell className="text-center flex gap-2 justify-center">
+                      <TableCell className="text-center flex gap-2 justify-center text-gray-900 dark:text-white">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
                           onClick={() => setSelectedEvent(event)}
@@ -571,29 +601,38 @@ export const CanceledEventList = ({
                   {/* Add empty rows to maintain table height */}
                   {Array.from(
                     {
-                      length: Math.max(0, 5 - items.length),
+                      length: Math.max(0, pageSize - items.length),
                     },
                     (_, idx) => (
-                      <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                        <TableCell colSpan={8} className="border-0"></TableCell>
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={9} className="border-0"></TableCell>
                       </TableRow>
                     )
                   )}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={8}>
+            <TableFooter
+              className={`${getEventListTableClass()} ${getEventListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getEventListTableRowClass()} ${getEventListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={9} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
-                    <div className="flex-1 flex justify-center pl-[200px]">
+                    <div className="flex-1 flex justify-center">
                       <Pagination>
                         <PaginationContent>
                           <PaginationItem>
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
-                              className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                              className={`${
+                                page === 1 ? 'pointer-events-none opacity-50' : ''
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                           {(() => {
@@ -636,16 +675,18 @@ export const CanceledEventList = ({
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === filters.page}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                        ${
                                          item === filters.page
-                                           ? 'bg-gray-500 text-white border hover:bg-gray-700 hover:text-white'
-                                           : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                           ? 'bg-gray-500 text-white border-gray-500 hover:bg-gray-700 hover:text-white'
+                                           : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                        }
                                        px-2 py-1 mx-0.5`}
                                     style={{
@@ -665,16 +706,16 @@ export const CanceledEventList = ({
                             <PaginationNext
                               onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
-                              className={
+                              className={`${
                                 page === totalPages ? 'pointer-events-none opacity-50' : ''
-                              }
+                              } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
                           ? '0-0 of 0'
                           : `${((page || 1) - 1) * (pageSize || 5) + 1}-${Math.min(
@@ -682,9 +723,11 @@ export const CanceledEventList = ({
                               totalItems
                             )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Rows per page
+                      </span>
                       <select
-                        className="border rounded px-2 py-1 text-sm bg-white"
+                        className={`border rounded px-2 py-1 text-sm ${getEventListPageSizeSelectClass()}`}
                         value={pageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >

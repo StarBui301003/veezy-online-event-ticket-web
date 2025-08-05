@@ -44,32 +44,57 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const ChatboxAdmin = () => {
   // Component render tracking
   console.log('🔄 [Component] ChatboxAdmin rendering...');
-  
+
+  const { getProfileInputClass, getCardClass, getTextClass } = useThemeClasses();
+
+  // Custom scrollbar styles
+  const scrollbarStyles = `
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.5);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.7);
+    }
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+    }
+  `;
+
   // State for room mode (ai/human) and permission to switch
   const [roomMode, setRoomMode] = useState<'ai' | 'human'>('ai');
   const [canSwitchMode, setCanSwitchMode] = useState(false);
 
   // Debug: Log roomMode changes and force re-render counter
   const [forceRender, setForceRender] = useState(0);
-// ...existing code...
-// States
-const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
-const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
-const [messages, setMessages] = useState<ChatMessage[]>([]);
-const [newMessage, setNewMessage] = useState('');
-const [searchQuery, setSearchQuery] = useState('');
-const [loading, setLoading] = useState(true);
-const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
-const [isConnected, setIsConnected] = useState(false);
+  // ...existing code...
+  // States
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false); // Add loading state for messages
 
-// Reply and Edit states
-const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
-const [editingContent, setEditingContent] = useState('');
+  // Reply and Edit states
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+  const [editingContent, setEditingContent] = useState('');
 
   // Debug useEffect for roomMode and activeRoom changes
   useEffect(() => {
@@ -77,7 +102,7 @@ const [editingContent, setEditingContent] = useState('');
     console.log('🔧 [RoomModeDebug] activeRoom mode:', activeRoom?.mode);
     console.log('🔧 [RoomModeDebug] Component should re-render now...');
     // Force re-render when roomMode changes
-    setForceRender(prev => {
+    setForceRender((prev) => {
       console.log('🔧 [RoomModeDebug] Force render counter:', prev, '->', prev + 1);
       return prev + 1;
     });
@@ -117,24 +142,29 @@ const [editingContent, setEditingContent] = useState('');
     const handleModeChanged = (payload: any) => {
       console.log('🔄 [OnModeChanged] Received payload:', payload);
       console.log('🔄 [OnModeChanged] Current activeRoom:', activeRoom?.roomId);
-      
+
       // CRITICAL DEBUG - Always log when this event is received
       console.log('🔥 [DEBUG] ADMIN OnModeChanged event received in admin chatbox!', payload);
-      
+
       if (payload && payload.roomId && payload.mode) {
         const normalizedMode = payload.mode.toLowerCase();
         console.log('🔄 [OnModeChanged] Normalized mode:', normalizedMode);
-        
+
         // Update mode for active room if it matches - THIS IS THE KEY FIX!
         if (activeRoom?.roomId === payload.roomId) {
           console.log('🔄 [OnModeChanged] Updating active room mode to:', normalizedMode);
-          
+
           // Update roomMode state
           setRoomMode((prevMode) => {
-            console.log('🔄 [OnModeChanged] State setter called: prevMode =', prevMode, ', newMode =', normalizedMode);
+            console.log(
+              '🔄 [OnModeChanged] State setter called: prevMode =',
+              prevMode,
+              ', newMode =',
+              normalizedMode
+            );
             return normalizedMode;
           });
-          
+
           // CRITICAL: Update activeRoom object to trigger component re-renders
           setActiveRoom((prevRoom) => {
             if (prevRoom && prevRoom.roomId === payload.roomId) {
@@ -146,44 +176,57 @@ const [editingContent, setEditingContent] = useState('');
             }
             return prevRoom;
           });
-          
+
           // Force re-render by updating forceRender counter
-          setForceRender(prev => {
+          setForceRender((prev) => {
             console.log('🔄 [OnModeChanged] Force render counter updated:', prev, '->', prev + 1);
             return prev + 1;
           });
         }
-        
+
         // Update mode for the room in chatRooms list
         setChatRooms((prevRooms) =>
           prevRooms.map((room) => {
             if (room.roomId === payload.roomId) {
-              console.log('🔄 [OnModeChanged] Updating room in list:', room.roomId, 'from', room.mode, 'to', normalizedMode);
+              console.log(
+                '🔄 [OnModeChanged] Updating room in list:',
+                room.roomId,
+                'from',
+                room.mode,
+                'to',
+                normalizedMode
+              );
               return { ...room, mode: normalizedMode };
             }
             return room;
           })
         );
-        
+
         // Show toast notification
-        toast.info(`Room mode changed to ${payload.mode} by ${payload.changedBy || 'Admin'}`);
+        toast.success(
+          `Room mode changed to ${payload.mode === 'human' ? 'Human Support' : 'AI Support'} by ${
+            payload.changedBy || 'Admin'
+          }`
+        );
       } else {
         console.warn('🔄 [OnModeChanged] Invalid payload received:', payload);
       }
     };
-    
+
     console.log('🔧 [DEBUG] Setting up OnModeChanged listeners in useEffect...');
     // Register both cases for compatibility
     onChat('OnModeChanged', handleModeChanged);
-    
+
     return () => {
       console.log('🔧 [DEBUG] Cleaning up OnModeChanged listener...');
       // Import offChat dynamically to avoid circular imports
-      import('@/services/signalr.service').then(({ offChat }) => {
-        offChat('OnModeChanged', handleModeChanged);
-      }).catch(() => {
-        // Ignore if import fails
-      });
+      import('@/services/signalr.service')
+        .then(({ offChat }) => {
+          offChat('OnModeChanged', handleModeChanged);
+        })
+        .catch(() => {
+          // Ignore if import fails
+        });
     };
   }, [activeRoom?.roomId]);
 
@@ -194,7 +237,7 @@ const [editingContent, setEditingContent] = useState('');
       console.log('[ModeDebug] Setting roomMode from activeRoom.mode:', activeRoom.mode);
       setRoomMode(activeRoom.mode);
       // Force re-render when activeRoom changes
-      setForceRender(prev => {
+      setForceRender((prev) => {
         console.log('[ModeDebug] activeRoom change force render:', prev, '->', prev + 1);
         return prev + 1;
       });
@@ -318,31 +361,36 @@ const [editingContent, setEditingContent] = useState('');
               prev.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content }))
             );
 
-            const updatedRooms = prev.map((room) =>
-              room.roomId === message.roomId
-                ? {
-                    ...room,
-                    lastMessage: message,
-                    lastMessageAt: message.createdAt, // Cập nhật lastMessageAt với thời gian tin nhắn mới
-                    // Only increase unread count if it's not the active room and not from current user
-                    unreadCount:
-                      message.senderId !== currentUser.userId &&
-                      room.roomId !== activeRoomRef.current?.roomId
-                        ? room.unreadCount + 1
-                        : room.unreadCount,
-                  }
-                : room
-            )
-            // Sắp xếp lại theo thứ tự hoạt động gần nhất sau khi cập nhật
-            .sort((a, b) => {
-              const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
-              const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
-              return new Date(bTime).getTime() - new Date(aTime).getTime();
-            });
+            const updatedRooms = prev
+              .map((room) =>
+                room.roomId === message.roomId
+                  ? {
+                      ...room,
+                      lastMessage: message,
+                      lastMessageAt: message.createdAt, // Cập nhật lastMessageAt với thời gian tin nhắn mới
+                      // Only increase unread count if it's not the active room and not from current user
+                      unreadCount:
+                        message.senderId !== currentUser.userId &&
+                        room.roomId !== activeRoomRef.current?.roomId
+                          ? room.unreadCount + 1
+                          : room.unreadCount,
+                    }
+                  : room
+              )
+              // Sắp xếp lại theo thứ tự hoạt động gần nhất sau khi cập nhật
+              .sort((a, b) => {
+                const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+                const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+                return new Date(bTime).getTime() - new Date(aTime).getTime();
+              });
 
             console.log(
               '🏠 Chat rooms after update and sort:',
-              updatedRooms.map((r) => ({ id: r.roomId, lastMsg: r.lastMessage?.content, lastMsgAt: r.lastMessageAt }))
+              updatedRooms.map((r) => ({
+                id: r.roomId,
+                lastMsg: r.lastMessage?.content,
+                lastMsgAt: r.lastMessageAt,
+              }))
             );
             return updatedRooms;
           });
@@ -427,13 +475,13 @@ const [editingContent, setEditingContent] = useState('');
           console.log('🏠 New chat room created via SignalR:', room);
           console.log('🏠 Room structure debug:', {
             roomId: room?.roomId,
-            roomName: room?.roomName, 
+            roomName: room?.roomName,
             participants: room?.participants,
             mode: room?.mode,
-            allKeys: Object.keys(room || {})
+            allKeys: Object.keys(room || {}),
           });
           console.log('🏠 Admin is connected to ChatHub:', isConnected);
-          
+
           // Transform backend room data to frontend format
           const transformedRoom: ChatRoom = {
             roomId: room.id, // Fix: backend sends 'id', not 'roomId'
@@ -444,7 +492,7 @@ const [editingContent, setEditingContent] = useState('');
               fullName: p.userName || p.fullName || p.username || 'Unknown User',
               avatar: p.avatarUrl || p.avatar,
               isOnline: p.isOnline || false,
-              role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer'
+              role: (p.role as 'Customer' | 'EventManager' | 'Admin') || 'Customer',
             })),
             lastMessage: room.lastMessage,
             lastMessageAt: room.lastMessageAt,
@@ -453,27 +501,34 @@ const [editingContent, setEditingContent] = useState('');
             createdAt: room.createdAt,
             createdByUserId: room.createdByUserId,
             createdByUserName: room.createdByUserName,
-            mode: room.mode === 1 ? 'human' : 'ai' // Transform numeric mode to string mode
+            mode: room.mode === 1 ? 'human' : 'ai', // Transform numeric mode to string mode
           };
-          
+
           setChatRooms((prev) => {
             // Check if room already exists to avoid duplicates
-            const existingRoom = prev.find(r => r.roomId === transformedRoom.roomId);
+            const existingRoom = prev.find((r) => r.roomId === transformedRoom.roomId);
             if (existingRoom) {
               console.log('🏠 Room already exists, skipping add:', transformedRoom.roomId);
               return prev;
             }
-            
+
             // Add new room and sort by latest activity
             const updatedRooms = [transformedRoom, ...prev].sort((a, b) => {
               const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
               const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
               return new Date(bTime).getTime() - new Date(aTime).getTime();
             });
-            console.log('🏠 Added new room to chat rooms list. Room ID:', transformedRoom.roomId, 'Room Name:', transformedRoom.roomName);
+            console.log(
+              '🏠 Added new room to chat rooms list. Room ID:',
+              transformedRoom.roomId,
+              'Room Name:',
+              transformedRoom.roomName
+            );
             return updatedRooms;
           });
-          toast.info(`New support request from ${transformedRoom.participants?.[0]?.fullName || 'User'}`);
+          toast.info(
+            `New support request from ${transformedRoom.participants?.[0]?.fullName || 'User'}`
+          );
         });
 
         // Add error handler for SignalR errors
@@ -556,7 +611,7 @@ const [editingContent, setEditingContent] = useState('');
       const rooms = await chatService.getAdminChatRooms();
       console.log('[ChatboxAdmin] Successfully fetched', rooms.length, 'chat rooms');
       console.log('[ChatboxAdmin] Raw rooms data:', rooms);
-      
+
       // Validate and sanitize room data, and ensure mode is always normalized
       const validatedRooms = rooms
         .filter((room) => {
@@ -574,21 +629,38 @@ const [editingContent, setEditingContent] = useState('');
           } else if (typeof room.mode === 'number') {
             normalizedMode = room.mode === 1 ? 'human' : 'ai';
           }
-          
+
           // Get roomId from multiple sources
           const actualRoomId = room.roomId || (room as any).RoomId || (room as any).id;
-          
+
           console.log('[ChatboxAdmin] Processing room:', room);
-          console.log('[ChatboxAdmin] Room fields - roomId:', room.roomId, 'roomName:', room.roomName, 'createdByUserName:', room.createdByUserName);
-          
+          console.log(
+            '[ChatboxAdmin] Room fields - roomId:',
+            room.roomId,
+            'roomName:',
+            room.roomName,
+            'createdByUserName:',
+            room.createdByUserName
+          );
+
           return {
             ...room,
             roomId: actualRoomId,
-            roomName: room.roomName || (room as any).RoomName || (room as any).name || 'Unnamed Room',
+            roomName:
+              room.roomName || (room as any).RoomName || (room as any).name || 'Unnamed Room',
             createdByUserName: room.createdByUserName || 'Unknown User',
             participants: (room.participants || []).map((p: any) => {
               console.log('[ChatboxAdmin] Processing participant in processRoom:', p);
-              console.log('[ChatboxAdmin] Participant fields - userId:', p?.userId, 'userName:', p?.userName, 'fullName:', p?.fullName, 'username:', p?.username);
+              console.log(
+                '[ChatboxAdmin] Participant fields - userId:',
+                p?.userId,
+                'userName:',
+                p?.userName,
+                'fullName:',
+                p?.fullName,
+                'username:',
+                p?.username
+              );
               return {
                 ...p,
                 fullName: p?.fullName || p?.userName || p?.username || 'Unknown User',
@@ -605,7 +677,7 @@ const [editingContent, setEditingContent] = useState('');
           const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
           return new Date(bTime).getTime() - new Date(aTime).getTime();
         });
-        
+
       console.log('[ChatboxAdmin] Processed', validatedRooms.length, 'valid rooms');
       setChatRooms(validatedRooms);
 
@@ -692,6 +764,7 @@ const [editingContent, setEditingContent] = useState('');
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
     try {
+      setLoadingMessages(true);
       const messages = await chatService.getRoomMessages(roomId);
       // Debug: Log messages để kiểm tra cấu trúc
       console.log('Fetched messages:', messages);
@@ -717,6 +790,8 @@ const [editingContent, setEditingContent] = useState('');
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');
       setMessages([]); // Set empty array on error
+    } finally {
+      setLoadingMessages(false);
     }
   };
 
@@ -729,7 +804,10 @@ const [editingContent, setEditingContent] = useState('');
         toast.error('Invalid room selected');
         return;
       }
-      
+
+      // Set loading state for messages
+      setLoadingMessages(true);
+
       // Always normalize mode when selecting room
       let normalizedMode: 'ai' | 'human' = 'ai';
       if (typeof room.mode === 'string') {
@@ -757,6 +835,8 @@ const [editingContent, setEditingContent] = useState('');
       }
     } catch (error) {
       console.error('Error selecting room:', error);
+    } finally {
+      setLoadingMessages(false);
     }
   };
 
@@ -879,7 +959,9 @@ const [editingContent, setEditingContent] = useState('');
       (room) =>
         room.createdByUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         room.roomName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        room.participants?.some((p) => p.fullName?.toLowerCase().includes(searchQuery.toLowerCase()))
+        room.participants?.some((p) =>
+          p.fullName?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
     )
     // Đảm bảo filteredRooms cũng được sắp xếp theo thứ tự hoạt động gần nhất
     .sort((a, b) => {
@@ -916,12 +998,13 @@ const [editingContent, setEditingContent] = useState('');
 
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
+      <style>{scrollbarStyles}</style>
       <SpinnerOverlay show={loading} />
       {/* Left Sidebar - Chat Rooms */}
-      <Card className="w-80 flex flex-col bg-white/80 rounded-2xl shadow-2xl border border-blue-100">
+      <Card className={`w-80 flex flex-col rounded-2xl shadow-2xl border ${getCardClass()}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
               <MessageCircle className="h-5 w-5" />
               Admin Chat
             </CardTitle>
@@ -955,20 +1038,7 @@ const [editingContent, setEditingContent] = useState('');
           >
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
-              className="input"
-              style={{
-                width: 260,
-                height: 40,
-                border: 'none',
-                outline: 'none',
-                caretColor: 'rgb(255,81,0)',
-                backgroundColor: 'rgb(255,255,255)',
-                borderRadius: 30,
-                paddingLeft: 30,
-                letterSpacing: 0.8,
-                color: 'rgb(19,19,19)',
-                fontSize: 13.4,
-              }}
+              className={`w-[260px] h-10 rounded-[30px] pl-8 pr-4 text-sm transition-colors ${getProfileInputClass()}`}
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -999,9 +1069,9 @@ const [editingContent, setEditingContent] = useState('');
         </CardHeader>
 
         <CardContent className="flex-1 p-0 flex flex-col">
-          <ScrollArea className="flex-1 max-h-[calc(100vh-16rem)]">
+          <ScrollArea className="flex-1 max-h-[calc(100vh-16rem)] custom-scrollbar">
             {filteredRooms.length === 0 && !loading ? (
-              <div className="p-4 text-center text-muted-foreground">No chat rooms found</div>
+              <div className={`p-4 text-center ${getTextClass()}`}>No chat rooms found</div>
             ) : (
               <div className="space-y-1 p-2">
                 {filteredRooms.map((room, index) => (
@@ -1042,7 +1112,7 @@ const [editingContent, setEditingContent] = useState('');
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between min-w-0">
                             <div className="overflow-x-auto max-w-[200px]">
-                              <p className="font-medium truncate">
+                              <p className={`font-medium truncate ${getTextClass()}`}>
                                 {room.createdByUserName ||
                                   room.participants[0]?.fullName ||
                                   'Unknown User'}
@@ -1060,13 +1130,16 @@ const [editingContent, setEditingContent] = useState('');
                           <div className="flex items-center gap-1 mt-1">
                             <Badge
                               variant="outline"
-                              className="text-xs border border-blue-200 bg-white rounded-full"
+                              className="text-xs border border-blue-200 bg-white rounded-full dark:text-black"
                             >
                               {room.participants[0]?.role || 'User'}
                             </Badge>
                             {room.roomType === 'Support' && (
-                              <Badge variant="secondary" className="text-xs">
-                                <AlertCircle className="h-3 w-3 mr-1" />
+                              <Badge
+                                variant="secondary"
+                                className="text-xs text-gray-700 dark:text-white"
+                              >
+                                <AlertCircle className="h-3 w-3 mr-1 text-gray-700 dark:text-white" />
                                 Support
                               </Badge>
                             )}
@@ -1074,14 +1147,14 @@ const [editingContent, setEditingContent] = useState('');
                           {room.lastMessage && (
                             <div className="overflow-x-auto max-w-[200px]">
                               <p
-                                className="text-sm text-muted-foreground truncate mt-1"
+                                className={`text-sm truncate mt-1 ${getTextClass()}`}
                                 title={room.lastMessage.content}
                               >
                                 {room.lastMessage.content}
                               </p>
                             </div>
                           )}
-                          <p className="text-xs text-muted-foreground mt-1 truncate min-w-0">
+                          <p className={`text-xs mt-1 truncate min-w-0 ${getTextClass()}`}>
                             {formatTime(room.lastMessage?.timestamp || room.createdAt)}
                           </p>
                         </div>
@@ -1100,7 +1173,7 @@ const [editingContent, setEditingContent] = useState('');
         {activeRoom ? (
           <>
             {/* Chat Header */}
-            <Card className="mb-4 bg-white/80 rounded-2xl shadow-xl border border-blue-100">
+            <Card className={`mb-4 rounded-2xl shadow-xl border ${getCardClass()}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1116,12 +1189,12 @@ const [editingContent, setEditingContent] = useState('');
                     </Avatar>
 
                     <div>
-                      <h3 className="font-semibold">
+                      <h3 className={`font-semibold ${getTextClass()}`}>
                         {activeRoom.createdByUserName ||
                           activeRoom.participants[0]?.fullName ||
                           'Unknown User'}
                       </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className={`flex items-center gap-2 text-sm ${getTextClass()}`}>
                         <OnlineStatusIndicator
                           userId={activeRoom.participants[0]?.userId}
                           size="sm"
@@ -1134,20 +1207,33 @@ const [editingContent, setEditingContent] = useState('');
                             </span>
                           )}
                         {/* Hiển thị trạng thái AI/human */}
-                        <span 
+                        <span
                           key={`mode-indicator-${activeRoom.roomId}-${activeRoom.mode}-${forceRender}`}
-                          className={`text-xs px-2 py-1 rounded ${activeRoom.mode === 'ai' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            activeRoom.mode === 'ai'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
                           style={{
-                            backgroundColor: activeRoom.mode === 'ai' ? '#dcfce7 !important' : '#fef3c7 !important',
-                            color: activeRoom.mode === 'ai' ? '#15803d !important' : '#a16207 !important',
+                            backgroundColor:
+                              activeRoom.mode === 'ai'
+                                ? '#dcfce7 !important'
+                                : '#fef3c7 !important',
+                            color:
+                              activeRoom.mode === 'ai'
+                                ? '#15803d !important'
+                                : '#a16207 !important',
                             fontSize: '12px',
                             padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: activeRoom.mode === 'ai' ? '2px solid #22c55e' : '2px solid #f59e0b'
+                            borderRadius: '99px',
+                            border:
+                              activeRoom.mode === 'ai' ? '2px solid #22c55e' : '2px solid #f59e0b',
                           }}
                         >
                           {activeRoom.mode === 'ai' ? `AI Support` : `Human Support`}
-                          <span style={{fontSize:10,marginLeft:4,color:'#888'}}>({activeRoom.mode})</span>
+                          <span style={{ fontSize: 10, marginLeft: 4, color: '#888' }}>
+                            ({activeRoom.mode})
+                          </span>
                         </span>
                         {/* Mode switch button for admin */}
                         {canSwitchMode && (
@@ -1155,12 +1241,24 @@ const [editingContent, setEditingContent] = useState('');
                             key={`mode-button-${activeRoom.roomId}-${activeRoom.mode}-${forceRender}`}
                             size="sm"
                             variant="outline"
-                            className="ml-2 text-xs"
+                            className="ml-2 text-xs rounded-full"
                             style={{
-                              backgroundColor: activeRoom.mode === 'ai' ? '#fef3c7 !important' : '#dcfce7 !important',
-                              color: activeRoom.mode === 'ai' ? '#a16207 !important' : '#15803d !important',
-                              borderColor: activeRoom.mode === 'ai' ? '#fbbf24 !important' : '#22c55e !important',
-                              border: activeRoom.mode === 'ai' ? '2px solid #f59e0b' : '2px solid #22c55e'
+                              backgroundColor:
+                                activeRoom.mode === 'ai'
+                                  ? '#fef3c7 !important'
+                                  : '#dcfce7 !important',
+                              color:
+                                activeRoom.mode === 'ai'
+                                  ? '#a16207 !important'
+                                  : '#15803d !important',
+                              borderColor:
+                                activeRoom.mode === 'ai'
+                                  ? '#fbbf24 !important'
+                                  : '#22c55e !important',
+                              border:
+                                activeRoom.mode === 'ai'
+                                  ? '2px solid #f59e0b'
+                                  : '2px solid #22c55e',
                             }}
                             onClick={async () => {
                               if (!activeRoom?.roomId) {
@@ -1170,42 +1268,54 @@ const [editingContent, setEditingContent] = useState('');
                               const nextMode = activeRoom.mode === 'ai' ? 'Human' : 'AI';
                               try {
                                 // Sử dụng chatService để chuyển mode
-                                const data = await chatService.switchRoomMode(activeRoom.roomId, nextMode);
+                                const data = await chatService.switchRoomMode(
+                                  activeRoom.roomId,
+                                  nextMode
+                                );
                                 if (data && data.mode !== undefined && data.mode !== null) {
                                   // Xử lý mode từ backend - có thể là string hoặc number
                                   let normalizedMode: 'ai' | 'human' = 'ai';
                                   if (typeof data.mode === 'string') {
-                                    normalizedMode = data.mode.toLowerCase() === 'human' ? 'human' : 'ai';
+                                    normalizedMode =
+                                      data.mode.toLowerCase() === 'human' ? 'human' : 'ai';
                                   } else if (typeof data.mode === 'number') {
                                     normalizedMode = data.mode === 1 ? 'human' : 'ai';
                                   }
                                   setRoomMode(normalizedMode);
-                                  setActiveRoom(prev => prev ? { ...prev, mode: normalizedMode } : prev);
-                                  activeRoomRef.current = activeRoom ? { ...activeRoom, mode: normalizedMode } : null;
+                                  setActiveRoom((prev) =>
+                                    prev ? { ...prev, mode: normalizedMode } : prev
+                                  );
+                                  activeRoomRef.current = activeRoom
+                                    ? { ...activeRoom, mode: normalizedMode }
+                                    : null;
                                 } else {
-                                  const newMode = nextMode.toLowerCase() === 'human' ? 'human' : 'ai';
+                                  const newMode =
+                                    nextMode.toLowerCase() === 'human' ? 'human' : 'ai';
                                   setRoomMode(newMode);
-                                  setActiveRoom(prev => prev ? { ...prev, mode: newMode } : prev);
-                                  activeRoomRef.current = activeRoom ? { ...activeRoom, mode: newMode } : null;
+                                  setActiveRoom((prev) =>
+                                    prev ? { ...prev, mode: newMode } : prev
+                                  );
+                                  activeRoomRef.current = activeRoom
+                                    ? { ...activeRoom, mode: newMode }
+                                    : null;
                                 }
-                                toast.success(
-                                  nextMode === 'Human'
-                                    ? 'Switched to human support'
-                                    : 'Switched to AI support'
-                                );
+                                // Toast sẽ được hiển thị từ SignalR event handler, không cần gửi ở đây
                               } catch (err: any) {
                                 console.error('[ModeSwitch] Error switching mode:', err);
                                 toast.error(
-                                  (err && err.message)
+                                  err && err.message
                                     ? err.message
-                                    : (nextMode === 'Human'
-                                        ? 'Failed to switch to human support'
-                                        : 'Failed to switch to AI support')
+                                    : nextMode === 'Human'
+                                    ? 'Failed to switch to human support'
+                                    : 'Failed to switch to AI support'
                                 );
                               }
                             }}
                           >
-                            🔄 {activeRoom.mode === 'ai' ? 'Switch to  Human Support' : 'Switch to  AI Support'}
+                            🔄{' '}
+                            {activeRoom.mode === 'ai'
+                              ? 'Switch to  Human Support'
+                              : 'Switch to  AI Support'}
                           </Button>
                         )}
                       </div>
@@ -1215,7 +1325,7 @@ const [editingContent, setEditingContent] = useState('');
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="outline"
-                      className="rounded-full border border-blue-200 bg-white"
+                      className="rounded-full border border-blue-200 bg-white dark:text-black"
                     >
                       {activeRoom.participants[0]?.role || 'User'}
                     </Badge>
@@ -1225,187 +1335,205 @@ const [editingContent, setEditingContent] = useState('');
             </Card>
 
             {/* Messages Area */}
-            <Card className="flex-1 flex flex-col bg-white/90 rounded-2xl shadow-xl border border-blue-100">
+            <Card className={`flex-1 flex flex-col rounded-2xl shadow-xl border ${getCardClass()}`}>
               <CardContent className="flex-1 p-0">
-                <ScrollArea className="h-[calc(100vh-20rem)] p-4">
-                  <AnimatePresence>
-                    {(Array.isArray(messages) ? messages : []).map((message, index) => {
-                      const isOwnMessage = message.senderId === currentUser.userId;
-                      const showAvatar =
-                        index === 0 || messages[index - 1]?.senderId !== message.senderId;
-                      const uniqueKey = message.messageId
-                        ? `${message.messageId}-${index}`
-                        : `msg-${index}-${Date.now()}`;
+                <ScrollArea className="h-[calc(100vh-20rem)] p-4 custom-scrollbar">
+                  {loadingMessages ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p className={`text-sm ${getTextClass()}`}>Loading messages...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <AnimatePresence>
+                      {(Array.isArray(messages) ? messages : []).map((message, index) => {
+                        const isOwnMessage = message.senderId === currentUser.userId;
+                        const showAvatar =
+                          index === 0 || messages[index - 1]?.senderId !== message.senderId;
+                        const uniqueKey = message.messageId
+                          ? `${message.messageId}-${index}`
+                          : `msg-${index}-${Date.now()}`;
 
-                      return (
-                        <motion.div
-                          key={uniqueKey}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          className={`flex gap-3 mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
-                        >
-                          {showAvatar && !isOwnMessage && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>
-                                {message.senderId === 'system-ai-bot'
-                                  ? '🤖'
-                                  : message.senderName?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          {!showAvatar && !isOwnMessage && <div className="w-8" />}
-
-                          <div
-                            className={`max-w-[70%] ${
-                              isOwnMessage ? 'items-end' : 'items-start'
-                            } flex flex-col group relative`}
+                        return (
+                          <motion.div
+                            key={uniqueKey}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className={`flex gap-3 mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
                           >
-                            {showAvatar && (
-                              <div
-                                className={`flex items-center gap-2 mb-1 ${
-                                  isOwnMessage ? 'flex-row-reverse' : ''
-                                }`}
-                              >
-                                <span className="text-sm font-medium">{message.senderName}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatTime(message.timestamp || (message as any).createdAt)}
-                                </span>
-                              </div>
+                            {showAvatar && !isOwnMessage && (
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback>
+                                  {message.senderId === 'system-ai-bot'
+                                    ? '🤖'
+                                    : message.senderName?.charAt(0) || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
                             )}
+                            {!showAvatar && !isOwnMessage && <div className="w-8" />}
 
-                            {/* Show reply preview if this is a reply */}
-                            {message.replyToMessage && (
-                              <div
-                                className={`text-xs mb-2 p-2 rounded bg-blue-50 border-l-2 border-blue-200 ${
-                                  isOwnMessage ? 'mr-2' : 'ml-2'
-                                }`}
-                              >
-                                <div className="font-medium">
-                                  {message.replyToMessage.senderName}
-                                </div>
-                                <div className="truncate opacity-70">
-                                  {message.replyToMessage.content}
-                                </div>
-                              </div>
-                            )}
-
-                            {editingMessage?.messageId === message.messageId ? (
-                              /* Edit mode */
-                              <div
-                                className={`w-full rounded-xl px-3 py-2 bg-background border ${
-                                  isOwnMessage ? 'mr-2' : 'ml-2'
-                                }`}
-                              >
-                                <Input
-                                  value={editingContent}
-                                  onChange={(e) => setEditingContent(e.target.value)}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      saveEditedMessage();
-                                    } else if (e.key === 'Escape') {
-                                      cancelEditing();
-                                    }
-                                  }}
-                                  className="border-none p-0 focus-visible:ring-0 rounded-full"
-                                  autoFocus
-                                />
-                                <div className="flex justify-end gap-2 mt-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={cancelEditing}
-                                    className="rounded-full"
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={saveEditedMessage}
-                                    className="rounded-full"
-                                  >
-                                    Save
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              /* Normal message display */
-                              <div className="relative">
+                            <div
+                              className={`max-w-[70%] ${
+                                isOwnMessage ? 'items-end' : 'items-start'
+                              } flex flex-col group relative`}
+                            >
+                              {showAvatar && (
                                 <div
-                                  className={`rounded-xl px-4 py-2 max-w-full break-words shadow ${
-                                    message.isDeleted
-                                      ? 'bg-gray-100 text-gray-400 italic'
-                                      : message.senderId === 'system-ai-bot'
-                                      ? 'bg-green-50 text-green-800 border border-green-200'
-                                      : isOwnMessage
-                                      ? 'bg-blue-100 text-blue-900'
-                                      : 'bg-gray-100 text-gray-800'
+                                  className={`flex items-center gap-2 mb-1 ${
+                                    isOwnMessage ? 'flex-row-reverse' : ''
                                   }`}
                                 >
-                                  {message.content}
-                                  {message.isEdited && !message.isDeleted && (
-                                    <span className="text-xs opacity-70 ml-2">(edited)</span>
+                                  <span className={`text-sm font-medium ${getTextClass()}`}>
+                                    {message.senderName}
+                                  </span>
+                                  <span className={`text-xs ${getTextClass()}`}>
+                                    {formatTime(message.timestamp || (message as any).createdAt)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Show reply preview if this is a reply */}
+                              {message.replyToMessage && (
+                                <div
+                                  className={`text-xs mb-2 p-2 rounded bg-blue-50 border-l-2 border-blue-200 ${
+                                    isOwnMessage ? 'mr-2' : 'ml-2'
+                                  }`}
+                                >
+                                  <div className="font-medium">
+                                    {message.replyToMessage.senderName}
+                                  </div>
+                                  <div className="truncate opacity-70">
+                                    {message.replyToMessage.content}
+                                  </div>
+                                </div>
+                              )}
+
+                              {editingMessage?.messageId === message.messageId ? (
+                                /* Edit mode */
+                                <div
+                                  className={`w-full rounded-xl px-3 py-2 bg-background border ${
+                                    isOwnMessage ? 'mr-2' : 'ml-2'
+                                  }`}
+                                >
+                                  <Input
+                                    value={editingContent}
+                                    onChange={(e) => setEditingContent(e.target.value)}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        saveEditedMessage();
+                                      } else if (e.key === 'Escape') {
+                                        cancelEditing();
+                                      }
+                                    }}
+                                    className="border-none p-0 focus-visible:ring-0 rounded-full"
+                                    autoFocus
+                                  />
+                                  <div className="flex justify-end gap-2 mt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={cancelEditing}
+                                      className="rounded-full"
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={saveEditedMessage}
+                                      className="rounded-full"
+                                    >
+                                      Save
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                /* Normal message display */
+                                <div className="relative">
+                                  <div
+                                    className={`rounded-xl px-4 py-2 max-w-full break-words shadow ${
+                                      message.isDeleted
+                                        ? 'bg-gray-100 text-gray-400 italic'
+                                        : message.senderId === 'system-ai-bot'
+                                        ? 'bg-green-50 text-green-800 border border-green-200'
+                                        : isOwnMessage
+                                        ? 'bg-blue-100 text-blue-900'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                  >
+                                    {message.content}
+                                    {message.isEdited && !message.isDeleted && (
+                                      <span className={`text-xs opacity-70 ml-2 ${getTextClass()}`}>
+                                        (edited)
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Message options dropdown */}
+                                  {!message.isDeleted && message.senderId !== 'system-ai-bot' && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className={`absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 ${
+                                            isOwnMessage ? '-left-8' : '-right-8'
+                                          } top-1`}
+                                        >
+                                          <MoreVertical className="h-3 w-3" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent
+                                        align={isOwnMessage ? 'end' : 'start'}
+                                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                                      >
+                                        <DropdownMenuItem
+                                          onClick={() => handleReplyToMessage(message)}
+                                          className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        >
+                                          <Reply className="h-4 w-4 mr-2 text-gray-900 dark:text-white" />
+                                          Reply
+                                        </DropdownMenuItem>
+                                        {isOwnMessage && (
+                                          <>
+                                            <DropdownMenuItem
+                                              onClick={() => handleEditMessage(message)}
+                                              className="text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                                            >
+                                              <Edit3 className="h-4 w-4 mr-2 text-gray-900 dark:text-white" />
+                                              Edit
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() => handleDeleteMessage(message.messageId)}
+                                              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            >
+                                              <Trash2 className="h-4 w-4 mr-2 text-red-600 dark:text-red-400" />
+                                              Delete
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   )}
                                 </div>
+                              )}
 
-                                {/* Message options dropdown */}
-                                {!message.isDeleted && message.senderId !== 'system-ai-bot' && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className={`absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 ${
-                                          isOwnMessage ? '-left-8' : '-right-8'
-                                        } top-1`}
-                                      >
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align={isOwnMessage ? 'end' : 'start'}>
-                                      <DropdownMenuItem
-                                        onClick={() => handleReplyToMessage(message)}
-                                      >
-                                        <Reply className="h-4 w-4 mr-2" />
-                                        Reply
-                                      </DropdownMenuItem>
-                                      {isOwnMessage && (
-                                        <>
-                                          <DropdownMenuItem
-                                            onClick={() => handleEditMessage(message)}
-                                          >
-                                            <Edit3 className="h-4 w-4 mr-2" />
-                                            Edit
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            onClick={() => handleDeleteMessage(message.messageId)}
-                                            className="text-destructive"
-                                          >
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Delete
-                                          </DropdownMenuItem>
-                                        </>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
-                            )}
-
-                            {isOwnMessage && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">
-                                  {message.isRead ? 'Read' : 'Sent'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
+                              {isOwnMessage && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  <span className={`text-xs ${getTextClass()}`}>
+                                    {message.isRead ? 'Read' : 'Sent'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  )}
                   <div ref={messagesEndRef} />
                 </ScrollArea>
               </CardContent>
@@ -1418,10 +1546,10 @@ const [editingContent, setEditingContent] = useState('');
                   <div className="mb-3 p-3 bg-muted/50 rounded-lg border-l-4 border-primary">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="text-sm font-medium">
+                        <div className={`text-sm font-medium ${getTextClass()}`}>
                           Replying to {replyingTo.senderName}
                         </div>
-                        <div className="text-sm text-muted-foreground truncate">
+                        <div className={`text-sm truncate ${getTextClass()}`}>
                           {replyingTo.content}
                         </div>
                       </div>
@@ -1446,7 +1574,7 @@ const [editingContent, setEditingContent] = useState('');
                     placeholder={
                       replyingTo ? `Reply to ${replyingTo.senderName}...` : 'Type your message...'
                     }
-                    className="flex-1 rounded-full bg-white/90 border border-blue-200 shadow px-4 py-2"
+                    className={`flex-1 rounded-full shadow px-4 py-2 ${getProfileInputClass()}`}
                   />
                   <Button
                     onClick={sendMessage}
@@ -1459,7 +1587,7 @@ const [editingContent, setEditingContent] = useState('');
                 </div>
 
                 {!isConnected && (
-                  <p className="text-sm text-orange-500 mt-2">
+                  <p className="text-sm text-orange-500 dark:text-orange-400 mt-2">
                     Chat service is disconnected. Messages will be sent when connection is restored.
                   </p>
                 )}
@@ -1467,29 +1595,42 @@ const [editingContent, setEditingContent] = useState('');
             </Card>
           </>
         ) : (
-          <Card className="flex-1 flex items-center justify-center bg-white/80 rounded-2xl shadow-xl border border-blue-100">
+          <Card
+            className={`flex-1 flex items-center justify-center rounded-2xl shadow-xl border ${getCardClass()}`}
+          >
             <CardContent className="text-center">
-              <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Select a conversation</h3>
-              <p className="text-muted-foreground">
-                Choose a chat room from the sidebar to start messaging
-              </p>
+              {loading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  <p className={`text-sm ${getTextClass()}`}>Loading chat rooms...</p>
+                </div>
+              ) : (
+                <>
+                  <MessageCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className={`text-lg font-semibold mb-2 ${getTextClass()}`}>
+                    Select a conversation
+                  </h3>
+                  <p className={getTextClass()}>
+                    Choose a chat room from the sidebar to start messaging
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
       </div>
 
       {/* Right Sidebar - Online Users */}
-      <Card className="w-64 bg-white/80 rounded-2xl shadow-2xl border border-blue-100">
+      <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
             <Users className="h-5 w-5" />
             Online Users ({onlineUsers.filter((u) => u.isOnline).length})
           </CardTitle>
         </CardHeader>
 
         <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-12rem)]">
+          <ScrollArea className="h-[calc(100vh-12rem)] custom-scrollbar">
             <div className="space-y-2 p-2">
               {onlineUsers
                 .filter((user) => user.isOnline)
@@ -1507,7 +1648,9 @@ const [editingContent, setEditingContent] = useState('');
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.fullName}</p>
+                      <p className={`text-sm font-medium truncate ${getTextClass()}`}>
+                        {user.fullName}
+                      </p>
                       <Badge variant="outline" className="text-xs">
                         {user.role}
                       </Badge>
@@ -1516,7 +1659,7 @@ const [editingContent, setEditingContent] = useState('');
                 ))}
 
               {onlineUsers.filter((u) => u.isOnline).length === 0 && (
-                <div className="p-4 text-center text-muted-foreground text-sm">No users online</div>
+                <div className={`p-4 text-center text-sm ${getTextClass()}`}>No users online</div>
               )}
             </div>
           </ScrollArea>

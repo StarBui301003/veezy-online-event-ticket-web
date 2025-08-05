@@ -32,67 +32,83 @@ export default function OrderDetail({ order, onClose }: OrderDetailProps) {
   if (!order) return null;
   return (
     <Dialog open={!!order} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-blue-900">Order Details</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Order Details
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-6">
           {/* Info fields as input/textarea (style giống event detail) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Order ID</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Order ID
+              </label>
               <input
                 value={order.orderId ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Customer Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Customer Name
+              </label>
               <input
                 value={order.customerName ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Event Name</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Event Name
+              </label>
               <input
                 value={order.eventName ?? 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Created At
+              </label>
               <input
                 value={order.createdAt ? new Date(order.createdAt).toLocaleString() : 'unknown'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Discount Code</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Discount Code
+              </label>
               <input
                 value={order.discountCode || 'None'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Total Amount</label>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Total Amount
+              </label>
               <input
                 value={order.totalAmount?.toLocaleString('vi-VN') + ' ₫'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1 font-bold text-green-700"
+                className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 font-bold text-green-700 dark:text-green-400"
               />
             </div>
           </div>
           {/* Ticket Items Table */}
           <div>
-            <div className="font-semibold text-lg mb-2 text-blue-700">Ticket Items</div>
+            <div className="font-semibold text-lg mb-2 text-blue-700 dark:text-blue-400">
+              Ticket Items
+            </div>
             <div className="mt-2 max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow">
               {order.items.length === 0 ? (
                 <div className="text-gray-500 p-4">No tickets found.</div>

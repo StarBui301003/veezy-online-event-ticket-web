@@ -120,6 +120,7 @@ export function EventManagerLayout() {
     chatSupport: false,
   });
   const [loading, setLoading] = useState(false);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,13 @@ export function EventManagerLayout() {
 
   // Helper: update language in user config
   const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+    // Prevent multiple rapid clicks
+    if (isLanguageLoading) {
+      return;
+    }
+
+    setIsLanguageLoading(true);
+
     try {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
@@ -160,6 +168,8 @@ export function EventManagerLayout() {
     } catch (error) {
       console.error('Error updating language:', error);
       toast.error(t('languageChangeFailed'));
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -336,8 +346,11 @@ export function EventManagerLayout() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-white font-semibold shadow-sm hover:from-gray-600 hover:to-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-200 text-xs h-7 min-w-[48px]"
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-white font-semibold shadow-sm hover:from-gray-600 hover:to-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-200 text-xs h-7 min-w-[48px] ${
+                        isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
                       style={{ lineHeight: '1.1', height: '28px' }}
+                      disabled={isLanguageLoading}
                     >
                       <Globe className="w-4 h-4 text-purple-300" style={{ marginBottom: '1px' }} />
                       <span className="font-bold text-xs" style={{ marginTop: '1px' }}>
@@ -351,21 +364,23 @@ export function EventManagerLayout() {
                   >
                     <DropdownMenuItem
                       onClick={() => handleChangeLanguage('vi')}
+                      disabled={isLanguageLoading}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
                         i18nInstance.language === 'vi'
                           ? 'bg-purple-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700'
-                      }`}
+                      } ${isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                       <span className="text-base">🇻🇳</span> VN
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleChangeLanguage('en')}
+                      disabled={isLanguageLoading}
                       className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
                         i18nInstance.language === 'en'
                           ? 'bg-purple-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700'
-                      }`}
+                      } ${isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                       <span className="text-base">🇬🇧</span> EN
                     </DropdownMenuItem>

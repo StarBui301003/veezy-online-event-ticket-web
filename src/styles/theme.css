@@ -39,6 +39,16 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
 }
 
+/* Prevent theme flashing during initial load */
+html {
+  transition: none !important;
+}
+
+/* Smooth transitions for theme changes after initial load */
+html.theme-loaded {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 /* Global Theme Classes */
 .theme-light {
   background-color: var(--bg-primary);

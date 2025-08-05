@@ -148,18 +148,28 @@ export default function NewsTabs() {
         );
         // Use real data from backend, but map to frontend structure
         const backendNewsByEvent = Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : [];
-        const mappedNewsByEvent = backendNewsByEvent.map((item) => ({
+        const mappedNewsByEvent = backendNewsByEvent.map((item: any) => ({
+          eventId: item.eventId || '',
           eventName: item.eventName || 'Unknown Event',
-          count: item.newsCount || 0,
+          newsCount: item.newsCount || 0,
+          approvedCount: item.approvedCount || 0,
+          pendingCount: item.pendingCount || null,
+          lastNewsDate: item.lastNewsDate || '',
         }));
         setNewsByEvent(mappedNewsByEvent);
 
         const backendNewsByAuthor = Array.isArray(res.data?.newsByAuthor)
           ? res.data.newsByAuthor
           : [];
-        const mappedNewsByAuthor = backendNewsByAuthor.map((item) => ({
+        const mappedNewsByAuthor = backendNewsByAuthor.map((item: any) => ({
+          authorId: item.authorId || '',
           authorName: item.authorName || 'Unknown Author',
-          count: item.totalNews || 0,
+          totalNews: item.totalNews || 0,
+          approvedNews: item.approvedNews || 0,
+          pendingNews: item.pendingNews || null,
+          rejectedNews: item.rejectedNews || null,
+          approvalRate: item.approvalRate || 0,
+          lastNewsDate: item.lastNewsDate || '',
         }));
         setNewsByAuthor(mappedNewsByAuthor);
       })
@@ -184,11 +194,31 @@ export default function NewsTabs() {
         changed = true;
       }
       if (JSON.stringify(safeNewsByEvent) !== JSON.stringify(newsByEvent)) {
-        setNewsByEvent(safeNewsByEvent);
+        // Map the real-time data to match the expected structure
+        const mappedNewsByEvent = safeNewsByEvent.map((item: any) => ({
+          eventId: item.eventId || '',
+          eventName: item.eventName || 'Unknown Event',
+          newsCount: item.newsCount || 0,
+          approvedCount: item.approvedCount || 0,
+          pendingCount: item.pendingCount || null,
+          lastNewsDate: item.lastNewsDate || '',
+        }));
+        setNewsByEvent(mappedNewsByEvent);
         changed = true;
       }
       if (JSON.stringify(safeNewsByAuthor) !== JSON.stringify(newsByAuthor)) {
-        setNewsByAuthor(safeNewsByAuthor);
+        // Map the real-time data to match the expected structure
+        const mappedNewsByAuthor = safeNewsByAuthor.map((item: any) => ({
+          authorId: item.authorId || '',
+          authorName: item.authorName || 'Unknown Author',
+          totalNews: item.totalNews || 0,
+          approvedNews: item.approvedNews || 0,
+          pendingNews: item.pendingNews || null,
+          rejectedNews: item.rejectedNews || null,
+          approvalRate: item.approvalRate || 0,
+          lastNewsDate: item.lastNewsDate || '',
+        }));
+        setNewsByAuthor(mappedNewsByAuthor);
         changed = true;
       }
       // If nothing changed, do nothing (keeps initial data)
@@ -366,7 +396,7 @@ export default function NewsTabs() {
                 <Tooltip />
                 <Line
                   type="monotone"
-                  dataKey="count"
+                  dataKey="newsCount"
                   stroke="#60a5fa"
                   strokeWidth={3}
                   fill="#60a5fa"
@@ -391,7 +421,7 @@ export default function NewsTabs() {
                 <XAxis dataKey="authorName" />
                 <YAxis tickFormatter={(v) => (v ? `${Number(v).toLocaleString('vi-VN')}` : '')} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#a78bfa" name="News Count" />
+                <Bar dataKey="totalNews" fill="#a78bfa" name="News Count" />
               </BarChart>
             </ResponsiveContainer>
           ) : (

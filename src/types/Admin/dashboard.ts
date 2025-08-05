@@ -304,3 +304,32 @@ export interface NewsApprovalTrendItem {
   pending: number;
   periodLabel: string;
 }
+
+// --- EXPORT ANALYTICS TYPES ---
+
+export interface ExportAnalyticsRequest {
+  analyticsType: string;
+  filter?: ExportAnalyticsFilter;
+  language?: ExportLanguage;
+}
+
+export interface ExportAnalyticsFilter {
+  period?: number;
+  customStartDate?: string;
+  customEndDate?: string;
+  groupBy?: number;
+}
+
+export enum ExportLanguage {
+  Default = 0,
+  Vie = 1,
+  Eng = 2,
+}
+
+export interface ExportAnalyticsResponse {
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  data: Blob;
+  errors: unknown;
+}

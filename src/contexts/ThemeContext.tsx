@@ -12,42 +12,53 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
+// Helper function to get initial theme from localStorage
+const getInitialTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
 
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const loadThemeFromStorage = () => {
-      try {
-        const userConfigStr = localStorage.getItem('user_config');
-        if (userConfigStr) {
-          const userConfig = JSON.parse(userConfigStr);
-          if (userConfig.theme !== undefined) {
-            const themeMode = userConfig.theme === 1 ? 'dark' : 'light';
-            setThemeState(themeMode);
-            applyTheme(themeMode);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load theme from localStorage:', error);
+  try {
+    const userConfigStr = localStorage.getItem('user_config');
+    if (userConfigStr) {
+      const userConfig = JSON.parse(userConfigStr);
+      if (userConfig.theme !== undefined) {
+        return userConfig.theme === 1 ? 'dark' : 'light';
       }
-    };
-
-    loadThemeFromStorage();
-  }, []);
-
-  // Apply theme to document
-  const applyTheme = (newTheme: 'light' | 'dark') => {
-    const root = document.documentElement;
-
-    if (newTheme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.add('light');
-      root.classList.remove('dark');
     }
-  };
+  } catch (error) {
+    console.error('Failed to load theme from localStorage:', error);
+  }
+
+  return 'light';
+};
+
+// Helper function to apply theme to document
+const applyTheme = (newTheme: 'light' | 'dark') => {
+  const root = document.documentElement;
+
+  if (newTheme === 'dark') {
+    root.classList.add('dark');
+    root.classList.remove('light');
+  } else {
+    root.classList.add('light');
+    root.classList.remove('dark');
+  }
+};
+
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  // Initialize theme immediately from localStorage to prevent flashing
+  const [theme, setThemeState] = useState<'light' | 'dark'>(getInitialTheme);
+
+  // Apply theme immediately on mount to prevent flashing
+  useEffect(() => {
+    applyTheme(theme);
+
+    // Add theme-loaded class after initial theme is applied
+    const timer = setTimeout(() => {
+      document.documentElement.classList.add('theme-loaded');
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []); // Empty dependency array to run only once on mount
 
   // Toggle theme
   const toggleTheme = () => {
@@ -62,7 +73,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     applyTheme(newTheme);
   };
 
-  // Apply theme when theme changes
+  // Apply theme when theme changes (for subsequent changes)
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);

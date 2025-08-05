@@ -6,7 +6,10 @@ import type {
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { toast } from 'react-toastify';
 import { AdminNotificationList } from './AdminNotificationList';
-import { getAdminOverviewDashboard } from '@/services/Admin/dashboard.service';
+import {
+  getAdminOverviewDashboard,
+  exportAnalyticsToExcel,
+} from '@/services/Admin/dashboard.service';
 import { RadialBarChart, RadialBar, Tooltip, ResponsiveContainer } from 'recharts';
 import { Clock, Download } from 'lucide-react';
 import {
@@ -165,6 +168,7 @@ export const OverviewTabs = () => {
   const [filter, setFilter] = useState<string>('4'); // Mặc định All
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -209,6 +213,55 @@ export const OverviewTabs = () => {
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // Export function
+  const handleExportData = async () => {
+    try {
+      setExporting(true);
+
+      // Prepare filter parameters based on current state
+      const filterParams: Record<string, string | number> = {};
+
+      if (filter === '5') {
+        if (!startDate || !endDate) {
+          toast.error('Please select both start and end dates for custom export');
+          return;
+        }
+        if (endDate < startDate) {
+          toast.error('End date must be after start date');
+          return;
+        }
+        filterParams.period = 5;
+        filterParams.customStartDate = startDate.toISOString().slice(0, 10);
+        filterParams.customEndDate = endDate.toISOString().slice(0, 10);
+      } else if (filter !== '4') {
+        filterParams.period = parseInt(filter, 10);
+      }
+
+      const response = await exportAnalyticsToExcel('all', filterParams);
+
+      if (response.isSuccess) {
+        // Create download link
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `admin-analytics-all-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast.success('Export completed successfully!');
+      } else {
+        toast.error('Export failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) return <SpinnerOverlay show />;
   if (!data)
@@ -259,14 +312,12 @@ export const OverviewTabs = () => {
         </div>
         <button
           type="button"
-          className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
-          onClick={() => {
-            // TODO: Implement export functionality
-            toast.info('Export functionality coming soon!');
-          }}
+          disabled={exporting}
+          className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-1 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleExportData}
         >
           <Download className="w-4 h-4" />
-          Export Data
+          {exporting ? 'Exporting...' : 'Export Data'}
         </button>
       </div>
       {/* 5 card tổng quan */}

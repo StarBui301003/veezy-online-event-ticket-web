@@ -136,17 +136,22 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
 
   return (
     <Dialog open={!!discount} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>Edit Discount Code</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Edit Discount Code
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 p-4 pt-0">
+        <div className="space-y-3 p-6 pt-0">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Code</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Code</label>
             <input
-              className={getErrorClass('code', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'code',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.code}
               onChange={handleCodeChange}
               disabled={loading}
@@ -159,7 +164,9 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Discount Type</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Discount Type
+            </label>
             <Select
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
@@ -168,15 +175,15 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               <SelectTrigger
                 className={getErrorClass(
                   'discountType',
-                  'border-gray-200 border rounded px-2 py-1 w-full'
+                  'border-gray-200 dark:border-gray-600 border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Percentage</SelectItem>
-                <SelectItem value="1">Amount</SelectItem>
-                <SelectItem value="3">Other</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+                <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Percentage</SelectItem>
+                <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Amount</SelectItem>
+                <SelectItem value="3" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Other</SelectItem>
               </SelectContent>
             </Select>
             {getFieldError('discountType') && (
@@ -186,12 +193,15 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
               Value {form.discountType === 0 ? '(%)' : '(VND)'}
             </label>
             <input
               type="number"
-              className={getErrorClass('value', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'value',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.value || ''}
               onChange={handleValueChange}
               disabled={loading}
@@ -210,12 +220,16 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Minimum Amount (VND) <span className="text-gray-400">(optional)</span>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Minimum Amount (VND){' '}
+              <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
             <input
               type="number"
-              className={getErrorClass('minimum', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'minimum',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.minimum || ''}
               onChange={handleMinimumChange}
               disabled={loading}
@@ -230,12 +244,16 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
-              Maximum Discount (VND) <span className="text-gray-400">(optional)</span>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Maximum Discount (VND){' '}
+              <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
             <input
               type="number"
-              className={getErrorClass('maximum', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'maximum',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.maximum || ''}
               onChange={handleMaximumChange}
               disabled={loading}
@@ -250,10 +268,13 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Max Usage</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max Usage</label>
             <input
               type="number"
-              className={getErrorClass('maxUsage', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'maxUsage',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.maxUsage}
               onChange={handleMaxUsageChange}
               disabled={loading}
@@ -268,10 +289,15 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Expired At</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Expired At
+            </label>
             <input
               type="datetime-local"
-              className={getErrorClass('expiredAt', 'border rounded px-2 py-1 w-full')}
+              className={getErrorClass(
+                'expiredAt',
+                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
               value={form.expiredAt}
               onChange={handleExpiredAtChange}
               disabled={loading}

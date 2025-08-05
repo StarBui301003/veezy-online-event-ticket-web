@@ -1,10 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Comment } from '@/types/Admin/comment';
 import { deleteComment } from '@/services/Admin/comment.service';
 import { toast } from 'react-toastify';
@@ -44,10 +38,10 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
 
   return (
     <Dialog open={!!comment} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-3">
               <img
                 src={comment.avatarUrl || '/src/assets/img/avatar_default.png'}
                 alt="Avatar"
@@ -57,42 +51,56 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
                 }}
               />
               <div>
-                <h3 className="text-lg font-semibold">Comment Details</h3>
-                <p className="text-sm text-gray-600">{comment.fullName || 'Unknown User'}</p>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  Comment Details
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {comment.fullName || 'Unknown User'}
+                </p>
               </div>
             </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-2 max-h-[70vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">User</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                User
+              </label>
               <input
                 value={comment.fullName || 'Unknown User'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Event</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Event
+              </label>
               <input
                 value={eventName || comment.eventId || 'Unknown Event'}
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs text-gray-500 mb-1">Content</label>
-              <div className="bg-gray-100 border rounded px-3 py-2 w-full mb-1 min-h-[60px] max-h-[200px] overflow-y-auto">
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Content
+              </label>
+              <div className="bg-gray-100 dark:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 w-full min-h-[60px] max-h-[200px] overflow-y-auto">
                 {comment.content ? (
-                  <span className="whitespace-pre-wrap">{comment.content}</span>
+                  <span className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">
+                    {comment.content}
+                  </span>
                 ) : (
-                  <span className="text-gray-400">No content</span>
+                  <span className="text-gray-400 dark:text-gray-500">No content</span>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Created At</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Created At
+              </label>
               <input
                 value={
                   comment.createdAt
@@ -106,11 +114,13 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
                     : 'Unknown'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Updated At</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                Updated At
+              </label>
               <input
                 value={
                   comment.updatedAt
@@ -124,31 +134,29 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
                     : 'Not updated'
                 }
                 readOnly
-                className="bg-gray-200 border rounded px-2 py-1 w-full mb-1"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
               />
             </div>
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter className="flex justify-between">
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              type="button"
-            >
-              <FaRegTrashAlt className="w-4 h-4" />
-              {isDeleting ? 'Deleting...' : 'Delete Comment'}
-            </button>
-            <button
-              className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-gray-500 hover:border-gray-400"
-              onClick={onClose}
-              disabled={isDeleting}
-              type="button"
-            >
-              Close
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-between">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            type="button"
+          >
+            <FaRegTrashAlt className="w-4 h-4" />
+            {isDeleting ? 'Deleting...' : 'Delete Comment'}
+          </button>
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            disabled={isDeleting}
+            type="button"
+          >
+            Close
+          </button>
         </div>
       </DialogContent>
     </Dialog>

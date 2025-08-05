@@ -1,16 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { updateNews } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import type { News } from '@/types/Admin/news';
 import { RichTextEditor } from '@/components/RichTextEditor';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 import {
   Select,
@@ -31,6 +26,7 @@ interface Props {
 }
 
 export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
+  const { getProfileInputClass, getSelectClass } = useThemeClasses();
   const [form, setForm] = useState({
     eventId: '',
     newsDescription: '',
@@ -118,26 +114,32 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
 
   return (
     <Dialog open={!!news} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl  bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>Edit News</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Edit News
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-auto p-4 pt-0 ">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Event</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Event
+            </label>
             <Select
               value={form.eventId}
               onValueChange={(value) => setForm((prev) => ({ ...prev, eventId: value }))}
               disabled={loading}
             >
-              <SelectTrigger className="border-gray-200 border rounded px-2 py-1 w-full">
+              <SelectTrigger
+                className={`border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`}
+              >
                 <SelectValue placeholder="Select event" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 {events.map((ev) => (
-                  <SelectItem key={ev.eventId} value={ev.eventId}>
+                  <SelectItem key={ev.eventId} value={ev.eventId} className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
                     {ev.eventName}
                   </SelectItem>
                 ))}
@@ -145,9 +147,11 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
             </Select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Title
+            </label>
             <input
-              className="border rounded px-2 py-1 w-full"
+              className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
               name="newsTitle"
               value={form.newsTitle}
               onChange={handleInputChange}
@@ -156,9 +160,11 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Description
+            </label>
             <textarea
-              className="border rounded px-2 py-1 w-full"
+              className={`border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`}
               name="newsDescription"
               value={form.newsDescription}
               onChange={handleInputChange}
@@ -168,7 +174,9 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Content</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Content
+            </label>
             <RichTextEditor
               value={form.newsContent}
               onChange={(val: string) => setForm((prev) => ({ ...prev, newsContent: val }))}
@@ -176,7 +184,9 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Image</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Image
+            </label>
             <div className="flex items-center gap-2 mb-2">
               <label
                 className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-4 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500"
@@ -208,32 +218,30 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
             </div>
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
-              onClick={onClose}
-              disabled={loading}
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
-              onClick={handleEdit}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <FaSpinner className="animate-spin" />
-                  Editing...
-                </div>
-              ) : (
-                'Edit'
-              )}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            disabled={loading}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-[#0071e2]"
+            onClick={handleEdit}
+            disabled={loading}
+            type="button"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <FaSpinner className="animate-spin" />
+                Editing...
+              </div>
+            ) : (
+              'Edit'
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

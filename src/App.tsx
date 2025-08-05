@@ -106,12 +106,12 @@ function App() {
     const account = localStorage.getItem('account');
     const token = localStorage.getItem('token');
     const accessToken = localStorage.getItem('access_token');
-    
+
     console.log('Debug localStorage:');
     console.log('- account:', account ? 'exists' : 'null');
     console.log('- token:', token ? token.substring(0, 50) + '...' : 'null');
     console.log('- access_token:', accessToken ? accessToken.substring(0, 50) + '...' : 'null');
-    
+
     if (account) {
       try {
         const accountData = JSON.parse(account);
@@ -121,11 +121,14 @@ function App() {
         console.error('Failed to parse account data:', error);
       }
     }
-    
+
     // NotificationService - use access_token instead of token
     const finalToken = accessToken || token;
-    console.log('Token for NotificationHub:', finalToken ? finalToken.substring(0, 50) + '...' : 'No token');
-    
+    console.log(
+      'Token for NotificationHub:',
+      finalToken ? finalToken.substring(0, 50) + '...' : 'No token'
+    );
+
     if (finalToken) {
       // Debug: Decode token to see claims
       try {
@@ -135,51 +138,56 @@ function App() {
         console.error('Failed to decode token:', error);
       }
     }
-    
-    connectNotificationHub('http://localhost:5003/hubs/notifications', finalToken).then(async () => {
-      console.log('Connected to NotificationService SignalR');
-      
-      // Check if user is admin and join admin group
-      const account = localStorage.getItem('account');
-      if (account) {
-        try {
-          const accountData = JSON.parse(account);
-          if (accountData.role === 0 || accountData.role === '0') {
-            console.log('User is admin, trying to join admin group explicitly...');
-            // Try explicit join as backup (SharedPref.NotificationHub should auto-join in OnConnectedAsync)
-            try {
-              await joinAdminGroup();
-              console.log('✅ Successfully joined admin group explicitly');
-            } catch (error) {
-              console.log('⚠️ Failed to join admin group explicitly (may already be joined via auto-join):', error);
+
+    connectNotificationHub('http://localhost:5003/hubs/notifications', finalToken).then(
+      async () => {
+        console.log('Connected to NotificationService SignalR');
+
+        // Check if user is admin and join admin group
+        const account = localStorage.getItem('account');
+        if (account) {
+          try {
+            const accountData = JSON.parse(account);
+            if (accountData.role === 0 || accountData.role === '0') {
+              console.log('User is admin, trying to join admin group explicitly...');
+              // Try explicit join as backup (SharedPref.NotificationHub should auto-join in OnConnectedAsync)
+              try {
+                await joinAdminGroup();
+                console.log('✅ Successfully joined admin group explicitly');
+              } catch (error) {
+                console.log(
+                  '⚠️ Failed to join admin group explicitly (may already be joined via auto-join):',
+                  error
+                );
+              }
             }
+          } catch (error) {
+            console.error('Failed to parse account data:', error);
           }
-        } catch (error) {
-          console.error('Failed to parse account data:', error);
         }
+
+        onNotification('ReceiveNotification', (data) => {
+          console.log('NotificationService:', data);
+        });
+
+        // Listen for admin notifications
+        onNotification('ReceiveAdminNotification', (data) => {
+          console.log('AdminNotificationService - ReceiveAdminNotification:', data);
+        });
+
+        onNotification('AdminNotificationRead', (data) => {
+          console.log('AdminNotificationService - AdminNotificationRead:', data);
+        });
+
+        onNotification('AdminAllNotificationsRead', () => {
+          console.log('AdminNotificationService - AdminAllNotificationsRead');
+        });
+
+        onNotification('AdminNotificationDeleted', (data) => {
+          console.log('AdminNotificationService - AdminNotificationDeleted:', data);
+        });
       }
-      
-      onNotification('ReceiveNotification', (data) => {
-        console.log('NotificationService:', data);
-      });
-      
-      // Listen for admin notifications
-      onNotification('ReceiveAdminNotification', (data) => {
-        console.log('AdminNotificationService - ReceiveAdminNotification:', data);
-      });
-      
-      onNotification('AdminNotificationRead', (data) => {
-        console.log('AdminNotificationService - AdminNotificationRead:', data);
-      });
-      
-      onNotification('AdminAllNotificationsRead', () => {
-        console.log('AdminNotificationService - AdminAllNotificationsRead');
-      });
-      
-      onNotification('AdminNotificationDeleted', (data) => {
-        console.log('AdminNotificationService - AdminNotificationDeleted:', data);
-      });
-    });
+    );
     // EventService
     connectEventHub('http://localhost:5004/notificationHub').then(() => {
       console.log('Connected to EventService SignalR');

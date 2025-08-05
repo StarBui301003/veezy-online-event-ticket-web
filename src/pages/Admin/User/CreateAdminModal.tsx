@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { createAdminAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 import type { CreateAdminRequest } from '@/types/Admin/user';
 import { FaSpinner, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { validateCreateAdminForm } from '@/utils/validation';
@@ -27,6 +28,7 @@ interface Props {
 
 export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
   const { t } = useTranslation();
+  const { getProfileInputClass, getSelectClass } = useThemeClasses();
   const GENDER_OPTIONS = [
     { value: 0, label: t('male') },
     { value: 1, label: t('female') },
@@ -143,17 +145,24 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('createAdmin')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('createAdmin')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('username')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('username')}
+            </label>
             <input
-              className={getErrorClass('username', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'username',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.username}
               onChange={handleUsernameChange}
               disabled={loading}
@@ -166,9 +175,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('email')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('email')}
+            </label>
             <input
-              className={getErrorClass('email', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'email',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               type="email"
               value={form.email}
               onChange={handleEmailChange}
@@ -182,9 +196,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('phone')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('phone')}
+            </label>
             <input
-              className={getErrorClass('phone', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'phone',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.phone}
               onChange={handlePhoneChange}
               disabled={loading}
@@ -197,10 +216,15 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('password')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('password')}
+            </label>
             <div className="relative">
               <input
-                className={getErrorClass('password', 'border px-3 py-2 rounded w-full pr-10')}
+                className={getErrorClass(
+                  'password',
+                  `border rounded px-3 py-2 w-full pr-10 transition-colors ${getProfileInputClass()}`
+                )}
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={handlePasswordChange}
@@ -209,7 +233,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
               >
@@ -223,9 +247,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('fullName')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('fullName')}
+            </label>
             <input
-              className={getErrorClass('fullName', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'fullName',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.fullName}
               onChange={handleFullNameChange}
               disabled={loading}
@@ -238,9 +267,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('gender')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('gender')}
+            </label>
             <select
-              className={getErrorClass('gender', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'gender',
+                `border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`
+              )}
               value={form.gender}
               onChange={(e) => handleGenderChange(e.target.value)}
               disabled={loading}
@@ -258,9 +292,14 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{t('dateOfBirth')}</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {t('dateOfBirth')}
+            </label>
             <input
-              className={getErrorClass('dateOfBirth', 'border px-3 py-2 rounded w-full')}
+              className={getErrorClass(
+                'dateOfBirth',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               type="date"
               value={form.dateOfBirth}
               onChange={(e) => setForm((prev) => ({ ...prev, dateOfBirth: e.target.value }))}
@@ -274,32 +313,30 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
         </div>
-        <div className="p-4 flex justify-end gap-2">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-              onClick={onClose}
-              disabled={loading}
-              type="button"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
-              onClick={handleCreate}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin" />
-                  {t('creating')}
-                </>
-              ) : (
-                t('create')
-              )}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            disabled={loading}
+            type="button"
+          >
+            {t('cancel')}
+          </button>
+          <button
+            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
+            onClick={handleCreate}
+            disabled={loading}
+            type="button"
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                {t('creating')}
+              </>
+            ) : (
+              t('create')
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

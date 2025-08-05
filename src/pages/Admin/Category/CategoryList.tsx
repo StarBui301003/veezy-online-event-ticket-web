@@ -43,10 +43,24 @@ import CreateCategoryModal from '@/pages/Admin/Category/CreateCategoryModal';
 import CategoryDetailModal from '@/pages/Admin/Category/CategoryDetailModal';
 import EditCategoryModal from '@/pages/Admin/Category/EditCategoryModal';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
 
 export const CategoryList = () => {
+  const {
+    getProfileInputClass,
+    getAdminListCardClass,
+    getAdminListTableClass,
+    getAdminListTableRowClass,
+    getAdminListTableCellClass,
+    getAdminListDropdownClass,
+    getAdminListPaginationClass,
+    getAdminListPageSizeSelectClass,
+    getAdminListTableBorderClass,
+    getAdminListTableCellBorderClass,
+    getAdminListTableHeaderBorderClass,
+  } = useThemeClasses();
   const { t } = useTranslation();
   const [data, setData] = useState<PaginatedCategoryResponse['data'] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,6 +78,9 @@ export const CategoryList = () => {
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
+
+  // Category filter state
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
 
   // Refs for SignalR
   const pageRef = useRef(page);
@@ -85,9 +102,11 @@ export const CategoryList = () => {
     onEvent('OnCategoryDeleted', reload);
   }, []);
 
+  // Single useEffect to handle all data fetching
   useEffect(() => {
     fetchData();
-  }, [filters, sortBy, sortDescending, searchTerm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, searchTerm, selectedCategoryName]);
 
   // Sync filters.page with page on mount
   useEffect(() => {
@@ -101,7 +120,7 @@ export const CategoryList = () => {
         ...filters,
         sortBy,
         sortDescending,
-        searchTerm: searchTerm || undefined,
+        searchTerm: searchTerm || selectedCategoryName || undefined,
       };
       const response = await getCategoriesWithFilter(params);
       setData(response.data);
@@ -148,14 +167,6 @@ export const CategoryList = () => {
     );
   };
 
-  const updateFilter = (
-    key: keyof CategoryFilterParams,
-    value: string | string[] | boolean | undefined
-  ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-    setPage(1);
-  };
-
   const items = data?.items || [];
   const totalItems = data?.totalItems || 0;
   const totalPages = data?.totalPages || 1;
@@ -170,10 +181,9 @@ export const CategoryList = () => {
       } else {
         toast.error(response.message || t('cannotDeleteCategory'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle network errors or other exceptions
-      const errorMessage =
-        error.response?.data?.message || error.message || t('cannotDeleteCategory');
+      const errorMessage = error instanceof Error ? error.message : t('cannotDeleteCategory');
       toast.error(errorMessage);
     }
   };
@@ -196,7 +206,7 @@ export const CategoryList = () => {
         onCreated={reloadList}
       />
       <div className="overflow-x-auto">
-        <div className="p-4 bg-white rounded-xl shadow">
+        <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
@@ -217,23 +227,15 @@ export const CategoryList = () => {
                 }}
               >
                 <input
-                  className="input pr-8"
-                  style={{
-                    width: 300,
-                    height: 40,
-                    border: 'none',
-                    outline: 'none',
-                    caretColor: 'rgb(255,81,0)',
-                    backgroundColor: 'rgb(255,255,255)',
-                    borderRadius: 30,
-                    paddingLeft: 15,
-                    letterSpacing: 0.8,
-                    color: 'rgb(19,19,19)',
-                    fontSize: 13.4,
-                  }}
-                  placeholder="Search all columns..."
+                  className={`w-[300px] h-10 rounded-[30px] px-4 py-2 text-sm transition-colors ${getProfileInputClass()}`}
+                  placeholder="Search category name..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    // Reset to page 1 when searching
+                    setFilters((prev) => ({ ...prev, page: 1 }));
+                    setPage(1);
+                  }}
                 />
                 {searchTerm && (
                   <button
@@ -270,37 +272,63 @@ export const CategoryList = () => {
                     Filter
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent
+                  align="end"
+                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                >
                   {/* Category Name Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Category Name</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Category Name
+                  </div>
                   <DropdownMenuItem
-                    onSelect={() => updateFilter('searchTerm', undefined)}
+                    onSelect={() => setSelectedCategoryName('')}
                     className="flex items-center gap-2"
                   >
                     <input
                       type="checkbox"
-                      checked={filters.searchTerm === undefined}
+                      checked={!selectedCategoryName}
                       readOnly
                       className="mr-2"
                     />
-                    <span>All Categories</span>
+                    <span className="dark:text-white">All Categories</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  {selectedCategoryName && (
+                    <DropdownMenuItem
+                      onSelect={() => setSelectedCategoryName('')}
+                      className="text-xs flex items-center gap-2"
+                    >
+                      Clear Filter
+                    </DropdownMenuItem>
+                  )}
+                  {(() => {
+                    // Extract unique category names from current data
+                    const uniqueCategories = items
+                      ? Array.from(
+                          new Map(
+                            items.map((item) => [item.categoryName, item.categoryName])
+                          ).entries()
+                        )
+                      : [];
 
-                  {/* Description Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold">Description</div>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('searchTerm', undefined)}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.searchTerm === undefined}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>All Descriptions</span>
-                  </DropdownMenuItem>
+                    return uniqueCategories.map(([categoryName, categoryNameValue]) => (
+                      <DropdownMenuItem
+                        key={categoryName}
+                        onSelect={() => setSelectedCategoryName(categoryName)}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCategoryName === categoryName}
+                          readOnly
+                          className="mr-2"
+                        />
+                        <span className="truncate dark:text-white" title={categoryNameValue}>
+                          {categoryNameValue}
+                        </span>
+                      </DropdownMenuItem>
+                    ));
+                  })()}
+                  <DropdownMenuSeparator />
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -314,15 +342,19 @@ export const CategoryList = () => {
               </button>
             </div>
           </div>
-          <Table className="min-w-full">
+          <Table
+            className={`min-w-full ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+          >
             <TableHeader>
-              <TableRow className="bg-blue-200 hover:bg-blue-200">
-                <TableHead className="pl-4" style={{ width: '5%' }}>
+              <TableRow
+                className={`bg-blue-200 hover:bg-blue-200 ${getAdminListTableHeaderBorderClass()}`}
+              >
+                <TableHead className="text-gray-900 text-center" style={{ width: '5%' }}>
                   #
                 </TableHead>
                 <TableHead
-                  style={{ width: '15%' }}
-                  className="cursor-pointer"
+                  className="text-gray-900"
+                  style={{ width: '25%' }}
                   onClick={() => handleSort('categoryName')}
                 >
                   <div className="flex items-center gap-1">
@@ -330,36 +362,61 @@ export const CategoryList = () => {
                     {getSortIcon('categoryName')}
                   </div>
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort('categoryDescription')}
-                >
-                  <div className="flex items-center gap-1">
-                    {t('description')}
-                    {getSortIcon('categoryDescription')}
-                  </div>
+                <TableHead className="text-gray-900" style={{ width: '50%' }}>
+                  {t('description')}
                 </TableHead>
-                <TableHead style={{ width: '20%' }} className="text-center">
+                <TableHead style={{ width: '20%' }} className="text-gray-900 text-center">
                   {t('action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="min-h-[400px]">
+            <TableBody
+              className={`min-h-[400px] ${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
               {items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                    {t('noCategoriesFound')}
-                  </TableCell>
-                </TableRow>
+                <>
+                  {/* Show "No categories found" message */}
+                  <TableRow
+                    className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                  >
+                    <TableCell
+                      colSpan={4}
+                      className="text-center py-4 text-gray-500 dark:text-gray-400"
+                    >
+                      {t('noCategoriesFound')}
+                    </TableCell>
+                  </TableRow>
+                  {/* Add empty rows to maintain table height */}
+                  {Array.from(
+                    {
+                      length: filters.pageSize - 1,
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={4} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </>
               ) : (
                 <>
                   {items.map((cat, idx) => (
-                    <TableRow key={cat.categoryId} className="hover:bg-blue-50">
-                      <TableCell className="pl-4">
+                    <TableRow
+                      key={cat.categoryId}
+                      className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                    >
+                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
                         {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell>{cat.categoryName}</TableCell>
-                      <TableCell className="truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className={`${getAdminListTableCellClass()}`}>
+                        {cat.categoryName}
+                      </TableCell>
+                      <TableCell
+                        className={`truncate max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap ${getAdminListTableCellClass()}`}
+                      >
                         {cat.categoryDescription}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">
@@ -388,17 +445,29 @@ export const CategoryList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, 5 - items.length) }, (_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="h-[56.8px]">
-                      <TableCell colSpan={4} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(
+                    {
+                      length: Math.max(0, filters.pageSize - items.length),
+                    },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={4} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4}>
+            <TableFooter
+              className={`${getAdminListTableClass()} ${getAdminListTableBorderClass()}`}
+            >
+              <TableRow
+                className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()} hover:bg-transparent`}
+              >
+                <TableCell colSpan={4} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center pl-[200px]">
                       <Pagination>
@@ -407,10 +476,12 @@ export const CategoryList = () => {
                             <PaginationPrevious
                               onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
                               aria-disabled={(filters.page || 1) === 1}
-                              className={
+                              className={`${
                                 (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
-                              }
-                            />
+                              } ${getAdminListPaginationClass()}`}
+                            >
+                              {t('previous')}
+                            </PaginationPrevious>
                           </PaginationItem>
                           {(() => {
                             const pages = [];
@@ -451,16 +522,18 @@ export const CategoryList = () => {
                             return pages.map((item, index) => (
                               <PaginationItem key={index}>
                                 {item === '...' ? (
-                                  <span className="px-2 py-1 text-gray-500">...</span>
+                                  <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
+                                    ...
+                                  </span>
                                 ) : (
                                   <PaginationLink
                                     isActive={item === (filters.page || 1)}
                                     onClick={() => handlePageChange(item as number)}
-                                    className={`transition-colors rounded 
+                                    className={`transition-colors rounded border
                                       ${
                                         item === (filters.page || 1)
-                                          ? 'bg-blue-500 text-white border hover:bg-blue-700 hover:text-white'
-                                          : 'text-gray-700 hover:bg-slate-200 hover:text-black'
+                                          ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-700 hover:text-white'
+                                          : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}
                                     style={{
@@ -482,59 +555,41 @@ export const CategoryList = () => {
                                 handlePageChange(Math.min(totalPages, (filters.page || 1) + 1))
                               }
                               aria-disabled={(filters.page || 1) === totalPages}
-                              className={
+                              className={`${
                                 (filters.page || 1) === totalPages
                                   ? 'pointer-events-none opacity-50'
                                   : ''
-                              }
-                            />
+                              } ${getAdminListPaginationClass()}`}
+                            >
+                              {t('next')}
+                            </PaginationNext>
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
-                          ? t('paginationEmpty')
+                          ? '0-0 of 0'
                           : `${((filters.page || 1) - 1) * (filters.pageSize || 5) + 1}-${Math.min(
                               (filters.page || 1) * (filters.pageSize || 5),
                               totalItems
-                            )} ${t('of')} ${totalItems}`}
+                            )} of ${totalItems}`}
                       </span>
-                      <span className="text-sm text-gray-700">{t('rowsPerPage')}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="flex items-center gap-1 px-2 py-1 border rounded text-sm bg-white hover:bg-gray-100 transition min-w-[48px] text-left">
-                            {filters.pageSize || 5}
-                            <svg
-                              className="w-4 h-4 ml-1"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {pageSizeOptions.map((size) => (
-                            <DropdownMenuItem
-                              key={size}
-                              onClick={() => handlePageSizeChange(size)}
-                              className={
-                                size === (filters.pageSize || 5) ? 'font-bold bg-primary/10' : ''
-                              }
-                            >
-                              {size}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {t('rowsPerPage')}
+                      </span>
+                      <select
+                        className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}
+                        value={filters.pageSize || 5}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </TableCell>

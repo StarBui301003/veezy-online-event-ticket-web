@@ -65,15 +65,17 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
 
   return (
     <Dialog open={!!user} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white p-0 shadow-lg">
-        <div className="p-4">
+      <DialogContent className="max-w-md bg-white dark:bg-gray-800 p-0 shadow-lg rounded-xl border-0 dark:border-0">
+        <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
-            <DialogTitle>{t('userDetails')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              {t('userDetails')}
+            </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-4 pt-0 flex flex-col items-center">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div className="flex flex-col items-start gap-3 mb-6 w-full">
-            <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 flex items-center justify-center overflow-hidden shadow mx-auto">
+            <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shadow mx-auto">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="avatar" className="object-cover w-full h-full" />
               ) : (
@@ -81,25 +83,31 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
               )}
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">{t('fullName')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('fullName')}
+              </label>
               <input
-                className="text-lg text-gray-800 bg-gray-200 border rounded px-2 py-1 w-full mb-1 text-left"
+                className="text-lg text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full mb-1 text-left"
                 value={user.fullName}
                 readOnly
               />
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">{t('email')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('email')}
+              </label>
               <input
-                className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full mb-1 text-left"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full mb-1 text-left"
                 value={user.email}
                 readOnly
               />
             </div>
             <div className="w-full">
-              <label className="block text-xs text-gray-500 mb-1">{t('phone')}</label>
+              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                {t('phone')}
+              </label>
               <input
-                className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                 value={user.phone || ''}
                 readOnly
                 placeholder={t('nA')}
@@ -110,48 +118,62 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
             {isUserAccountResponse && (
               <>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Username</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Username
+                  </label>
                   <input
-                    className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                    className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                     value={(user as UserAccountResponse).username}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Role
+                  </label>
                   <input
-                    className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                    className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                     value={(user as UserAccountResponse).role}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Status
+                  </label>
                   <input
-                    className={`text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left ${
-                      (user as UserAccountResponse).isActive ? 'text-green-600' : 'text-red-600'
+                    className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
+                      (user as UserAccountResponse).isActive
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
                     }`}
                     value={(user as UserAccountResponse).isActive ? 'Active' : 'Inactive'}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Online Status</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Online Status
+                  </label>
                   <input
-                    className={`text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left ${
-                      (user as UserAccountResponse).isOnline ? 'text-blue-600' : 'text-gray-600'
+                    className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
+                      (user as UserAccountResponse).isOnline
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400'
                     }`}
                     value={(user as UserAccountResponse).isOnline ? 'Online' : 'Offline'}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Email Verified</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Email Verified
+                  </label>
                   <input
-                    className={`text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left ${
+                    className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
                       (user as UserAccountResponse).isEmailVerified
-                        ? 'text-green-600'
-                        : 'text-yellow-600'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-yellow-600 dark:text-yellow-400'
                     }`}
                     value={
                       (user as UserAccountResponse).isEmailVerified ? 'Verified' : 'Not Verified'
@@ -160,25 +182,31 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Last Active</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Last Active
+                  </label>
                   <input
-                    className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                    className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                     value={getLastActiveValue()}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Last Login</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Last Login
+                  </label>
                   <input
-                    className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                    className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                     value={getLastLoginValue()}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
-                  <label className="block text-xs text-gray-500 mb-1">Created At</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                    Created At
+                  </label>
                   <input
-                    className="text-gray-600 bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                    className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
                     value={getCreatedAtValue()}
                     readOnly
                   />
@@ -189,17 +217,21 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
             {/* Gender and Date of Birth on the same row */}
             <div className="flex flex-row gap-4 w-full mb-0">
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">{t('gender')}</label>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                  {t('gender')}
+                </label>
                 <input
-                  className="bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                  className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
                   value={getGenderValue()}
                   readOnly
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">{t('dateOfBirth')}</label>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                  {t('dateOfBirth')}
+                </label>
                 <input
-                  className="bg-gray-200 border rounded px-2 py-1 w-full text-left"
+                  className="bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left text-gray-600 dark:text-gray-300"
                   value={getDobValue()}
                   readOnly
                   placeholder={t('nA')}
@@ -208,16 +240,14 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
             </div>
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
-              onClick={onClose}
-              type="button"
-            >
-              {t('close')}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+            onClick={onClose}
+            type="button"
+          >
+            {t('close')}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

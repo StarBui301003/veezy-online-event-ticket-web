@@ -73,6 +73,10 @@ const ProfileCustomer = () => {
     receiveNotify: false, // Default to false, will be updated by API
   });
 
+  // Loading states for theme and language changes
+  const [isThemeLoading, setIsThemeLoading] = useState(false);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
+
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
 
   // Load user config from API
@@ -100,7 +104,6 @@ const ProfileCustomer = () => {
         if (theme !== themeMode) {
           setTheme(themeMode);
         }
-
       }
     } catch (error) {
       console.error('Failed to load user config:', error);
@@ -361,12 +364,18 @@ const ProfileCustomer = () => {
 
   // User config handlers
   const handleLanguageChange = async (language: string) => {
-
     if (!account?.userId) {
       console.error('ProfileCustomer - No account or userId found');
       toast.error('Account not loaded yet');
       return;
     }
+
+    // Prevent multiple rapid clicks
+    if (isLanguageLoading) {
+      return;
+    }
+
+    setIsLanguageLoading(true);
 
     try {
       const languageNumber = parseInt(language);
@@ -394,6 +403,8 @@ const ProfileCustomer = () => {
     } catch (error) {
       console.error('ProfileCustomer - Failed to update language:', error);
       toast.error(t('languageChangeFailed'));
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
 
@@ -422,17 +433,24 @@ const ProfileCustomer = () => {
   };
 
   const handleThemeChange = async (theme: string) => {
+    // Prevent multiple rapid clicks
+    if (isThemeLoading) {
+      return;
+    }
+
+    setIsThemeLoading(true);
+
     try {
       const themeNumber = parseInt(theme);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
-      // Update theme in ThemeContext
-      setTheme(themeMode);
-
-      // Update user config - only send the theme field
+      // Update user config via API first
       await updateUserConfigAPI(account.userId, {
         theme: themeNumber,
       });
+
+      // Only update UI after successful API call
+      setTheme(themeMode);
 
       // Update local state
       const newConfig = {
@@ -448,6 +466,8 @@ const ProfileCustomer = () => {
     } catch (error) {
       console.error('Failed to update theme:', error);
       toast.error(t('themeUpdateFailed'));
+    } finally {
+      setIsThemeLoading(false);
     }
   };
 
