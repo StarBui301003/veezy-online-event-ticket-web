@@ -1,13 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import { Header } from '@/components/User/layout/Header';
 import { Footer } from '@/components/User/layout/Footer';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import { CustomerChatBox } from '@/components/Customer';
 
 export function Layout() {
-  const [show, setShow] = useState(false);
-
   useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
@@ -38,37 +36,15 @@ export function Layout() {
     }
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => {
-      setShow(window.scrollY > 100);
-    };
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const handleGoTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
     <>
       <ScrollToTop />
       <Header />
       <Outlet />
       <Footer />
-      
+
       {/* Customer Chat Box - Available on all customer pages */}
       <CustomerChatBox />
-      
-      {show && (
-        <button
-          onClick={handleGoTop}
-          className="fixed bottom-6 left-6 z-40 rounded-full bg-primary text-primary-foreground shadow-lg p-3 hover:bg-primary/90 transition"
-          aria-label="Go to top"
-        >
-          ↑
-        </button>
-      )}
     </>
   );
 }

@@ -1,31 +1,96 @@
-import React from "react";
+import React from 'react';
 
 export const StageBackground: React.FC = () => (
-  <div className="fixed inset-0 pointer-events-none z-0">
-    {/* Spotlights */}
-    <div className="absolute w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,0,128,0.3)_0%,rgba(255,0,128,0.1)_30%,transparent_70%)] animate-spotlight left-[10%] top-[10%]" style={{ animationDelay: "0s" }} />
-    <div className="absolute w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,0,128,0.3)_0%,rgba(255,0,128,0.1)_30%,transparent_70%)] animate-spotlight right-[15%] top-[20%]" style={{ animationDelay: "2s" }} />
-    <div className="absolute w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,0,128,0.3)_0%,rgba(255,0,128,0.1)_30%,transparent_70%)] animate-spotlight left-[20%] bottom-[30%]" style={{ animationDelay: "4s" }} />
-    <div className="absolute w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(255,0,128,0.3)_0%,rgba(255,0,128,0.1)_30%,transparent_70%)] animate-spotlight right-[10%] bottom-[20%]" style={{ animationDelay: "1s" }} />
-    {/* Lasers */}
-    <div className="absolute w-[2px] h-[70vh] bg-gradient-to-b from-[#ff0080] via-[#00ff80] to-[#0080ff] left-[5%] animate-laser" style={{ animationDelay: "0s" }} />
-    <div className="absolute w-[2px] h-[70vh] bg-gradient-to-b from-[#ff0080] via-[#00ff80] to-[#0080ff] left-[25%] animate-laser" style={{ animationDelay: "0.5s" }} />
-    <div className="absolute w-[2px] h-[70vh] bg-gradient-to-b from-[#ff0080] via-[#00ff80] to-[#0080ff] left-[45%] animate-laser" style={{ animationDelay: "1s" }} />
-    <div className="absolute w-[2px] h-[70vh] bg-gradient-to-b from-[#ff0080] via-[#00ff80] to-[#0080ff] left-[65%] animate-laser" style={{ animationDelay: "1.5s" }} />
-    <div className="absolute w-[2px] h-[70vh] bg-gradient-to-b from-[#ff0080] via-[#00ff80] to-[#0080ff] left-[85%] animate-laser" style={{ animationDelay: "2s" }} />
+  <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" style={{ zIndex: 0 }}>
+    {/* Subtle gradient overlay */}
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-pink-500/5 to-cyan-500/5" />
+
+    {/* Static floating orbs - no movement to prevent shaking */}
+    <div
+      className="absolute w-[400px] h-[400px] rounded-full bg-gradient-to-r from-purple-400/8 to-pink-400/8 blur-3xl"
+      style={{
+        top: '20%',
+        left: '10%',
+      }}
+    />
+    <div
+      className="absolute w-[300px] h-[300px] rounded-full bg-gradient-to-r from-cyan-400/8 to-blue-400/8 blur-3xl"
+      style={{
+        top: '30%',
+        right: '15%',
+      }}
+    />
+    <div
+      className="absolute w-[350px] h-[350px] rounded-full bg-gradient-to-r from-pink-400/8 to-purple-400/8 blur-3xl"
+      style={{
+        bottom: '25%',
+        left: '20%',
+      }}
+    />
+    <div
+      className="absolute w-[250px] h-[250px] rounded-full bg-gradient-to-r from-blue-400/8 to-cyan-400/8 blur-3xl"
+      style={{
+        bottom: '35%',
+        right: '10%',
+      }}
+    />
+
+    {/* Static light rays - no animation to prevent shaking */}
+    <div
+      className="absolute w-[1px] h-[40vh] bg-gradient-to-b from-transparent via-purple-400/15 to-transparent left-[15%]"
+      style={{
+        top: '25%',
+      }}
+    />
+    <div
+      className="absolute w-[1px] h-[40vh] bg-gradient-to-b from-transparent via-pink-400/15 to-transparent left-[35%]"
+      style={{
+        top: '25%',
+      }}
+    />
+    <div
+      className="absolute w-[1px] h-[40vh] bg-gradient-to-b from-transparent via-cyan-400/15 to-transparent left-[55%]"
+      style={{
+        top: '25%',
+      }}
+    />
+    <div
+      className="absolute w-[1px] h-[40vh] bg-gradient-to-b from-transparent via-blue-400/15 to-transparent left-[75%]"
+      style={{
+        top: '25%',
+      }}
+    />
+
+    {/* Static particle effects - no movement */}
+    <div className="absolute inset-0" style={{ top: '20%', bottom: '20%' }}>
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-1 h-1 bg-white/20 rounded-full"
+          style={{
+            left: `${20 + i * 15}%`,
+            top: `${10 + (i % 2) * 15}%`,
+          }}
+        />
+      ))}
+    </div>
+
+    {/* Subtle breathing effect for orbs - only opacity change */}
     <style>{`
-      @keyframes spotlight {
-        0% { opacity: 0.2; transform: scale(1);}
-        100% { opacity: 0.6; transform: scale(1.3);}
+      @keyframes breathe {
+        0%, 100% { 
+          opacity: 0.3;
+        }
+        50% { 
+          opacity: 0.5;
+        }
       }
-      .animate-spotlight { animation: spotlight 6s ease-in-out infinite alternate; }
-      @keyframes laser {
-        0%,100% { opacity: 0.3; transform: rotate(0deg);}
-        25% { opacity: 0.8; transform: rotate(2deg);}
-        50% { opacity: 0.5; transform: rotate(-2deg);}
-        75% { opacity: 0.9; transform: rotate(1deg);}
-      }
-      .animate-laser { animation: laser 3s linear infinite; }
+      
+      /* Apply breathing effect to orbs */
+      .absolute.w-\\[400px\\] { animation: breathe 8s ease-in-out infinite; }
+      .absolute.w-\\[300px\\] { animation: breathe 8s ease-in-out infinite; animation-delay: 2s; }
+      .absolute.w-\\[350px\\] { animation: breathe 8s ease-in-out infinite; animation-delay: 4s; }
+      .absolute.w-\\[250px\\] { animation: breathe 8s ease-in-out infinite; animation-delay: 1s; }
     `}</style>
   </div>
-); 
+);

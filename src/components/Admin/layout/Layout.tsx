@@ -18,7 +18,7 @@ import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import { toast } from 'react-toastify';
 import ThemeToggle from '@/components/Admin/ThemeToggle';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 // Helper: get userId from localStorage
 const getUserId = () => {
   const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Globe } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function isId(segment: string) {
   // Kiểm tra là số hoặc uuid
@@ -55,6 +56,7 @@ const useGlobalLoading = () => {
 
 export function AdminLayout() {
   const { t, i18n: i18nInstance } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(Boolean);
 
@@ -154,26 +156,47 @@ export function AdminLayout() {
   const loading = useGlobalLoading();
 
   return (
-    <ThemeProvider>
+    <>
       <ScrollToTop />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 justify-between">
+          <header
+            className={cn(
+              'flex h-16 shrink-0 items-center gap-2 border-b justify-between',
+              getThemeClass(
+                'border-gray-200 bg-white',
+                'border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600'
+              )
+            )}
+          >
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-7 w-7 -ml-1 text-black dark:text-white" />
+              <SidebarTrigger
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-7 w-7 -ml-1',
+                  getThemeClass('text-gray-900', 'text-black dark:text-white')
+                )}
+              />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
                 <BreadcrumbList>
                   {/* Dashboard luôn ở đầu */}
                   <BreadcrumbItem>
                     {pathnames.length === 1 && pathnames[0] === 'admin' ? (
-                      <BreadcrumbPage className="font-bold dark:text-white text-black">
+                      <BreadcrumbPage
+                        className={cn(
+                          'font-bold',
+                          getThemeClass('text-gray-900', 'dark:text-white text-black')
+                        )}
+                      >
                         {t('adminDashboard')}
                       </BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink asChild>
-                        <Link to="/admin" className="dark:text-white text-black">
+                        <Link
+                          to="/admin"
+                          className={getThemeClass('text-gray-900', 'dark:text-white text-black')}
+                        >
                           {t('adminDashboard')}
                         </Link>
                       </BreadcrumbLink>
@@ -253,7 +276,15 @@ export function AdminLayout() {
               </DropdownMenu>
             </div>
           </header>
-          <div className="morphing-gradient-bg dark:morphing-gradient-bg-dark flex flex-1 flex-col p-4 pt-0 relative bg-gray-50 dark:bg-gray-900">
+          <div
+            className={cn(
+              'morphing-gradient-bg dark:morphing-gradient-bg-dark flex flex-1 flex-col p-4 pt-0 relative',
+              getThemeClass(
+                'bg-gradient-to-br from-blue-50 to-indigo-100',
+                'bg-gray-50 dark:bg-gray-900'
+              )
+            )}
+          >
             <SpinnerOverlay show={loading} />
             <Outlet />
           </div>
@@ -268,6 +299,6 @@ export function AdminLayout() {
           )}
         </SidebarInset>
       </SidebarProvider>
-    </ThemeProvider>
+    </>
   );
 }

@@ -29,6 +29,7 @@ import i18n from '@/i18n';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import ThemeToggle from '@/components/User/ThemeToggle';
 import { toast } from 'react-toastify';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 // Helper: get userId from localStorage
 const getUserId = () => {
@@ -44,6 +45,7 @@ const getUserId = () => {
 
 export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const { getThemeClass, getTextClass } = useThemeClasses();
   const [blur, setBlur] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -232,36 +234,75 @@ export const Header = () => {
     <>
       <div
         className={cn(
-          'fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20 bg-black',
+          'fixed top-0 w-full pl-[10px] sm:pl-0 pr-[14px] sm:pr-0 items-center z-20',
+          getThemeClass(
+            'bg-gradient-to-r from-blue-100 to-indigo-200 border-b border-gray-300',
+            'bg-[linear-gradient(to_bottom_right,#0B1736,#091D4B,#0B1736)]'
+          ),
           {
             'backdrop-blur': blur,
           }
         )}
+        style={{
+          background: getThemeClass(
+            'linear-gradient(to right, #dbeafe, #c7d2fe)',
+            'linear-gradient(to bottom right, #0B1736, #091D4B, #0B1736)'
+          ),
+        }}
       >
-        <div className="sm:wrapper flex sm:h-[100px] h-[57px] items-center justify-between px-7 pr-10">
+        <div className="sm:wrapper flex sm:h-[80px] h-[40px] items-center justify-between px-7 pr-10">
           {/* Left side - Logo */}
           <Link to={'/'} className="block shrink-0">
-            <img className="sm:h-10 sm:w-[115px] w-[92px] h-[32px]" src={LOGO} alt="Logo" />
+            <img
+              className={cn(
+                'sm:h-8 sm:w-[92px] w-[74px] h-[26px]',
+                getThemeClass('', 'invert brightness-0')
+              )}
+              src={LOGO}
+              alt="Logo"
+            />
           </Link>
 
           {/* Center - Search bar */}
-          <div className="search-container flex w-full max-w-sm items-center min-w-70 border border-white/20 bg-white/10 rounded-[46px] relative mx-auto">
-            <CiSearch className="size-5 text-white ml-[17px]" strokeWidth={1.2} />
+          <div
+            className={cn(
+              'search-container flex w-full max-w-sm items-center min-w-70 border rounded-[46px] relative mx-auto',
+              getThemeClass(
+                'border-blue-300 bg-white/90 backdrop-blur-sm shadow-sm',
+                'border-white/20 bg-white/10'
+              )
+            )}
+          >
+            <CiSearch className={cn('size-5 ml-[17px]', getTextClass())} strokeWidth={1.2} />
             <Input
               type="text"
               placeholder={t('search_placeholder')}
-              className="body-medium-14 border-none truncate-placeholder ml-0 my-[2px] text-white placeholder:text-white/70 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className={cn(
+                'body-medium-14 border-none truncate-placeholder ml-0 my-[2px] bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                getThemeClass(
+                  'text-gray-900 placeholder:text-gray-500',
+                  ' placeholder:text-gray-500 text-gray-100'
+                )
+              )}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
             {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div
+                className={cn(
+                  'absolute top-full left-0 right-0 mt-1 border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto',
+                  getThemeClass('bg-white border-gray-300', 'bg-gray-900 border-gray-700')
+                )}
+              >
                 {searchResults.map((item) => (
                   <Link
                     key={item.id}
                     to={`/event/${item.id}`}
-                    className="block p-3 text-white border-b border-gray-700 last:border-b-0"
+                    className={cn(
+                      'block p-3 border-b last:border-b-0',
+                      getThemeClass('text-gray-900 border-gray-300', 'text-white border-gray-700')
+                    )}
                     onClick={() => setSearchResults([])}
                   >
                     <div className="flex items-center">
@@ -273,8 +314,10 @@ export const Header = () => {
                         />
                       )}
                       <div>
-                        <div className="font-medium text-white">{item.name}</div>
-                        <div className="text-sm text-gray-300">
+                        <div className={cn('font-medium', getTextClass())}>{item.name}</div>
+                        <div
+                          className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-300'))}
+                        >
                           {new Date(item.date).toLocaleDateString()}
                         </div>
                       </div>
@@ -291,25 +334,49 @@ export const Header = () => {
             <div className="sm:flex sm:gap-x-8 hidden items-center">
               <Link
                 to="/"
-                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                className={cn(
+                  'body-bold-16 whitespace-nowrap transition-colors select-none',
+                  getThemeClass(
+                    'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                    'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                  )
+                )}
               >
                 {t('Home')}
               </Link>
               <Link
                 to="/events"
-                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                className={cn(
+                  'body-bold-16 whitespace-nowrap transition-colors select-none',
+                  getThemeClass(
+                    'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                    'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                  )
+                )}
               >
                 {t('Event')}
               </Link>
               <Link
                 to="/news"
-                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                className={cn(
+                  'body-bold-16 whitespace-nowrap transition-colors select-none',
+                  getThemeClass(
+                    'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                    'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                  )
+                )}
               >
                 {t('News')}
               </Link>
               <Link
                 to="/terms-of-use"
-                className="body-bold-16 text-white whitespace-nowrap border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                className={cn(
+                  'body-bold-16 whitespace-nowrap transition-colors select-none',
+                  getThemeClass(
+                    'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                    'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                  )
+                )}
               >
                 {t('Terms of Use')}
               </Link>
@@ -324,22 +391,45 @@ export const Header = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="body-medium-16 px-[6px] hidden sm:flex bg-transparent text-white transition duration-300 hover:scale-110 hover:shadow hover:bg-white/10"
+                  className={cn(
+                    'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:scale-110 hover:shadow',
+                    getThemeClass(
+                      'text-black hover:text-black hover:bg-gray-100',
+                      'text-white hover:bg-white/10'
+                    )
+                  )}
                 >
                   {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
-                  <IoIosArrowDown className="text-white" />
+                  <IoIosArrowDown className={getTextClass()} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-32 !bg-gray-900 border-none rounded-md shadow-lg">
+              <DropdownMenuContent
+                className={cn(
+                  'w-32 rounded-md shadow-lg',
+                  getThemeClass('!bg-white border-gray-200', '!bg-gray-900 border-none')
+                )}
+              >
                 <DropdownMenuItem
                   onClick={() => handleChangeLanguage('vi')}
-                  className="!bg-gray-900 text-white cursor-pointer hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white"
+                  className={cn(
+                    'cursor-pointer',
+                    getThemeClass(
+                      '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900 data-[highlighted]:!bg-gray-100 data-[highlighted]:text-gray-900',
+                      '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
+                    )
+                  )}
                 >
                   VN
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleChangeLanguage('en')}
-                  className="!bg-gray-900 text-white cursor-pointer hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white"
+                  className={cn(
+                    'cursor-pointer',
+                    getThemeClass(
+                      '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900 data-[highlighted]:!bg-gray-100 data-[highlighted]:text-gray-900',
+                      '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
+                    )
+                  )}
                 >
                   EN
                 </DropdownMenuItem>
@@ -360,13 +450,25 @@ export const Header = () => {
               <>
                 <Link
                   to="/login"
-                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className={cn(
+                    'body-bold-16 whitespace-nowrap transition-colors select-none ml-2',
+                    getThemeClass(
+                      'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                      'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                    )
+                  )}
                 >
                   {t('login')}
                 </Link>
                 <Link
                   to="/register"
-                  className="body-bold-16 text-white border-b border-b-transparent hover:border-neutral-100 transition-colors select-none"
+                  className={cn(
+                    'body-bold-16 whitespace-nowrap transition-colors select-none',
+                    getThemeClass(
+                      'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
+                      'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                    )
+                  )}
                 >
                   {t('signUp')}
                 </Link>
@@ -376,33 +478,62 @@ export const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="flex items-center gap-2 px-3 bg-transparent hover:bg-white/10"
+                    className={cn(
+                      'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:shadow',
+                      getThemeClass(
+                        'text-black hover:text-black hover:bg-gray-100',
+                        'text-white hover:bg-white/10'
+                      )
+                    )}
                     style={{ minWidth: 0 }}
                   >
-                    <Avatar className="w-8 h-8 border border-white/30 rounded-full">
+                    <Avatar
+                      className={cn(
+                        'w-8 h-8 border rounded-full',
+                        getThemeClass('border-gray-300', 'border-white/30')
+                      )}
+                    >
                       <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                      <AvatarFallback className="bg-white/10 text-white">
+                      <AvatarFallback
+                        className={cn('text-white', getThemeClass('bg-gray-100', 'bg-white/10'))}
+                      >
                         {user?.fullName?.[0]?.toUpperCase() ||
                           account.fullname?.[0]?.toUpperCase() ||
                           account.username?.[0]?.toUpperCase() ||
                           'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="hidden sm:inline whitespace-nowrap text-white">
+                    <span className={cn('hidden sm:inline whitespace-nowrap', getTextClass())}>
                       {user?.fullName || account.fullname || account.username}
                     </span>
-                    <IoIosArrowDown className="text-white" />
+                    <IoIosArrowDown className={getTextClass()} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-lg !bg-gray-900 border-gray-700 text-white"
+                  className={cn(
+                    'w-60 rounded-lg',
+                    getThemeClass(
+                      '!bg-white border-gray-200 text-gray-900',
+                      '!bg-gray-900 border-gray-700 text-white'
+                    )
+                  )}
                 >
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 pl-2 py-2">
-                      <Avatar className="h-10 w-10 rounded-full border border-white/30">
+                      <Avatar
+                        className={cn(
+                          'h-10 w-10 rounded-full border',
+                          getThemeClass('border-gray-300', 'border-white/30')
+                        )}
+                      >
                         <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                        <AvatarFallback className="rounded-full bg-white/10 text-white">
+                        <AvatarFallback
+                          className={cn(
+                            'rounded-full text-white',
+                            getThemeClass('bg-gray-100', 'bg-white/10')
+                          )}
+                        >
                           {user?.fullName?.[0]?.toUpperCase() ||
                             account.fullname?.[0]?.toUpperCase() ||
                             account.username?.[0]?.toUpperCase() ||
@@ -410,28 +541,50 @@ export const Header = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col justify-center">
-                        <span className="font-semibold text-sm text-white truncate max-w-[140px]">
+                        <span
+                          className={cn(
+                            'font-semibold text-sm truncate max-w-[140px]',
+                            getTextClass()
+                          )}
+                        >
                           {user?.username || account.username || account.fullname}
                         </span>
-                        <span className="text-xs text-gray-300 truncate max-w-[180px]">
+                        <span
+                          className={cn(
+                            'text-xs truncate max-w-[180px]',
+                            getThemeClass('text-gray-600', 'text-gray-300')
+                          )}
+                        >
                           {user?.email || account.email}
                         </span>
                       </div>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuSeparator className={getThemeClass('bg-gray-300', 'bg-gray-700')} />
                   <DropdownMenuItem
-                    className="!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white pl-5"
+                    className={cn(
+                      'pl-5',
+                      getThemeClass(
+                        '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900 data-[highlighted]:!bg-gray-100 data-[highlighted]:text-gray-900',
+                        '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
+                      )
+                    )}
                     onClick={() => navigate('/profile')}
                   >
                     <FiUser className="mr-2" />
                     {t('profile')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuSeparator className={getThemeClass('bg-gray-300', 'bg-gray-700')} />
                   <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={loadingLogout}
-                    className="!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white pl-5"
+                    className={cn(
+                      'pl-5',
+                      getThemeClass(
+                        '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900',
+                        '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white'
+                      )
+                    )}
                   >
                     <LogOut className="mr-2" />
                     {loadingLogout ? (
@@ -443,7 +596,6 @@ export const Header = () => {
                       t('logout')
                     )}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-gray-700" />
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -451,11 +603,14 @@ export const Header = () => {
             {account && (
               <div className="relative">
                 <button
-                  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-all relative"
+                  className={cn(
+                    'flex items-center justify-center w-10 h-10 rounded-full transition-all relative',
+                    getThemeClass('hover:bg-gray-100', 'hover:bg-white/10')
+                  )}
                   onClick={() => setNotifDropdown((v) => !v)}
                   title={t('notification')}
                 >
-                  <Bell className="text-white text-xl" />
+                  <Bell className={cn('text-xl', getTextClass())} />
                   {unreadCount > 0 && (
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-800 animate-pulse"></span>
                   )}

@@ -101,17 +101,9 @@ interface SpinnerOverlayProps {
 const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScreen = false }) => {
   if (!show) return null;
 
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
-        <Spinner />
-        {children}
-      </div>
-    );
-  }
-
+  // Luôn sử dụng fixed để che toàn bộ màn hình
   return (
-    <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/20">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden">
       <Spinner />
       {children}
     </div>

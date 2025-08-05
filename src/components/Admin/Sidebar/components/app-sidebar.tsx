@@ -89,13 +89,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       variant="sidebar"
-      className="bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 [&_[data-sidebar=sidebar]]:bg-white [&_[data-sidebar=sidebar]]:dark:bg-gray-800"
+      className="bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600  [&_[data-sidebar=sidebar]]:bg-white [&_[data-sidebar=sidebar]]:dark:bg-gray-800"
       {...props}
     >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton className=" dark:hover:bg-gray-700 " size="lg" asChild>
               <Link to="/admin">
                 <div className="flex aspect-square size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <img src={LOGO_RECTANGLE} alt="Logo" className="h-8 w-8 object-contain" />

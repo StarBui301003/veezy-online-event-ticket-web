@@ -28,6 +28,7 @@ const getInitialTheme = (): 'light' | 'dark' => {
     console.error('Failed to load theme from localStorage:', error);
   }
 
+  // Default to light theme
   return 'light';
 };
 
@@ -44,11 +45,26 @@ const applyTheme = (newTheme: 'light' | 'dark') => {
   }
 };
 
+// Helper function to save theme to localStorage
+const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
+  try {
+    const userConfigStr = localStorage.getItem('user_config');
+    const userConfig = userConfigStr ? JSON.parse(userConfigStr) : {};
+
+    // Save theme as number: 0 for light, 1 for dark
+    userConfig.theme = newTheme === 'dark' ? 1 : 0;
+
+    localStorage.setItem('user_config', JSON.stringify(userConfig));
+  } catch (error) {
+    console.error('Failed to save theme to localStorage:', error);
+  }
+};
+
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Initialize theme immediately from localStorage to prevent flashing
   const [theme, setThemeState] = useState<'light' | 'dark'>(getInitialTheme);
 
-  // Apply theme immediately on mount to prevent flashing
+  // Apply theme immediately on mount and when theme changes
   useEffect(() => {
     applyTheme(theme);
 
@@ -58,25 +74,56 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, []); // Empty dependency array to run only once on mount
+  }, [theme]); // Add theme as dependency
+
+  // Ensure theme is applied on mount and reload when needed
+  useEffect(() => {
+    const currentTheme = getInitialTheme();
+    if (currentTheme !== theme) {
+      setThemeState(currentTheme);
+    }
+  }, []); // Run only once on mount
+
+  // Listen for account changes and storage changes
+  useEffect(() => {
+    const checkAndReloadTheme = () => {
+      const currentTheme = getInitialTheme();
+      if (currentTheme !== theme) {
+        setThemeState(currentTheme);
+      }
+    };
+
+    // Check immediately
+    checkAndReloadTheme();
+
+    // Listen for account changes
+    const handleAccountChange = () => {
+      setTimeout(checkAndReloadTheme, 100); // Small delay to ensure localStorage is updated
+    };
+
+    window.addEventListener('storage', handleAccountChange);
+    window.addEventListener('user-updated', handleAccountChange);
+
+    return () => {
+      window.removeEventListener('storage', handleAccountChange);
+      window.removeEventListener('user-updated', handleAccountChange);
+    };
+  }, [theme]);
 
   // Toggle theme
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setThemeState(newTheme);
     applyTheme(newTheme);
+    saveThemeToStorage(newTheme);
   };
 
   // Set specific theme
   const setTheme = (newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
     applyTheme(newTheme);
+    saveThemeToStorage(newTheme);
   };
-
-  // Apply theme when theme changes (for subsequent changes)
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
 
   const value: ThemeContextType = {
     theme,

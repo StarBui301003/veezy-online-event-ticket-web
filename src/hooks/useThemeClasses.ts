@@ -3,11 +3,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 export const useThemeClasses = () => {
     const { theme } = useTheme();
 
-    const getThemeClass = (baseClass: string, darkClass?: string) => {
-        if (theme === 'dark' && darkClass) {
-            return `${baseClass} ${darkClass}`;
-        }
-        return baseClass;
+    const getThemeClass = (lightClass: string, darkClass: string) => {
+        return theme === 'dark' ? darkClass : lightClass;
     };
 
     const getBgClass = () => {

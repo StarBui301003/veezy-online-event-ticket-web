@@ -42,6 +42,8 @@ import type { AdminOrder } from '@/types/Admin/order';
 import type { Attendance } from '@/types/attendance';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 const TABS = [
   { key: 'info', label: 'Thông tin cá nhân' },
@@ -53,6 +55,7 @@ const TABS = [
 const ProfileCustomer = () => {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
+  const { getThemeClass } = useThemeClasses();
   const [account, setAccount] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<Partial<User> | null>(null);
@@ -580,8 +583,18 @@ const ProfileCustomer = () => {
   if (loading) {
     return (
       <>
-        <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
-        <div className="w-full min-h-screen flex flex-col items-center justify-center text-white">
+        <div
+          className={cn(
+            'fixed inset-0 z-[-1] w-full h-full',
+            getThemeClass('bg-gradient-to-r from-blue-500 to-cyan-400', 'bg-[#091D4B]')
+          )}
+        />
+        <div
+          className={cn(
+            'w-full min-h-screen flex flex-col items-center justify-center',
+            getThemeClass('text-gray-900', 'text-white')
+          )}
+        >
           <SpinnerOverlay show={true} />
         </div>
       </>
@@ -591,15 +604,43 @@ const ProfileCustomer = () => {
   if (!account) {
     return (
       <>
-        <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
-        <div className="w-full min-h-screen flex flex-col items-center justify-center text-white">
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl p-8 text-center max-w-md mx-4">
-            <div className="text-2xl font-bold text-red-400 mb-4">
+        <div
+          className={cn(
+            'fixed inset-0 z-[-1] w-full h-full',
+            getThemeClass('bg-gradient-to-r from-blue-500 to-cyan-400', 'bg-[#091D4B]')
+          )}
+        />
+        <div
+          className={cn(
+            'w-full min-h-screen flex flex-col items-center justify-center',
+            getThemeClass('text-gray-900', 'text-white')
+          )}
+        >
+          <div
+            className={cn(
+              'backdrop-blur-md rounded-2xl shadow-2xl p-8 text-center max-w-md mx-4',
+              getThemeClass('bg-white/80', 'bg-white/10')
+            )}
+          >
+            <div
+              className={cn(
+                'text-2xl font-bold mb-4',
+                getThemeClass('text-red-600', 'text-red-400')
+              )}
+            >
               Unable to load account information
             </div>
-            <div className="text-gray-300 mb-6">Please try again or contact administrator.</div>
+            <div className={cn('mb-6', getThemeClass('text-gray-500', 'text-gray-300'))}>
+              Please try again or contact administrator.
+            </div>
             <Button
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full px-6 py-2 text-white font-semibold"
+              className={cn(
+                'bg-gradient-to-r hover:brightness-110 transition rounded-full px-6 py-2 font-semibold',
+                getThemeClass(
+                  'from-blue-500 to-indigo-600 text-white',
+                  'from-blue-500 to-indigo-600 text-white'
+                )
+              )}
               onClick={() => (window.location.href = '/')}
             >
               Go to Homepage
@@ -630,19 +671,51 @@ const ProfileCustomer = () => {
 
   return (
     <>
-      <div className="fixed inset-0 z-[-1] bg-[#091D4B] w-full h-full" />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-start justify-center">
-        <div className="w-full max-w-5xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border border-white/10 bg-white/10 backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0">
-          <aside className="w-32 md:w-36 bg-gradient-to-b from-indigo-800/90 to-slate-800/90 flex flex-col gap-2 border-r border-indigo-700/30 justify-start py-6 px-4">
+      <div
+        className={cn(
+          'fixed inset-0 z-[-1] w-full h-full',
+          getThemeClass('bg-gradient-to-r from-blue-500 to-cyan-400', 'bg-[#091D4B]')
+        )}
+      />
+      <div
+        className={cn(
+          'min-h-screen flex items-start justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-blue-100 via-cyan-100 to-blue-200',
+            'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900'
+          )
+        )}
+      >
+        <div
+          className={cn(
+            'w-full max-w-5xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0',
+            getThemeClass('bg-white/80 border-gray-200/40', 'bg-white/10 border-white/10')
+          )}
+        >
+          <aside
+            className={cn(
+              'w-32 md:w-36 flex flex-col gap-2 border-r justify-start py-6 px-4',
+              getThemeClass(
+                'bg-gradient-to-b from-blue-200/90 to-cyan-100/90 border-blue-200/40',
+                'bg-gradient-to-b from-indigo-800/90 to-slate-800/90 border-indigo-700/30'
+              )
+            )}
+          >
             {TABS.map((t) => (
               <button
                 key={t.key}
-                className={`w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2
-                  ${
-                    tab === t.key
-                      ? 'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
-                      : 'text-indigo-100 hover:bg-indigo-700/30'
-                  }`}
+                className={cn(
+                  'w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2',
+                  tab === t.key
+                    ? getThemeClass(
+                        'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow',
+                        'bg-gradient-to-br from-pink-500 to-indigo-500 text-white shadow'
+                      )
+                    : getThemeClass(
+                        'text-blue-900 hover:bg-blue-200/60',
+                        'text-indigo-100 hover:bg-indigo-700/30'
+                      )
+                )}
                 onClick={() => {
                   setTab(t.key);
                   setSelectedOrder(null); // reset khi chuyển tab
@@ -652,7 +725,12 @@ const ProfileCustomer = () => {
               </button>
             ))}
           </aside>
-          <main className="flex-1 p-10 pt-12 flex flex-col justify-start min-h-[600px]">
+          <main
+            className={cn(
+              'flex-1 p-10 pt-12 flex flex-col justify-start min-h-[600px]',
+              getThemeClass('text-gray-900', 'text-white')
+            )}
+          >
             {tab === 'info' && (
               <div className="flex flex-col items-center justify-center w-full">
                 {/* Avatar Section */}
@@ -702,11 +780,14 @@ const ProfileCustomer = () => {
                           value={form.fullName || ''}
                           onChange={handleInputChange}
                           placeholder={t('enterFullName')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'fullname')
-                              ? '!border-red-500 !text-white'
-                              : '!border-purple-700 !text-white'
-                          }`}
+                          className={cn(
+                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'fullname')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`,
+                            getThemeClass('!border-red-500', '!border-red-500')
+                          )}
                         />
                         {getFieldError(fieldErrors, 'fullname') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -724,11 +805,14 @@ const ProfileCustomer = () => {
                           value={form.email || ''}
                           disabled={true}
                           placeholder={t('yourEmailAddress')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'email')
-                              ? '!border-red-500 !text-white'
-                              : '!border-purple-700 !text-white'
-                          }`}
+                          className={cn(
+                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'email')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`,
+                            getThemeClass('!border-red-500', '!border-red-500')
+                          )}
                         />
                         {getFieldError(fieldErrors, 'email') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -746,11 +830,14 @@ const ProfileCustomer = () => {
                           value={form.phone || ''}
                           onChange={handleInputChange}
                           placeholder={t('enterPhoneNumber')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'phone')
-                              ? '!border-red-500 !text-white'
-                              : '!border-purple-700 !text-white'
-                          }`}
+                          className={cn(
+                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'phone')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`,
+                            getThemeClass('!border-red-500', '!border-red-500')
+                          )}
                         />
                         {getFieldError(fieldErrors, 'phone') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
@@ -780,11 +867,14 @@ const ProfileCustomer = () => {
                           }}
                         >
                           <SelectTrigger
-                            className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'gender')
-                                ? '!border-red-500 !text-white'
-                                : '!border-purple-700 !text-white'
-                            }`}
+                            className={cn(
+                              `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                                hasFieldError(fieldErrors, 'gender')
+                                  ? '!border-red-500 !text-white'
+                                  : '!border-purple-700 !text-white'
+                              }`,
+                              getThemeClass('!border-red-500', '!border-red-500')
+                            )}
                           >
                             <SelectValue
                               placeholder={t('selectGender')}
@@ -828,11 +918,14 @@ const ProfileCustomer = () => {
                           value={form.location || ''}
                           onChange={handleInputChange}
                           placeholder={t('enterLocation')}
-                          className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                            hasFieldError(fieldErrors, 'location')
-                              ? '!border-red-500 !text-white'
-                              : '!border-purple-700 !text-white'
-                          }`}
+                          className={cn(
+                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
+                              hasFieldError(fieldErrors, 'location')
+                                ? '!border-red-500 !text-white'
+                                : '!border-purple-700 !text-white'
+                            }`,
+                            getThemeClass('!border-red-500', '!border-red-500')
+                          )}
                         />
                         {getFieldError(fieldErrors, 'location') && (
                           <div className="text-red-400 text-xs mt-1 ml-2">
