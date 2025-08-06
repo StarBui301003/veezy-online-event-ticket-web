@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
+  Loader2,
   Clock,
   ExternalLink,
   MoreVertical,
@@ -23,7 +24,7 @@ const NewsDetail: React.FC = () => {
   const { newsId } = useParams<{ newsId: string }>();
   const navigate = useNavigate();
   const [news, setNews] = useState<News | null>(null);
-  // ...existing code...
+  const [loading, setLoading] = useState(true);
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const [showCount, setShowCount] = useState(3);
   const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(
@@ -52,6 +53,7 @@ const NewsDetail: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     connectNewsHub('http://localhost:5004/newsHub');
     const fetchNews = async () => {
       try {
@@ -69,6 +71,8 @@ const NewsDetail: React.FC = () => {
       } catch {
         toast.error('Error loading news!');
         navigate('/');
+      } finally {
+        setLoading(false);
       }
     };
     if (newsId) fetchNews();
@@ -82,11 +86,7 @@ const NewsDetail: React.FC = () => {
     navigate(path);
   };
 
-  const {
-    showLoginModal,
-    setShowLoginModal,
-    requireLogin,
-  } = useRequireLogin();
+  const { showLoginModal, setShowLoginModal, requireLogin } = useRequireLogin();
 
   const handleReportNews = () => {
     requireLogin(() => {
