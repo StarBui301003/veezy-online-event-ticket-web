@@ -32,7 +32,6 @@ import {
 import { getOrderHistoryByCustomerId } from '@/services/order.service';
 import { getTicketsByOrderId, getMyAttendances } from '@/services/ticketIssued.service';
 import OrderHistory from '@/components/Customer/OrderHistory';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import MyTickets from '@/components/Customer/MyTickets';
 import AttendanceHistory from '@/components/Customer/AttendanceHistory';
 import ChangePasswordModal from '@/pages/Customer/ChangePasswordModal';
@@ -205,28 +204,148 @@ const ProfileCustomer = () => {
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     const accountObj = accStr ? JSON.parse(accStr) : null;
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
 
     if (accountObj?.userId) {
-      connectTicketHub(token || undefined);
-      onTicket('OrderCreated', (data: any) => {
-        if (data.customerId === accountObj.userId) {
-          loadOrderHistory(accountObj.userId);
-          toast.info('Đơn hàng mới đã được tạo');
+      const setupRealtimeUpdates = async () => {
+        try {
+          const { 
+            connectTicketHub, 
+            onTicket, 
+            connectNotificationHub, 
+            onNotification,
+            connectEventHub,
+            onEvent
+          } = await import('@/services/signalr.service');
+
+          // Connect to Ticket Hub for order and ticket updates
+          await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+          
+          onTicket('OrderCreated', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Order created:', data);
+              loadOrderHistory(accountObj.userId);
+              toast.info(t('newOrderCreated'));
+            }
+          });
+
+          onTicket('OrderStatusChanged', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Order status changed:', data);
+              loadOrderHistory(accountObj.userId);
+              
+              // Show specific status notifications
+              if (data.status === 'Confirmed' || data.status === 'Completed') {
+                toast.success(t('orderConfirmed'));
+              } else if (data.status === 'Failed' || data.status === 'Cancelled') {
+                toast.error(t('orderCancelled'));
+              } else {
+                toast.info(t('orderStatusChanged'));
+              }
+            }
+          });
+
+          onTicket('TicketIssued', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Ticket issued:', data);
+              loadTicketsAndAttendances();
+              toast.success(t('ticketIssued'));
+            }
+          });
+
+          onTicket('TicketGenerated', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Ticket generated:', data);
+              loadTicketsAndAttendances();
+              toast.success(t('ticketGenerated'));
+            }
+          });
+
+          onTicket('AttendanceCheckedIn', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Attendance checked in:', data);
+              loadTicketsAndAttendances();
+              toast.success(t('checkedInSuccessfully'));
+            }
+          });
+
+          onTicket('AttendanceUpdated', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Attendance updated:', data);
+              loadTicketsAndAttendances();
+              toast.info(t('attendanceUpdated'));
+            }
+          });
+
+          // Connect to Event Hub for event updates that affect user's tickets
+          await connectEventHub('http://localhost:5004/notificationHub');
+
+          onEvent('OnEventCancelled', (data: any) => {
+            const eventId = data.eventId || data.EventId;
+            // Check if user has tickets for this event
+            const hasTicketsForEvent = orders.some(order => 
+              order.items?.some(item => item.ticketId && item.ticketId.includes(eventId))
+            );
+            
+            if (hasTicketsForEvent) {
+              console.log('Event cancelled - user has tickets:', data);
+              toast.warning(t('eventCancelledRefundProcessing'));
+              loadOrderHistory(accountObj.userId);
+            }
+          });
+
+          onEvent('OnEventUpdated', (data: any) => {
+            const eventId = data.eventId || data.EventId;
+            // Check if user has tickets for this event
+            const hasTicketsForEvent = orders.some(order => 
+              order.items?.some(item => item.ticketId && item.ticketId.includes(eventId))
+            );
+            
+            if (hasTicketsForEvent) {
+              console.log('Event updated - user has tickets:', data);
+              toast.info(t('eventUpdatedCheckDetails'));
+            }
+          });
+
+          // Connect to Notification Hub for general notifications
+          if (token) {
+            await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+            
+            onNotification('ReceiveNotification', (notification: any) => {
+              // Filter notifications relevant to profile page
+              if (notification.type === 'OrderUpdate' || 
+                  notification.type === 'TicketIssue' || 
+                  notification.type === 'EventUpdate' ||
+                  notification.type === 'PaymentUpdate') {
+                console.log('Profile-relevant notification:', notification);
+                toast.info(notification.message || notification.title);
+              }
+            });
+
+            // Listen for payment status changes
+            onNotification('PaymentStatusChanged', (data: any) => {
+              if (data.userId === accountObj.userId || data.customerId === accountObj.userId) {
+                console.log('Payment status changed:', data);
+                if (data.status === 'Success' || data.status === 'Completed') {
+                  toast.success(t('paymentSuccessful'));
+                } else if (data.status === 'Failed') {
+                  toast.error(t('paymentFailed'));
+                } else if (data.status === 'Refunded') {
+                  toast.info(t('paymentRefunded'));
+                }
+                loadOrderHistory(accountObj.userId);
+              }
+            });
+          }
+
+        } catch (error) {
+          console.error('Failed to setup realtime updates:', error);
         }
-      });
-      onTicket('OrderStatusChanged', (data: any) => {
-        if (data.customerId === accountObj.userId) {
-          loadOrderHistory(accountObj.userId);
-          toast.info('Trạng thái đơn hàng đã thay đổi');
-        }
-      });
-      onTicket('TicketIssued', () => {
-        loadTicketsAndAttendances();
-        toast.success('Vé đã được phát hành');
-      });
+      };
+
+      setupRealtimeUpdates();
     }
-  }, []);
+  }, [orders, t]);
 
   // Load order history function
   const loadOrderHistory = async (userId: string) => {

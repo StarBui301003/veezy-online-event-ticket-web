@@ -61,55 +61,126 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
   };
 
-  useEffect(() => {
-    async function fetchDashboardData() {
-      setLoading(true);
-      try {
-        const params: any = {
-          Period: filter.period,
-          GroupBy: filter.groupBy,
-          CustomStartDate: filter.customStartDate || undefined,
-          CustomEndDate: filter.customEndDate || undefined,
-          IncludeRealtimeData: filter.includeRealtimeData,
-        };
+  // Shared function for fetching dashboard data
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const params: any = {
+        Period: filter.period,
+        GroupBy: filter.groupBy,
+        CustomStartDate: filter.customStartDate || undefined,
+        CustomEndDate: filter.customEndDate || undefined,
+        IncludeRealtimeData: filter.includeRealtimeData,
+      };
 
-        if (filter.includeComparison && filter.comparisonPeriod) {
-          params.IncludeComparison = true;
-          params.ComparisonPeriod = filter.comparisonPeriod;
-        }
-
-        const response = await getEventManagerDashboard(params);
-        setDashboardData(response.data || response);
-
-        if (filter.includeComparison) {
-          const comparisonPeriod = filter.comparisonPeriod || getDefaultComparisonPeriod(filter.period);
-          const compareResponse = await comparePerformance(filter.period, comparisonPeriod);
-          const points = compareResponse.data?.points || compareResponse.points || [];
-          
-          // Assuming points contain revenue and tickets sold data
-          const totalRevenueCurrent = points.reduce((sum: number, p: any) => sum + (p.currentRevenue || p.current || 0), 0);
-          const totalRevenuePrevious = points.reduce((sum: number, p: any) => sum + (p.previousRevenue || p.previous || 0), 0);
-          const ticketsSoldCurrent = points.reduce((sum: number, p: any) => sum + (p.currentTicketsSold || 0), 0);
-          const ticketsSoldPrevious = points.reduce((sum: number, p: any) => sum + (p.previousTicketsSold || 0), 0);
-
-          setComparisonData({
-            totalRevenueCurrent,
-            totalRevenuePrevious,
-            ticketsSoldCurrent,
-            ticketsSoldPrevious,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setDashboardData(null);
-        setComparisonData(null);
-      } finally {
-        setLoading(false);
+      if (filter.includeComparison && filter.comparisonPeriod) {
+        params.IncludeComparison = true;
+        params.ComparisonPeriod = filter.comparisonPeriod;
       }
-    }
 
+      const response = await getEventManagerDashboard(params);
+      setDashboardData(response.data || response);
+
+      if (filter.includeComparison) {
+        const comparisonPeriod = filter.comparisonPeriod || getDefaultComparisonPeriod(filter.period);
+        const compareResponse = await comparePerformance(filter.period, comparisonPeriod);
+        const points = compareResponse.data?.points || compareResponse.points || [];
+        
+        const totalRevenueCurrent = points.reduce((sum: number, p: any) => sum + (p.currentRevenue || p.current || 0), 0);
+        const totalRevenuePrevious = points.reduce((sum: number, p: any) => sum + (p.previousRevenue || p.previous || 0), 0);
+        const ticketsSoldCurrent = points.reduce((sum: number, p: any) => sum + (p.currentTicketsSold || 0), 0);
+        const ticketsSoldPrevious = points.reduce((sum: number, p: any) => sum + (p.previousTicketsSold || 0), 0);
+
+        setComparisonData({
+          totalRevenueCurrent,
+          totalRevenuePrevious,
+          ticketsSoldCurrent,
+          ticketsSoldPrevious,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setDashboardData(null);
+      setComparisonData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
   }, [filter]);
+
+  // Add realtime update listeners
+  useEffect(() => {
+    const handleDashboardUpdate = (event: CustomEvent) => {
+      console.log('Dashboard data update received:', event.detail);
+      // Refresh dashboard data when realtime update received
+      fetchDashboardData();
+    };
+
+    const handleRevenueUpdate = (event: CustomEvent) => {
+      console.log('Revenue update received:', event.detail);
+      // Update revenue data in dashboard
+      setDashboardData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          financial: {
+            ...prev.financial,
+            overviewFilter: {
+              ...prev.financial.overviewFilter,
+              totalRevenue: event.detail.totalRevenue || prev.financial.overviewFilter.totalRevenue
+            }
+          }
+        };
+      });
+    };
+
+    const handleTicketSalesUpdate = (event: CustomEvent) => {
+      console.log('Ticket sales update received:', event.detail);
+      // Update ticket sales data
+      setDashboardData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          overview: {
+            ...prev.overview,
+            totalTicketsSold: event.detail.totalTicketsSold || prev.overview.totalTicketsSold
+          },
+          financial: {
+            ...prev.financial,
+            overviewFilter: {
+              ...prev.financial.overviewFilter,
+              ticketsSold: event.detail.ticketsSold || prev.financial.overviewFilter.ticketsSold
+            }
+          }
+        };
+      });
+    };
+
+    const handleOrderUpdate = (event: CustomEvent) => {
+      console.log('Order update received:', event.detail);
+      // Refresh data when new orders come in
+      fetchDashboardData();
+    };
+
+    // Add event listeners
+    window.addEventListener('dashboardDataUpdate', handleDashboardUpdate as EventListener);
+    window.addEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
+    window.addEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+    window.addEventListener('orderUpdate', handleOrderUpdate as EventListener);
+    window.addEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('dashboardDataUpdate', handleDashboardUpdate as EventListener);
+      window.removeEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
+      window.removeEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+      window.removeEventListener('orderUpdate', handleOrderUpdate as EventListener);
+      window.removeEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+    };
+  }, []);
 
   const getDefaultComparisonPeriod = (currentPeriod: number): number => {
     const comparisonMap: Record<number, number> = {

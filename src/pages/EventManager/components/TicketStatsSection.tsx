@@ -140,6 +140,51 @@ useEffect(() => {
   fetchData();
 }, [fetchData]);
 
+// Add realtime update listeners for ticket stats
+useEffect(() => {
+  const handleTicketSalesUpdate = (event: CustomEvent) => {
+    console.log('Ticket stats update received:', event.detail);
+    // Refresh ticket data when realtime update received
+    fetchData();
+  };
+
+  const handleOrderUpdate = (event: CustomEvent) => {
+    console.log('Order update for ticket stats:', event.detail);
+    // Refresh data when new orders come in
+    fetchData();
+  };
+
+  const handleEventUpdate = (event: CustomEvent) => {
+    console.log('Event update for ticket stats:', event.detail);
+    // Refresh data when events are updated
+    fetchData();
+  };
+
+  const handleDashboardUpdate = (event: CustomEvent) => {
+    console.log('Dashboard update for ticket stats:', event.detail);
+    // Refresh data when dashboard updates
+    fetchData();
+  };
+
+  // Add event listeners
+  window.addEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+  window.addEventListener('orderUpdate', handleOrderUpdate as EventListener);
+  window.addEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+  window.addEventListener('eventDataUpdate', handleEventUpdate as EventListener);
+  window.addEventListener('eventStatusUpdate', handleEventUpdate as EventListener);
+  window.addEventListener('dashboardDataUpdate', handleDashboardUpdate as EventListener);
+
+  // Cleanup event listeners
+  return () => {
+    window.removeEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+    window.removeEventListener('orderUpdate', handleOrderUpdate as EventListener);
+    window.removeEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+    window.removeEventListener('eventDataUpdate', handleEventUpdate as EventListener);
+    window.removeEventListener('eventStatusUpdate', handleEventUpdate as EventListener);
+    window.removeEventListener('dashboardDataUpdate', handleDashboardUpdate as EventListener);
+  };
+}, [fetchData]);
+
 const getGroupByLabel = () => {
   const labels: { [key: number]: string } = {
     0: 'giờ',

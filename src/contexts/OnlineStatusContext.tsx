@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { onChat } from '@/services/signalr.service';
-import { chatService } from '@/services/chat.service';
+import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
 
 interface OnlineUser {
   userId: string;
@@ -27,35 +26,51 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
   const [onlineUsers, setOnlineUsers] = useState<Map<string, OnlineUser>>(new Map());
 
   useEffect(() => {
+    // Connect to Identity Hub for online status events
+    const initializeConnection = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          await connectIdentityHub('http://localhost:5001/hubs/notifications', token);
+          console.log('✅ Connected to Identity Hub for online status');
+        }
+      } catch (error) {
+        console.warn('Failed to connect to Identity Hub:', error);
+      }
+    };
+
+    initializeConnection();
+
     // Listen to SignalR events for real-time online status updates
-    const handleUserConnected = (data: { userId: string; username: string }) => {
+    const handleUserOnline = (accountId: string) => {
+      console.log('🟢 User online event received:', accountId);
       setOnlineUsers(prev => {
         const newMap = new Map(prev);
-        newMap.set(data.userId, {
-          userId: data.userId,
-          username: data.username,
+        const existingUser = newMap.get(accountId);
+        newMap.set(accountId, {
+          userId: accountId,
+          username: existingUser?.username || 'Unknown',
           isOnline: true,
           lastActiveAt: new Date().toISOString()
         });
         return newMap;
       });
-      console.log('🟢 User connected:', data.username);
     };
 
-    const handleUserDisconnected = (data: { userId: string; username: string }) => {
+    const handleUserOffline = (accountId: string) => {
+      console.log('🔴 User offline event received:', accountId);
       setOnlineUsers(prev => {
         const newMap = new Map(prev);
-        const user = newMap.get(data.userId);
-        if (user) {
-          newMap.set(data.userId, {
-            ...user,
+        const existingUser = newMap.get(accountId);
+        if (existingUser) {
+          newMap.set(accountId, {
+            ...existingUser,
             isOnline: false,
             lastActiveAt: new Date().toISOString()
           });
         }
         return newMap;
       });
-      console.log('🔴 User disconnected:', data.username);
     };
 
     // Listen to user activity updates
@@ -104,9 +119,9 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       console.log('➕ Added user to context from event:', userId);
     };
 
-    // Setup SignalR listeners
-    onChat('UserConnected', handleUserConnected);
-    onChat('UserDisconnected', handleUserDisconnected);
+    // Setup SignalR listeners for Identity Hub events
+    onIdentity('UserOnline', handleUserOnline);
+    onIdentity('UserOffline', handleUserOffline);
 
     // Setup custom event listener for user activity updates
     window.addEventListener('userActivityUpdated', handleUserActivityUpdated as EventListener);
@@ -160,21 +175,30 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       if (!token) return;
 
       // Skip API call for online users - rely on SignalR events only
-      // The admin online users API endpoint may not be implemented yet
       try {
-        // Optional: Try to get online users from chat service if available
-        const users = await chatService.getOnlineUsers();
-        if (users && Array.isArray(users)) {
-          const userMap = new Map<string, OnlineUser>();
-          users.forEach(user => {
-            userMap.set(user.userId, {
-              userId: user.userId,
-              username: user.username,
-              isOnline: user.isOnline,
-              lastActiveAt: user.lastSeen || new Date().toISOString()
+        // Try to get online users from account API
+        const response = await fetch('/api/Account/online-users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.flag && Array.isArray(data.data)) {
+            const userMap = new Map<string, OnlineUser>();
+            data.data.forEach((user: any) => {
+              userMap.set(user.accountId || user.userId, {
+                userId: user.accountId || user.userId,
+                username: user.username,
+                isOnline: user.isOnline,
+                lastActiveAt: user.lastActiveAt || new Date().toISOString()
+              });
             });
-          });
-          setOnlineUsers(userMap);
+            setOnlineUsers(userMap);
+            console.log(`✅ Loaded ${data.data.length} online users from API`);
+          }
         }
       } catch (apiError) {
         // Ignore API errors - we'll rely on SignalR events for real-time status

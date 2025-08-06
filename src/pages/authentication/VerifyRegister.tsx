@@ -12,7 +12,21 @@ export const VerifyRegister = () => {
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [checkedEmail, setCheckedEmail] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  
+  // Initialize countdown from sessionStorage or default to 30 seconds
+  const [countdown, setCountdown] = useState(() => {
+    const storedCountdown = sessionStorage.getItem('verificationCountdown');
+    if (storedCountdown) {
+      const minutesLeft = parseInt(storedCountdown, 10);
+      // Convert minutes to seconds
+      const secondsLeft = minutesLeft * 60;
+      // Clear the stored countdown after reading it
+      sessionStorage.removeItem('verificationCountdown');
+      return secondsLeft;
+    }
+    return 30; // Default 30 seconds
+  });
+  
   const [canResend, setCanResend] = useState(true);
   const navigate = useNavigate();
   const email = sessionStorage.getItem('registerEmail') || '';
