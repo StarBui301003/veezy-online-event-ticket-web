@@ -122,7 +122,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   );
 };
 
-export const useNotificationContext = (): NotificationContextType => {
+export const useNotificationContext = (userRole: number): NotificationContextType => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
     throw new Error('useNotificationContext must be used within a NotificationProvider');

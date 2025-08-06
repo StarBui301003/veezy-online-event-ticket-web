@@ -99,14 +99,31 @@ const PaymentSuccessPage = () => {
           <>
             <div className="font-semibold text-green-800 mb-3">{t('ticketDetail')}</div>
             <ul className="text-left space-y-2 mb-4">
-              {checkout.items.map((item, idx) => (
-                <li key={idx} className="flex justify-between text-green-900">
-                  <span>
-                    {item.ticketName} <span className="text-green-600">x{item.quantity}</span>
-                  </span>
-                  <span>{(item.ticketPrice * item.quantity).toLocaleString('vi-VN')} VNĐ</span>
-                </li>
-              ))}
+              {checkout.items.map((item, idx) => {
+                const price = typeof item.pricePerTicket === 'number'
+                  ? item.pricePerTicket
+                  : typeof item.pricePerTicket === 'string'
+                    ? parseFloat(item.pricePerTicket) || 0
+                    : typeof item.ticketPrice === 'number'
+                      ? item.ticketPrice
+                      : typeof item.ticketPrice === 'string'
+                        ? parseFloat(item.ticketPrice) || 0
+                        : 0;
+                const quantity = typeof item.quantity === 'number'
+                  ? item.quantity
+                  : typeof item.quantity === 'string'
+                    ? parseInt(item.quantity) || 0
+                    : 0;
+                const itemSubtotal = price * quantity;
+                return (
+                  <li key={idx} className="flex justify-between text-green-900">
+                    <span>
+                      {item.ticketName} <span className="text-green-600">x{quantity}</span>
+                    </span>
+                    <span>{isNaN(itemSubtotal) ? '0' : itemSubtotal.toLocaleString('vi-VN')} VNĐ</span>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

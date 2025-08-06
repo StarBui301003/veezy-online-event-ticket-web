@@ -17,6 +17,8 @@ import type { User } from '@/types/auth';
 import instance from '@/services/axios.customize';
 import { useTranslation } from 'react-i18next';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import { LoginModal } from '@/components/common/LoginModal';
 
 const EVENTS_PER_PAGE = 6;
 
@@ -49,6 +51,12 @@ type News = {
 };
 
 const EventManagerProfile = () => {
+  const {
+    requireLogin,
+    showLoginModal,
+    setShowLoginModal,
+    user,
+  } = useRequireLogin();
   const { id } = useParams<{ id: string }>();
   const [info, setInfo] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -144,24 +152,28 @@ const EventManagerProfile = () => {
                 <h2 className="text-2xl font-bold">{t('personalInfo')}</h2>
                 {/* Nút ... báo cáo */}
                 <div className="relative z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 shadow-lg">
-                        <MoreVertical className="w-5 h-5 text-white" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setTimeout(() => setReportModal(true), 10);
-                        }}
-                        className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                      >
-                        <Flag className="w-4 h-4" /> {t('reportEventManager')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {!(reportModal || showLoginModal) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 shadow-lg">
+                          <MoreVertical className="w-5 h-5 text-white" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            requireLogin(() => {
+                              setTimeout(() => setReportModal(true), 10);
+                            });
+                          }}
+                          className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                        >
+                          <Flag className="w-4 h-4" /> {t('reportEventManager')}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
@@ -394,11 +406,20 @@ const EventManagerProfile = () => {
           <ReportModal
             key={info.accountId}
             open={reportModal}
-            targetType="event"
-            targetId={info.accountId}
+            targetType="eventmanager"
+            targetId={info.userId}
             onClose={() => setReportModal(false)}
           />
         )}
+        {/* Login Modal */}
+        <LoginModal
+          open={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={() => {
+            setShowLoginModal(false);
+            setReportModal(true);
+          }}
+        />
       </div>
     </div>
   );

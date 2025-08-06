@@ -1160,5 +1160,6 @@
   "createCollaborator_creating": "Creating...",
   "createCollaborator_cancel": "Cancel",
   "createCollaborator_passwordPlaceholder": "Enter password",
-  "createCollaborator_dateOfBirthPlaceholder": "Select date of birth"
+  "createCollaborator_dateOfBirthPlaceholder": "Select date of birth",
+  "writeComment": "Write your comment..."
 }

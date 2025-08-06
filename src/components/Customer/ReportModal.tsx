@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
-import { reportComment, reportEvent, reportNews } from '@/services/Admin/report.service';
+import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -15,7 +15,7 @@ const REASONS = [
   'Khác',
 ];
 
-type TargetType = 'event' | 'news' | 'comment';
+type TargetType = 'event' | 'news' | 'comment' | 'eventmanager';
 
 interface ReportModalProps {
   open: boolean;
@@ -49,6 +49,8 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
         await reportEvent(targetId, reason, description);
       } else if (targetType === 'news') {
         await reportNews(targetId, reason, description);
+      } else if (targetType === 'eventmanager') {
+        await reportEventManager(targetId, reason, description);
       }
       toast.success('Báo cáo thành công!');
       onClose();
@@ -81,21 +83,21 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
 
   return (
     <SimpleModal open={open} onClose={onClose}>
-      <div
-        className={cn(
+      <div className={cn(
           'max-w-md w-full rounded-2xl',
           getThemeClass(
             'bg-white/95 border border-gray-200 shadow-lg',
             'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
           )
-        )}
-      >
+        )}>
         <h2 className={cn('text-2xl font-bold mb-2', getThemeClass('text-gray-900', 'text-white'))}>
           {targetType === 'event'
-            ? t('reportEvent')
-            : targetType === 'news'
-            ? t('reportNews')
-            : t('reportComment')}
+            ? t('reportEvent') 
+            : targetType === 'news' 
+              ? t('reportNews') 
+              : targetType === 'eventmanager'
+                ? t('reportEventManager')
+                : t('reportComment')}
         </h2>
         <div className={cn('mb-4', getThemeClass('text-gray-600', 'text-slate-200'))}>
           Vui lòng chọn lý do và mô tả chi tiết nếu cần để gửi báo cáo này tới quản trị viên.

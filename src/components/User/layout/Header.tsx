@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import NotificationDropdown from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
 import { Button } from '../../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { AVATAR, LOGO } from '@/assets/img';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +17,10 @@ import {
 import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
 import { Input } from '../../ui/input';
-import { LogoutAPI, getUserAPI } from '@/services/auth.service';
+import { LogoutAPI } from '@/services/auth.service';
 import { Loader2 } from 'lucide-react';
-import { Account } from '@/types/auth';
+// import { Account } from '@/types/auth';
+import { AuthContext } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FiUser } from 'react-icons/fi';
 import { LogOut } from 'lucide-react';
@@ -47,15 +48,13 @@ export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
   const { getThemeClass, getTextClass } = useThemeClasses();
   const [blur, setBlur] = useState(false);
-  const [account, setAccount] = useState<Account | null>(null);
-  const [user, setUser] = useState<any>(null);
+  // Remove local user state, always use AuthContext's user
   const [avatar, setAvatar] = useState<string | undefined>(undefined); // Thêm state avatar
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
   const [notifDropdown, setNotifDropdown] = useState(false);
-  const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  const accountObj = accountStr ? JSON.parse(accountStr) : null;
-  const userId = accountObj?.userId || accountObj?.accountId;
+  const { user, logout } = useContext(AuthContext);
+  const userId = user?.userId || user?.accountId;
   const { unreadCount } = useRealtimeNotifications();
 
   // Helper: update language in user config
@@ -162,53 +161,11 @@ export const Header = () => {
 
   useEffect(() => {
     window.addEventListener('scroll', changeBlur);
-
-    const fetchAccountAndUser = () => {
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        try {
-          const acc = JSON.parse(accStr);
-          setAccount(acc);
-          // Logic giống nav-user: chỉ đọc avatar field
-          const avatarUrl = acc.avatar || '';
-          setAvatar(avatarUrl || undefined);
-
-          // Gọi API lấy user
-          if (acc.userId) {
-            getUserAPI(acc.userId)
-              .then((userData) => setUser(userData))
-              .catch(() => setUser(null));
-          }
-        } catch {
-          setAccount(null);
-          setAvatar(undefined);
-        }
-      } else {
-        setAccount(null);
-        setAvatar(undefined);
-      }
-    };
-
-    fetchAccountAndUser();
-
-    const handleAvatarUpdate = (event: CustomEvent) => {
-      if (event.detail?.avatarUrl !== undefined) {
-        console.log('Header - Avatar Updated:', event.detail.avatarUrl);
-        setAvatar(event.detail.avatarUrl);
-      }
-    };
-
-    window.addEventListener('user-updated', fetchAccountAndUser);
-    window.addEventListener('storage', fetchAccountAndUser);
-    window.addEventListener('avatar-updated', handleAvatarUpdate as EventListener);
-
+    setAvatar(user?.avatar || undefined);
     return () => {
       window.removeEventListener('scroll', changeBlur);
-      window.removeEventListener('user-updated', fetchAccountAndUser);
-      window.removeEventListener('storage', fetchAccountAndUser);
-      window.removeEventListener('avatar-updated', handleAvatarUpdate as EventListener);
     };
-  }, []);
+  }, [user]);
 
   const changeBlur = () => {
     setBlur(window.scrollY > 0);
@@ -218,14 +175,12 @@ export const Header = () => {
     setLoadingLogout(true);
     try {
       await LogoutAPI();
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('account');
-      localStorage.removeItem('customerId');
-      localStorage.removeItem('user_config');
-      document.cookie = 'refresh_token=; Max-Age=0; path=/;';
-      setAccount(null);
-      navigate('/login');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      toast.warning(t('logout_failed'));
     } finally {
+      logout(); // Always update global login state
+      navigate('/login');
       setLoadingLogout(false);
     }
   };
@@ -438,7 +393,7 @@ export const Header = () => {
           </div>
           <div className="flex gap-x-6 ml-0 items-center">
             {/* Nút chuyển sang event manager chỉ hiện với role 2 */}
-            {account?.role === 2 && (
+            {user?.role === 2 && (
               <Button
                 className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-lg shadow hover:scale-105 transition-transform duration-200 mr-2"
                 onClick={() => navigate('/event-manager')}
@@ -446,7 +401,7 @@ export const Header = () => {
                 {t('eventManager')}
               </Button>
             )}
-            {!account ? (
+            {!user ? (
               <>
                 <Link
                   to="/login"
@@ -498,13 +453,13 @@ export const Header = () => {
                         className={cn('text-white', getThemeClass('bg-gray-100', 'bg-white/10'))}
                       >
                         {user?.fullName?.[0]?.toUpperCase() ||
-                          account.fullname?.[0]?.toUpperCase() ||
-                          account.username?.[0]?.toUpperCase() ||
+                          user?.fullname?.[0]?.toUpperCase() ||
+                          user?.username?.[0]?.toUpperCase() ||
                           'U'}
                       </AvatarFallback>
                     </Avatar>
                     <span className={cn('hidden sm:inline whitespace-nowrap', getTextClass())}>
-                      {user?.fullName || account.fullname || account.username}
+                      {user?.fullName || user?.fullname || user?.username}
                     </span>
                     <IoIosArrowDown className={getTextClass()} />
                   </Button>
@@ -535,8 +490,8 @@ export const Header = () => {
                           )}
                         >
                           {user?.fullName?.[0]?.toUpperCase() ||
-                            account.fullname?.[0]?.toUpperCase() ||
-                            account.username?.[0]?.toUpperCase() ||
+                            user?.fullname?.[0]?.toUpperCase() ||
+                            user?.username?.[0]?.toUpperCase() ||
                             'U'}
                         </AvatarFallback>
                       </Avatar>
@@ -547,7 +502,7 @@ export const Header = () => {
                             getTextClass()
                           )}
                         >
-                          {user?.username || account.username || account.fullname}
+                          {user?.username || user?.fullname}
                         </span>
                         <span
                           className={cn(
@@ -555,7 +510,7 @@ export const Header = () => {
                             getThemeClass('text-gray-600', 'text-gray-300')
                           )}
                         >
-                          {user?.email || account.email}
+                          {user?.email}
                         </span>
                       </div>
                     </div>
@@ -600,7 +555,7 @@ export const Header = () => {
               </DropdownMenu>
             )}
             {/* Notification Bell */}
-            {account && (
+            {user && (
               <div className="relative">
                 <button
                   className={cn(

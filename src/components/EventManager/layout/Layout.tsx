@@ -198,23 +198,14 @@ export function EventManagerLayout() {
   const handleLogout = () => {
     // Xóa tất cả localStorage
     localStorage.clear();
-
-    // Hoặc xóa từng key cụ thể nếu muốn giữ lại một số dữ liệu khác
-    // localStorage.removeItem("access_token");
-    // localStorage.removeItem("refresh_token");
-    // localStorage.removeItem("user_data");
-    // localStorage.removeItem("user_preferences");
-
-    // Xóa tất cả sessionStorage (nếu có sử dụng)
     sessionStorage.clear();
-
-    // Xóa tất cả cookies
     document.cookie.split(';').forEach(function (c) {
       document.cookie = c
         .replace(/^ +/, '')
         .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
     });
-
+    // Dispatch sự kiện để các tab khác cập nhật trạng thái đăng nhập
+    window.dispatchEvent(new Event('authChanged'));
     // Chuyển hướng về trang login
     navigate('/login');
   };

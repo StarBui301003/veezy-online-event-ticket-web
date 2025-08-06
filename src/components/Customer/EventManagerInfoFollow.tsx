@@ -7,6 +7,8 @@ import {
 } from '@/services/follow.service';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import { LoginModal } from '@/components/common/LoginModal';
 import { NO_AVATAR } from '@/assets/img';
 import type { User } from '@/types/auth';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +20,8 @@ interface EventManagerInfoFollowProps {
 }
 
 const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventManagerId }) => {
+  // Thêm hook kiểm tra đăng nhập
+  const { showLoginModal, setShowLoginModal } = useRequireLogin();
   const [info, setInfo] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
@@ -65,6 +69,21 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
   }, [info?.accountId]);
 
   const handleFollow = async () => {
+    // Only run follow logic if logged in, otherwise show login modal
+    const accStr = localStorage.getItem('account');
+    let isLoggedIn = false;
+    if (accStr) {
+      try {
+        const accObj = JSON.parse(accStr);
+        isLoggedIn = !!(accObj?.userId || accObj?.account?.userId);
+      } catch {
+        isLoggedIn = false;
+      }
+    }
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
     if (!info?.accountId) return;
     setFollowLoading(true);
     try {
@@ -286,8 +305,28 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
           animation: spin-slow 3s linear infinite;
         }
       `}</style>
+      {/* Modal đăng nhập */}
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={async () => {
+          setShowLoginModal(false);
+          // After login, perform follow action only if not following
+          if (!isFollowing && info?.accountId) {
+            setFollowLoading(true);
+            try {
+              await followEventManager(info.accountId);
+              setIsFollowing(true);
+            } catch (error) {
+              console.error('Error handling follow after login:', error);
+            } finally {
+              setFollowLoading(false);
+            }
+          }
+        }}
+      />
     </div>
   );
-};
+}
 
 export default EventManagerInfoFollow;

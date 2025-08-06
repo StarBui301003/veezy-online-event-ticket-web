@@ -47,13 +47,20 @@ const getLoggedInUser = (): UserData | null => {
   }
 };
 
-export default function CommentSection({
-  eventId,
-  setReportModal,
-}: {
-  eventId: string;
-  setReportModal: (v: { type: 'comment'; id: string }) => void;
-}) {
+export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
+  // State to control dropdown visibility
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Hide dropdowns when login modal is triggered
+  useEffect(() => {
+    const handleRequireLogin = () => {
+      setOpenDropdownId(null);
+    };
+    window.addEventListener('requireLogin', handleRequireLogin);
+    return () => {
+      window.removeEventListener('requireLogin', handleRequireLogin);
+    };
+  }, []);
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -142,12 +149,26 @@ export default function CommentSection({
         eventId,
         content: newComment.trim(),
       });
-      setNewComment('');
+      
+      // Check if the response indicates an error despite 200 status
+      if (response.data && response.data.flag === false) {
+        throw new Error(response.data.message || t('postCommentFailed'));
+      }
+      
+      setNewComment("");
       toast.success(t('commentSent'));
       fetchComments();
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || t('postCommentFailed'));
+      const error = err as Error | { response?: { data?: { message?: string } } };
+      let errorMessage: string | undefined;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'response' in error) {
+        const errObj = error as { response?: { data?: { message?: string } } };
+        errorMessage = errObj.response?.data?.message;
+      }
+      if (!errorMessage) errorMessage = t('postCommentFailed');
+      toast.error(errorMessage);
     } finally {
       setPosting(false);
     }
@@ -170,7 +191,8 @@ export default function CommentSection({
       setEditingCommentId(null);
       setEditContent('');
       fetchComments();
-    } catch {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       toast.error(t('editCommentFailed') || 'Sửa bình luận thất bại!');
     }
   };
@@ -190,7 +212,8 @@ export default function CommentSection({
       toast.success(t('deleteCommentSuccess') || 'Đã xóa bình luận!');
       setDeleteConfirmId(null);
       fetchComments();
-    } catch {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       toast.error(t('deleteCommentFailed') || 'Xóa bình luận thất bại!');
     }
   };
@@ -263,7 +286,7 @@ export default function CommentSection({
                         'bg-slate-700 text-white placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500'
                       )
                     )}
-                    placeholder={`${t('sendComment')} ${loggedInUser.fullName}...`}
+                    placeholder={t('writeComment') || `Viết bình luận của bạn...`}
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     disabled={posting}
@@ -369,14 +392,10 @@ export default function CommentSection({
                             {c.fullName}
                           </p>
                           <div className="flex items-center gap-2">
-                            <p
-                              className={cn(
+                            <p  className={cn(
                                 'text-xs',
                                 getThemeClass('text-gray-500', 'text-slate-400')
-                              )}
-                            >
-                              {new Date(c.createdAt).toLocaleString('vi-VN')}
-                            </p>
+                              )}>{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
                             <DropdownMenu modal={false}>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -396,26 +415,15 @@ export default function CommentSection({
                                   />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                sideOffset={8}
-                                collisionPadding={8}
-                                style={{ maxHeight: 300, overflowY: 'auto' }}
-                              >
+                              <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
                                 {/* Report chỉ cho comment của người khác */}
                                 {loggedInUser && c.userId !== loggedInUser.userId && (
                                   <DropdownMenuItem
-                                    onSelect={(e) => {
+                                    onSelect={e => {
                                       e.preventDefault();
-                                      setReportModal({ type: 'comment', id: c.commentId });
+                                      setReportModal({type: 'comment', id: c.commentId});
                                     }}
-                                    className={cn(
-                                      'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
-                                      getThemeClass(
-                                        'text-red-600 hover:bg-red-50',
-                                        'text-red-400 hover:bg-red-800/30'
-                                      )
-                                    )}
+                                    className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
                                   >
                                     <Flag className="w-4 h-4" /> {t('reportComment')}
                                   </DropdownMenuItem>
