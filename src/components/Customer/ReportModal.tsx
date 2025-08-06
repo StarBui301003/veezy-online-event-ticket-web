@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 const REASONS = [
   'Nội dung không phù hợp',
@@ -24,6 +26,7 @@ interface ReportModalProps {
 
 export default function ReportModal({ open, onClose, targetType, targetId }: ReportModalProps) {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [reason, setReason] = useState(REASONS[0]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -60,12 +63,17 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
         typeof (err as { response?: unknown }).response === 'object' &&
         (err as { response?: { data?: unknown } }).response !== null &&
         'data' in (err as { response: { data?: unknown } }).response &&
-        typeof ((err as { response: { data?: unknown } }).response as { data?: unknown }).data === 'object' &&
-        ((err as { response: { data: { message?: unknown } } }).response.data !== null) &&
+        typeof ((err as { response: { data?: unknown } }).response as { data?: unknown }).data ===
+          'object' &&
+        (err as { response: { data: { message?: unknown } } }).response.data !== null &&
         'message' in (err as { response: { data: { message?: unknown } } }).response.data &&
-        typeof ((err as { response: { data: { message?: unknown } } }).response.data as { message?: unknown }).message === 'string'
+        typeof (
+          (err as { response: { data: { message?: unknown } } }).response.data as {
+            message?: unknown;
+          }
+        ).message === 'string'
       ) {
-        msg = ((err as { response: { data: { message: string } } }).response.data.message);
+        msg = (err as { response: { data: { message: string } } }).response.data.message;
       }
       toast.error(msg);
     } finally {
@@ -75,9 +83,15 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
 
   return (
     <SimpleModal open={open} onClose={onClose}>
-      <div className="text-white max-w-md w-full rounded-2xl">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          {targetType === 'event' 
+      <div className={cn(
+          'max-w-md w-full rounded-2xl',
+          getThemeClass(
+            'bg-white/95 border border-gray-200 shadow-lg',
+            'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
+          )
+        )}>
+        <h2 className={cn('text-2xl font-bold mb-2', getThemeClass('text-gray-900', 'text-white'))}>
+          {targetType === 'event'
             ? t('reportEvent') 
             : targetType === 'news' 
               ? t('reportNews') 
@@ -85,36 +99,92 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
                 ? t('reportEventManager')
                 : t('reportComment')}
         </h2>
-        <div className="text-slate-200 mb-4">
+        <div className={cn('mb-4', getThemeClass('text-gray-600', 'text-slate-200'))}>
           Vui lòng chọn lý do và mô tả chi tiết nếu cần để gửi báo cáo này tới quản trị viên.
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block mb-1 font-semibold text-purple-200">{t('reportReason')}</label>
+            <label
+              className={cn(
+                'block mb-1 font-semibold',
+                getThemeClass('text-gray-700', 'text-purple-200')
+              )}
+            >
+              {t('reportReason')}
+            </label>
             <select
-              className="w-full rounded-lg px-3 py-2 bg-slate-800 text-white border border-purple-700 focus:ring-2 focus:ring-purple-400 outline-none transition"
+              className={cn(
+                'w-full rounded-lg px-3 py-2 border focus:ring-2 outline-none transition',
+                getThemeClass(
+                  'bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500',
+                  'bg-slate-800 text-white border-purple-700 focus:ring-purple-400'
+                )
+              )}
               value={reason}
-              onChange={e => setReason(e.target.value)}
+              onChange={(e) => setReason(e.target.value)}
               required
             >
-              {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              {REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block mb-1 font-semibold text-purple-200">{t('reportDescription')}</label>
+            <label
+              className={cn(
+                'block mb-1 font-semibold',
+                getThemeClass('text-gray-700', 'text-purple-200')
+              )}
+            >
+              {t('reportDescription')}
+            </label>
             <textarea
-              className="w-full rounded-lg px-3 py-2 min-h-[80px] bg-slate-800 text-white border border-purple-700 focus:ring-2 focus:ring-purple-400 outline-none transition"
+              className={cn(
+                'w-full rounded-lg px-3 py-2 min-h-[80px] border focus:ring-2 outline-none transition',
+                getThemeClass(
+                  'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500',
+                  'bg-slate-800 text-white border-purple-700 placeholder-slate-400 focus:ring-purple-400'
+                )
+              )}
               value={description}
-              onChange={e => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder={t('reportDescriptionPlaceholder')}
             />
           </div>
           <div className="flex gap-2 justify-end pt-2">
-            <Button type="button" variant="secondary" onClick={onClose} disabled={loading} className="bg-slate-700 text-white hover:bg-slate-600 border border-slate-600">{t('reportCancel')}</Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-700 hover:to-indigo-700 shadow-lg">{loading ? t('reportSending') : t('reportSend')}</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={loading}
+              className={cn(
+                'font-semibold transition-colors',
+                getThemeClass(
+                  'bg-gray-200 text-gray-800 hover:bg-gray-300 border border-gray-300',
+                  'bg-slate-700 text-white hover:bg-slate-600 border border-slate-600'
+                )
+              )}
+            >
+              {t('reportCancel')}
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className={cn(
+                'font-semibold shadow-lg transition-colors',
+                getThemeClass(
+                  'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700',
+                  'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                )
+              )}
+            >
+              {loading ? t('reportSending') : t('reportSend')}
+            </Button>
           </div>
         </form>
       </div>
     </SimpleModal>
   );
-} 
+}

@@ -11,6 +11,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -216,7 +217,10 @@ const TermsOfUse = () => {
   );
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
       className={cn(
         'min-h-screen overflow-hidden relative',
         getThemeClass('bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50', 'bg-black')
@@ -306,9 +310,17 @@ const TermsOfUse = () => {
       <div className="relative z-10 pt-16 pb-16">
         <div className="container mx-auto px-6 py-12">
           {/* Title Section */}
-          <div className="text-center mb-24">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-center mb-24"
+          >
             <div className="relative inline-block">
-              <h2
+              <motion.h2
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1, delay: 0.4 }}
                 className={cn(
                   'text-4xl lg:text-7xl font-black mb-8 leading-tight',
                   getThemeClass(
@@ -318,8 +330,11 @@ const TermsOfUse = () => {
                 )}
               >
                 {t('termsOfUse')}
-              </h2>
-              <div
+              </motion.h2>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.2, delay: 0.6 }}
                 className={cn(
                   'absolute -inset-8 blur-3xl animate-pulse',
                   getThemeClass(
@@ -327,21 +342,32 @@ const TermsOfUse = () => {
                     'bg-gradient-to-r from-emerald-400/10 via-cyan-400/10 to-blue-500/10'
                   )
                 )}
-              ></div>
+              ></motion.div>
             </div>
-            <p
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
               className={cn(
                 'text-xl lg:text-2xl max-w-6xl mx-auto leading-relaxed font-light',
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
               {t('termsSubtitle')}
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
 
           {/* Main Content Container */}
-          <div className="max-w-7xl mx-auto">
-            <div
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 1 }}
+            className="max-w-7xl mx-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, delay: 1.2 }}
               className={cn(
                 'backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden relative z-20',
                 getThemeClass(
@@ -352,12 +378,35 @@ const TermsOfUse = () => {
             >
               {/* Terms Sections */}
               <div className="p-8 lg:p-12 space-y-12">
-                {sections.map((section, index) => (
-                  <Section key={index} {...section} index={index} />
-                ))}
+                <AnimatePresence>
+                  {sections.map((section, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        duration: 0.8,
+                        delay: 1.5 + index * 0.2,
+                        type: 'spring',
+                        stiffness: 100,
+                      }}
+                      whileHover={{
+                        scale: 1.02,
+                        transition: { duration: 0.3 },
+                      }}
+                    >
+                      <Section {...section} index={index} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
 
                 {/* Contact Section */}
-                <div className="relative group mt-16">
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 2.5 }}
+                  className="relative group mt-16"
+                >
                   <div className="absolute -inset-4 bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-500 opacity-0 group-hover:opacity-20 blur-3xl transition-all duration-1000 rounded-3xl"></div>
 
                   <div
@@ -471,35 +520,46 @@ const TermsOfUse = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Footer Note */}
-                <div
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 3 }}
                   className={cn(
                     'text-center pt-8 border-t',
                     getThemeClass('border-gray-200/60', 'border-gray-700/50')
                   )}
                 >
-                  <div className="flex items-center justify-center mb-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 3.2 }}
+                    className="flex items-center justify-center mb-4"
+                  >
                     <Sparkles className="w-6 h-6 text-cyan-400 mr-3 animate-pulse" />
                     <Sparkles className="w-4 h-4 text-emerald-400 mr-3 animate-pulse delay-100" />
                     <Sparkles className="w-6 h-6 text-blue-400 animate-pulse delay-200" />
-                  </div>
-                  <p
+                  </motion.div>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 3.4 }}
                     className={cn(
                       'italic text-lg leading-relaxed font-light max-w-4xl mx-auto',
                       getThemeClass('text-gray-600', 'text-gray-400')
                     )}
                   >
                     {t('footerNote')}
-                  </p>
-                </div>
+                  </motion.p>
+                </motion.div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

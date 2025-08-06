@@ -705,7 +705,7 @@ const ProfileCustomer = () => {
               <button
                 key={t.key}
                 className={cn(
-                  'w-full text-left py-2 rounded-xl font-semibold transition-all text-xs mb-2',
+                  'w-full text-left pl-3 py-2 rounded-xl font-semibold transition-all text-xs mb-2',
                   tab === t.key
                     ? getThemeClass(
                         'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow',
@@ -781,12 +781,17 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterFullName')}
                           className={cn(
-                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'fullname')
-                                ? '!border-red-500 !text-white'
-                                : '!border-purple-700 !text-white'
-                            }`,
-                            getThemeClass('!border-red-500', '!border-red-500')
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            !form.fullName && getThemeClass('text-gray-500', 'text-slate-400'),
+                            hasFieldError(fieldErrors, 'fullname')
+                              ? getThemeClass(
+                                  'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                                  'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                                )
+                              : getThemeClass(
+                                  'border-blue-300 bg-blue-50/75 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                                  'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                                )
                           )}
                         />
                         {getFieldError(fieldErrors, 'fullname') && (
@@ -806,12 +811,17 @@ const ProfileCustomer = () => {
                           disabled={true}
                           placeholder={t('yourEmailAddress')}
                           className={cn(
-                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full opacity-70 h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'email')
-                                ? '!border-red-500 !text-white'
-                                : '!border-purple-700 !text-white'
-                            }`,
-                            getThemeClass('!border-red-500', '!border-red-500')
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200 opacity-70',
+                            !form.email && getThemeClass('text-gray-500', 'text-slate-400'),
+                            hasFieldError(fieldErrors, 'email')
+                              ? getThemeClass(
+                                  'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                                  'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                                )
+                              : getThemeClass(
+                                  'border-gray-300 bg-gray-100 text-gray-600 focus:ring-2 focus:ring-gray-500 focus:border-gray-500',
+                                  'border-gray-600 bg-slate-800 text-gray-400 focus:ring-2 focus:ring-gray-500 focus:border-gray-500'
+                                )
                           )}
                         />
                         {getFieldError(fieldErrors, 'email') && (
@@ -831,12 +841,17 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterPhoneNumber')}
                           className={cn(
-                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'phone')
-                                ? '!border-red-500 !text-white'
-                                : '!border-purple-700 !text-white'
-                            }`,
-                            getThemeClass('!border-red-500', '!border-red-500')
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            !form.phone && getThemeClass('text-gray-500', 'text-slate-400'),
+                            hasFieldError(fieldErrors, 'phone')
+                              ? getThemeClass(
+                                  'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                                  'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                                )
+                              : getThemeClass(
+                                  'border-blue-300 bg-blue-50/75 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                                  'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                                )
                           )}
                         />
                         {getFieldError(fieldErrors, 'phone') && (
@@ -868,12 +883,17 @@ const ProfileCustomer = () => {
                         >
                           <SelectTrigger
                             className={cn(
-                              `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                                hasFieldError(fieldErrors, 'gender')
-                                  ? '!border-red-500 !text-white'
-                                  : '!border-purple-700 !text-white'
-                              }`,
-                              getThemeClass('!border-red-500', '!border-red-500')
+                              'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                              !form.gender && getThemeClass('text-gray-500', 'text-slate-400'),
+                              hasFieldError(fieldErrors, 'gender')
+                                ? getThemeClass(
+                                    'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                                    'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                                  )
+                                : getThemeClass(
+                                    'border-blue-300 bg-blue-50/75 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                                    'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                                  )
                             )}
                           >
                             <SelectValue
@@ -881,22 +901,45 @@ const ProfileCustomer = () => {
                               className="text-[#A1A1AA] placeholder:text-[#A1A1AA]"
                             />
                           </SelectTrigger>
-                          <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                          <SelectContent
+                            className={cn(
+                              'rounded-lg border',
+                              getThemeClass(
+                                'bg-white border-blue-200 shadow-lg',
+                                'bg-slate-700 border-purple-600'
+                              )
+                            )}
+                          >
                             <SelectItem
                               value="0"
-                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                              className={cn(
+                                getThemeClass(
+                                  'text-gray-900 hover:bg-blue-50 focus:bg-blue-50',
+                                  'text-white hover:bg-slate-600 focus:bg-slate-600'
+                                )
+                              )}
                             >
                               {t('male')}
                             </SelectItem>
                             <SelectItem
                               value="1"
-                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                              className={cn(
+                                getThemeClass(
+                                  'text-gray-900 hover:bg-blue-50 focus:bg-blue-50',
+                                  'text-white hover:bg-slate-600 focus:bg-slate-600'
+                                )
+                              )}
                             >
                               {t('female')}
                             </SelectItem>
                             <SelectItem
                               value="2"
-                              className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                              className={cn(
+                                getThemeClass(
+                                  'text-gray-900 hover:bg-blue-50 focus:bg-blue-50',
+                                  'text-white hover:bg-slate-600 focus:bg-slate-600'
+                                )
+                              )}
                             >
                               {t('other')}
                             </SelectItem>
@@ -919,12 +962,17 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterLocation')}
                           className={cn(
-                            `rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm ${
-                              hasFieldError(fieldErrors, 'location')
-                                ? '!border-red-500 !text-white'
-                                : '!border-purple-700 !text-white'
-                            }`,
-                            getThemeClass('!border-red-500', '!border-red-500')
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            !form.location && getThemeClass('text-gray-500', 'text-slate-400'),
+                            hasFieldError(fieldErrors, 'location')
+                              ? getThemeClass(
+                                  'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                                  'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                                )
+                              : getThemeClass(
+                                  'border-blue-300 bg-blue-50/75 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                                  'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                                )
                           )}
                         />
                         {getFieldError(fieldErrors, 'location') && (
@@ -973,7 +1021,7 @@ const ProfileCustomer = () => {
                 <div className="w-full flex flex-col gap-3 mt-2">
                   <Button
                     type="button"
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    className="bg-gradient-to-r text-white from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                     onClick={handleSave}
                     disabled={loading}
                   >
@@ -982,7 +1030,7 @@ const ProfileCustomer = () => {
                   {/* Nút riêng Cập nhật khuôn mặt */}
                   <Button
                     type="button"
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    className="bg-gradient-to-r text-white from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                     onClick={() => setShowFaceModal(true)}
                   >
                     {account.avatarUrl ? t('updateFace') : t('registerFace')}
@@ -993,89 +1041,249 @@ const ProfileCustomer = () => {
 
             {tab === 'settings' && (
               <div className="flex flex-col items-center justify-center w-full">
-                <div className="w-full max-w-md">
-                  <h2 className="text-2xl font-bold mb-6 text-center text-white">
+                <div className="w-full max-w-2xl">
+                  <h2
+                    className={cn(
+                      'text-3xl font-bold mb-8 text-center',
+                      getThemeClass('text-gray-900', 'text-white')
+                    )}
+                  >
                     {t('userConfig')}
                   </h2>
 
-                  <div className="space-y-6">
+                  <div
+                    className={cn(
+                      'space-y-6 p-6 rounded-2xl shadow-xl border',
+                      getThemeClass(
+                        'bg-white/95 border-gray-200 shadow-lg',
+                        'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
+                      )
+                    )}
+                  >
                     {/* Language Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('language')}
-                      </label>
+                    <div
+                      className={cn(
+                        'p-4 rounded-xl border transition-all duration-200',
+                        getThemeClass(
+                          'bg-blue-50/50 border-blue-200 hover:bg-blue-50',
+                          'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
+                        )
+                      )}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className={cn(
+                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            getThemeClass('bg-blue-100', 'bg-slate-600')
+                          )}
+                        >
+                          <span className="text-xl">🌐</span>
+                        </div>
+                        <div>
+                          <label
+                            className={cn(
+                              'block text-sm font-semibold',
+                              getThemeClass('text-gray-700', 'text-gray-300')
+                            )}
+                          >
+                            {t('language')}
+                          </label>
+                          <p
+                            className={cn(
+                              'text-xs',
+                              getThemeClass('text-gray-500', 'text-gray-400')
+                            )}
+                          >
+                            {t('languageDescription') || 'Chọn ngôn ngữ hiển thị'}
+                          </p>
+                        </div>
+                      </div>
                       <Select
                         value={String(userConfig.language)}
                         onValueChange={handleLanguageChange}
                       >
-                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                        <SelectTrigger
+                          className={cn(
+                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-3 px-4 h-auto text-sm shadow-sm',
+                            getThemeClass(
+                              'border-blue-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                              'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                            )
+                          )}
+                        >
                           <SelectValue placeholder={t('selectLanguage')} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                        <SelectContent
+                          className={cn(
+                            'rounded-lg border shadow-lg',
+                            getThemeClass(
+                              'bg-white border-blue-200',
+                              'bg-slate-700 border-purple-600'
+                            )
+                          )}
+                        >
                           <SelectItem
                             value="0"
-                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-900 hover:bg-blue-50 focus:bg-blue-50',
+                                'text-white hover:bg-slate-600 focus:bg-slate-600'
+                              )
+                            )}
                           >
-                            {t('english')}
+                            🇺🇸 {t('english')}
                           </SelectItem>
                           <SelectItem
                             value="1"
-                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-900 hover:bg-blue-50 focus:bg-blue-50',
+                                'text-white hover:bg-slate-600 focus:bg-slate-600'
+                              )
+                            )}
                           >
-                            {t('vietnamese')}
+                            🇻🇳 {t('vietnamese')}
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* Theme Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('theme')}
-                      </label>
+                    <div
+                      className={cn(
+                        'p-4 rounded-xl border transition-all duration-200',
+                        getThemeClass(
+                          'bg-purple-50/50 border-purple-200 hover:bg-purple-50',
+                          'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
+                        )
+                      )}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div
+                          className={cn(
+                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            getThemeClass('bg-purple-100', 'bg-slate-600')
+                          )}
+                        >
+                          <span className="text-xl">🎨</span>
+                        </div>
+                        <div>
+                          <label
+                            className={cn(
+                              'block text-sm font-semibold',
+                              getThemeClass('text-gray-700', 'text-gray-300')
+                            )}
+                          >
+                            {t('theme')}
+                          </label>
+                          <p
+                            className={cn(
+                              'text-xs',
+                              getThemeClass('text-gray-500', 'text-gray-400')
+                            )}
+                          >
+                            {t('themeDescription') || 'Chọn giao diện sáng hoặc tối'}
+                          </p>
+                        </div>
+                      </div>
                       <Select value={String(userConfig.theme)} onValueChange={handleThemeChange}>
-                        <SelectTrigger className="rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 w-full h-auto text-sm !border-purple-700 !text-white">
+                        <SelectTrigger
+                          className={cn(
+                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-3 px-4 h-auto text-sm shadow-sm',
+                            getThemeClass(
+                              'border-purple-300 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-purple-50',
+                              'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                            )
+                          )}
+                        >
                           <SelectValue placeholder={t('selectTheme')} />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border border-purple-600 rounded-lg">
+                        <SelectContent
+                          className={cn(
+                            'rounded-lg border shadow-lg',
+                            getThemeClass(
+                              'bg-white border-purple-200',
+                              'bg-slate-700 border-purple-600'
+                            )
+                          )}
+                        >
                           <SelectItem
                             value="0"
-                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-900 hover:bg-purple-50 focus:bg-purple-50',
+                                'text-white hover:bg-slate-600 focus:bg-slate-600'
+                              )
+                            )}
                           >
-                            {t('light')}
+                            ☀️ {t('light')}
                           </SelectItem>
                           <SelectItem
                             value="1"
-                            className="text-white hover:bg-slate-600 focus:bg-slate-600 focus:text-white"
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-900 hover:bg-purple-50 focus:bg-purple-50',
+                                'text-white hover:bg-slate-600 focus:bg-slate-600'
+                              )
+                            )}
                           >
-                            {t('dark')}
+                            🌙 {t('dark')}
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     {/* Email Notifications Toggle */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        {t('emailNotifications')}
-                      </label>
-                      <div className="flex items-center space-x-3">
-                        <Switch
-                          id="receive-email-switch"
-                          checked={userConfig.receiveEmail}
-                          onCheckedChange={handleEmailNotificationsChange}
-                          className={
-                            userConfig.receiveEmail
-                              ? '!bg-green-500 !border-green-500'
-                              : '!bg-red-400 !border-red-400'
-                          }
-                        />
-                        <label
-                          htmlFor="receive-email-switch"
-                          className="text-sm text-gray-300 cursor-pointer"
-                        >
-                          {t('receiveEmailNotifications')}
-                        </label>
+                    <div
+                      className={cn(
+                        'p-4 rounded-xl border transition-all duration-200',
+                        getThemeClass(
+                          'bg-green-50/50 border-green-200 hover:bg-green-50',
+                          'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
+                        )
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              'w-10 h-10 rounded-full flex items-center justify-center',
+                              getThemeClass('bg-green-100', 'bg-slate-600')
+                            )}
+                          >
+                            <span className="text-xl">📧</span>
+                          </div>
+                          <div>
+                            <label
+                              className={cn(
+                                'block text-sm font-semibold',
+                                getThemeClass('text-gray-700', 'text-gray-300')
+                              )}
+                            >
+                              {t('emailNotifications')}
+                            </label>
+                            <p
+                              className={cn(
+                                'text-xs',
+                                getThemeClass('text-gray-500', 'text-gray-400')
+                              )}
+                            >
+                              {t('emailNotificationsDescription') || 'Nhận thông báo qua email'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Switch
+                            id="receive-email-switch"
+                            checked={userConfig.receiveEmail}
+                            onCheckedChange={handleEmailNotificationsChange}
+                            className={
+                              userConfig.receiveEmail
+                                ? '!bg-green-500 !border-green-500'
+                                : '!bg-red-400 !border-red-400'
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1149,7 +1357,7 @@ const ProfileCustomer = () => {
                   await refetchFaceAuth();
                 } catch (e: unknown) {
                   console.error('Face update error:', e);
-                  
+
                   let msg = 'Face update failed!';
                   if (
                     typeof e === 'object' &&
@@ -1160,7 +1368,7 @@ const ProfileCustomer = () => {
                   ) {
                     const m = (e as { response: { data: { message: string } } }).response.data
                       .message;
-                    
+
                     // Check for all possible face authentication errors
                     if (
                       m.includes('This face is already registered to another account') ||
