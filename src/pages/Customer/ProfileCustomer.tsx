@@ -1351,7 +1351,7 @@ const ProfileCustomer = () => {
                 setFaceError('');
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-                  await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
+                  await updateFaceAPI(account.accountId, file, [0], undefined, hasFaceAuth);
                   toast.success('Face updated successfully!');
                   setShowFaceModal(false);
                   await refetchFaceAuth();
