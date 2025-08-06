@@ -146,6 +146,45 @@ export const Register = () => {
         toast.error(response?.message || 'Registration failed!');
       }
     } catch (error: unknown) {
+      // Check if this is a 409 status with special redirect data
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        if (axiosError.response?.status === 409) {
+          const responseData = axiosError.response?.data;
+          if (responseData && typeof responseData === 'object' && 'message' in responseData) {
+            const message = responseData.message;
+            // Check if message contains the special format: "error|REDIRECT_TO_VERIFY|email|minutes"
+            if (typeof message === 'string' && message.includes('|REDIRECT_TO_VERIFY|')) {
+              const parts = message.split('|');
+              if (parts.length === 4 && parts[1] === 'REDIRECT_TO_VERIFY') {
+                const email = parts[2];
+                const minutesLeft = parseInt(parts[3], 10);
+                
+                // Store the email and minutes left for the verification page
+                sessionStorage.setItem('registerEmail', email);
+                sessionStorage.setItem('verificationCountdown', minutesLeft.toString());
+                
+                // Clear form data from sessionStorage since we're redirecting
+                sessionStorage.removeItem('register_username');
+                sessionStorage.removeItem('register_fullName');
+                sessionStorage.removeItem('register_phone');
+                sessionStorage.removeItem('register_email');
+                sessionStorage.removeItem('register_password');
+                sessionStorage.removeItem('register_confirmPassword');
+                sessionStorage.removeItem('register_role');
+                sessionStorage.removeItem('register_date');
+
+                toast.info('Account updated successfully! Redirecting to verification page...');
+                setTimeout(() => {
+                  navigate('/verify-email', { replace: true });
+                }, 500);
+                return; // Exit early, don't handle as regular error
+              }
+            }
+          }
+        }
+      }
+
       // Parse backend errors for field-specific display
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
 

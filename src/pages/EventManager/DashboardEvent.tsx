@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Bell, Filter, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import NotificationDropdown from '@/components/common/NotificationDropdown';
 import ExportButtons from './components/ExportButtons';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
@@ -85,16 +85,119 @@ export default function EventManagerDashboard() {
   ];
 
   useEffect(() => {
-    connectAnalyticsHub();
-    
-    onAnalytics('OnEventManagerDashboard', (data) => {
-      console.log('Received analytics update:', data);
-    });
+    const setupRealtimeDashboard = async () => {
+      try {
+        const { 
+          connectAnalyticsHub, 
+          onAnalytics, 
+          connectTicketHub, 
+          onTicket,
+          connectEventHub,
+          onEvent,
+          connectNotificationHub,
+          onNotification
+        } = await import('@/services/signalr.service');
+
+        const token = localStorage.getItem('access_token');
+
+        // Connect to Analytics Hub for real-time dashboard updates
+        await connectAnalyticsHub('http://localhost:5006/analyticsHub', token || undefined);
+        
+        onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+          console.log('Real-time analytics overview:', data);
+          // Force refresh of dashboard components
+          window.dispatchEvent(new CustomEvent('dashboardDataUpdate', { detail: data }));
+        });
+
+        onAnalytics('OnEventManagerPerformanceComparison', (data) => {
+          console.log('Performance comparison update:', data);
+          // Update performance metrics
+          window.dispatchEvent(new CustomEvent('performanceDataUpdate', { detail: data }));
+        });
+
+        onAnalytics('OnRevenueUpdate', (data) => {
+          console.log('Revenue update:', data);
+          // Update revenue charts
+          window.dispatchEvent(new CustomEvent('revenueDataUpdate', { detail: data }));
+        });
+
+        // Connect to Ticket Hub for ticket sales updates
+        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+        
+        onTicket('OnTicketSoldIncremented', (data) => {
+          console.log('Ticket sold - dashboard update:', data);
+          // Update ticket statistics
+          window.dispatchEvent(new CustomEvent('ticketSalesUpdate', { detail: data }));
+        });
+
+        onTicket('OrderCreated', (data) => {
+          console.log('New order - dashboard update:', data);
+          // Update order statistics
+          window.dispatchEvent(new CustomEvent('orderUpdate', { detail: data }));
+        });
+
+        onTicket('OrderStatusChanged', (data) => {
+          console.log('Order status changed - dashboard update:', data);
+          window.dispatchEvent(new CustomEvent('orderStatusUpdate', { detail: data }));
+        });
+
+        // Connect to Event Hub for event updates
+        await connectEventHub('http://localhost:5004/notificationHub');
+
+        onEvent('OnEventApproved', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event approved - dashboard update:', data);
+            window.dispatchEvent(new CustomEvent('eventStatusUpdate', { detail: data }));
+          }
+        });
+
+        onEvent('OnEventCancelled', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event cancelled - dashboard update:', data);
+            window.dispatchEvent(new CustomEvent('eventCancelledUpdate', { detail: data }));
+          }
+        });
+
+        onEvent('OnEventUpdated', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event updated - dashboard update:', data);
+            window.dispatchEvent(new CustomEvent('eventDataUpdate', { detail: data }));
+          }
+        });
+
+        // Connect to Notification Hub for dashboard notifications
+        if (token) {
+          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          
+          onNotification('ReceiveNotification', (notification) => {
+            // Handle dashboard-specific notifications
+            if (notification.type === 'DashboardUpdate' || 
+                notification.type === 'AnalyticsUpdate' ||
+                notification.type === 'RevenueAlert' ||
+                notification.type === 'SalesTarget') {
+              console.log('Dashboard notification:', notification);
+              
+              // Show notification based on type
+              if (notification.type === 'RevenueAlert') {
+                toast.info(notification.message);
+              } else if (notification.type === 'SalesTarget') {
+                toast.success(notification.message);
+              }
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error('Failed to setup realtime dashboard:', error);
+      }
+    };
+
+    setupRealtimeDashboard();
 
     return () => {
       // Clean up SignalR connections if needed
     };
-  }, []);
+  }, [userId]);
 
   const handlePeriodChange = (periodId) => {
     setSelectedPeriod(periodId);
@@ -123,6 +226,8 @@ export default function EventManagerDashboard() {
     customStartDate: customStartDate,
     customEndDate: customEndDate,
     groupBy: groupBy,
+    includeComparison: false,
+    comparisonPeriod: 0,
     includeRealtimeData: true
   };
 
