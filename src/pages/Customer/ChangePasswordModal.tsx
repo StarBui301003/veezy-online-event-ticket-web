@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ interface ChangePasswordModalProps {
 
 const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -150,21 +153,49 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">
-      <div className="bg-gradient-to-br from-slate-800 to-purple-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative mx-4 border border-purple-500/20">
+    <div
+      className={cn(
+        'fixed inset-0 z-[9999] flex items-center justify-center',
+        getThemeClass('bg-black/50', 'bg-black/70')
+      )}
+    >
+      <div
+        className={cn(
+          'rounded-2xl shadow-2xl p-8 w-full max-w-md relative mx-4 border',
+          getThemeClass(
+            'bg-white/95 border border-gray-200 shadow-lg',
+            'bg-gradient-to-br from-slate-800 to-purple-900 border-purple-500/20'
+          )
+        )}
+      >
         <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold transition-colors"
+          className={cn(
+            'absolute top-4 right-4 text-2xl font-bold transition-colors',
+            getThemeClass('text-gray-500 hover:text-gray-700', 'text-gray-400 hover:text-white')
+          )}
           onClick={handleClose}
           aria-label="Close"
         >
           ×
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 text-center text-white">{t('changePassword')}</h2>
+        <h2
+          className={cn(
+            'text-2xl font-bold mb-6 text-center',
+            getThemeClass('text-gray-900', 'text-white')
+          )}
+        >
+          {t('changePassword')}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              className={cn(
+                'block text-sm font-medium mb-2',
+                getThemeClass('text-gray-700', 'text-gray-300')
+              )}
+            >
               {t('currentPassword')}
             </label>
             <div className="relative">
@@ -173,17 +204,26 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 name="currentPassword"
                 value={formData.currentPassword}
                 onChange={handleInputChange}
-                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
-                  errors.currentPassword
-                    ? '!border-red-500 !text-white'
-                    : '!border-purple-700 !text-white'
-                }`}
+                className={cn(
+                  'rounded-full border transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm',
+                  getThemeClass(
+                    'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500',
+                    'bg-slate-700/60 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 text-white border-purple-700'
+                  ),
+                  errors.currentPassword && 'border-red-500'
+                )}
                 placeholder={t('enterCurrentPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                className={cn(
+                  'absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors',
+                  getThemeClass(
+                    'text-gray-400 hover:text-gray-600',
+                    'text-gray-400 hover:text-white'
+                  )
+                )}
                 onClick={() =>
                   setShowPasswords((prev) => ({ ...prev, currentPassword: !prev.currentPassword }))
                 }
@@ -193,12 +233,17 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="text-red-400 text-xs mt-1 ml-2">{errors.currentPassword}</p>
+              <p className="text-red-500 text-xs mt-1 ml-2">{errors.currentPassword}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              className={cn(
+                'block text-sm font-medium mb-2',
+                getThemeClass('text-gray-700', 'text-gray-300')
+              )}
+            >
               {t('newPassword')}
             </label>
             <div className="relative">
@@ -207,17 +252,26 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 name="newPassword"
                 value={formData.newPassword}
                 onChange={handleInputChange}
-                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
-                  errors.newPassword
-                    ? '!border-red-500 !text-white'
-                    : '!border-purple-700 !text-white'
-                }`}
+                className={cn(
+                  'rounded-full border transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm',
+                  getThemeClass(
+                    'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500',
+                    'bg-slate-700/60 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 text-white border-purple-700'
+                  ),
+                  errors.newPassword && 'border-red-500'
+                )}
                 placeholder={t('enterNewPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                className={cn(
+                  'absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors',
+                  getThemeClass(
+                    'text-gray-400 hover:text-gray-600',
+                    'text-gray-400 hover:text-white'
+                  )
+                )}
                 onClick={() =>
                   setShowPasswords((prev) => ({ ...prev, newPassword: !prev.newPassword }))
                 }
@@ -227,12 +281,17 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
               </button>
             </div>
             {errors.newPassword && (
-              <p className="text-red-400 text-xs mt-1 ml-2">{errors.newPassword}</p>
+              <p className="text-red-500 text-xs mt-1 ml-2">{errors.newPassword}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label
+              className={cn(
+                'block text-sm font-medium mb-2',
+                getThemeClass('text-gray-700', 'text-gray-300')
+              )}
+            >
               {t('confirmPassword')}
             </label>
             <div className="relative">
@@ -241,17 +300,26 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className={`rounded-full border !bg-slate-700/60 placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm ${
-                  errors.confirmPassword
-                    ? '!border-red-500 !text-white'
-                    : '!border-purple-700 !text-white'
-                }`}
+                className={cn(
+                  'rounded-full border transition-all duration-200 py-2 px-3 pr-10 w-full h-auto text-sm',
+                  getThemeClass(
+                    'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500',
+                    'bg-slate-700/60 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500 text-white border-purple-700'
+                  ),
+                  errors.confirmPassword && 'border-red-500'
+                )}
                 placeholder={t('confirmNewPassword')}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                className={cn(
+                  'absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors',
+                  getThemeClass(
+                    'text-gray-400 hover:text-gray-600',
+                    'text-gray-400 hover:text-white'
+                  )
+                )}
                 onClick={() =>
                   setShowPasswords((prev) => ({ ...prev, confirmPassword: !prev.confirmPassword }))
                 }
@@ -261,14 +329,20 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-red-400 text-xs mt-1 ml-2">{errors.confirmPassword}</p>
+              <p className="text-red-500 text-xs mt-1 ml-2">{errors.confirmPassword}</p>
             )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"
-              className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-full px-4 py-2 font-semibold transition-all duration-200"
+              className={cn(
+                'rounded-full px-4 py-2 font-semibold transition-all duration-200',
+                getThemeClass(
+                  'bg-gray-200 text-gray-800 hover:bg-gray-300 border border-gray-300',
+                  'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white'
+                )
+              )}
               onClick={handleClose}
               disabled={loading}
             >
@@ -277,7 +351,13 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-full px-4 py-2 font-semibold transition-all duration-200"
+              className={cn(
+                'rounded-full px-4 py-2 font-semibold transition-all duration-200',
+                getThemeClass(
+                  'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white',
+                  'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
+                )
+              )}
             >
               {loading ? t('changing') : t('changePassword')}
             </Button>

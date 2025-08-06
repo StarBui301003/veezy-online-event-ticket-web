@@ -535,7 +535,7 @@ const EventDetail = () => {
         className={cn(
           'flex justify-center items-center min-h-screen',
           getThemeClass(
-            'bg-gradient-to-r from-blue-500 to-cyan-400',
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
             'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100'
           )
         )}
@@ -543,7 +543,7 @@ const EventDetail = () => {
         <Loader2
           className={cn(
             'w-16 h-16 animate-spin',
-            getThemeClass('text-blue-600', 'text-indigo-600')
+            getThemeClass('text-indigo-600', 'text-indigo-600')
           )}
         />
       </div>
@@ -557,7 +557,7 @@ const EventDetail = () => {
         animate={{ opacity: 1, y: 0 }}
         className={cn(
           'flex flex-col justify-center items-center min-h-screen p-8 text-center',
-          getThemeClass('bg-red-50', 'bg-red-900/20')
+          getThemeClass('bg-red-50/80', 'bg-red-900/20')
         )}
       >
         <AlertCircle
@@ -593,10 +593,13 @@ const EventDetail = () => {
       <div
         className={cn(
           'flex justify-center items-center min-h-screen',
-          getThemeClass('bg-gray-100', 'bg-gray-900')
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gray-900'
+          )
         )}
       >
-        <p className={cn('text-xl', getThemeClass('text-gray-500', 'text-gray-400'))}>
+        <p className={cn('text-xl', getThemeClass('text-gray-600', 'text-gray-400'))}>
           {t('eventInfoNotFound')}
         </p>
       </div>
@@ -617,7 +620,7 @@ const EventDetail = () => {
       className={cn(
         'min-h-screen pt-20 pb-12',
         getThemeClass(
-          'bg-gradient-to-r from-blue-500 to-cyan-400 text-gray-900',
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
           'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white'
         )
       )}
@@ -636,15 +639,15 @@ const EventDetail = () => {
               <DropdownMenuTrigger asChild>
                 <button
                   className={cn(
-                    'p-1.5 rounded-full border',
+                    'p-1.5 rounded-full border transition-colors',
                     getThemeClass(
-                      'bg-gray-800 hover:bg-gray-700 border-gray-600',
+                      'bg-white/90 hover:bg-white border-gray-300 shadow-md',
                       'bg-slate-800 hover:bg-slate-700 border-slate-700'
                     )
                   )}
                 >
                   <MoreVertical
-                    className={cn('w-5 h-5', getThemeClass('text-gray-100', 'text-white'))}
+                    className={cn('w-5 h-5', getThemeClass('text-gray-700', 'text-white'))}
                   />
                 </button>
               </DropdownMenuTrigger>
@@ -656,7 +659,10 @@ const EventDetail = () => {
                   }}
                   className={cn(
                     'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
-                    getThemeClass('text-red-600 hover:bg-red-50', 'text-red-600 hover:bg-red-50')
+                    getThemeClass(
+                      'text-red-600 hover:bg-red-50',
+                      'text-red-400 hover:bg-red-800/30'
+                    )
                   )}
                 >
                   <Flag className="w-4 h-4" /> {t('reportEvent')}
@@ -808,7 +814,7 @@ const EventDetail = () => {
             className={cn(
               'lg:col-span-2 p-6 md:p-8 rounded-xl shadow-xl',
               getThemeClass(
-                'bg-white/95 border border-gray-200',
+                'bg-white/95 border border-gray-200 shadow-lg',
                 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
               )
             )}
@@ -818,10 +824,10 @@ const EventDetail = () => {
             <button
               onClick={() => setShowDetail((v) => !v)}
               className={cn(
-                'w-full flex justify-between items-center text-lg font-semibold mb-4 focus:outline-none px-4 py-2 rounded-lg',
+                'w-full flex justify-between items-center text-lg font-semibold mb-4 focus:outline-none px-4 py-2 rounded-lg transition-colors',
                 getThemeClass(
-                  'text-blue-600 bg-blue-50/50 border border-blue-200',
-                  'text-purple-300 bg-slate-900/60'
+                  'text-blue-600 bg-blue-50/50 border  hover:bg-blue-100 border-b border-blue-300',
+                  'text-purple-300 bg-slate-900/60 hover:bg-slate-800  border-b border-purple-700'
                 )
               )}
             >
@@ -830,22 +836,24 @@ const EventDetail = () => {
             </button>
             {showDetail &&
               (Array.isArray(event.contents) && event.contents.length > 0 ? (
-                <div className="flex flex-col gap-8">
+                <div
+                  className={cn(
+                    'flex flex-col gap-8 rounded-xl',
+                    getThemeClass('bg-blue-50/75', 'bg-gray-800')
+                  )}
+                >
                   {event.contents
                     .sort((a, b) => a.position - b.position)
                     .map((section, idx) => (
                       <div
                         key={idx}
-                        className={cn(
-                          'flex flex-col md:flex-row gap-4 items-start rounded-lg p-4 shadow-md',
-                          getThemeClass('bg-gray-50 border border-gray-200', 'bg-slate-700')
-                        )}
+                        className={cn('flex flex-col md:flex-row gap-4 items-start p-4')}
                       >
                         {section.imageUrl && (
                           <img
                             src={section.imageUrl}
                             alt={section.description?.slice(0, 30) || `section-${idx}`}
-                            className="w-full md:w-64 h-48 object-cover rounded-lg mb-2 md:mb-0"
+                            className="w-full md:w-64 h-48 object-cover mb-2 md:mb-0"
                           />
                         )}
                         {section.description && (
@@ -907,7 +915,7 @@ const EventDetail = () => {
               className={cn(
                 'p-6 md:p-8 rounded-xl shadow-xl',
                 getThemeClass(
-                  'bg-white/95 border border-gray-200',
+                  'bg-white/95 border border-gray-200 shadow-lg',
                   'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
                 )
               )}
@@ -915,10 +923,10 @@ const EventDetail = () => {
               <button
                 onClick={() => setShowTickets((v) => !v)}
                 className={cn(
-                  'w-full flex justify-between items-center text-2xl font-semibold mb-6 border-b-2 pb-3 focus:outline-none px-4 py-2 rounded-lg',
+                  'w-full flex justify-between items-center text-2xl font-semibold mb-6 border-b-2 pb-3 focus:outline-none px-4 py-2 rounded-lg transition-colors',
                   getThemeClass(
-                    'text-blue-600 border-blue-600 bg-blue-50/50',
-                    'text-teal-300 border-teal-700 bg-slate-900/60'
+                    'text-blue-600 border-blue-600 bg-blue-50/50 hover:bg-blue-100',
+                    'text-teal-300 border-teal-700 bg-slate-900/60 hover:bg-slate-800'
                   )
                 )}
               >
@@ -976,7 +984,7 @@ const EventDetail = () => {
                           className={cn(
                             'p-5 rounded-lg shadow-lg transition-shadow duration-300',
                             getThemeClass(
-                              'bg-gray-50 border border-gray-200 hover:shadow-blue-500/30',
+                              'bg-blue-50/75 border rounded-xl border-blue-300 hover:shadow-blue-500/30 shadow-sm',
                               'bg-slate-700 hover:shadow-purple-500/30'
                             )
                           )}
@@ -1018,7 +1026,7 @@ const EventDetail = () => {
                                 className={cn(
                                   'p-2 rounded-full transition-colors',
                                   getThemeClass(
-                                    'bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
+                                    'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
                                     'bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed'
                                   )
                                 )}
@@ -1033,7 +1041,7 @@ const EventDetail = () => {
                               <motion.span
                                 key={quantity}
                                 initial={{ scale: 1.2, color: '#fbbf24' }}
-                                animate={{ scale: 1, color: '#fff' }}
+                                animate={{ scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                                 className={cn(
                                   'text-lg font-medium w-10 text-center',
@@ -1049,7 +1057,7 @@ const EventDetail = () => {
                                 className={cn(
                                   'p-2 rounded-full transition-colors',
                                   getThemeClass(
-                                    'bg-purple-600 hover:bg-purple-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
+                                    'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
                                     'bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed'
                                   )
                                 )}
@@ -1102,7 +1110,7 @@ const EventDetail = () => {
                   transition={{ duration: 0.4 }}
                   className={cn(
                     'p-6 rounded-xl shadow-xl overflow-hidden',
-                    getThemeClass('bg-gray-50 border border-gray-200', 'bg-slate-800')
+                    getThemeClass('bg-white border border-gray-200 shadow-lg', 'bg-slate-800')
                   )}
                 >
                   <h3
@@ -1190,8 +1198,8 @@ const EventDetail = () => {
                                     'border-red-500 bg-red-50 text-red-700'
                                   )
                               : getThemeClass(
-                                  'border-purple-300 text-gray-900',
-                                  'border-purple-300 text-gray-900'
+                                  'border-purple-300 text-gray-900 bg-white',
+                                  'border-purple-300 text-gray-900 bg-white'
                                 )
                           )}
                           placeholder={t('enterDiscountCode')}
@@ -1331,7 +1339,7 @@ const EventDetail = () => {
             className={cn(
               'lg:col-span-4 p-6 md:p-8 rounded-xl shadow-xl',
               getThemeClass(
-                'bg-white/95 border border-gray-200',
+                'bg-white/95 border border-gray-200 shadow-lg',
                 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
               )
             )}
@@ -1383,7 +1391,7 @@ const EventDetail = () => {
                       className={cn(
                         'group rounded-2xl shadow-xl hover:shadow-2xl hover:scale-95 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full',
                         getThemeClass(
-                          'bg-white/90 border border-gray-200',
+                          'bg-white border border-gray-200 shadow-lg hover:shadow-xl',
                           'bg-white/90 border border-gray-200'
                         )
                       )}
@@ -1405,7 +1413,7 @@ const EventDetail = () => {
                         <h3
                           className={cn(
                             'text-lg font-bold mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1',
-                            getThemeClass('text-gray-900', 'text-gray-900')
+                            getThemeClass('text-gray-900', 'text-white')
                           )}
                         >
                           {event.eventName}
@@ -1454,7 +1462,7 @@ const EventDetail = () => {
             <h2
               className={cn(
                 'text-xl font-bold mb-4 text-center',
-                getThemeClass('text-black', 'text-black')
+                getThemeClass('text-gray-900', 'text-gray-900')
               )}
             >
               {t('bookTicketsWithFace')}

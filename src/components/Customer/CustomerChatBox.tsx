@@ -10,6 +10,7 @@ import {
   Users,
   Sparkles,
 } from 'lucide-react';
+import { FaRobot, FaUserFriends } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UserStatusBadge } from '@/components/ui/user-status-badge';
 import { chatService } from '@/services/chat.service';
 import { useCustomerChat } from '@/hooks/use-customer-chat';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 // Chuẩn hóa message theo ChatMessageDto từ backend
 interface UnifiedMessage {
@@ -58,6 +61,8 @@ interface UnifiedCustomerChatProps {
 }
 
 export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className = '' }) => {
+  const { getThemeClass } = useThemeClasses();
+
   // State management
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -506,7 +511,13 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
         <Button
           onClick={openChat}
           data-chat-toggle
-          className="h-14 w-14 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg relative aspect-square flex items-center justify-center"
+          className={cn(
+            'h-14 w-14 rounded-full shadow-lg relative aspect-square flex items-center justify-center',
+            getThemeClass(
+              'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700',
+              'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+            )
+          )}
         >
           <MessageCircle className="h-6 w-6 text-white" />
           <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -523,12 +534,23 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="bg-white shadow-2xl border border-gray-200 w-80 z-[9999] absolute bottom-0 right-0 rounded-2xl"
+            className={cn(
+              'w-80 z-[9999] absolute bottom-0 right-0 rounded-2xl shadow-2xl border',
+              getThemeClass('bg-white border-gray-200', 'bg-slate-800 border-slate-700')
+            )}
             data-chat-modal
             style={{ pointerEvents: 'auto' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl">
+            <div
+              className={cn(
+                'flex items-center justify-between p-4 border-b rounded-t-2xl text-white',
+                getThemeClass(
+                  'bg-gradient-to-r from-blue-600 to-purple-600 border-blue-500',
+                  'bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500'
+                )
+              )}
+            >
               <div className="flex items-center space-x-2">
                 <Avatar className="h-8 w-8">
                   <div className="h-8 w-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
@@ -553,35 +575,44 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                       </>
                     )}
                   </h3>
-                  <p className="text-xs text-blue-100 flex items-center">
+                  <p
+                    className={cn(
+                      'text-xs flex items-center',
+                      getThemeClass('text-blue-100', 'text-purple-100')
+                    )}
+                  >
                     {chatMode === 'ai' ? 'Smart Assistant' : 'Human Support'}
                     {/* Mode indicator badge */}
                     <span
-                      className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
+                      className={cn(
+                        'ml-2 px-1.5 py-0.5 rounded text-xs font-medium border flex items-center gap-1',
                         chatMode === 'ai'
-                          ? 'bg-green-500/20 text-green-100 border border-green-400/30'
-                          : 'bg-orange-500/20 text-orange-100 border border-orange-400/30'
-                      }`}
+                          ? getThemeClass(
+                              'bg-green-500/20 text-green-700 border-green-400/30',
+                              'bg-green-500/20 text-green-200 border-green-400/30'
+                            )
+                          : getThemeClass(
+                              'bg-blue-500/20 text-white border-blue-300',
+                              'bg-purple-500/20 text-purple-200 border-purple-700'
+                            )
+                      )}
                     >
-                      {chatMode === 'ai' ? '🤖 AI' : '👤 Human'}
+                      {chatMode === 'ai' ? (
+                        <>
+                          <FaRobot className="h-3 w-3" />
+                          AI
+                        </>
+                      ) : (
+                        <>
+                          <FaUserFriends className="h-3 w-3" />
+                          Human
+                        </>
+                      )}
                     </span>
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                {/* Always show chat UI, no selection mode */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setMessages([]);
-                    if (isConnected) closeAdminChat();
-                  }}
-                  className="h-8 w-8 p-0 text-white hover:bg-white hover:bg-opacity-20"
-                  title="Back to support type selection"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -645,15 +676,27 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                               )}
                             </Avatar>
                             <Card
-                              className={`${
+                              className={cn(
                                 message.isUser
-                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  ? getThemeClass(
+                                      'bg-blue-500 text-white border-blue-500 opacity-95',
+                                      'bg-blue-500 text-white border-blue-500 opacity-95'
+                                    )
                                   : message.isError
-                                  ? 'bg-red-50 text-red-800 border-red-200'
+                                  ? getThemeClass(
+                                      'bg-red-50 text-red-800 border-red-200',
+                                      'bg-red-900/20 text-red-200 border-red-700'
+                                    )
                                   : message.isAI
-                                  ? 'bg-gradient-to-r from-purple-50 to-blue-50 text-gray-800 border-purple-200'
-                                  : 'bg-gray-50 text-gray-800 border-gray-200'
-                              }`}
+                                  ? getThemeClass(
+                                      'bg-gradient-to-r from-purple-50 to-blue-50 text-gray-800 border-purple-200',
+                                      'bg-gradient-to-r from-purple-900/20 to-blue-900/20 text-purple-200 border-purple-700'
+                                    )
+                                  : getThemeClass(
+                                      'bg-gray-50 text-gray-800 border-gray-200',
+                                      'bg-slate-700 text-slate-200 border-slate-600'
+                                    )
+                              )}
                             >
                               <CardContent className="px-3 py-2">
                                 {/* Sender info with status */}
@@ -668,9 +711,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                     }`}
                                   >
                                     <span
-                                      className={`text-xs font-medium ${
-                                        message.isUser ? 'text-blue-100' : 'text-gray-600'
-                                      }`}
+                                      className={cn(
+                                        'text-xs font-medium',
+                                        message.isUser
+                                          ? 'text-blue-100'
+                                          : getThemeClass('text-gray-600', 'text-slate-400')
+                                      )}
                                     >
                                       {message.isUser
                                         ? 'Bạn'
@@ -692,9 +738,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                     />
                                   </div>
                                   <span
-                                    className={`text-xs ${
-                                      message.isUser ? 'text-blue-100' : 'text-gray-500'
-                                    }`}
+                                    className={cn(
+                                      'text-xs',
+                                      message.isUser
+                                        ? 'text-blue-100'
+                                        : getThemeClass('text-gray-500', 'text-slate-500')
+                                    )}
                                   >
                                     {formatTimestamp(message.createdAt)}
                                   </span>
@@ -704,12 +753,27 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                 <div className="text-sm break-words whitespace-pre-wrap">
                                   {/* Nếu là tin nhắn đã xóa */}
                                   {message.isDeleted ? (
-                                    <span className="italic text-gray-400">[Message deleted]</span>
+                                    <span
+                                      className={cn(
+                                        'italic',
+                                        getThemeClass('text-gray-400', 'text-slate-500')
+                                      )}
+                                    >
+                                      [Message deleted]
+                                    </span>
                                   ) : (
                                     <>
                                       {/* Nếu là reply */}
                                       {message.replyToMessage && (
-                                        <div className="border-l-2 border-blue-200 pl-2 mb-1 text-xs text-gray-500">
+                                        <div
+                                          className={cn(
+                                            'border-l-2 pl-2 mb-1 text-xs',
+                                            getThemeClass(
+                                              'border-blue-200 text-gray-500',
+                                              'border-purple-700 text-slate-400'
+                                            )
+                                          )}
+                                        >
                                           <span className="font-semibold">
                                             {message.replyToMessage.senderUserName || 'Anonymous'}:
                                           </span>{' '}
@@ -724,7 +788,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                       )}
                                       {/* Nếu là tin nhắn đã sửa */}
                                       {message.isEdited && !message.isDeleted && (
-                                        <span className="ml-2 text-xs italic text-gray-400">
+                                        <span
+                                          className={cn(
+                                            'ml-2 text-xs italic',
+                                            getThemeClass('text-gray-400', 'text-slate-500')
+                                          )}
+                                        >
                                           (edited)
                                         </span>
                                       )}
@@ -737,7 +806,10 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                               href={att.fileUrl}
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="text-xs text-blue-600 underline"
+                                              className={cn(
+                                                'text-xs underline',
+                                                getThemeClass('text-blue-500', 'text-blue-400')
+                                              )}
                                             >
                                               📎 {att.fileName}
                                             </a>
@@ -748,7 +820,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                       {message.isAI &&
                                         message.sources &&
                                         message.sources.length > 0 && (
-                                          <div className="mt-1 text-xs text-purple-500">
+                                          <div
+                                            className={cn(
+                                              'mt-1 text-xs',
+                                              getThemeClass('text-purple-500', 'text-purple-400')
+                                            )}
+                                          >
                                             <span className="font-semibold">Sources:</span>{' '}
                                             {message.sources.join(', ')}
                                           </div>
@@ -767,7 +844,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                   </ScrollArea>
 
                   {/* Input */}
-                  <div className="p-4 border-t border-gray-200">
+                  <div
+                    className={cn(
+                      'p-4 border-t',
+                      getThemeClass('border-gray-200', 'border-slate-700')
+                    )}
+                  >
                     {/* Button to chat with admin, only show if AI mode */}
                     {(() => {
                       return chatMode === 'ai';
@@ -775,7 +857,13 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                       <div className="flex justify-center mb-3">
                         <Button
                           variant="outline"
-                          className="border-blue-500 text-blue-600 hover:bg-blue-50 font-semibold rounded-full px-4 py-1 text-sm shadow-sm"
+                          className={cn(
+                            'font-semibold rounded-full px-4 py-1 text-sm shadow-sm',
+                            getThemeClass(
+                              'border-blue-500 text-blue-500 hover:bg-blue-50',
+                              'border-purple-500 text-purple-400 hover:bg-purple-800/30'
+                            )
+                          )}
                           disabled={isSwitchingMode}
                           onClick={async () => {
                             if (!roomId) {
@@ -835,7 +923,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                         >
                           {isSwitchingMode ? (
                             <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
                               Switching...
                             </>
                           ) : (
@@ -851,14 +939,30 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                     {/* Show mode status for debugging */}
                     {chatMode === 'human' && (
                       <div className="flex justify-center mb-3">
-                        <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <div
+                          className={cn(
+                            'px-3 py-1 rounded-full text-sm font-medium',
+                            getThemeClass(
+                              'bg-green-100 text-green-800',
+                              'bg-green-900/20 text-green-200'
+                            )
+                          )}
+                        >
                           <Users className="h-4 w-4 mr-2 inline" />
                           Connected to Human Support
                         </div>
                       </div>
                     )}
                     {isStreaming && (
-                      <div className="flex items-center justify-between mb-2 p-2 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
+                      <div
+                        className={cn(
+                          'flex items-center justify-between mb-2 p-2 rounded-lg',
+                          getThemeClass(
+                            'bg-gradient-to-r from-purple-50 to-blue-50',
+                            'bg-gradient-to-r from-purple-900/20 to-blue-900/20'
+                          )
+                        )}
+                      >
                         <div className="flex items-center space-x-2">
                           <div className="flex space-x-1">
                             <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
@@ -871,7 +975,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                               style={{ animationDelay: '0.2s' }}
                             ></div>
                           </div>
-                          <span className="text-sm text-gray-600">
+                          <span
+                            className={cn(
+                              'text-sm',
+                              getThemeClass('text-gray-600', 'text-slate-300')
+                            )}
+                          >
                             {chatMode === 'ai' ? 'AI is typing...' : 'Sending...'}
                           </span>
                         </div>
@@ -879,7 +988,13 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                           variant="ghost"
                           size="sm"
                           onClick={stopStreaming}
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-red-500"
+                          className={cn(
+                            'h-6 w-6 p-0',
+                            getThemeClass(
+                              'text-gray-500 hover:text-red-500',
+                              'text-slate-400 hover:text-red-400'
+                            )
+                          )}
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -895,13 +1010,25 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                           chatMode === 'ai' ? 'Ask AI Assistant...' : 'Message support agent...'
                         }
                         disabled={isStreaming}
-                        className="flex-1"
+                        className={cn(
+                          'flex-1',
+                          getThemeClass(
+                            'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500',
+                            'bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:border-purple-500 focus:ring-purple-500'
+                          )
+                        )}
                       />
                       <Button
                         onClick={sendMessage}
                         disabled={!newMessage.trim() || isStreaming}
                         size="sm"
-                        className="px-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className={cn(
+                          'px-3',
+                          getThemeClass(
+                            'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700',
+                            'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                          )
+                        )}
                       >
                         {isStreaming ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -912,7 +1039,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                     </div>
 
                     <div className="flex items-center justify-center mt-2">
-                      <p className="text-xs text-gray-500 flex items-center">
+                      <p
+                        className={cn(
+                          'text-xs flex items-center',
+                          getThemeClass('text-gray-500', 'text-slate-400')
+                        )}
+                      >
                         {chatMode === 'ai' ? (
                           <>
                             <Sparkles className="h-3 w-3 mr-1" />

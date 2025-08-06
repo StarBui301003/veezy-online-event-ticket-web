@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface DatePickerProfileProps {
   selectedDate?: Date;
@@ -30,6 +31,7 @@ export function DatePickerProfile({
   endYear = getYear(new Date()) + 100,
 }: DatePickerProfileProps) {
   const [date, setDate] = React.useState<Date | undefined>(selectedDate);
+  const { getThemeClass } = useThemeClasses();
 
   // Update date when selectedDate prop changes
   React.useEffect(() => {
@@ -81,37 +83,75 @@ export function DatePickerProfile({
             variant={'outline'}
             disabled={disabled}
             className={cn(
-              'w-full justify-start text-left font-normal rounded-full border border-transparent focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 bg-slate-700/60 text-white placeholder-slate-400 shadow-[0_4px_4px_rgba(0,0,0,0.25)] py-2 px-3 hover:bg-slate-700/80 transition-all duration-200 disabled:opacity-70 h-auto text-sm',
-              !date && 'text-slate-400',
+              'w-full justify-start text-left font-normal rounded-full border transition-all duration-200 py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200 disabled:opacity-70',
+              !date && getThemeClass('text-gray-500', 'text-slate-400'),
               error
-                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                : 'border-purple-700 focus:border-purple-500',
+                ? getThemeClass(
+                    'border-red-500 bg-red-50 text-red-700 focus:ring-red-500/20',
+                    'border-red-500 bg-red-900/20 text-red-300 focus:ring-red-500/20'
+                  )
+                : getThemeClass(
+                    'border-blue-300 bg-blue-50/75 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
+                    'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
+                  ),
               className
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon
+              className={cn('mr-2 h-4 w-4', getThemeClass('text-gray-600', 'text-slate-400'))}
+            />
             {date ? (
-              <span className="text-white">{format(date, 'PPP')}</span>
+              <span className={getThemeClass('text-gray-900', 'text-white')}>
+                {format(date, 'PPP')}
+              </span>
             ) : (
-              <span className="text-slate-400">Chọn ngày sinh</span>
+              <span className={getThemeClass('text-gray-500', 'text-slate-400')}>
+                Chọn ngày sinh
+              </span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-lg">
-          <div className="flex justify-between p-3 bg-gray-50 border-b border-gray-200 rounded-t">
+        <PopoverContent
+          className={cn(
+            'w-auto p-0 border shadow-lg rounded-lg',
+            getThemeClass('bg-white border-gray-200', 'bg-slate-700 border-purple-600')
+          )}
+        >
+          <div
+            className={cn(
+              'flex justify-between p-3 border-b rounded-t',
+              getThemeClass('bg-gray-50 border-gray-200', 'bg-slate-800 border-purple-600')
+            )}
+          >
             <Select
               onValueChange={handleMonthChange}
               value={date ? months[getMonth(date)] : months[getMonth(new Date())]}
             >
-              <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
+              <SelectTrigger
+                className={cn(
+                  'w-[110px] border rounded',
+                  getThemeClass(
+                    'bg-white border-gray-300 text-gray-900',
+                    'bg-slate-700 border-purple-600 text-white'
+                  )
+                )}
+              >
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+              <SelectContent
+                className={cn(
+                  'border rounded-lg',
+                  getThemeClass('bg-white border-gray-200', 'bg-slate-700 border-purple-600')
+                )}
+              >
                 {months.map((month) => (
                   <SelectItem
                     key={month}
                     value={month}
-                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className={getThemeClass(
+                      'text-gray-900 hover:bg-gray-100 focus:bg-gray-100',
+                      'text-white hover:bg-slate-600 focus:bg-slate-600'
+                    )}
                   >
                     {month}
                   </SelectItem>
@@ -122,15 +162,31 @@ export function DatePickerProfile({
               onValueChange={handleYearChange}
               value={date ? getYear(date).toString() : getYear(new Date()).toString()}
             >
-              <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
+              <SelectTrigger
+                className={cn(
+                  'w-[110px] border rounded',
+                  getThemeClass(
+                    'bg-white border-gray-300 text-gray-900',
+                    'bg-slate-700 border-purple-600 text-white'
+                  )
+                )}
+              >
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+              <SelectContent
+                className={cn(
+                  'border rounded-lg',
+                  getThemeClass('bg-white border-gray-200', 'bg-slate-700 border-purple-600')
+                )}
+              >
                 {years.map((year) => (
                   <SelectItem
                     key={year}
                     value={year.toString()}
-                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className={getThemeClass(
+                      'text-gray-900 hover:bg-gray-100 focus:bg-gray-100',
+                      'text-white hover:bg-slate-600 focus:bg-slate-600'
+                    )}
                   >
                     {year}
                   </SelectItem>
@@ -139,7 +195,7 @@ export function DatePickerProfile({
             </Select>
           </div>
 
-          <div className="p-3 bg-white">
+          <div className={cn('p-3', getThemeClass('bg-white', 'bg-slate-700'))}>
             <Calendar
               mode="single"
               selected={date}
@@ -154,7 +210,11 @@ export function DatePickerProfile({
           </div>
         </PopoverContent>
       </Popover>
-      {error && <div className="text-red-400 text-xs mt-1 ml-2">{error}</div>}
+      {error && (
+        <div className={cn('text-xs mt-1 ml-2', getThemeClass('text-red-600', 'text-red-400'))}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

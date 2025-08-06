@@ -30,6 +30,8 @@ import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectChatHub, onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 interface EventManagerChatBoxProps {
   eventId: string;
@@ -63,6 +65,8 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
   className = '',
   onClose,
 }) => {
+  const { getThemeClass } = useThemeClasses();
+
   // States
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -548,7 +552,13 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
         <Button
           onClick={openChat}
           data-event-manager-chat-toggle
-          className="rounded-full h-14 w-14 px-0 bg-green-600 hover:bg-green-700 text-white shadow-lg aspect-square flex items-center justify-center"
+          className={cn(
+            'rounded-full h-14 w-14 px-0 shadow-lg aspect-square flex items-center justify-center',
+            getThemeClass(
+              'bg-green-600 hover:bg-green-700 text-white',
+              'bg-green-600 hover:bg-green-700 text-white'
+            )
+          )}
           size="lg"
         >
           <MessageCircle className="h-6 w-6" />
@@ -568,17 +578,30 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="bg-white shadow-2xl border border-green-200 w-96 z-[9999] absolute bottom-0 right-0 rounded-2xl"
+            className={cn(
+              'w-96 z-[9999] absolute bottom-0 right-0 rounded-2xl shadow-2xl border',
+              getThemeClass('bg-white border-green-200', 'bg-slate-800 border-green-700')
+            )}
             data-event-manager-chat-modal
             style={{ pointerEvents: 'auto' }}
           >
             <Card
-              className={`w-96 bg-white shadow-2xl border border-green-200 rounded-2xl ${
+              className={cn(
+                'w-96 shadow-2xl border rounded-2xl transition-all duration-300',
+                getThemeClass('bg-white border-green-200', 'bg-slate-800 border-green-700'),
                 isMinimized ? 'h-16' : 'h-[500px]'
-              } transition-all duration-300`}
+              )}
             >
               {/* Header */}
-              <CardHeader className="p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-t-2xl">
+              <CardHeader
+                className={cn(
+                  'p-4 text-white rounded-t-2xl',
+                  getThemeClass(
+                    'bg-gradient-to-r from-green-500 to-green-600',
+                    'bg-gradient-to-r from-green-600 to-green-700'
+                  )
+                )}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <MessageCircle className="h-5 w-5" />
@@ -626,14 +649,28 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">Đang kết nối...</p>
+                        <p
+                          className={cn(
+                            'text-sm',
+                            getThemeClass('text-gray-500', 'text-slate-400')
+                          )}
+                        >
+                          Đang kết nối...
+                        </p>
                       </div>
                     </div>
                   ) : !isConnected ? (
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center p-4">
                         <div className="text-red-500 mb-2">⚠️</div>
-                        <p className="text-sm text-gray-600 mb-3">Không thể kết nối với server</p>
+                        <p
+                          className={cn(
+                            'text-sm mb-3',
+                            getThemeClass('text-gray-600', 'text-slate-300')
+                          )}
+                        >
+                          Không thể kết nối với server
+                        </p>
                         <Button
                           onClick={initializeChatRoom}
                           size="sm"
@@ -646,10 +683,24 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                   ) : (
                     <>
                       {/* Participants bar */}
-                      <div className="p-3 bg-gray-50 border-b">
+                      <div
+                        className={cn('p-3 border-b', getThemeClass('bg-gray-50', 'bg-slate-700'))}
+                      >
                         <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-xs text-gray-600">Nhóm quản lý:</span>
+                          <Users
+                            className={cn(
+                              'h-4 w-4',
+                              getThemeClass('text-gray-500', 'text-slate-400')
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              'text-xs',
+                              getThemeClass('text-gray-600', 'text-slate-300')
+                            )}
+                          >
+                            Nhóm quản lý:
+                          </span>
                           <div className="flex -space-x-1">
                             {onlineParticipants
                               .filter((p) => p.role === 'EventManager')
@@ -674,7 +725,12 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                           </div>
                           {onlineParticipants.filter((p) => p.role === 'EventManager').length >
                             3 && (
-                            <span className="text-xs text-gray-500">
+                            <span
+                              className={cn(
+                                'text-xs',
+                                getThemeClass('text-gray-500', 'text-slate-400')
+                              )}
+                            >
                               +
                               {onlineParticipants.filter((p) => p.role === 'EventManager').length -
                                 3}
@@ -714,8 +770,21 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                                 <div className="relative">
                                   {/* Reply preview */}
                                   {message.replyToMessage && (
-                                    <div className="mb-1 p-2 bg-gray-100 rounded-lg text-xs text-gray-600 max-w-[200px] truncate">
-                                      <div className="font-medium text-gray-700">
+                                    <div
+                                      className={cn(
+                                        'mb-1 p-2 rounded-lg text-xs max-w-[200px] truncate',
+                                        getThemeClass(
+                                          'bg-gray-100 text-gray-600',
+                                          'bg-slate-600 text-slate-300'
+                                        )
+                                      )}
+                                    >
+                                      <div
+                                        className={cn(
+                                          'font-medium',
+                                          getThemeClass('text-gray-700', 'text-slate-200')
+                                        )}
+                                      >
                                         {message.replyToMessage.senderName}
                                       </div>
                                       {message.replyToMessage.content}
@@ -725,11 +794,22 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                                   {/* Message content */}
                                   {editingMessage?.id === message.id ? (
                                     /* Edit mode */
-                                    <div className="bg-white border-2 border-green-300 rounded-lg p-2 shadow-md">
+                                    <div
+                                      className={cn(
+                                        'border-2 rounded-lg p-2 shadow-md',
+                                        getThemeClass(
+                                          'bg-white border-green-300',
+                                          'bg-slate-700 border-green-600'
+                                        )
+                                      )}
+                                    >
                                       <Input
                                         value={editingContent}
                                         onChange={(e) => setEditingContent(e.target.value)}
-                                        className="text-sm border-0 p-0 focus-visible:ring-0"
+                                        className={cn(
+                                          'text-sm border-0 p-0 focus-visible:ring-0',
+                                          getThemeClass('text-gray-900', 'text-white')
+                                        )}
                                         autoFocus
                                       />
                                       <div className="flex gap-1 mt-2">
@@ -755,13 +835,23 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                                   ) : (
                                     /* Normal mode */
                                     <div
-                                      className={`rounded-xl px-4 py-2 shadow-md ${
+                                      className={cn(
+                                        'rounded-xl px-4 py-2 shadow-md',
                                         message.isMyMessage
-                                          ? 'bg-green-600 text-white shadow-green-200'
+                                          ? getThemeClass(
+                                              'bg-green-600 text-white shadow-green-200',
+                                              'bg-green-600 text-white shadow-green-200'
+                                            )
                                           : message.isEventManager
-                                          ? 'bg-blue-200 text-blue-900 border-2 border-blue-400 shadow-blue-100'
-                                          : 'bg-orange-100 text-orange-900 border-2 border-orange-300 shadow-orange-100'
-                                      }`}
+                                          ? getThemeClass(
+                                              'bg-blue-200 text-blue-900 border-2 border-blue-400 shadow-blue-100',
+                                              'bg-blue-900/20 text-blue-200 border-2 border-blue-600 shadow-blue-900/20'
+                                            )
+                                          : getThemeClass(
+                                              'bg-orange-100 text-orange-900 border-2 border-orange-300 shadow-orange-100',
+                                              'bg-orange-900/20 text-orange-200 border-2 border-orange-600 shadow-orange-900/20'
+                                            )
+                                      )}
                                     >
                                       {message.content}
                                     </div>
@@ -773,11 +863,15 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className={`absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 ${
+                                        className={cn(
+                                          'absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 top-1 bg-black/20 backdrop-blur-sm rounded-full shadow-lg border border-white/30',
                                           message.isMyMessage
                                             ? '-left-8 text-white hover:bg-green-700 hover:text-white'
-                                            : '-right-8 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-                                        } top-1 bg-black/20 backdrop-blur-sm rounded-full shadow-lg border border-white/30`}
+                                            : getThemeClass(
+                                                '-right-8 text-gray-600 hover:bg-gray-200 hover:text-gray-800',
+                                                '-right-8 text-slate-400 hover:bg-slate-600 hover:text-slate-200'
+                                              )
+                                        )}
                                       >
                                         <MoreVertical className="h-3 w-3" />
                                       </Button>
@@ -820,16 +914,42 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
                       {/* Message input */}
                       <Separator />
-                      <div className="p-4 bg-slate-50 border-t border-slate-200">
+                      <div
+                        className={cn(
+                          'p-4 border-t',
+                          getThemeClass(
+                            'bg-slate-50 border-slate-200',
+                            'bg-slate-800 border-slate-700'
+                          )
+                        )}
+                      >
                         {/* Reply preview */}
                         {replyingTo && (
-                          <div className="mb-3 p-3 bg-green-100 rounded-lg border-l-4 border-green-500 shadow-sm">
+                          <div
+                            className={cn(
+                              'mb-3 p-3 rounded-lg border-l-4 shadow-sm',
+                              getThemeClass(
+                                'bg-green-100 border-green-500',
+                                'bg-green-900/20 border-green-600'
+                              )
+                            )}
+                          >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <div className="text-sm font-medium text-green-800">
+                                <div
+                                  className={cn(
+                                    'text-sm font-medium',
+                                    getThemeClass('text-green-800', 'text-green-200')
+                                  )}
+                                >
                                   Trả lời {replyingTo.senderName}
                                 </div>
-                                <div className="text-sm text-green-700 truncate">
+                                <div
+                                  className={cn(
+                                    'text-sm truncate',
+                                    getThemeClass('text-green-700', 'text-green-300')
+                                  )}
+                                >
                                   {replyingTo.content}
                                 </div>
                               </div>
@@ -837,7 +957,13 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={cancelReply}
-                                className="p-1 h-6 w-6 text-green-700 hover:bg-green-200"
+                                className={cn(
+                                  'p-1 h-6 w-6',
+                                  getThemeClass(
+                                    'text-green-700 hover:bg-green-200',
+                                    'text-green-300 hover:bg-green-700/30'
+                                  )
+                                )}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -852,7 +978,13 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
                             placeholder="Nhập tin nhắn..."
-                            className="flex-1 rounded-full border-2 border-green-300 bg-green-50 focus:bg-white focus:border-green-500 transition-colors text-gray-800 placeholder:text-gray-500"
+                            className={cn(
+                              'flex-1 rounded-full border-2 transition-colors',
+                              getThemeClass(
+                                'border-green-300 bg-green-50 focus:bg-white focus:border-green-500 text-gray-800 placeholder:text-gray-500',
+                                'border-green-600 bg-green-900/20 focus:bg-slate-700 focus:border-green-500 text-white placeholder:text-slate-400'
+                              )
+                            )}
                             disabled={isSending || !isConnected}
                           />
                           <Button
