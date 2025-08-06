@@ -3,7 +3,7 @@ import { getMyEvents, getTicketsByEvent, deleteTicket } from "@/services/Event M
 import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
-import { connectEventHub, onEvent, connectTicketHub, onTicket } from "@/services/signalr.service";
+import { connectEventHub, onEvent, connectTicketHub, onTicket, disconnectEventHub, disconnectTicketHub } from "@/services/signalr.service";
 import EventChatSupportButton from '@/components/EventManager/EventChatSupportButton';
 
 interface Event {
@@ -81,46 +81,33 @@ export default function EventListWithTicketManager() {
     connectTicketHub('http://localhost:5005/notificationHub');
 
     // Listen for real-time event updates
-    onEvent('EventCreated', () => {
-      loadEvents();
-    });
-
-    onEvent('EventUpdated', () => {
-      loadEvents();
-    });
-
-    onEvent('EventDeleted', () => {
-      loadEvents();
-    });
-
-    onEvent('EventApproved', () => {
-      loadEvents();
-    });
-
-    // Listen for real-time ticket updates
-    onTicket('TicketCreated', () => {
+    const reloadEvents = () => loadEvents();
+    const reloadTickets = () => {
       if (selectedEvent) {
         loadTicketsForEvent(selectedEvent.eventId);
       }
-    });
+    };
 
-    onTicket('TicketUpdated', () => {
-      if (selectedEvent) {
-        loadTicketsForEvent(selectedEvent.eventId);
-      }
-    });
+    // Event updates
+    onEvent('OnEventCreated', reloadEvents);
+    onEvent('OnEventUpdated', reloadEvents);
+    onEvent('OnEventDeleted', reloadEvents);
+    onEvent('OnEventApproved', reloadEvents);
+    onEvent('OnEventCancelled', reloadEvents);
+    onEvent('OnEventHidden', reloadEvents);
+    onEvent('OnEventShown', reloadEvents);
 
-    onTicket('TicketDeleted', () => {
-      if (selectedEvent) {
-        loadTicketsForEvent(selectedEvent.eventId);
-      }
-    });
+    // Ticket updates
+    onTicket('OnTicketCreated', reloadTickets);
+    onTicket('OnTicketUpdated', reloadTickets);
+    onTicket('OnTicketStatusUpdated', reloadTickets);
+    onTicket('OnTicketDeleted', reloadTickets);
 
-    onTicket('TicketIssued', () => {
-      if (selectedEvent) {
-        loadTicketsForEvent(selectedEvent.eventId);
-      }
-    });
+    // Cleanup
+    return () => {
+      disconnectEventHub();
+      disconnectTicketHub();
+    };
   }, [selectedEvent]);
 
   // Tìm kiếm sự kiện realtime

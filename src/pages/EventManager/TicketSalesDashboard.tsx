@@ -7,7 +7,7 @@ import { getEventManagerDashboard, exportAnalyticsExcel } from '@/services/Event
 import { toast } from 'react-toastify';
 import { Dialog } from '@/components/ui/dialog';
 import { DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { connectEventHub, onEvent, connectTicketHub, onTicket, connectAnalyticsHub, onAnalytics, disconnectEventHub, disconnectTicketHub, disconnectAnalyticsHub } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 
 interface TicketSalesData {
@@ -60,13 +60,42 @@ export default function TicketSalesDashboard() {
   }, [selectedPeriod]);
 
   useEffect(() => {
+    // Connect to multiple hubs for comprehensive realtime updates
     connectEventHub('http://localhost:5004/notificationHub');
+    connectTicketHub('http://localhost:5005/notificationHub');
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    
     const reload = () => fetchSalesData(selectedPeriod);
+    
+    // Event-related updates
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
     onEvent('OnEventApproved', reload);
+    onEvent('OnTicketSoldIncremented', reload);
+    onEvent('OnTicketSoldDecremented', reload);
+    
+    // Ticket-related updates
+    onTicket('OnTicketCreated', reload);
+    onTicket('OnTicketUpdated', reload);
+    onTicket('OnTicketStatusUpdated', reload);
+    onTicket('OnTicketDeleted', reload);
+    
+    // Analytics updates
+    onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+      // Update specific data if available
+      if (data && data.ticketsSold !== undefined) {
+        reload();
+      }
+    });
+    
+    // Cleanup
+    return () => {
+      disconnectEventHub();
+      disconnectTicketHub();
+      disconnectAnalyticsHub();
+    };
   }, [selectedPeriod]);
 
   useEffect(() => {

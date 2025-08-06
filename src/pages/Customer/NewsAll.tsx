@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllNewsHome } from '@/services/Event Manager/event.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { connectNewsHub, onNews, disconnectNewsHub } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -122,25 +122,30 @@ const NewsAll: React.FC = () => {
     connectNewsHub('http://localhost:5004/newsHub');
     
     // Listen for real-time news updates
-    onNews('NewsCreated', () => {
+    const reloadNews = () => {
+      fetchNews(page);
+    };
+    
+    const reloadFromFirst = () => {
       fetchNews(1);
       setPage(1);
-    });
+    };
     
-    onNews('NewsUpdated', () => {
-      fetchNews(page);
-    });
+    onNews('OnNewsCreated', reloadFromFirst);
+    onNews('OnNewsUpdated', reloadNews);
+    onNews('OnNewsApproved', reloadNews);
+    onNews('OnNewsDeleted', reloadNews);
+    onNews('OnNewsRejected', reloadNews);
+    onNews('OnNewsHidden', reloadNews);
+    onNews('OnNewsUnhidden', reloadNews);
     
-    onNews('NewsApproved', () => {
-      fetchNews(page);
-    });
-    
-    onNews('NewsDeleted', () => {
-      fetchNews(page);
-    });
-
     // Initial data load
     fetchNews(page);
+    
+    // Cleanup
+    return () => {
+      disconnectNewsHub();
+    };
   }, [page]);
 
   const getImageUrl = (news: News) => {

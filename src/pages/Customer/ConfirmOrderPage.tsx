@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { createOrder, createVnPayPayment, useDiscountCode, getOrderById } from '@/services/Event Manager/event.service';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { connectTicketHub, onTicket, connectOrderHub, onOrder, connectPaymentHub, onPayment, disconnectTicketHub, disconnectOrderHub, disconnectPaymentHub } from '@/services/signalr.service';
 import type { CheckoutData, OrderInfo, CheckoutItem } from '@/types/checkout';
 import { useTranslation } from 'react-i18next';
 
@@ -20,46 +20,80 @@ const ConfirmOrderPage = () => {
   const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
 
-  // Connect to TicketHub for real-time order updates
+  // Connect to multiple hubs for comprehensive real-time order tracking
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      connectTicketHub(token);
+      // Connect to multiple hubs
+      connectTicketHub('http://localhost:5005/notificationHub', token);
+      connectOrderHub('http://localhost:5005/orderHub', token);
+      connectPaymentHub('http://localhost:5005/paymentHub', token);
       
       // Listen for real-time order updates
       onTicket('OrderCreated', (data: unknown) => {
-        // ...removed log...
-        // Update order info if it matches current order
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           setOrderInfo(data as OrderInfo);
         }
       });
       
       onTicket('OrderUpdated', (data: unknown) => {
-        // ...removed log...
-        // Update order info if it matches current order
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           setOrderInfo(data as OrderInfo);
         }
       });
       
+      // Order Hub events
+      onOrder('OnOrderStatusChanged', (data: unknown) => {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          setOrderInfo(data as OrderInfo);
+        }
+      });
+      
+      onOrder('OnOrderConfirmed', (data: unknown) => {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          setOrderInfo(data as OrderInfo);
+        }
+      });
+      
+      // Payment Hub events
+      onPayment('OnPaymentInitiated', (data: unknown) => {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          setWaitingPayment(true);
+        }
+      });
+      
+      onPayment('OnPaymentCompleted', (data: unknown) => {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          navigate('/customer/payment-success');
+        }
+      });
+      
+      onPayment('OnPaymentFailed', (data: unknown) => {
+        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+          navigate('/customer/payment-failed');
+        }
+      });
+      
+      // Ticket Hub events for backward compatibility
       onTicket('PaymentCompleted', (data: unknown) => {
-        // ...removed log...
-        // Redirect to success page if payment is completed
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-success');
         }
       });
       
       onTicket('PaymentFailed', (data: unknown) => {
-        // ...removed log...
-        // Redirect to failed page if payment failed
         if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
           navigate('/customer/payment-failed');
         }
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    // Cleanup
+    return () => {
+      disconnectTicketHub();
+      disconnectOrderHub();
+      disconnectPaymentHub();
+    };
   }, [orderInfo?.orderId, navigate]);
 
   useEffect(() => {

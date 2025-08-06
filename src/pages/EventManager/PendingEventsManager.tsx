@@ -90,7 +90,7 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
 // ...existing code...
 import { getMyPendingEvents,  cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent, connectEventHub, disconnectEventHub } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 
 const EVENTS_PER_PAGE = 5;
@@ -121,14 +121,21 @@ const PendingEventsManager = () => {
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     fetchEvents();
-    // Lắng nghe realtime SignalR
+    
+    // Lắng nghe realtime SignalR events
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventApproved', reload);
     onEvent('OnEventCancelled', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
+    onEvent('OnEventHidden', reload);
+    onEvent('OnEventShown', reload);
+    
+    // Cleanup function
+    return () => {
+      disconnectEventHub();
+    };
   }, []);
 
   // Phân trang

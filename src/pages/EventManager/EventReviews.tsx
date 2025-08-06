@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageCircle, TrendingUp, TrendingDown, Minus, AlertCircle, CheckCircle, XCircle, Brain, Zap, Sparkles, Activity, Eye, Search, Filter, RefreshCw } from 'lucide-react';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { analyzeEventSentiment } from '@/services/Event Manager/sentiment.service';
-import { connectAnalyticsHub, onAnalytics } from "@/services/signalr.service";
+import { connectAnalyticsHub, onAnalytics, connectFeedbackHub, onFeedback, connectCommentHub, onComment, disconnectAnalyticsHub, disconnectFeedbackHub, disconnectCommentHub } from "@/services/signalr.service";
 import { toast } from "react-toastify";
 
 const EventReviews = () => {
@@ -30,21 +30,76 @@ const EventReviews = () => {
     };
     fetchEvents();
 
-    // Setup realtime connections for analytics
+    // Setup realtime connections for comprehensive reviews tracking
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectAnalyticsHub(token || undefined);
+    connectAnalyticsHub('http://localhost:5006/analyticsHub', token);
+    connectFeedbackHub('http://localhost:5008/notificationHub', token);
+    connectCommentHub('http://localhost:5004/commentHub', token);
     
-    // Note: Comment realtime updates not available - no CommentHub implemented
-    // onComment functions removed
-    
-    // Listen for analytics updates
+    // Analytics updates for sentiment analysis
     onAnalytics('SentimentAnalyzed', (data: any) => {
       if (data.eventId === selectedEvent) {
         toast.success('Phân tích cảm xúc đã được cập nhật!');
-        // Optionally refresh the sentiment data
+        // Refresh sentiment data
+        analyzeSentiment();
       }
     });
-  }, [selectedEvent]);
+    
+    onAnalytics('OnEventFeedbackUpdated', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        toast.info('Đánh giá sự kiện đã được cập nhật!');
+        analyzeSentiment();
+      }
+    });
+    
+    // Feedback/Review updates
+    onFeedback('OnFeedbackCreated', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        toast.info('Đánh giá mới đã được thêm!');
+        analyzeSentiment();
+      }
+    });
+    
+    onFeedback('OnFeedbackUpdated', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        toast.info('Đánh giá đã được cập nhật!');
+        analyzeSentiment();
+      }
+    });
+    
+    onFeedback('FeedbackChanged', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        analyzeSentiment();
+      }
+    });
+    
+    // Comment updates (comments can be reviews too)
+    onComment('OnCommentCreated', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        toast.info('Bình luận mới đã được thêm!');
+        analyzeSentiment();
+      }
+    });
+    
+    onComment('OnCommentUpdated', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        analyzeSentiment();
+      }
+    });
+    
+    onComment('OnCommentDeleted', (data: any) => {
+      if (data.eventId === selectedEvent) {
+        analyzeSentiment();
+      }
+    });
+    
+    // Cleanup
+    return () => {
+      disconnectAnalyticsHub();
+      disconnectFeedbackHub();
+      disconnectCommentHub();
+    };
+  }, [selectedEvent]); // Remove analyzeSentiment from dependencies to avoid circular dependency
 
   const analyzeSentiment = useCallback(async () => {
     if (!selectedEvent) return;

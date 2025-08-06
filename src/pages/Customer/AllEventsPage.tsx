@@ -1,12 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getHomeEvents } from '@/services/Event Manager/event.service';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { connectEventHub, onEvent, disconnectEventHub } from '@/services/signalr.service';
 import { StageBackground } from '@/components/StageBackground';
 import { useTranslation } from 'react-i18next';
-import FilterComponent, { FilterOptions, ViewMode } from '@/components/FilterComponent';
+import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+
+type ViewMode = 'grid' | 'list';
 
 export interface Event {
   eventId: string;
@@ -57,25 +59,42 @@ const AllEventsPage = () => {
   useEffect(() => {
     connectEventHub('http://localhost:5004/notificationHub');
     
-    // Listen for real-time event updates
-    onEvent('EventCreated', (data: any) => {
+    // Listen for real-time event updates (using correct backend event names)
+    onEvent('OnEventCreated', () => {
       reloadEvents();
     });
     
-    onEvent('EventUpdated', (data: any) => {
+    onEvent('OnEventUpdated', () => {
       reloadEvents();
     });
     
-    onEvent('EventApproved', (data: any) => {
+    onEvent('OnEventApproved', () => {
       reloadEvents();
     });
     
-    onEvent('EventCancelled', (data: any) => {
+    onEvent('OnEventCancelled', () => {
+      reloadEvents();
+    });
+
+    onEvent('OnEventDeleted', () => {
+      reloadEvents();
+    });
+
+    onEvent('OnEventHidden', () => {
+      reloadEvents();
+    });
+
+    onEvent('OnEventShown', () => {
       reloadEvents();
     });
 
     // Initial data load
     reloadEvents();
+
+    // Cleanup function
+    return () => {
+      disconnectEventHub();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

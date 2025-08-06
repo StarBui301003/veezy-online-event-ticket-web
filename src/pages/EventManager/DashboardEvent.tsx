@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Filter, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, connectEventHub, onEvent, connectTicketHub, onTicket, disconnectAnalyticsHub, disconnectEventHub, disconnectTicketHub } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import NotificationDropdown from '@/components/common/NotificationDropdown';
 import ExportButtons from './components/ExportButtons';
@@ -85,18 +85,60 @@ export default function EventManagerDashboard() {
   ];
 
   useEffect(() => {
-    connectAnalyticsHub();
+    // Connect to multiple hubs for comprehensive dashboard updates
+    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+    connectEventHub('http://localhost:5004/notificationHub');
+    connectTicketHub('http://localhost:5005/notificationHub');
+    
+    // Analytics updates
+    onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+      console.log('Dashboard analytics update:', data);
+      // Trigger refresh of dashboard components
+    });
     
     onAnalytics('OnEventManagerDashboard', (data) => {
       console.log('Received analytics update:', data);
     });
+    
+    // Event updates that affect dashboard
+    onEvent('OnEventCreated', () => {
+      console.log('Event created - refreshing dashboard');
+    });
+    
+    onEvent('OnEventUpdated', () => {
+      console.log('Event updated - refreshing dashboard');
+    });
+    
+    onEvent('OnEventApproved', () => {
+      console.log('Event approved - refreshing dashboard');
+    });
+    
+    onEvent('OnTicketSoldIncremented', () => {
+      console.log('Ticket sold - refreshing dashboard');
+    });
+    
+    onEvent('OnTicketSoldDecremented', () => {
+      console.log('Ticket refunded - refreshing dashboard');
+    });
+    
+    // Ticket updates
+    onTicket('OnTicketCreated', () => {
+      console.log('Ticket created - refreshing dashboard');
+    });
+    
+    onTicket('OnTicketStatusUpdated', () => {
+      console.log('Ticket status updated - refreshing dashboard');
+    });
 
+    // Cleanup
     return () => {
-      // Clean up SignalR connections if needed
+      disconnectAnalyticsHub();
+      disconnectEventHub();
+      disconnectTicketHub();
     };
   }, []);
 
-  const handlePeriodChange = (periodId) => {
+  const handlePeriodChange = (periodId: number) => {
     setSelectedPeriod(periodId);
     if (periodId !== TimePeriod.Custom) {
       setCustomStartDate('');
@@ -123,6 +165,11 @@ export default function EventManagerDashboard() {
     customStartDate: customStartDate,
     customEndDate: customEndDate,
     groupBy: groupBy,
+    includeComparison: false,
+    comparisonPeriod: selectedPeriod === TimePeriod.ThisMonth ? TimePeriod.LastMonth :
+                     selectedPeriod === TimePeriod.ThisWeek ? TimePeriod.LastWeek :
+                     selectedPeriod === TimePeriod.ThisYear ? TimePeriod.LastYear :
+                     TimePeriod.Last30Days,
     includeRealtimeData: true
   };
 
