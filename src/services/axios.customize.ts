@@ -62,6 +62,23 @@ instance.interceptors.response.use(
     const originalRequest = error.config as CustomAxiosRequestConfig;
     const ERROR_TOAST_ID = 'global-error-toast';
 
+    // Xử lý lỗi ERR_BLOCKED_BY_CLIENT (thường do Ad Blocker)
+    if (error.code === 'ERR_BLOCKED_BY_CLIENT' || error.message === 'Network Error') {
+      console.warn('[Network] Request blocked by client (likely Ad Blocker):', {
+        url: originalRequest?.url,
+        method: originalRequest?.method
+      });
+      
+      if (!toast.isActive('blocked-by-client-toast')) {
+        toast.warning('Some content may be blocked by your browser extensions. Please disable Ad Blocker or whitelist this site for full functionality.', {
+          toastId: 'blocked-by-client-toast',
+          autoClose: 8000
+        });
+      }
+      
+      return Promise.reject(error);
+    }
+
     // Xử lý lỗi 401 (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       console.log('[Auth] 401 Unauthorized detected, attempting token refresh...', {
