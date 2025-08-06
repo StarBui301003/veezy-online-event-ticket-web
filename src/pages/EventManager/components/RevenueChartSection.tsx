@@ -67,10 +67,21 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       
       setEvents(sortedEvents);
       setTimeline(revenueTrend);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching revenue data:', error);
-      setEvents([]);
-      setTimeline([]);
+      
+      // Kiểm tra nếu lỗi do Ad Blocker
+      if (error.code === 'ERR_BLOCKED_BY_CLIENT' || error.message === 'Network Error') {
+        console.warn('Revenue data blocked by browser extension. Showing placeholder data.');
+        // Có thể hiển thị thông báo hoặc dữ liệu placeholder
+        setEvents([
+          { eventName: 'Data blocked by Ad Blocker', revenue: 0 }
+        ]);
+        setTimeline([]);
+      } else {
+        setEvents([]);
+        setTimeline([]);
+      }
     }
     setLoading(false);
   }
