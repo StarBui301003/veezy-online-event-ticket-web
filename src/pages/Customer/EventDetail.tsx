@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import { LoginModal } from '@/components/common/LoginModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -99,6 +101,13 @@ interface EventData {
 }
 
 const EventDetail = () => {
+  // Thêm state cho modal đăng nhập
+  const {
+    requireLogin,
+    showLoginModal,
+    setShowLoginModal,
+    handleLoginSuccess,
+  } = useRequireLogin();
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
@@ -132,19 +141,20 @@ const EventDetail = () => {
   const [events, setEvents] = useState<EventData[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
-  let customerId = '';
-  try {
+  // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
+  const { user } = useRequireLogin();
+  // Fallback: if user or customerId is missing, get from localStorage
+  let customerId = user?.userId || user?.accountId || '';
+  if (!customerId) {
     const accStr = localStorage.getItem('account');
     if (accStr) {
-      const accObj = JSON.parse(accStr);
-      if (accObj.account && accObj.account.userId) {
-        customerId = accObj.account.userId;
-      } else if (accObj.userId) {
-        customerId = accObj.userId;
+      try {
+        const accObj = JSON.parse(accStr);
+        customerId = accObj.userId || accObj.accountId || '';
+      } catch (e) {
+        // ignore parse error
       }
     }
-  } catch {
-    customerId = '';
   }
 
   const location = useLocation();
@@ -309,45 +319,66 @@ const EventDetail = () => {
       toast.warn(t('pleaseSelectAtLeastOneTicket'));
       return;
     }
-    if (!customerId) {
-      toast.error(t('customerInfoNotFound'));
-      return;
-    }
-    for (const ticket of tickets) {
-      const selected = selectedTickets[ticket.ticketId];
-      if (selected) {
-        const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
-        if (selected.quantity > maxPerOrder) {
-          toast.error(t('maxTicketsPerOrderError', { maxPerOrder }));
-          return;
+    // Kiểm tra đăng nhập, nếu chưa thì hiện modal
+    requireLogin(() => {
+      // Sau khi login modal, luôn lấy user và customerId mới nhất từ localStorage
+      let latestUser = user;
+      let latestCustomerId = customerId;
+      const accStr = localStorage.getItem('account');
+      if (accStr) {
+        try {
+          const accObj = JSON.parse(accStr);
+          latestUser = accObj;
+          latestCustomerId = accObj.userId || accObj.accountId || '';
+        } catch (e) {
+          // ignore parse error
         }
       }
-    }
-    const checkoutData = {
-      eventId,
-      eventName: event?.eventName || '',
-      eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${
-        event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
-      }`,
-      customerId,
-      items: Object.values(selectedTickets).map((st) => ({
-        ticketId: st.ticketId,
-        ticketName: st.ticketName,
-        ticketPrice: st.ticketPrice,
-        quantity: st.quantity,
-      })),
-      discountCode: discountCode.trim() || undefined,
-      discountAmount: appliedDiscount,
-    };
-    localStorage.setItem('checkout', JSON.stringify(checkoutData));
-    toast.success(
-      <>
-        Chuyển sang xác nhận đơn! <CheckCircle className="inline w-5 h-5 ml-1" />
-      </>
-    );
-    localStorage.setItem('lastEventId', eventId);
-    navigate('/confirm-order');
-    setIsCreatingOrder(false);
+      // Chỉ cho phép role customer mua vé
+      if (!latestUser || latestUser.role !== 1) {
+        toast.error(t('onlyCustomerCanBuyTicket'));
+        return;
+      }
+      if (!latestCustomerId) {
+        toast.error(t('customerInfoNotFound'));
+        return;
+      }
+      for (const ticket of tickets) {
+        const selected = selectedTickets[ticket.ticketId];
+        if (selected) {
+          const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+          if (selected.quantity > maxPerOrder) {
+            toast.error(t('maxTicketsPerOrderError', { maxPerOrder }));
+            return;
+          }
+        }
+      }
+      const checkoutData = {
+        eventId,
+        eventName: event?.eventName || '',
+        eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${
+          event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
+        }`,
+        customerId: latestCustomerId,
+        items: Object.values(selectedTickets).map((st) => ({
+          ticketId: st.ticketId,
+          ticketName: st.ticketName,
+          ticketPrice: st.ticketPrice,
+          quantity: st.quantity,
+        })),
+        discountCode: discountCode.trim() || undefined,
+        discountAmount: appliedDiscount,
+      };
+      localStorage.setItem('checkout', JSON.stringify(checkoutData));
+      toast.success(
+        <>
+          Chuyển sang xác nhận đơn! <CheckCircle className="inline w-5 h-5 ml-1" />
+        </>
+      );
+      localStorage.setItem('lastEventId', eventId);
+      navigate('/confirm-order');
+      setIsCreatingOrder(false);
+    });
   };
 
   const handleValidateDiscount = async () => {
@@ -368,12 +399,21 @@ const EventDetail = () => {
       const res = await validateDiscountCode(String(eventId), discountCode.trim(), orderAmount);
 
       if (res && res.flag && res.data) {
-        setDiscountValidation({
-          success: true,
-          message: res.message || t('discountCodeValid'),
-          discountAmount: res.data.discountAmount,
-        });
-        setAppliedDiscount(res.data.discountAmount || 0);
+        if (res.data.isValid) {
+          setDiscountValidation({
+            success: true,
+            message: res.data.message || t('discountCodeValid'),
+            discountAmount: res.data.discountAmount,
+          });
+          setAppliedDiscount(res.data.discountAmount || 0);
+        } else {
+          setDiscountValidation({
+            success: false,
+            message: res.data.message || t('discountCodeInvalid'),
+            discountAmount: 0,
+          });
+          setAppliedDiscount(0);
+        }
       } else {
         setDiscountValidation({ success: false, message: res.message || t('discountCodeInvalid') });
         setAppliedDiscount(0);
@@ -510,23 +550,24 @@ const EventDetail = () => {
   };
 
   const handleFollowEvent = async () => {
-    if (!event?.eventId) return;
-    setLoadingFollowEvent(true);
-    try {
-      if (isFollowingEvent) {
-        await unfollowEvent(event.eventId);
-        // Sau khi unfollow, kiểm tra lại trạng thái từ backend
-        const res = await checkFollowEventByList(customerId, event.eventId);
-        setIsFollowingEvent(!!res);
-      } else {
-        await followEvent(event.eventId);
-        // Sau khi follow, kiểm tra lại trạng thái từ backend
-        const res = await checkFollowEventByList(customerId, event.eventId);
-        setIsFollowingEvent(!!res);
+    // Kiểm tra đăng nhập, nếu chưa thì hiện modal
+    requireLogin(async () => {
+      if (!event?.eventId) return;
+      setLoadingFollowEvent(true);
+      try {
+        if (isFollowingEvent) {
+          await unfollowEvent(event.eventId);
+          const res = await checkFollowEventByList(customerId, event.eventId);
+          setIsFollowingEvent(!!res);
+        } else {
+          await followEvent(event.eventId);
+          const res = await checkFollowEventByList(customerId, event.eventId);
+          setIsFollowingEvent(!!res);
+        }
+      } finally {
+        setLoadingFollowEvent(false);
       }
-    } finally {
-      setLoadingFollowEvent(false);
-    }
+    });
   };
 
   if (loadingEvent) {
@@ -652,7 +693,9 @@ const EventDetail = () => {
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
-                    setTimeout(() => setReportModal({ type: 'event', id: event.eventId }), 10);
+                    requireLogin(() => {
+                      setTimeout(() => setReportModal({ type: 'event', id: event.eventId }), 10);
+                    });
                   }}
                   className={cn(
                     'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
@@ -1234,7 +1277,11 @@ const EventDetail = () => {
                                 'bg-purple-600 hover:bg-purple-700 text-white'
                               )
                         )}
-                        onClick={handleValidateDiscount}
+                        onClick={() => {
+                          requireLogin(() => {
+                            handleValidateDiscount();
+                          });
+                        }}
                         disabled={validatingDiscount || !discountCode.trim()}
                       >
                         {validatingDiscount ? (
@@ -1301,8 +1348,11 @@ const EventDetail = () => {
                     whileHover={{ scale: 1.03, boxShadow: '0px 0px 15px rgba(168,85,247,0.5)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
-                      setShowFaceModal(true);
-                      setFaceError('');
+                      // Require login before opening FaceCapture modal
+                      requireLogin(() => {
+                        setShowFaceModal(true);
+                        setFaceError('');
+                      });
                     }}
                     disabled={isCreatingOrder || faceLoading || totalAmount === 0}
                     className={cn(
@@ -1429,6 +1479,12 @@ const EventDetail = () => {
           onClose={() => setReportModal(null)}
         />
       )}
+      {/* Modal đăng nhập */}
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
       {/* Modal FaceCapture */}
       {showFaceModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">

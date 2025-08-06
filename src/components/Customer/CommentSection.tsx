@@ -41,6 +41,19 @@ const getLoggedInUser = (): UserData | null => {
 }
 
 export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
+  // State to control dropdown visibility
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Hide dropdowns when login modal is triggered
+  useEffect(() => {
+    const handleRequireLogin = () => {
+      setOpenDropdownId(null);
+    };
+    window.addEventListener('requireLogin', handleRequireLogin);
+    return () => {
+      window.removeEventListener('requireLogin', handleRequireLogin);
+    };
+  }, []);
   const { t } = useTranslation();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,16 +131,30 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     if (!newComment.trim() || !loggedInUser) return;
     setPosting(true);
     try {
-      await instance.post("/api/Comment", {
+      const response = await instance.post("/api/Comment", {
         eventId,
         content: newComment.trim(),
       });
+      
+      // Check if the response indicates an error despite 200 status
+      if (response.data && response.data.flag === false) {
+        throw new Error(response.data.message || t('postCommentFailed'));
+      }
+      
       setNewComment("");
       toast.success(t('commentSent'));
       fetchComments(); 
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      toast.error(error?.response?.data?.message || t('postCommentFailed'));
+      const error = err as Error | { response?: { data?: { message?: string } } };
+      let errorMessage: string | undefined;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null && 'response' in error) {
+        const errObj = error as { response?: { data?: { message?: string } } };
+        errorMessage = errObj.response?.data?.message;
+      }
+      if (!errorMessage) errorMessage = t('postCommentFailed');
+      toast.error(errorMessage);
     } finally {
       setPosting(false);
     }
@@ -150,6 +177,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       setEditingCommentId(null);
       setEditContent("");
       fetchComments();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error(t('editCommentFailed') || 'Sửa bình luận thất bại!');
     }
@@ -170,6 +198,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       toast.success(t('deleteCommentSuccess') || 'Đã xóa bình luận!');
       setDeleteConfirmId(null);
       fetchComments();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error(t('deleteCommentFailed') || 'Xóa bình luận thất bại!');
     }
@@ -209,7 +238,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                 <div className="flex-1">
                   <textarea
                     className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
-                    placeholder={`${t('sendComment')} ${loggedInUser.fullName}...`}
+                    placeholder={t('writeComment') || `Viết bình luận của bạn...`}
                     value={newComment}
                     onChange={e => setNewComment(e.target.value)}
                     disabled={posting}
@@ -257,25 +286,35 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                           <p className="font-semibold text-purple-300">{c.fullName}</p>
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-slate-400">{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
-                            <DropdownMenu modal={false}>
+                            <DropdownMenu modal={false} open={openDropdownId === c.commentId} onOpenChange={open => setOpenDropdownId(open ? c.commentId : null)}>
                               <DropdownMenuTrigger asChild>
                                 <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 focus:outline-none border border-slate-700">
                                   <MoreVertical className="w-6 h-6 text-white" />
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
-                                {/* Report chỉ cho comment của người khác */}
-                                {loggedInUser && c.userId !== loggedInUser.userId && (
-                                  <DropdownMenuItem
-                                    onSelect={e => {
-                                      e.preventDefault();
+                                {/* Report comment: always show, require login before action */}
+                                <DropdownMenuItem
+                                  onSelect={e => {
+                                    e.preventDefault();
+                                    if (!loggedInUser) {
+                                      // Close dropdown before showing login modal
+                                      setOpenDropdownId(null);
+                                      setTimeout(() => {
+                                        window.dispatchEvent(new CustomEvent('requireLogin', {
+                                          detail: {
+                                            afterLogin: () => setReportModal({type: 'comment', id: c.commentId})
+                                          }
+                                        }));
+                                      }, 0);
+                                    } else if (c.userId !== loggedInUser.userId) {
                                       setReportModal({type: 'comment', id: c.commentId});
-                                    }}
-                                    className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                                  >
-                                    <Flag className="w-4 h-4" /> {t('reportComment')}
-                                  </DropdownMenuItem>
-                                )}
+                                    }
+                                  }}
+                                  className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                                >
+                                  <Flag className="w-4 h-4" /> {t('reportComment')}
+                                </DropdownMenuItem>
                                 {/* Sửa/Xóa chỉ cho comment của mình */}
                                 {loggedInUser && c.userId === loggedInUser.userId && (
                                   <>

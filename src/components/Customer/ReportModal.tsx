@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
-import { reportComment, reportEvent, reportNews } from '@/services/Admin/report.service';
+import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
@@ -13,7 +13,7 @@ const REASONS = [
   'Khác',
 ];
 
-type TargetType = 'event' | 'news' | 'comment';
+type TargetType = 'event' | 'news' | 'comment' | 'eventmanager';
 
 interface ReportModalProps {
   open: boolean;
@@ -46,6 +46,8 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
         await reportEvent(targetId, reason, description);
       } else if (targetType === 'news') {
         await reportNews(targetId, reason, description);
+      } else if (targetType === 'eventmanager') {
+        await reportEventManager(targetId, reason, description);
       }
       toast.success('Báo cáo thành công!');
       onClose();
@@ -75,7 +77,13 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
     <SimpleModal open={open} onClose={onClose}>
       <div className="text-white max-w-md w-full rounded-2xl">
         <h2 className="text-2xl font-bold text-white mb-2">
-          {targetType === 'event' ? t('reportEvent') : targetType === 'news' ? t('reportNews') : t('reportComment')}
+          {targetType === 'event' 
+            ? t('reportEvent') 
+            : targetType === 'news' 
+              ? t('reportNews') 
+              : targetType === 'eventmanager'
+                ? t('reportEventManager')
+                : t('reportComment')}
         </h2>
         <div className="text-slate-200 mb-4">
           Vui lòng chọn lý do và mô tả chi tiết nếu cần để gửi báo cáo này tới quản trị viên.

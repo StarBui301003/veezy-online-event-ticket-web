@@ -332,26 +332,22 @@ const ConfirmOrderPage = () => {
             <div className="font-semibold text-slate-700 mb-2">{t('ticketList')}:</div>
             <div className="divide-y divide-gray-200">
               {(orderInfo.items || checkout?.items || []).map((item: CheckoutItem) => {
-                let price = 0;
-                if (typeof item.pricePerTicket === 'number') {
-                  price = item.pricePerTicket;
-                } else if (typeof item.pricePerTicket === 'string') {
-                  price = parseFloat(item.pricePerTicket) || 0;
-                } else if (typeof item.ticketPrice === 'number') {
-                  price = item.ticketPrice;
-                } else if (typeof item.ticketPrice === 'string') {
-                  price = parseFloat(item.ticketPrice) || 0;
-                }
-                
-                let quantity = 0;
-                if (typeof item.quantity === 'number') {
-                  quantity = item.quantity;
-                } else if (typeof item.quantity === 'string') {
-                  quantity = parseInt(item.quantity) || 0;
-                }
-                
+                // Always parse price and quantity as number, fallback to 0
+                const price = typeof item.pricePerTicket === 'number'
+                  ? item.pricePerTicket
+                  : typeof item.pricePerTicket === 'string'
+                    ? parseFloat(item.pricePerTicket) || 0
+                    : typeof item.ticketPrice === 'number'
+                      ? item.ticketPrice
+                      : typeof item.ticketPrice === 'string'
+                        ? parseFloat(item.ticketPrice) || 0
+                        : 0;
+                const quantity = typeof item.quantity === 'number'
+                  ? item.quantity
+                  : typeof item.quantity === 'string'
+                    ? parseInt(item.quantity) || 0
+                    : 0;
                 const itemSubtotal = price * quantity;
-                
                 return (
                   <div key={item.ticketId} className="flex justify-between py-2 text-sm">
                     <span>

@@ -99,6 +99,7 @@ import EventAttendancePredictor from './pages/EventManager/EventAttendancePredic
 // Thêm import cho NotificationManager
 import NotificationManager from './pages/EventManager/NotificationManager';
 import EditDiscountCode from './pages/EventManager/EditDiscountCode';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   useEffect(() => {
@@ -809,19 +810,21 @@ function App() {
         <NotificationProvider userId={userId}>
           <OnlineStatusProvider>
             <CategoryMappingProvider>
-              <RouterProvider router={router} />
-              <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="colored"
-              />
+              <AuthProvider>
+                <RouterProvider router={router} />
+                <ToastContainer
+                  position="top-right"
+                  autoClose={3000}
+                  hideProgressBar={false}
+                  newestOnTop={false}
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="colored"
+                />
+              </AuthProvider>
             </CategoryMappingProvider>
           </OnlineStatusProvider>
         </NotificationProvider>

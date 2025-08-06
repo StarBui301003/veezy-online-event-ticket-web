@@ -192,8 +192,9 @@ export const LoginPage = () => {
         redirectPath = '/admin';
       } else if (role === 2) {
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
-        redirectPath = '/event-manager';
+        redirectPath = '/'; // Chuyển về home customer
       }
+      window.dispatchEvent(new Event('authChanged'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -275,8 +276,9 @@ export const LoginPage = () => {
         redirectPath = '/admin';
       } else if (role === 2) {
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
-        redirectPath = '/event-manager';
+        redirectPath = '/'; // Chuyển về home customer
       }
+      window.dispatchEvent(new Event('authChanged'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {

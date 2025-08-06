@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Loader2,
   Clock,
   ExternalLink,
   MoreVertical,
@@ -15,6 +14,8 @@ import ReportModal from '@/components/Customer/ReportModal';
 import { connectNewsHub } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
+import { LoginModal } from '@/components/common/LoginModal';
 import { cn } from '@/lib/utils';
 
 const NewsDetail: React.FC = () => {
@@ -22,7 +23,7 @@ const NewsDetail: React.FC = () => {
   const { newsId } = useParams<{ newsId: string }>();
   const navigate = useNavigate();
   const [news, setNews] = useState<News | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ...existing code...
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const [showCount, setShowCount] = useState(3);
   const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(
@@ -53,7 +54,6 @@ const NewsDetail: React.FC = () => {
   useEffect(() => {
     connectNewsHub('http://localhost:5004/newsHub');
     const fetchNews = async () => {
-      setLoading(true);
       try {
         const res = await getNewsDetail(newsId || '');
         const data = res.data?.data;
@@ -69,8 +69,6 @@ const NewsDetail: React.FC = () => {
       } catch {
         toast.error('Lỗi khi tải tin tức!');
         navigate('/');
-      } finally {
-        setLoading(false);
       }
     };
     if (newsId) fetchNews();
@@ -84,70 +82,21 @@ const NewsDetail: React.FC = () => {
     navigate(path);
   };
 
+  const {
+    showLoginModal,
+    setShowLoginModal,
+    requireLogin,
+  } = useRequireLogin();
+
   const handleReportNews = () => {
-    if (news) setReportModal({ type: 'news', id: news.newsId });
+    requireLogin(() => {
+      if (news) setReportModal({ type: 'news', id: news.newsId });
+    });
   };
 
   const handleCloseReport = () => {
     setReportModal(null);
-  };
-
-  // Function to properly process HTML content
-  const processHtmlContent = (htmlContent: string) => {
-    if (!htmlContent) return '';
-
-    // Remove any potential double escaping
-    const processedContent = htmlContent
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
-
-    return processedContent;
-  };
-
-  if (loading) {
-    return (
-      <div
-        className={cn(
-          'flex justify-center items-center min-h-screen',
-          getThemeClass(
-            'bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50',
-            'bg-gradient-to-br from-gray-900 via-gray-800 to-black'
-          )
-        )}
-      >
-        <div className="text-center">
-          <div className="relative mb-6">
-            <Loader2
-              className={cn(
-                'w-16 h-16 animate-spin mx-auto',
-                getThemeClass('text-blue-600', 'text-blue-400')
-              )}
-            />
-            <div
-              className={cn(
-                'absolute inset-0 rounded-full animate-pulse',
-                getThemeClass('bg-blue-600/20', 'bg-blue-400/20')
-              )}
-            ></div>
-          </div>
-          <p className={cn('text-xl font-medium', getThemeClass('text-gray-900', 'text-gray-200'))}>
-            Đang tải tin tức...
-          </p>
-          <div
-            className={cn(
-              'mt-2 w-48 h-1 rounded-full mx-auto overflow-hidden',
-              getThemeClass('bg-gray-300', 'bg-gray-700')
-            )}
-          >
-            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  } 
 
   if (!news) return null;
 
@@ -448,20 +397,20 @@ const NewsDetail: React.FC = () => {
                       getThemeClass('border-gray-200/60', 'border-gray-700/50')
                     )}
                   >
-                    <div
-                      className={cn(
-                        'prose prose-lg max-w-none leading-relaxed',
-                        getThemeClass(
-                          'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-em:text-gray-600',
-                          'prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-blue-400 prose-strong:text-white prose-em:text-gray-300'
-                        )
-                      )}
-                      dangerouslySetInnerHTML={{ __html: processHtmlContent(news.newsContent) }}
-                      style={{
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word',
-                      }}
-                    />
+      <div
+        className={cn(
+          'prose prose-lg max-w-none leading-relaxed',
+          getThemeClass(
+            'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-em:text-gray-600',
+            'prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-blue-400 prose-strong:text-white prose-em:text-gray-300'
+          )
+        )}
+        dangerouslySetInnerHTML={{ __html: news.newsContent }}
+        style={{
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+        }}
+      />
                   </div>
                 </article>
 
@@ -611,7 +560,15 @@ const NewsDetail: React.FC = () => {
           onClose={handleCloseReport}
         />
       )}
-
+      {/* Login Modal */}
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {
+          setShowLoginModal(false);
+          if (news) setReportModal({ type: 'news', id: news.newsId });
+        }}
+      />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
         
