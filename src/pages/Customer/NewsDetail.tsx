@@ -63,11 +63,11 @@ const NewsDetail: React.FC = () => {
             setRelatedNews(res.data?.data?.items?.filter((n: News) => n.newsId !== newsId) || [])
           );
         } else {
-          toast.error('Không tìm thấy tin tức!');
+          toast.error('News not found!');
           navigate('/');
         }
       } catch {
-        toast.error('Lỗi khi tải tin tức!');
+        toast.error('Error loading news!');
         navigate('/');
       } finally {
         setLoading(false);
@@ -134,7 +134,7 @@ const NewsDetail: React.FC = () => {
             ></div>
           </div>
           <p className={cn('text-xl font-medium', getThemeClass('text-gray-900', 'text-gray-200'))}>
-            Đang tải tin tức...
+            Loading news...
           </p>
           <div
             className={cn(
@@ -244,7 +244,7 @@ const NewsDetail: React.FC = () => {
                 )}
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                <span className="font-medium">Trang chủ</span>
+                <span className="font-medium">Home</span>
               </button>
               <ChevronRight
                 className={cn('w-4 h-4 mx-3', getThemeClass('text-gray-500', 'text-gray-600'))}
@@ -256,7 +256,7 @@ const NewsDetail: React.FC = () => {
                   getThemeClass('hover:text-blue-600', 'hover:text-blue-400')
                 )}
               >
-                Tin tức
+                News
               </button>
               <ChevronRight
                 className={cn('w-4 h-4 mx-3', getThemeClass('text-gray-500', 'text-gray-600'))}
@@ -264,7 +264,7 @@ const NewsDetail: React.FC = () => {
               <span
                 className={cn('font-semibold', getThemeClass('text-blue-600', 'text-blue-400'))}
               >
-                Chi tiết tin tức
+                News Detail
               </span>
             </div>
           </nav>
@@ -344,7 +344,7 @@ const NewsDetail: React.FC = () => {
                               getThemeClass('text-gray-500', 'text-gray-400')
                             )}
                           >
-                            Ngày đăng
+                            Published Date
                           </div>
                           <div
                             className={cn(
@@ -352,7 +352,7 @@ const NewsDetail: React.FC = () => {
                               getThemeClass('text-gray-800', 'text-gray-200')
                             )}
                           >
-                            {new Date(news.createdAt).toLocaleDateString('vi-VN')}
+                            {new Date(news.createdAt).toLocaleDateString('en-US')}
                           </div>
                         </div>
                       </div>
@@ -372,7 +372,7 @@ const NewsDetail: React.FC = () => {
                               getThemeClass('text-gray-500', 'text-gray-400')
                             )}
                           >
-                            Thời gian
+                            Time
                           </div>
                           <div
                             className={cn(
@@ -380,7 +380,7 @@ const NewsDetail: React.FC = () => {
                               getThemeClass('text-gray-800', 'text-gray-200')
                             )}
                           >
-                            {new Date(news.createdAt).toLocaleTimeString('vi-VN')}
+                            {new Date(news.createdAt).toLocaleTimeString('en-US')}
                           </div>
                         </div>
                       </div>
@@ -395,7 +395,7 @@ const NewsDetail: React.FC = () => {
                           type="button"
                         >
                           <ExternalLink className="w-5 h-5" />
-                          Xem sự kiện liên quan
+                          View Related Event
                         </button>
                       </div>
                     )}
@@ -416,7 +416,7 @@ const NewsDetail: React.FC = () => {
                           getThemeClass('text-blue-600', 'text-blue-400')
                         )}
                       >
-                        Tóm tắt
+                        Summary
                       </div>
                       <p
                         className={cn(
@@ -452,8 +452,8 @@ const NewsDetail: React.FC = () => {
                       className={cn(
                         'prose prose-lg max-w-none leading-relaxed',
                         getThemeClass(
-                          'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-em:text-gray-600',
-                          'prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-blue-400 prose-strong:text-white prose-em:text-gray-300'
+                          'prose-gray prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-em:text-gray-600 ',
+                          'prose-invert prose-headings:text-white prose-p:text-gray-200 prose-a:text-blue-400 prose-strong:text-white prose-em:text-gray-300 text-white'
                         )
                       )}
                       dangerouslySetInnerHTML={{ __html: processHtmlContent(news.newsContent) }}
@@ -484,7 +484,7 @@ const NewsDetail: React.FC = () => {
                             )
                           )}
                         >
-                          TIN LIÊN QUAN
+                          RELATED NEWS
                         </h2>
                         <p
                           className={cn(
@@ -492,14 +492,14 @@ const NewsDetail: React.FC = () => {
                             getThemeClass('text-gray-600', 'text-gray-300')
                           )}
                         >
-                          Khám phá thêm những tin tức thú vị khác
+                          Discover more interesting news
                         </p>
                       </div>
                       <button
                         onClick={() => handleNavigate('/news/all')}
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-blue-600/25 hover:scale-105 transform"
                       >
-                        Xem tất cả
+                        View All
                       </button>
                     </div>
 
@@ -546,7 +546,7 @@ const NewsDetail: React.FC = () => {
                                 type="button"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Sự kiện liên quan
+                                Related Event
                               </button>
                             )}
 
@@ -561,7 +561,7 @@ const NewsDetail: React.FC = () => {
                             >
                               <Calendar className="w-3 h-3 text-blue-400" />
                               <span className="font-medium">
-                                {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                {new Date(item.createdAt).toLocaleDateString('en-US')}
                               </span>
                             </div>
 
@@ -590,7 +590,7 @@ const NewsDetail: React.FC = () => {
                           )}
                           onClick={() => setShowCount((c) => c + 3)}
                         >
-                          Xem thêm tin tức
+                          View More News
                         </button>
                       </div>
                     )}
@@ -647,6 +647,32 @@ const NewsDetail: React.FC = () => {
         
         .prose {
           font-family: 'Inter', sans-serif;
+        }
+        
+        /* Force white text in dark theme for all prose content */
+        .dark .prose,
+        .dark .prose * {
+          color: white !important;
+        }
+        
+        /* Ensure all text elements in dark theme are white */
+        .dark .prose p,
+        .dark .prose div,
+        .dark .prose span,
+        .dark .prose h1,
+        .dark .prose h2,
+        .dark .prose h3,
+        .dark .prose h4,
+        .dark .prose h5,
+        .dark .prose h6,
+        .dark .prose li,
+        .dark .prose ul,
+        .dark .prose ol,
+        .dark .prose blockquote,
+        .dark .prose strong,
+        .dark .prose em,
+        .dark .prose a {
+          color: white !important;
         }
         .prose p { 
           margin-bottom: 1.8rem; 
