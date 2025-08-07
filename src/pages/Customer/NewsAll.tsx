@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllNewsHome } from '@/services/Event Manager/event.service';
+import { searchNews } from '@/services/search.service';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
 import { Link } from 'react-router-dom';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -43,13 +44,30 @@ const NewsAll: React.FC = () => {
     sortOrder: 'desc',
   });
 
-  const fetchNews = async (pageNum: number) => {
+  // Function to reload news with filters
+  const reloadNews = async (filters: FilterOptions, pageNum: number) => {
     setLoading(true);
     try {
-      const res = await getAllNewsHome(pageNum, PAGE_SIZE);
-      const items = res.data?.data?.items || [];
-      setNewsList(items);
-      setTotalPages(res.data?.data?.totalPages || 1);
+      let items: News[] = [];
+      if (!filters.searchTerm && filters.dateRange === 'all' && !filters.location) {
+        // Không có filter: lấy home news
+        const res = await getAllNewsHome(pageNum, PAGE_SIZE);
+        items = res.data?.data?.items || [];
+        setTotalPages(res.data?.data?.totalPages || 1);
+      } else {
+        // Có filter: dùng API global search cho tất cả filter
+        items = await searchNews({
+          searchTerm: filters.searchTerm,
+          dateRange: filters.dateRange,
+          location: filters.location,
+          sortBy: filters.sortBy,
+          sortOrder: filters.sortOrder,
+        });
+        setTotalPages(1);
+      }
+      // Chỉ lấy news đã duyệt, đang hoạt động
+      const visibleNews = items.filter((n) => n.status === true);
+      setNewsList(visibleNews);
     } catch {
       setNewsList([]);
       setTotalPages(1);
@@ -73,76 +91,25 @@ const NewsAll: React.FC = () => {
   // }, [newsList]);
 
   // Apply filters to news
-  const filteredNews = useMemo(() => {
-    return newsList
-      .filter((news) => {
-        // Filter by search term
-        if (filters.searchTerm) {
-          const searchLower = filters.searchTerm.toLowerCase();
-          if (
-            !news.newsTitle.toLowerCase().includes(searchLower) &&
-            !news.newsDescription.toLowerCase().includes(searchLower)
-          ) {
-            return false;
-          }
-        }
-
-        // Filter by date range
-        const newsDate = new Date(news.createdAt);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        switch (filters.dateRange) {
-          case 'today': {
-            return newsDate.toDateString() === today.toDateString();
-          }
-          case 'week': {
-            const lastWeek = new Date(today);
-            lastWeek.setDate(lastWeek.getDate() - 7);
-            return newsDate >= lastWeek;
-          }
-          case 'month': {
-            const lastMonth = new Date(today);
-            lastMonth.setMonth(lastMonth.getMonth() - 1);
-            return newsDate >= lastMonth;
-          }
-          case 'upcoming': {
-            return newsDate > today;
-          }
-          default: {
-            return true;
-          }
-        }
-      })
-      .sort((a, b) => {
-        const aDate = new Date(a.createdAt);
-        const bDate = new Date(b.createdAt);
-        return filters.sortOrder === 'asc'
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
-      });
-  }, [newsList, filters]);
+  // Không cần filter client nữa, chỉ dùng newsList trả về từ server
+  const filteredNews = newsList;
 
   // Connect to NewsHub for real-time updates
   useEffect(() => {
     connectNewsHub('http://localhost:5004/newsHub');
-
     // Listen for real-time news updates
     onNews('OnNewsCreated', () => {
-      fetchNews(page);
+      reloadNews(filters, page);
     });
-
     onNews('OnNewsUpdated', () => {
-      fetchNews(page);
+      reloadNews(filters, page);
     });
-
     onNews('OnNewsDeleted', () => {
-      fetchNews(page);
+      reloadNews(filters, page);
     });
-
     // Initial data load
-    fetchNews(page);
-  }, [page]);
+    reloadNews(filters, page);
+  }, [page, filters]);
 
   const getImageUrl = (news: News) => {
     // Return the image URL if it exists, otherwise use a placeholder
@@ -154,10 +121,7 @@ const NewsAll: React.FC = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+    <div
       className={cn(
         'relative min-h-screen w-full',
         getThemeClass(
@@ -170,15 +134,15 @@ const NewsAll: React.FC = () => {
       <div className="relative z-10">
         {/* Header */}
         <div className="text-center pt-40 pb-10 overflow-visible">
-          <h1
-            className={cn(
-              'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] animate-titleGlow mb-4 overflow-visible',
-              getThemeClass(
-                'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600',
-                'bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200'
-              )
-            )}
-          >
+                <h1
+                  className={cn(
+                    'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] mb-4 overflow-visible',
+                    getThemeClass(
+                      'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600',
+                      'bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200'
+                    )
+                  )}
+                >
             All News
           </h1>
           {/* Music Visualizer */}
@@ -187,7 +151,7 @@ const NewsAll: React.FC = () => {
               <div
                 key={i}
                 className={cn(
-                  'bar rounded animate-musicBar',
+                        'bar rounded',
                   getThemeClass(
                     'bg-gradient-to-t from-blue-400 to-cyan-400',
                     'bg-gradient-to-t from-pink-400 to-cyan-400'
@@ -224,7 +188,7 @@ const NewsAll: React.FC = () => {
           {loading ? (
             <div
               className={cn(
-                'col-span-full text-center text-2xl py-20 animate-pulse',
+                'col-span-full text-center text-2xl py-20',
                 getThemeClass('text-blue-600', 'text-pink-400')
               )}
             >
@@ -243,7 +207,7 @@ const NewsAll: React.FC = () => {
             </div>
           ) : (
             filteredNews.map((news, idx) => (
-              <motion.div
+              <div
                 key={news.newsId}
                 className={cn(
                   'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl cursor-pointer',
@@ -267,15 +231,6 @@ const NewsAll: React.FC = () => {
                       } as React.CSSProperties)
                     : {}
                 }
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-                whileHover={{
-                  boxShadow: getThemeClass(
-                    '0 8px 32px 0 rgba(0,0,0,0.1)',
-                    '0 8px 32px 0 rgba(0,0,0,0.18)'
-                  ),
-                }}
               >
                 <Link to={`/news/${news.newsId}`} className="block h-full w-full">
                   {viewMode === 'grid' ? (
@@ -621,7 +576,7 @@ const NewsAll: React.FC = () => {
                     </>
                   )}
                 </Link>
-              </motion.div>
+              </div>
             ))
           )}
         </div>
@@ -694,31 +649,8 @@ const NewsAll: React.FC = () => {
 
       {/* Custom CSS for animation */}
       <style>{`
-        @keyframes titleGlow {
-          0% { filter: drop-shadow(0 0 10px rgba(255,107,107,0.7)); }
-          50% { filter: drop-shadow(0 0 20px rgba(78,205,196,0.7)); }
-          100% { filter: drop-shadow(0 0 15px rgba(69,183,209,0.7)); }
-        }
-        .animate-titleGlow { animation: titleGlow 4s ease-in-out infinite alternate; }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px);}
-          to { opacity: 1; transform: translateY(0);}
-        }
-        .animate-fadeInUp { animation: fadeInUp 1s ease-out 0.5s both;}
-        @keyframes musicBar {
-          0% { height: 10px; opacity: 0.6;}
-          100% { height: 60px; opacity: 1;}
-        }
-        .music-visualizer .bar { width: 4px; border-radius: 2px; animation: musicBar 1s ease-in-out infinite alternate;}
-        @keyframes cardFloat {
-          0%,100% { transform: translateY(0px);}
-          50% { transform: translateY(-15px);}
-        }
-        .animate-cardFloat { animation: cardFloat 8s ease-in-out infinite;}
-        .event-card:hover .play-overlay { opacity: 1;}
-        .play-icon { width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 3px;}
       `}</style>
-    </motion.div>
+    </div>
   );
 };
 

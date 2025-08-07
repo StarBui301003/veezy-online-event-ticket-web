@@ -1123,7 +1123,7 @@ export default function ProfileEventManager() {
                 setFaceError('');
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
-                  await updateFaceAPI(account.userId, file, [0], undefined, hasFaceAuth);
+                  await updateFaceAPI(account.accountId, file, [0], undefined, hasFaceAuth);
                   toast.success(t('Face updated successfully!'));
                   setShowFaceModal(false);
                   // Refetch face auth status after successful update

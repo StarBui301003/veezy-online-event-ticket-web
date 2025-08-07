@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, Download, Calendar, Clock, UserCheck, Search, Filter, RefreshCw } from 'lucide-react';
+import { Users, Download, Clock, Search, Filter, RefreshCw } from 'lucide-react';
 import { exportAttendanceCheckin } from '@/services/Event Manager/attendance.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { getAttendanceByEvent } from '@/services/Event Manager/attendance.service';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { toast } from 'react-toastify';
 
 
 const AttendanceListPage = () => {
@@ -29,6 +29,9 @@ const AttendanceListPage = () => {
   // Removed unused totalItems state
   const [totalPages, setTotalPages] = useState(1);
 
+  // Add translation hook
+  const { t } = useTranslation();
+
   // Get eventManagerId from localStorage.account (like NotificationManager)
   useEffect(() => {
     const accStr = localStorage.getItem('account');
@@ -42,25 +45,75 @@ const AttendanceListPage = () => {
 
   // Connect to TicketHub for real-time attendance updates
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      connectTicketHub(token);
-      
-      // Listen for real-time attendance updates
-      onTicket('AttendanceCheckedIn', (data: any) => {
-        loadAttendances();
-      });
-      
-      onTicket('AttendanceUpdated', (data: any) => {
-        loadAttendances();
-      });
-      
-      onTicket('TicketIssued', (data: any) => {
-        loadAttendances();
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const setupRealtimeAttendance = async () => {
+      try {
+        const { connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        
+        if (token) {
+          // Connect to Ticket Hub for attendance updates
+          await connectTicketHub('http://localhost:5005/notificationHub', token);
+          
+          // Listen for real-time attendance updates
+          onTicket('AttendanceCheckedIn', (data: any) => {
+            console.log('Attendance checked in:', data);
+            loadAttendances();
+            toast.success(t('attendanceCheckedInRealtime', { 
+              customerName: data.customerName || data.userName || 'Customer'
+            }));
+          });
+          
+          onTicket('AttendanceUpdated', (data: any) => {
+            console.log('Attendance updated:', data);
+            loadAttendances();
+            toast.info(t('attendanceUpdatedRealtime'));
+          });
+          
+          onTicket('TicketIssued', (data: any) => {
+            console.log('Ticket issued:', data);
+            loadAttendances();
+            toast.success(t('ticketIssuedRealtime'));
+          });
+
+          onTicket('TicketGenerated', (data: any) => {
+            console.log('Ticket generated:', data);
+            loadAttendances();
+            toast.info(t('ticketGeneratedRealtime'));
+          });
+
+          onTicket('TicketValidated', (data: any) => {
+            console.log('Ticket validated:', data);
+            if (selectedEvent && data.eventId === selectedEvent) {
+              loadAttendances();
+              toast.success(t('ticketValidatedRealtime'));
+            }
+          });
+
+          // Connect to Notification Hub for attendance notifications
+          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          
+          onNotification('ReceiveNotification', (notification: any) => {
+            // Handle attendance-related notifications
+            if (notification.type === 'AttendanceUpdate' ||
+                notification.type === 'CheckIn' ||
+                notification.type === 'TicketValidation') {
+              console.log('Attendance notification:', notification);
+              toast.info(notification.message || notification.title);
+              
+              // Refresh attendance data if related to current event
+              if (selectedEvent && notification.eventId === selectedEvent) {
+                loadAttendances();
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to setup realtime attendance:', error);
+      }
+    };
+
+    setupRealtimeAttendance();
+  }, [selectedEvent, t]);
 
   // Only define loadAttendances once
   // Load both events and attendances
@@ -140,7 +193,6 @@ const AttendanceListPage = () => {
 
   
   // 0: Admin, 1: Customer, 2: Event Manager
-  const { t } = useTranslation();
   const getRoleText = (role) => {
     if (!role) return t('Unknown');
     if (role === 'Admin') return t('Admin');

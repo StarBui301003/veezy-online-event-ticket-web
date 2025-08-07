@@ -46,7 +46,8 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
   const [viewMode, setViewMode] = useState<'bar' | 'line' | 'doughnut'>('bar');
   const [showTop, setShowTop] = useState(10);
 
-  async function fetchData() {
+  // Shared function for fetching revenue data
+  const fetchData = async () => {
     setLoading(true);
     try {
       // Fix: Sử dụng PascalCase để match với API
@@ -67,17 +68,73 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       
       setEvents(sortedEvents);
       setTimeline(revenueTrend);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching revenue data:', error);
-      setEvents([]);
-      setTimeline([]);
+      
+      // Kiểm tra nếu lỗi do Ad Blocker
+      if (error.code === 'ERR_BLOCKED_BY_CLIENT' || error.message === 'Network Error') {
+        console.warn('Revenue data blocked by browser extension. Showing placeholder data.');
+        // Có thể hiển thị thông báo hoặc dữ liệu placeholder
+        setEvents([
+          { eventName: 'Data blocked by Ad Blocker', revenue: 0 }
+        ]);
+        setTimeline([]);
+      } else {
+        setEvents([]);
+        setTimeline([]);
+      }
     }
     setLoading(false);
-  }
+  };
 
   useEffect(() => {
     fetchData();
   }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy, filter.Period]);
+
+  // Add realtime update listeners for revenue data
+  useEffect(() => {
+    const handleRevenueUpdate = (event: CustomEvent) => {
+      console.log('Revenue chart update received:', event.detail);
+      // Refresh revenue data when realtime update received
+      fetchData();
+    };
+
+    const handleTicketSalesUpdate = (event: CustomEvent) => {
+      console.log('Ticket sales update for revenue chart:', event.detail);
+      // Refresh data when ticket sales affect revenue
+      fetchData();
+    };
+
+    const handleOrderUpdate = (event: CustomEvent) => {
+      console.log('Order update for revenue chart:', event.detail);
+      // Refresh data when new orders come in
+      fetchData();
+    };
+
+    const handleEventUpdate = (event: CustomEvent) => {
+      console.log('Event update for revenue chart:', event.detail);
+      // Refresh data when events are updated
+      fetchData();
+    };
+
+    // Add event listeners
+    window.addEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
+    window.addEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+    window.addEventListener('orderUpdate', handleOrderUpdate as EventListener);
+    window.addEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+    window.addEventListener('eventDataUpdate', handleEventUpdate as EventListener);
+    window.addEventListener('dashboardDataUpdate', handleRevenueUpdate as EventListener);
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
+      window.removeEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
+      window.removeEventListener('orderUpdate', handleOrderUpdate as EventListener);
+      window.removeEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
+      window.removeEventListener('eventDataUpdate', handleEventUpdate as EventListener);
+      window.removeEventListener('dashboardDataUpdate', handleRevenueUpdate as EventListener);
+    };
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {

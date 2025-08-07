@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { searchEvents } from '@/services/search.service'; // Make sure searchEvents uses axios.customize instance
 import { getHomeEvents } from '@/services/Event Manager/event.service';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { StageBackground } from '@/components/StageBackground';
 import { useTranslation } from 'react-i18next';
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -22,20 +23,23 @@ export interface Event {
   isActive: boolean;
   description: string;
   isFree: boolean;
+  type?: string; // Add type property for search results
 }
+
 
 type ViewMode = 'grid' | 'list';
 
 const AllEventsPage = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Filter state
   const [filters, setFilters] = useState<FilterOptions>({
-    searchTerm: '',
+    searchTerm: '', // empty means show all
     dateRange: 'all',
     location: '',
     sortBy: 'date',
@@ -44,15 +48,25 @@ const AllEventsPage = () => {
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-  // Function to reload events
-  const reloadEvents = () => {
+  // Function to reload events with filters
+  const reloadEvents = (filters: FilterOptions) => {
     setLoading(true);
-    getHomeEvents()
-      .then((fetchedEvents) => {
-        const activeEvents = (fetchedEvents || []).filter(
-          (event) => event.isActive !== false && !event.isCancelled
-        );
-        setEvents(activeEvents);
+    if (!filters.searchTerm && filters.dateRange === 'all' && !filters.location) {
+      // No search/filter: show all events
+      setEvents(allEvents);
+      setLoading(false);
+      return;
+    }
+    // Dùng API global search cho tất cả filter
+    searchEvents({
+      searchTerm: filters.searchTerm,
+      dateRange: filters.dateRange,
+      location: filters.location,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    })
+      .then((events) => {
+        setEvents(events);
       })
       .catch(() => setEvents([]))
       .finally(() => setLoading(false));
@@ -64,112 +78,54 @@ const AllEventsPage = () => {
 
     // Listen for real-time event updates
     onEvent('EventCreated', () => {
-      reloadEvents();
+      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
     });
 
     onEvent('EventUpdated', () => {
-      reloadEvents();
+      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
     });
 
     onEvent('EventApproved', () => {
-      reloadEvents();
+      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
     });
 
     onEvent('EventCancelled', () => {
-      reloadEvents();
+      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
     });
-
-    // Initial data load
-    reloadEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Initial load: get home events
+  useEffect(() => {
+    setLoading(true);
+    getHomeEvents()
+      .then((events) => {
+        // Chỉ lấy event đã duyệt, chưa bị hủy, đang hoạt động
+        const visibleEvents = events.filter(
+          (e) => e.isApproved === 1 && !e.isCancelled && e.isActive
+        );
+        setAllEvents(visibleEvents);
+        setEvents(visibleEvents);
+      })
+      .catch(() => {
+        setAllEvents([]);
+        setEvents([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Reload events when filters change
+  useEffect(() => {
+    reloadEvents(filters);
+  }, [filters, allEvents]);
 
   // Get unique locations for filter
   const locations = useMemo(() => {
-    return [...new Set(events.map((event) => event.eventLocation).filter(Boolean))] as string[];
-  }, [events]);
+    return [...new Set(allEvents.map((event) => event.eventLocation).filter(Boolean))] as string[];
+  }, [allEvents]);
 
   // Apply filters to events
-  const filteredEvents = useMemo(() => {
-    let result = [...events];
-
-    // Search filter
-    if (filters.searchTerm) {
-      const searchLower = filters.searchTerm.toLowerCase();
-      result = result.filter(
-        (event) =>
-          event.eventName.toLowerCase().includes(searchLower) ||
-          event.eventLocation.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Date range filter
-    if (filters.dateRange !== 'all') {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      switch (filters.dateRange) {
-        case 'today': {
-          result = result.filter((event) => {
-            const eventDate = new Date(event.startAt);
-            const eventDay = new Date(
-              eventDate.getFullYear(),
-              eventDate.getMonth(),
-              eventDate.getDate()
-            );
-            return eventDay.getTime() === today.getTime();
-          });
-          break;
-        }
-        case 'week': {
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          result = result.filter((event) => {
-            const eventDate = new Date(event.startAt);
-            return eventDate >= today && eventDate <= weekFromNow;
-          });
-          break;
-        }
-        case 'month': {
-          const monthFromNow = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-          result = result.filter((event) => {
-            const eventDate = new Date(event.startAt);
-            return eventDate >= today && eventDate <= monthFromNow;
-          });
-          break;
-        }
-      }
-    }
-
-    // Location filter
-    if (filters.location) {
-      result = result.filter((event) =>
-        event.eventLocation.toLowerCase().includes(filters.location.toLowerCase())
-      );
-    }
-
-    // Sort events
-    result.sort((a, b) => {
-      const aValue = a[filters.sortBy as keyof Event];
-      const bValue = b[filters.sortBy as keyof Event];
-
-      if (filters.sortBy === 'date') {
-        const aDate = new Date(a.startAt);
-        const bDate = new Date(b.startAt);
-        return filters.sortOrder === 'asc'
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
-      }
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const comparison = aValue.localeCompare(bValue);
-        return filters.sortOrder === 'asc' ? comparison : -comparison;
-      }
-
-      return 0;
-    });
-
-    return result;
-  }, [events, filters]);
+  // Không cần filter client nữa, chỉ dùng events trả về từ server
+  const filteredEvents = events;
 
   const getGradient = (index: number) => {
     const gradients = [
@@ -184,10 +140,7 @@ const AllEventsPage = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
+    <div
       className={cn(
         'relative min-h-screen w-full',
         getThemeClass(
@@ -202,7 +155,7 @@ const AllEventsPage = () => {
         <div className="text-center pt-40 pb-10 overflow-visible">
           <h1
             className={cn(
-              'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] animate-titleGlow mb-4 overflow-visible',
+              'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] mb-4 overflow-visible',
               getThemeClass(
                 'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600',
                 'bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200'
@@ -217,7 +170,7 @@ const AllEventsPage = () => {
               <div
                 key={i}
                 className={cn(
-                  'bar rounded animate-musicBar',
+                  'bar rounded',
                   getThemeClass(
                     'bg-gradient-to-t from-blue-400 to-cyan-400',
                     'bg-gradient-to-t from-pink-400 to-cyan-400'
@@ -252,7 +205,7 @@ const AllEventsPage = () => {
           {loading ? (
             <div
               className={cn(
-                'col-span-full text-center text-2xl py-20 animate-pulse',
+                'col-span-full text-center text-2xl py-20',
                 getThemeClass('text-blue-600', 'text-pink-400')
               )}
             >
@@ -271,10 +224,10 @@ const AllEventsPage = () => {
             </div>
           ) : (
             filteredEvents.map((event, idx) => (
-              <motion.div
+              <div
                 key={event.eventId}
                 className={cn(
-                  'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl cursor-pointer',
+                  'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative cursor-pointer',
                   getThemeClass(
                     'bg-white/95 border-gray-200 hover:border-gray-300',
                     'border-white/20 hover:border-white/40'
@@ -295,15 +248,6 @@ const AllEventsPage = () => {
                       } as React.CSSProperties)
                     : {}
                 }
-                initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-                whileHover={{
-                  boxShadow: getThemeClass(
-                    '0 8px 32px 0 rgba(0,0,0,0.1)',
-                    '0 8px 32px 0 rgba(0,0,0,0.18)'
-                  ),
-                }}
               >
                 <Link to={`/event/${event.eventId}`} className="block h-full w-full">
                   {viewMode === 'grid' ? (
@@ -685,39 +629,14 @@ const AllEventsPage = () => {
                     </>
                   )}
                 </Link>
-              </motion.div>
+              </div>
             ))
           )}
         </div>
       </div>
 
-      {/* Custom CSS for animation */}
-      <style>{`
-        @keyframes titleGlow {
-          0% { filter: drop-shadow(0 0 10px rgba(255,107,107,0.7)); }
-          50% { filter: drop-shadow(0 0 20px rgba(78,205,196,0.7)); }
-          100% { filter: drop-shadow(0 0 15px rgba(69,183,209,0.7)); }
-        }
-        .animate-titleGlow { animation: titleGlow 4s ease-in-out infinite alternate; }
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px);}
-          to { opacity: 1; transform: translateY(0);}
-        }
-        .animate-fadeInUp { animation: fadeInUp 1s ease-out 0.5s both;}
-        @keyframes musicBar {
-          0% { height: 10px; opacity: 0.6;}
-          100% { height: 60px; opacity: 1;}
-        }
-        .music-visualizer .bar { width: 4px; border-radius: 2px; animation: musicBar 1s ease-in-out infinite alternate;}
-        @keyframes cardFloat {
-          0%,100% { transform: translateY(0px);}
-          50% { transform: translateY(-15px);}
-        }
-        .animate-cardFloat { animation: cardFloat 8s ease-in-out infinite;}
-        .event-card:hover .play-overlay { opacity: 1;}
-        .play-icon { width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 3px;}
-      `}</style>
-    </motion.div>
+      {/* Custom CSS for animation (đã loại bỏ) */}
+    </div>
   );
 };
 
