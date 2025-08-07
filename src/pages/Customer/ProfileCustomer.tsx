@@ -209,13 +209,13 @@ const ProfileCustomer = () => {
     if (accountObj?.userId) {
       const setupRealtimeUpdates = async () => {
         try {
-          const { 
-            connectTicketHub, 
-            onTicket, 
-            connectNotificationHub, 
+          const {
+            connectTicketHub,
+            onTicket,
+            connectNotificationHub,
             onNotification,
             connectEventHub,
-            onEvent
+            onEvent,
           } = await import('@/services/signalr.service');
 
           // Connect to Ticket Hub for order and ticket updates
@@ -233,7 +233,7 @@ const ProfileCustomer = () => {
             if (data.customerId === accountObj.userId) {
               console.log('Order status changed:', data);
               loadOrderHistory(accountObj.userId);
-              
+
               // Show specific status notifications
               if (data.status === 'Confirmed' || data.status === 'Completed') {
                 toast.success(t('orderConfirmed'));
@@ -283,10 +283,10 @@ const ProfileCustomer = () => {
           onEvent('OnEventCancelled', (data: any) => {
             const eventId = data.eventId || data.EventId;
             // Check if user has tickets for this event
-            const hasTicketsForEvent = orders.some(order => 
-              order.items?.some(item => item.ticketId && item.ticketId.includes(eventId))
+            const hasTicketsForEvent = orders.some((order) =>
+              order.items?.some((item) => item.ticketId && item.ticketId.includes(eventId))
             );
-            
+
             if (hasTicketsForEvent) {
               console.log('Event cancelled - user has tickets:', data);
               toast.warning(t('eventCancelledRefundProcessing'));
@@ -297,10 +297,10 @@ const ProfileCustomer = () => {
           onEvent('OnEventUpdated', (data: any) => {
             const eventId = data.eventId || data.EventId;
             // Check if user has tickets for this event
-            const hasTicketsForEvent = orders.some(order => 
-              order.items?.some(item => item.ticketId && item.ticketId.includes(eventId))
+            const hasTicketsForEvent = orders.some((order) =>
+              order.items?.some((item) => item.ticketId && item.ticketId.includes(eventId))
             );
-            
+
             if (hasTicketsForEvent) {
               console.log('Event updated - user has tickets:', data);
               toast.info(t('eventUpdatedCheckDetails'));
@@ -313,10 +313,12 @@ const ProfileCustomer = () => {
             
             onNotification('ReceiveNotification', (notification: any) => {
               // Filter notifications relevant to profile page
-              if (notification.type === 'OrderUpdate' || 
-                  notification.type === 'TicketIssue' || 
-                  notification.type === 'EventUpdate' ||
-                  notification.type === 'PaymentUpdate') {
+              if (
+                notification.type === 'OrderUpdate' ||
+                notification.type === 'TicketIssue' ||
+                notification.type === 'EventUpdate' ||
+                notification.type === 'PaymentUpdate'
+              ) {
                 console.log('Profile-relevant notification:', notification);
                 toast.info(notification.message || notification.title);
               }
@@ -337,7 +339,6 @@ const ProfileCustomer = () => {
               }
             });
           }
-
         } catch (error) {
           console.error('Failed to setup realtime updates:', error);
         }

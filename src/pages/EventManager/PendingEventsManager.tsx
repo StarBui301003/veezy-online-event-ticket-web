@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, X, Calendar, MapPin, Users, Clock, AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-// ...existing code...
+import {
+  AlertTriangle,
+  X,
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+} from 'lucide-react';
+import { getMyPendingEvents, cancelEvent } from '@/services/Event Manager/event.service';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
+
 // CancelEventConfirmation mockup modal
 function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming }) {
   if (!open) return null;
@@ -22,9 +39,7 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
           ⚠️ Xác nhận hủy sự kiện
         </h2>
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-          <p className="text-red-800 font-medium">
-            Bạn có chắc chắn muốn hủy sự kiện này không?
-          </p>
+          <p className="text-red-800 font-medium">Bạn có chắc chắn muốn hủy sự kiện này không?</p>
           <p className="text-red-600 text-sm mt-1">
             ⚠️ Hành động này không thể hoàn tác và sẽ thông báo đến tất cả người tham gia.
           </p>
@@ -36,11 +51,22 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-red-500" />
-              <span>{event?.startAt ? new Date(event.startAt).toLocaleDateString('vi-VN') : '--/--/----'}</span>
+              <span>
+                {event?.startAt
+                  ? new Date(event.startAt).toLocaleDateString('vi-VN')
+                  : '--/--/----'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-red-500" />
-              <span>{event?.startAt ? new Date(event.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+              <span>
+                {event?.startAt
+                  ? new Date(event.startAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '--:--'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-red-500" />
@@ -87,16 +113,12 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
     </div>
   );
 }
-// ...existing code...
-import { getMyPendingEvents,  cancelEvent } from '@/services/Event Manager/event.service';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
-import { useTranslation } from 'react-i18next';
 
 const EVENTS_PER_PAGE = 5;
 
 const PendingEventsManager = () => {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -140,12 +162,9 @@ const PendingEventsManager = () => {
     setPage(1);
   }, [events.length]);
 
-  
-
   const handleEditEvent = (eventId) => {
     navigate(`/event-manager/edit/${eventId}`, { state: { from: location.pathname } });
   };
-
 
   // Modal state for cancel event
   const [cancelModal, setCancelModal] = useState({ open: false, event: null, isConfirming: false });
@@ -174,35 +193,66 @@ const PendingEventsManager = () => {
   // Màu trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ
   const getStatusColor = (isApproved) => {
     switch (isApproved) {
-      case 0: return 'bg-yellow-50 text-yellow-800 border border-yellow-300';
-      case 1: return 'bg-green-50 text-green-800 border border-green-300';
-      case 2: return 'bg-red-50 text-red-800 border border-red-300';
-      default: return 'bg-gray-50 text-gray-800 border border-gray-300';
+      case 0:
+        return 'bg-yellow-50 text-yellow-800 border border-yellow-300';
+      case 1:
+        return 'bg-green-50 text-green-800 border border-green-300';
+      case 2:
+        return 'bg-red-50 text-red-800 border border-red-300';
+      default:
+        return 'bg-gray-50 text-gray-800 border border-gray-300';
     }
   };
 
   // Icon trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ
   const getStatusIcon = (isApproved) => {
     switch (isApproved) {
-      case 0: return <Clock className="w-4 h-4 mr-1 text-yellow-500" />;
-      case 1: return <CheckCircle className="w-4 h-4 mr-1 text-green-500" />;
-      case 2: return <XCircle className="w-4 h-4 mr-1 text-red-500" />;
-      default: return <AlertCircle className="w-4 h-4 mr-1" />;
+      case 0:
+        return <Clock className="w-4 h-4 mr-1 text-yellow-500" />;
+      case 1:
+        return <CheckCircle className="w-4 h-4 mr-1 text-green-500" />;
+      case 2:
+        return <XCircle className="w-4 h-4 mr-1 text-red-500" />;
+      default:
+        return <AlertCircle className="w-4 h-4 mr-1" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-        <span className="ml-3 text-pink-500">Đang tải sự kiện...</span>
+      <div
+        className={cn(
+          'flex justify-center items-center w-full min-h-screen',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
+        <div
+          className={cn(
+            'animate-spin rounded-full h-12 w-12 border-b-2',
+            getThemeClass('border-blue-500', 'border-pink-500')
+          )}
+        ></div>
+        <span className={cn('ml-3', getThemeClass('text-blue-600', 'text-pink-500'))}>
+          Đang tải sự kiện...
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#18122B] to-[#251749]">
+      <div
+        className={cn(
+          'w-full min-h-screen flex items-center justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-red-900 mb-2">Có lỗi xảy ra</h3>
@@ -221,7 +271,15 @@ const PendingEventsManager = () => {
 
   if (!events.length) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#18122B] to-[#251749]">
+      <div
+        className={cn(
+          'w-full min-h-screen flex items-center justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
         <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-6 text-center">
           <CheckCircle className="w-16 h-16 text-pink-500 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-pink-900 mb-2">Không có sự kiện đang chờ</h3>
@@ -238,14 +296,35 @@ const PendingEventsManager = () => {
     );
   }
 
-   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749] py-8 px-2">
+  return (
+    <div
+      className={cn(
+        'w-full min-h-screen py-8 px-2',
+        getThemeClass(
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+          'bg-gradient-to-br from-[#18122B] to-[#251749]'
+        )
+      )}
+    >
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-yellow-400">{t('pendingEventsTitle')}</h1>
+          <h1
+            className={cn(
+              'text-2xl md:text-3xl font-bold',
+              getThemeClass('text-blue-600', 'text-yellow-400')
+            )}
+          >
+            {t('pendingEventsTitle')}
+          </h1>
           <button
             onClick={fetchEvents}
-            className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors flex items-center font-semibold shadow"
+            className={cn(
+              'px-6 py-2 rounded-lg transition-colors flex items-center font-semibold shadow',
+              getThemeClass(
+                'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600',
+                'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600'
+              )
+            )}
           >
             <RefreshCw className="w-5 h-5 mr-2" />
             {t('refresh')}
@@ -254,29 +333,67 @@ const PendingEventsManager = () => {
 
         <div className="space-y-4">
           {pagedEvents.map((event) => (
-            <div key={event.eventId} className="bg-[#20143a] shadow-sm rounded-lg p-6 border-l-4 border-yellow-400">
+            <div
+              key={event.eventId}
+              className={cn(
+                'shadow-sm rounded-lg p-6 border-l-4',
+                getThemeClass(
+                  'bg-white border-l-blue-400 shadow-lg',
+                  'bg-[#20143a] border-l-yellow-400'
+                )
+              )}
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-yellow-500">{event.eventName || t('noTitle')}</h3>
-                <div className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(event.isApproved)}`}>
+                <h3
+                  className={cn(
+                    'text-lg font-semibold',
+                    getThemeClass('text-blue-600', 'text-yellow-500')
+                  )}
+                >
+                  {event.eventName || t('noTitle')}
+                </h3>
+                <div
+                  className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(
+                    event.isApproved
+                  )}`}
+                >
                   {getStatusIcon(event.isApproved)}
                   <span className="ml-1 font-bold uppercase tracking-wide">
-                    {event.isApproved === 0 ? t('pending') : event.isApproved === 1 ? t('approved') : event.isApproved === 2 ? t('rejected') : t('unknown')}
+                    {event.isApproved === 0
+                      ? t('pending')
+                      : event.isApproved === 1
+                      ? t('approved')
+                      : event.isApproved === 2
+                      ? t('rejected')
+                      : t('unknown')}
                   </span>
                 </div>
               </div>
-              <p className="text-gray-300 mb-4">{event.eventDescription || t('noDescription')}</p>
+              <p className={cn('mb-4', getThemeClass('text-gray-600', 'text-gray-300'))}>
+                {event.eventDescription || t('noDescription')}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">{t('startDate')}</p>
-                  <p className="font-medium text-white">{formatDate(event.startAt)}</p>
+                  <p className={cn('text-sm', getThemeClass('text-gray-500', 'text-gray-400'))}>
+                    {t('startDate')}
+                  </p>
+                  <p className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}>
+                    {formatDate(event.startAt)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">{t('endDate')}</p>
-                  <p className="font-medium text-white">{formatDate(event.endAt)}</p>
+                  <p className={cn('text-sm', getThemeClass('text-gray-500', 'text-gray-400'))}>
+                    {t('endDate')}
+                  </p>
+                  <p className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}>
+                    {formatDate(event.endAt)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">{t('status')}</p>
-                  <p className="font-medium text-white">
+                  <p className={cn('text-sm', getThemeClass('text-gray-500', 'text-gray-400'))}>
+                    {t('status')}
+                  </p>
+                  <p className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}>
                     {event.isApproved === 0
                       ? t('pendingApproval')
                       : event.isApproved === 1
@@ -290,24 +407,36 @@ const PendingEventsManager = () => {
               <div className="flex flex-wrap justify-end gap-2 mt-4">
                 <button
                   onClick={() => handleEditEvent(event.eventId)}
-                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  className={cn(
+                    'px-4 py-2 rounded-lg transition-colors',
+                    getThemeClass(
+                      'bg-blue-100 text-blue-700 hover:bg-blue-200',
+                      'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                    )
+                  )}
                 >
                   {t('edit')}
                 </button>
                 <button
                   onClick={() => handleCancelEvent(event)}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors flex items-center"
+                  className={cn(
+                    'px-4 py-2 rounded-lg transition-colors flex items-center',
+                    getThemeClass(
+                      'bg-red-500 text-white hover:bg-red-600',
+                      'bg-red-500 text-white hover:bg-red-600'
+                    )
+                  )}
                 >
                   {t('cancelEvent')}
                 </button>
-      {/* Cancel Event Modal */}
-      <CancelEventConfirmation
-        event={cancelModal.event}
-        open={cancelModal.open}
-        onClose={() => setCancelModal({ open: false, event: null, isConfirming: false })}
-        onConfirm={handleConfirmCancel}
-        isConfirming={cancelModal.isConfirming}
-      />
+                {/* Cancel Event Modal */}
+                <CancelEventConfirmation
+                  event={cancelModal.event}
+                  open={cancelModal.open}
+                  onClose={() => setCancelModal({ open: false, event: null, isConfirming: false })}
+                  onConfirm={handleConfirmCancel}
+                  isConfirming={cancelModal.isConfirming}
+                />
               </div>
             </div>
           ))}
@@ -317,17 +446,29 @@ const PendingEventsManager = () => {
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-8">
             <button
-              className="p-2 rounded-full bg-yellow-400 text-yellow-900 disabled:opacity-50"
+              className={cn(
+                'p-2 rounded-full disabled:opacity-50',
+                getThemeClass(
+                  'bg-blue-500 text-white disabled:opacity-50',
+                  'bg-yellow-400 text-yellow-900 disabled:opacity-50'
+                )
+              )}
               disabled={page === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
               &lt;
             </button>
-            <span className="text-yellow-200 font-bold">
+            <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-yellow-200'))}>
               {t('page')} {page}/{totalPages}
             </span>
             <button
-              className="p-2 rounded-full bg-yellow-400 text-yellow-900 disabled:opacity-50"
+              className={cn(
+                'p-2 rounded-full disabled:opacity-50',
+                getThemeClass(
+                  'bg-blue-500 text-white disabled:opacity-50',
+                  'bg-yellow-400 text-yellow-900 disabled:opacity-50'
+                )
+              )}
               disabled={page === totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >

@@ -137,8 +137,9 @@ export const validateDateOfBirth = (dateOfBirth: string): ValidationResult => {
   const date = new Date(dateOfBirth);
   const today = new Date();
 
-  if (date > today) {
-    return { isValid: false, errorMessage: 'Date of birth cannot be in the future' };
+  // Check if date is today or in the future
+  if (date >= today) {
+    return { isValid: false, errorMessage: 'Date of birth cannot be today or in the future' };
   }
 
   const age = today.getFullYear() - date.getFullYear();

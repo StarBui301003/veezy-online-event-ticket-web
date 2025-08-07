@@ -51,10 +51,10 @@ const ChatboxAdmin = () => {
   // Component render tracking
   console.log('🔄 [Component] ChatboxAdmin rendering...');
 
-  const { getProfileInputClass, getCardClass, getTextClass } = useThemeClasses();
+  const { getProfileInputClass, getCardClass, getTextClass, theme } = useThemeClasses();
 
-  // Custom scrollbar styles
-  const scrollbarStyles = `
+  // Custom scrollbar styles - theme-aware
+  const getScrollbarStyles = (isDark: boolean) => `
     .custom-scrollbar::-webkit-scrollbar {
       width: 8px;
     }
@@ -62,17 +62,21 @@ const ChatboxAdmin = () => {
       background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.5);
+      background: ${isDark ? 'rgba(156, 163, 175, 0.5)' : 'rgba(107, 114, 128, 0.5)'};
       border-radius: 4px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(156, 163, 175, 0.7);
+      background: ${isDark ? 'rgba(156, 163, 175, 0.7)' : 'rgba(107, 114, 128, 0.7)'};
     }
     .custom-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+      scrollbar-color: ${
+        isDark ? 'rgba(156, 163, 175, 0.5)' : 'rgba(107, 114, 128, 0.5)'
+      } transparent;
     }
   `;
+
+  const scrollbarStyles = getScrollbarStyles(theme === 'dark');
 
   // State for room mode (ai/human) and permission to switch
   const [roomMode, setRoomMode] = useState<'ai' | 'human'>('ai');

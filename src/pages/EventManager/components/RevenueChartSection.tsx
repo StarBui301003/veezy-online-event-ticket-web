@@ -1,88 +1,76 @@
 import { useEffect, useState } from 'react';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
-import { 
-  Chart, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title, 
-  Tooltip, 
-  Legend, 
-  PointElement, 
-  LineElement, 
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
   ArcElement,
-  Filler
+  Filler,
 } from 'chart.js';
 import { getEventManagerRevenue } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, TrendingDown, Calendar, BarChart3 } from 'lucide-react';
+import { TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 Chart.register(
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title, 
-  Tooltip, 
-  Legend, 
-  PointElement, 
-  LineElement, 
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
   ArcElement,
   Filler
 );
 
-// Fix: Update interface để match với main dashboard
 interface RevenueFilterProps {
   CustomStartDate: string;
   CustomEndDate: string;
   GroupBy: number;
-  Period: number; // Thêm Period
+  Period: number;
 }
 
 export default function RevenueChartSection({ filter }: { filter: RevenueFilterProps }) {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState<{ eventName: string; revenue: number }[]>([]);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'bar' | 'line' | 'doughnut'>('bar');
   const [showTop, setShowTop] = useState(10);
 
-  // Shared function for fetching revenue data
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fix: Sử dụng PascalCase để match với API
       const dash = await getEventManagerRevenue({
-        CustomStartDate: filter.CustomStartDate, // PascalCase
-        CustomEndDate: filter.CustomEndDate,     // PascalCase
-        GroupBy: filter.GroupBy,                 // PascalCase
-        Period: filter.Period,                   // Thêm Period nếu cần
+        CustomStartDate: filter.CustomStartDate,
+        CustomEndDate: filter.CustomEndDate,
+        GroupBy: filter.GroupBy,
+        Period: filter.Period,
       });
-      
+
       const revenueByEvent = dash.data?.revenueByEvent || dash.revenueByEvent || [];
       const revenueTrend = dash.data?.revenueTrend || dash.revenueTrend || [];
-      
-      // Sort và limit events theo revenue
+
       const sortedEvents = revenueByEvent
         .map((e: any) => ({ eventName: e.eventName, revenue: e.revenue }))
         .sort((a: any, b: any) => b.revenue - a.revenue);
-      
+
       setEvents(sortedEvents);
       setTimeline(revenueTrend);
     } catch (error: any) {
       console.error('Error fetching revenue data:', error);
-      
-      // Kiểm tra nếu lỗi do Ad Blocker
-      if (error.code === 'ERR_BLOCKED_BY_CLIENT' || error.message === 'Network Error') {
-        console.warn('Revenue data blocked by browser extension. Showing placeholder data.');
-        // Có thể hiển thị thông báo hoặc dữ liệu placeholder
-        setEvents([
-          { eventName: 'Data blocked by Ad Blocker', revenue: 0 }
-        ]);
-        setTimeline([]);
-      } else {
-        setEvents([]);
-        setTimeline([]);
-      }
+      setEvents([]);
+      setTimeline([]);
     }
     setLoading(false);
   };
@@ -91,68 +79,23 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     fetchData();
   }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy, filter.Period]);
 
-  // Add realtime update listeners for revenue data
-  useEffect(() => {
-    const handleRevenueUpdate = (event: CustomEvent) => {
-      console.log('Revenue chart update received:', event.detail);
-      // Refresh revenue data when realtime update received
-      fetchData();
-    };
-
-    const handleTicketSalesUpdate = (event: CustomEvent) => {
-      console.log('Ticket sales update for revenue chart:', event.detail);
-      // Refresh data when ticket sales affect revenue
-      fetchData();
-    };
-
-    const handleOrderUpdate = (event: CustomEvent) => {
-      console.log('Order update for revenue chart:', event.detail);
-      // Refresh data when new orders come in
-      fetchData();
-    };
-
-    const handleEventUpdate = (event: CustomEvent) => {
-      console.log('Event update for revenue chart:', event.detail);
-      // Refresh data when events are updated
-      fetchData();
-    };
-
-    // Add event listeners
-    window.addEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
-    window.addEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
-    window.addEventListener('orderUpdate', handleOrderUpdate as EventListener);
-    window.addEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
-    window.addEventListener('eventDataUpdate', handleEventUpdate as EventListener);
-    window.addEventListener('dashboardDataUpdate', handleRevenueUpdate as EventListener);
-
-    // Cleanup event listeners
-    return () => {
-      window.removeEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
-      window.removeEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
-      window.removeEventListener('orderUpdate', handleOrderUpdate as EventListener);
-      window.removeEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
-      window.removeEventListener('eventDataUpdate', handleEventUpdate as EventListener);
-      window.removeEventListener('dashboardDataUpdate', handleRevenueUpdate as EventListener);
-    };
-  }, []);
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const getGroupByLabel = () => {
     const labels = {
       0: 'giờ',
-      1: 'ngày', 
+      1: 'ngày',
       2: 'tuần',
       3: 'tháng',
       4: 'quý',
-      5: 'năm'
+      5: 'năm',
     };
     return labels[filter.GroupBy as keyof typeof labels] || 'thời gian';
   };
@@ -160,14 +103,29 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
   if (loading) {
     return (
       <div className="space-y-6">
-        {/* Loading skeletons */}
-        <div className="bg-gradient-to-br from-[#2d0036]/80 to-[#3a0ca3]/80 rounded-2xl p-6 border-2 border-blue-500/30">
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-2xl p-6 border-2 shadow-2xl',
+            getThemeClass(
+              'from-indigo-400/30 to-red-200/30 border-indigo-400/30',
+              'from-indigo-400/30 to-red-200/30 border-indigo-400/30'
+            )
+          )}
+        >
           <div className="animate-pulse">
             <div className="h-6 bg-blue-400/20 rounded mb-4 w-1/3"></div>
             <div className="h-64 bg-blue-400/10 rounded"></div>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-yellow-400/30 to-blue-200/30 rounded-2xl p-6 border-2 border-yellow-400/30">
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-2xl p-6 border-2 shadow-2xl',
+            getThemeClass(
+              'from-yellow-400/30 to-blue-200/30 border-yellow-400/30',
+              'from-yellow-400/30 to-blue-200/30 border-yellow-400/30'
+            )
+          )}
+        >
           <div className="animate-pulse">
             <div className="h-6 bg-yellow-400/20 rounded mb-4 w-1/3"></div>
             <div className="h-64 bg-yellow-400/10 rounded"></div>
@@ -179,30 +137,45 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
 
   if (events.length === 0 && timeline.length === 0) {
     return (
-      <div className="text-center py-12 bg-gradient-to-br from-gray-500/20 to-gray-600/20 rounded-2xl border-2 border-gray-400/30">
+      <div
+        className={cn(
+          'text-center py-12 rounded-2xl border-2',
+          getThemeClass(
+            'bg-gradient-to-br from-gray-500/20 to-gray-600/20 border-gray-400/30',
+            'bg-gradient-to-br from-gray-500/20 to-gray-600/20 border-gray-400/30'
+          )
+        )}
+      >
         <BarChart3 size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">Không có dữ liệu doanh thu</h3>
-        <p className="text-gray-400">Chưa có dữ liệu doanh thu trong khoảng thời gian đã chọn</p>
+        <h3
+          className={cn(
+            'text-xl font-semibold mb-2',
+            getThemeClass('text-gray-800', 'text-gray-300')
+          )}
+        >
+          Không có dữ liệu doanh thu
+        </h3>
+        <p className={cn(getThemeClass('text-gray-600', 'text-gray-400'))}>
+          Chưa có dữ liệu doanh thu trong khoảng thời gian đã chọn
+        </p>
       </div>
     );
   }
 
-  // Biểu đồ doanh thu từng sự kiện với nhiều tùy chọn hiển thị
   const topEvents = events.slice(0, showTop);
   const eventData = {
-    labels: topEvents.map(e => {
-      // Rút gọn tên sự kiện nếu quá dài
+    labels: topEvents.map((e) => {
       const name = e.eventName;
       return name.length > 20 ? name.substring(0, 20) + '...' : name;
     }),
     datasets: [
       {
         label: t('revenue') || 'Doanh thu',
-        data: topEvents.map(e => e.revenue),
+        data: topEvents.map((e) => e.revenue),
         backgroundColor: topEvents.map((_, index) => {
           const colors = [
             'rgba(54, 162, 235, 0.8)',
-            'rgba(255, 99, 132, 0.8)', 
+            'rgba(255, 99, 132, 0.8)',
             'rgba(255, 206, 86, 0.8)',
             'rgba(75, 192, 192, 0.8)',
             'rgba(153, 102, 255, 0.8)',
@@ -210,7 +183,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
             'rgba(199, 199, 199, 0.8)',
             'rgba(83, 102, 255, 0.8)',
             'rgba(255, 99, 255, 0.8)',
-            'rgba(99, 255, 132, 0.8)'
+            'rgba(99, 255, 132, 0.8)',
           ];
           return colors[index % colors.length];
         }),
@@ -225,7 +198,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
             'rgba(199, 199, 199, 1)',
             'rgba(83, 102, 255, 1)',
             'rgba(255, 99, 255, 1)',
-            'rgba(99, 255, 132, 1)'
+            'rgba(99, 255, 132, 1)',
           ];
           return colors[index % colors.length];
         }),
@@ -236,121 +209,121 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     ],
   };
 
-  // Separate options for different chart types
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { 
+      legend: {
         display: false,
-        labels: { color: '#fff', padding: 20 }
+        labels: {
+          color: getThemeClass('#1f2937', '#fff'),
+          padding: 20,
+        },
       },
-      title: { 
-        display: true, 
-        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`, 
-        color: '#fff', 
-        font: { size: 18, weight: 'bold' as const }
+      title: {
+        display: true,
+        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`,
+        color: getThemeClass('#1f2937', '#fff'),
+        font: { size: 18, weight: 'bold' as const },
       },
-      tooltip: { 
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+      tooltip: {
+        backgroundColor: getThemeClass('rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.8)'),
+        titleColor: getThemeClass('#fff', '#fff'),
+        bodyColor: getThemeClass('#fff', '#fff'),
+        borderColor: getThemeClass('rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.2)'),
         borderWidth: 1,
-        callbacks: { 
+        callbacks: {
           label: (ctx: any) => {
             const value = formatCurrency(ctx.parsed.y);
             return `${ctx.dataset.label}: ${value}`;
           },
           afterLabel: (ctx: any) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
-            const percentage = (ctx.parsed.y / total * 100).toFixed(1);
+            const percentage = ((ctx.parsed.y / total) * 100).toFixed(1);
             return `Tỷ trọng: ${percentage}%`;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
-      x: { 
-        ticks: { 
-          color: '#fff',
+      x: {
+        ticks: {
+          color: getThemeClass('#374151', '#fff'),
           maxRotation: 45,
           minRotation: 45,
-          font: { size: 11 }
+          font: { size: 11 },
         },
-        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        grid: { color: getThemeClass('rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)') },
       },
-      y: { 
-        ticks: { 
-          color: '#fff',
-          callback: function(value: any) {
+      y: {
+        ticks: {
+          color: getThemeClass('#374151', '#fff'),
+          callback: function (value: any) {
             return formatCurrency(value);
-          }
+          },
         },
         beginAtZero: true,
-        grid: { color: 'rgba(255, 255, 255, 0.1)' }
-      }
+        grid: { color: getThemeClass('rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)') },
+      },
     },
     animation: {
       duration: 1000,
-      easing: 'easeInOutCubic' as const
-    }
+      easing: 'easeInOutCubic' as const,
+    },
   };
 
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { 
+      legend: {
         display: true,
-        labels: { 
-          color: '#fff', 
+        labels: {
+          color: getThemeClass('#1f2937', '#fff'),
           padding: 20,
-          font: { size: 12 }
+          font: { size: 12 },
         },
-        position: 'right' as const
+        position: 'right' as const,
       },
-      title: { 
-        display: true, 
-        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`, 
-        color: '#fff', 
-        font: { size: 18, weight: 'bold' as const }
+      title: {
+        display: true,
+        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`,
+        color: getThemeClass('#1f2937', '#fff'),
+        font: { size: 18, weight: 'bold' as const },
       },
-      tooltip: { 
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+      tooltip: {
+        backgroundColor: getThemeClass('rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.8)'),
+        titleColor: getThemeClass('#fff', '#fff'),
+        bodyColor: getThemeClass('#fff', '#fff'),
+        borderColor: getThemeClass('rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.2)'),
         borderWidth: 1,
-        callbacks: { 
+        callbacks: {
           label: (ctx: any) => {
             const value = formatCurrency(ctx.parsed);
             return `${ctx.label}: ${value}`;
           },
           afterLabel: (ctx: any) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
-            const percentage = (ctx.parsed / total * 100).toFixed(1);
+            const percentage = ((ctx.parsed / total) * 100).toFixed(1);
             return `Tỷ trọng: ${percentage}%`;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     animation: {
       duration: 1000,
-      easing: 'easeInOutCubic' as const
-    }
+      easing: 'easeInOutCubic' as const,
+    },
   };
 
-  // Biểu đồ timeline với cải thiện
   const timelineData = {
-    labels: timeline.map(item => {
-      // Format label theo GroupBy
+    labels: timeline.map((item) => {
       const label = item.periodLabel || item.period || 'N/A';
-      if (filter.GroupBy <= 1) { // Giờ hoặc ngày
-        return new Date(label).toLocaleDateString('vi-VN', { 
-          month: 'short', 
+      if (filter.GroupBy <= 1) {
+        return new Date(label).toLocaleDateString('vi-VN', {
+          month: 'short',
           day: 'numeric',
-          ...(filter.GroupBy === 0 && { hour: '2-digit' })
+          ...(filter.GroupBy === 0 && { hour: '2-digit' }),
         });
       }
       return label;
@@ -358,7 +331,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     datasets: [
       {
         label: t('revenue') || 'Doanh thu',
-        data: timeline.map(item => item.revenue || 0),
+        data: timeline.map((item) => item.revenue || 0),
         borderColor: 'rgba(255, 206, 86, 1)',
         backgroundColor: 'rgba(255, 206, 86, 0.2)',
         fill: true,
@@ -371,7 +344,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       {
         label: t('transactionCount') || 'Số giao dịch',
-        data: timeline.map(item => item.transactionCount || 0),
+        data: timeline.map((item) => item.transactionCount || 0),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         fill: false,
@@ -382,8 +355,8 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
-      }
-    ]
+      },
+    ],
   };
 
   const timelineOptions = {
@@ -394,21 +367,24 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       intersect: false,
     },
     plugins: {
-      legend: { 
-        labels: { color: "#fff", padding: 20 },
-        position: 'top' as const
+      legend: {
+        labels: {
+          color: getThemeClass('#1f2937', '#fff'),
+          padding: 20,
+        },
+        position: 'top' as const,
       },
       title: {
         display: true,
         text: `${t('revenueTimeline') || 'Xu hướng doanh thu'} theo ${getGroupByLabel()}`,
-        color: "#fff",
+        color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: getThemeClass('rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.8)'),
+        titleColor: getThemeClass('#fff', '#fff'),
+        bodyColor: getThemeClass('#fff', '#fff'),
+        borderColor: getThemeClass('rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.2)'),
         borderWidth: 1,
         callbacks: {
           label: (ctx: any) => {
@@ -422,35 +398,35 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     },
     scales: {
       x: {
-        ticks: { 
-          color: "#fff",
+        ticks: {
+          color: getThemeClass('#374151', '#fff'),
           maxRotation: 45,
-          minRotation: 0
+          minRotation: 0,
         },
-        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        grid: { color: getThemeClass('rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)') },
       },
       y: {
         type: 'linear' as const,
         display: true,
         position: 'left' as const,
-        ticks: { 
-          color: "#fff",
-          callback: function(value: any) {
+        ticks: {
+          color: getThemeClass('#374151', '#fff'),
+          callback: function (value: any) {
             return formatCurrency(value);
-          }
+          },
         },
         beginAtZero: true,
-        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        grid: { color: getThemeClass('rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)') },
       },
       y1: {
         type: 'linear' as const,
         display: true,
         position: 'right' as const,
-        ticks: { 
-          color: "#fff",
-          callback: function(value: any) {
+        ticks: {
+          color: getThemeClass('#374151', '#fff'),
+          callback: function (value: any) {
             return value.toLocaleString();
-          }
+          },
         },
         beginAtZero: true,
         grid: {
@@ -460,119 +436,266 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     },
     animation: {
       duration: 1200,
-      easing: 'easeInOutCubic' as const
-    }
+      easing: 'easeInOutCubic' as const,
+    },
   };
 
-  // Stats summary
   const totalRevenue = events.reduce((sum, e) => sum + e.revenue, 0);
   const avgRevenue = events.length > 0 ? totalRevenue / events.length : 0;
   const highestRevenue = events.length > 0 ? events[0].revenue : 0;
-  const revenueGrowth = timeline.length > 1 ? 
-    ((timeline[timeline.length - 1]?.revenue - timeline[0]?.revenue) / timeline[0]?.revenue * 100) : 0;
+  const revenueGrowth =
+    timeline.length > 1
+      ? ((timeline[timeline.length - 1]?.revenue - timeline[0]?.revenue) / timeline[0]?.revenue) *
+        100
+      : 0;
 
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 border border-blue-400/30">
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-xl p-4 border shadow-lg',
+            getThemeClass(
+              'from-blue-500/20 to-blue-600/20 border-blue-400/30',
+              'from-blue-500/20 to-blue-600/20 border-blue-400/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={20} className="text-blue-400" />
-            <span className="text-sm text-blue-300">Tổng doanh thu</span>
+            <span
+              className={cn(
+                'text-sm',
+                getThemeClass('text-blue-700 font-semibold', 'text-blue-300')
+              )}
+            >
+              Tổng doanh thu
+            </span>
           </div>
-          <div className="text-xl font-bold text-blue-400">{formatCurrency(totalRevenue)}</div>
+          <div className={cn('text-xl font-bold', getThemeClass('text-blue-800', 'text-blue-400'))}>
+            {formatCurrency(totalRevenue)}
+          </div>
         </div>
-        
-        <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 border border-green-400/30">
+
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-xl p-4 border shadow-lg',
+            getThemeClass(
+              'from-green-500/20 to-green-600/20 border-green-400/30',
+              'from-green-500/20 to-green-600/20 border-green-400/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 size={20} className="text-green-400" />
-            <span className="text-sm text-green-300">TB/sự kiện</span>
+            <span
+              className={cn(
+                'text-sm',
+                getThemeClass('text-green-700 font-semibold', 'text-green-300')
+              )}
+            >
+              TB/sự kiện
+            </span>
           </div>
-          <div className="text-xl font-bold text-green-400">{formatCurrency(avgRevenue)}</div>
+          <div
+            className={cn('text-xl font-bold', getThemeClass('text-green-800', 'text-green-400'))}
+          >
+            {formatCurrency(avgRevenue)}
+          </div>
         </div>
-        
-        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border border-purple-400/30">
+
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-xl p-4 border shadow-lg',
+            getThemeClass(
+              'from-purple-500/20 to-purple-600/20 border-purple-400/30',
+              'from-purple-500/20 to-purple-600/20 border-purple-400/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={20} className="text-purple-400" />
-            <span className="text-sm text-purple-300">Cao nhất</span>
+            <span
+              className={cn(
+                'text-sm',
+                getThemeClass('text-purple-700 font-semibold', 'text-purple-300')
+              )}
+            >
+              Cao nhất
+            </span>
           </div>
-          <div className="text-xl font-bold text-purple-400">{formatCurrency(highestRevenue)}</div>
+          <div
+            className={cn('text-xl font-bold', getThemeClass('text-purple-800', 'text-purple-400'))}
+          >
+            {formatCurrency(highestRevenue)}
+          </div>
         </div>
-        
-        <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl p-4 border border-yellow-400/30">
+
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-xl p-4 border shadow-lg',
+            getThemeClass(
+              'from-yellow-500/20 to-yellow-600/20 border-yellow-400/30',
+              'from-yellow-500/20 to-yellow-600/20 border-yellow-400/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-2 mb-2">
-            {revenueGrowth >= 0 ? 
-              <TrendingUp size={20} className="text-yellow-400" /> : 
-              <TrendingDown size={20} className="text-red-400" />
-            }
-            <span className="text-sm text-yellow-300">Tăng trưởng</span>
+            <TrendingUp
+              size={20}
+              className={cn(getThemeClass('text-yellow-600', 'text-yellow-400'))}
+            />
+            <span
+              className={cn(
+                'text-sm',
+                getThemeClass('text-yellow-700 font-semibold', 'text-yellow-300')
+              )}
+            >
+              Tăng trưởng
+            </span>
           </div>
-          <div className={`text-xl font-bold ${revenueGrowth >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-            {revenueGrowth >= 0 ? '+' : ''}{revenueGrowth.toFixed(1)}%
+          <div
+            className={cn('text-xl font-bold', getThemeClass('text-yellow-800', 'text-yellow-400'))}
+          >
+            {revenueGrowth.toFixed(1)}%
           </div>
         </div>
       </div>
 
-      {/* Revenue by Event Chart */}
-      {events.length > 0 && (
-        <div className="bg-gradient-to-br from-[#2d0036]/80 to-[#3a0ca3]/80 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl">
-          {/* Chart Controls */}
-          <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar size={20} className="text-blue-400" />
-              <span className="text-blue-300 font-medium">Doanh thu theo sự kiện</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-1 bg-black/20 rounded-lg p-1">
-                {(['bar', 'doughnut'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
-                      viewMode === mode 
-                        ? 'bg-blue-500/50 text-white' 
-                        : 'text-blue-300 hover:bg-blue-500/20'
-                    }`}
-                  >
-                    {mode === 'bar' ? 'Cột' : 'Tròn'}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Show Top Selection */}
-              <select
-                value={showTop}
-                onChange={(e) => setShowTop(Number(e.target.value))}
-                className="bg-black/20 border border-blue-400/30 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              >
-                <option value={5} className="bg-gray-800">Top 5</option>
-                <option value={10} className="bg-gray-800">Top 10</option>
-                <option value={15} className="bg-gray-800">Top 15</option>
-                <option value={20} className="bg-gray-800">Top 20</option>
-              </select>
-            </div>
+      {/* Main Chart */}
+      <div
+        className={cn(
+          'bg-gradient-to-br rounded-2xl p-6 border-2 shadow-2xl',
+          getThemeClass(
+            'from-indigo-400/30 to-red-200/30 border-indigo-400/30',
+            'from-indigo-400/30 to-red-200/30 border-indigo-400/30'
+          )
+        )}
+      >
+        {/* Chart Controls */}
+        <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar size={20} className="text-blue-400" />
+            <span
+              className={cn(
+                'font-medium',
+                getThemeClass('text-blue-800 font-semibold', 'text-blue-300')
+              )}
+            >
+              Doanh thu theo sự kiện
+            </span>
           </div>
-          
-          <div className="h-96">
-            {viewMode === 'bar' && <Bar data={eventData} options={barOptions} />}
-            {viewMode === 'doughnut' && <Doughnut data={eventData} options={doughnutOptions} />}
+
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div
+              className={cn(
+                'flex items-center gap-1 rounded-lg p-1',
+                getThemeClass('bg-blue-100/80', 'bg-black/20')
+              )}
+            >
+              {(['bar', 'doughnut'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={cn(
+                    'px-3 py-1 rounded-md text-sm font-medium transition-all',
+                    getThemeClass(
+                      viewMode === mode
+                        ? 'bg-blue-600 text-white font-semibold'
+                        : 'text-blue-700 hover:bg-blue-200 font-medium',
+                      viewMode === mode
+                        ? 'bg-blue-500/50 text-white'
+                        : 'text-blue-300 hover:bg-blue-500/20'
+                    )
+                  )}
+                >
+                  {mode === 'bar' ? 'Cột' : 'Tròn'}
+                </button>
+              ))}
+            </div>
+
+            {/* Show Top Selection */}
+            <select
+              value={showTop}
+              onChange={(e) => setShowTop(Number(e.target.value))}
+              className={cn(
+                'border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2',
+                getThemeClass(
+                  'bg-white/90 border-blue-300 text-blue-800 focus:ring-blue-400 font-medium',
+                  'bg-black/20 border-blue-400/30 text-white focus:ring-blue-400'
+                )
+              )}
+            >
+              <option
+                value={5}
+                className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
+              >
+                Top 5
+              </option>
+              <option
+                value={10}
+                className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
+              >
+                Top 10
+              </option>
+              <option
+                value={15}
+                className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
+              >
+                Top 15
+              </option>
+              <option
+                value={20}
+                className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
+              >
+                Top 20
+              </option>
+            </select>
           </div>
         </div>
-      )}
+
+        <div className="h-96">
+          {viewMode === 'bar' && <Bar data={eventData} options={barOptions} />}
+          {viewMode === 'doughnut' && <Doughnut data={eventData} options={doughnutOptions} />}
+        </div>
+      </div>
 
       {/* Timeline Chart */}
       {timeline.length > 0 && (
-        <div className="bg-gradient-to-br from-yellow-400/30 to-blue-200/30 rounded-2xl p-6 border-2 border-yellow-400/30 shadow-2xl">
+        <div
+          className={cn(
+            'bg-gradient-to-br rounded-2xl p-6 border-2 shadow-2xl',
+            getThemeClass(
+              'from-yellow-400/30 to-blue-200/30 border-yellow-400/30',
+              'from-yellow-400/30 to-blue-200/30 border-yellow-400/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp size={20} className="text-yellow-400" />
-            <span className="text-yellow-300 font-medium">Xu hướng doanh thu theo {getGroupByLabel()}</span>
-            <span className="text-sm bg-yellow-400/20 px-2 py-1 rounded-full text-yellow-200">
+            <span
+              className={cn(
+                'font-medium',
+                getThemeClass('text-yellow-800 font-semibold', 'text-yellow-300')
+              )}
+            >
+              Xu hướng doanh thu theo {getGroupByLabel()}
+            </span>
+            <span
+              className={cn(
+                'text-sm px-2 py-1 rounded-full font-medium',
+                getThemeClass(
+                  'bg-yellow-400/30 text-yellow-800 font-semibold',
+                  'bg-yellow-400/20 text-yellow-200'
+                )
+              )}
+            >
               {timeline.length} điểm dữ liệu
             </span>
           </div>
-          
+
           <div className="h-80">
             <Line data={timelineData} options={timelineOptions} />
           </div>

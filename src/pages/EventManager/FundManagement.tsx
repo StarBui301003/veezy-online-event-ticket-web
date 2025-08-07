@@ -2,25 +2,20 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Wallet, 
-  CreditCard, 
-  Download, 
-  Search,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+import { Wallet, CreditCard, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { 
+import {
   getMyApprovedEvents,
   getEventFund,
   getEventBalance,
   getEventRevenue,
   getEventTransactions,
-  requestWithdrawal
+  requestWithdrawal,
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 interface Event {
   eventId: string;
@@ -29,7 +24,6 @@ interface Event {
   startAt: string;
   endAt: string;
 }
-
 
 interface Transaction {
   transactionId: string;
@@ -50,6 +44,7 @@ interface Transaction {
 
 export default function FundManagement() {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   // const [fundData, setFundData] = useState<FundData | null>(null);
@@ -72,13 +67,13 @@ export default function FundManagement() {
   useEffect(() => {
     const setupRealtimeFundManagement = async () => {
       try {
-        const { 
-          connectEventHub, 
-          onEvent, 
-          connectTicketHub, 
+        const {
+          connectEventHub,
+          onEvent,
+          connectTicketHub,
           onTicket,
           connectNotificationHub,
-          onNotification 
+          onNotification,
         } = await import('@/services/signalr.service');
 
         const token = localStorage.getItem('access_token');
@@ -140,11 +135,11 @@ export default function FundManagement() {
         onTicket('OrderCreated', (data) => {
           console.log('Order created - fund update:', data);
           // Update revenue for the affected event
-          if (selectedEvent && (data.eventId === selectedEvent.eventId)) {
+          if (selectedEvent && data.eventId === selectedEvent.eventId) {
             const newRevenue = revenue + (data.totalAmount || 0);
             setRevenue(newRevenue);
             toast.success(t('newOrderReceived', { amount: data.totalAmount }));
-            
+
             // Refresh fund data
             fetchFundData(selectedEvent.eventId);
           }
@@ -158,7 +153,7 @@ export default function FundManagement() {
             } else if (data.status === 'Cancelled' || data.status === 'Refunded') {
               toast.warning(t('orderRefundedRevenueAdjusted'));
             }
-            
+
             // Refresh fund data
             fetchFundData(selectedEvent.eventId);
           }
@@ -166,14 +161,14 @@ export default function FundManagement() {
 
         onTicket('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - fund update:', data);
-          if (selectedEvent && (data.eventId === selectedEvent.eventId)) {
+          if (selectedEvent && data.eventId === selectedEvent.eventId) {
             const additionalRevenue = (data.ticketPrice || 0) * (data.quantity || 1);
-            setRevenue(prev => prev + additionalRevenue);
-            
+            setRevenue((prev) => prev + additionalRevenue);
+
             // Update event revenues
-            setEventRevenues(prev => ({
+            setEventRevenues((prev) => ({
               ...prev,
-              [selectedEvent.eventId]: (prev[selectedEvent.eventId] || 0) + additionalRevenue
+              [selectedEvent.eventId]: (prev[selectedEvent.eventId] || 0) + additionalRevenue,
             }));
           }
         });
@@ -184,12 +179,14 @@ export default function FundManagement() {
           
           onNotification('ReceiveNotification', (notification) => {
             // Handle fund-related notifications
-            if (notification.type === 'WithdrawalApproved' ||
-                notification.type === 'WithdrawalRejected' ||
-                notification.type === 'PaymentReceived' ||
-                notification.type === 'FundUpdate') {
+            if (
+              notification.type === 'WithdrawalApproved' ||
+              notification.type === 'WithdrawalRejected' ||
+              notification.type === 'PaymentReceived' ||
+              notification.type === 'FundUpdate'
+            ) {
               console.log('Fund notification:', notification);
-              
+
               if (notification.type === 'WithdrawalApproved') {
                 toast.success(notification.message || t('withdrawalApproved'));
               } else if (notification.type === 'WithdrawalRejected') {
@@ -197,7 +194,7 @@ export default function FundManagement() {
               } else if (notification.type === 'PaymentReceived') {
                 toast.success(notification.message || t('paymentReceived'));
               }
-              
+
               // Refresh fund data
               if (selectedEvent) {
                 fetchFundData(selectedEvent.eventId);
@@ -214,7 +211,6 @@ export default function FundManagement() {
             }
           });
         }
-
       } catch (error) {
         console.error('Failed to setup realtime fund management:', error);
       }
@@ -222,7 +218,7 @@ export default function FundManagement() {
 
     setupRealtimeFundManagement();
     fetchEvents();
-  }, [selectedEvent, revenue, t]);
+  }, [selectedEvent, t]);
 
   useEffect(() => {
     if (selectedEvent) {
@@ -234,14 +230,16 @@ export default function FundManagement() {
     if (events.length === 0) return;
     (async () => {
       const revenues: Record<string, number> = {};
-      await Promise.all(events.map(async (ev) => {
-        try {
-          const res = await getEventRevenue(ev.eventId);
-          revenues[ev.eventId] = res.data || 0;
-        } catch {
-          revenues[ev.eventId] = 0;
-        }
-      }));
+      await Promise.all(
+        events.map(async (ev) => {
+          try {
+            const res = await getEventRevenue(ev.eventId);
+            revenues[ev.eventId] = res.data || 0;
+          } catch {
+            revenues[ev.eventId] = 0;
+          }
+        })
+      );
       setEventRevenues(revenues);
     })();
   }, [events]);
@@ -263,11 +261,11 @@ export default function FundManagement() {
 
   const fetchFundData = async (eventId: string) => {
     try {
-      const [ /*fundRes*/, balanceRes, revenueRes, transactionsRes] = await Promise.all([
+      const [, /*fundRes*/ balanceRes, revenueRes, transactionsRes] = await Promise.all([
         getEventFund(eventId),
         getEventBalance(eventId),
         getEventRevenue(eventId),
-        getEventTransactions(eventId)
+        getEventTransactions(eventId),
       ]);
 
       // setFundData(fundRes.data || null);
@@ -310,7 +308,7 @@ export default function FundManagement() {
       });
 
       await requestWithdrawal(selectedEvent.eventId, amount);
-      
+
       // Update loading toast to success
       toast.update(loadingToast, {
         render: t('withdrawalRequestSent'),
@@ -327,7 +325,7 @@ export default function FundManagement() {
     } catch (error: any) {
       // Dismiss loading toast if it exists
       toast.dismiss();
-      
+
       setShowWithdrawalModal(false); // Close modal on error
       if (error.response?.data?.message === 'Withdrawal is not enabled for this event') {
         setWithdrawalError(t('withdrawalNotEnabled'));
@@ -345,7 +343,7 @@ export default function FundManagement() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'VND'
+      currency: 'VND',
     }).format(amount);
   };
 
@@ -364,27 +362,29 @@ export default function FundManagement() {
   };
 
   const filteredTransactions = transactions
-    .filter(transaction => transaction.transactionStatus === 0 || transaction.transactionStatus === 1)
-    .filter(transaction => {
+    .filter(
+      (transaction) => transaction.transactionStatus === 0 || transaction.transactionStatus === 1
+    )
+    .filter((transaction) => {
       const search = searchTerm.toLowerCase();
       return (
-        transaction.transactionId.toLowerCase().includes(search) ||
-        transaction.orderId.toLowerCase().includes(search) ||
-        transaction.amount.toString().includes(search) ||
-        transaction.transactionDescription.toLowerCase().includes(search) ||
-        formatDate(transaction.createdAt).includes(search) ||
-        formatDateTime(transaction.createdAt).includes(search)
-      ) &&
-        (filterStatus === 'all' || transaction.transactionStatus.toString() === filterStatus);
+        (transaction.transactionId.toLowerCase().includes(search) ||
+          transaction.orderId.toLowerCase().includes(search) ||
+          transaction.amount.toString().includes(search) ||
+          transaction.transactionDescription.toLowerCase().includes(search) ||
+          formatDate(transaction.createdAt).includes(search) ||
+          formatDateTime(transaction.createdAt).includes(search)) &&
+        (filterStatus === 'all' || transaction.transactionStatus.toString() === filterStatus)
+      );
     });
 
   const filteredEvents = searchEvent.trim()
-    ? events.filter(ev =>
-        ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
-      )
+    ? events.filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
     : events;
 
-  const sortedEvents = [...filteredEvents].sort((a, b) => (eventRevenues[b.eventId] || 0) - (eventRevenues[a.eventId] || 0));
+  const sortedEvents = [...filteredEvents].sort(
+    (a, b) => (eventRevenues[b.eventId] || 0) - (eventRevenues[a.eventId] || 0)
+  );
   const total = sortedEvents.length;
   const getCardColor = (idx) => {
     const colors = [
@@ -397,21 +397,47 @@ export default function FundManagement() {
     ];
     return colors[idx % colors.length];
   };
-  const visibleEvents = Array.from({length: Math.min(visibleCount, total)}, (_, i) => sortedEvents[(carouselIndex + i) % total]);
+  const visibleEvents = Array.from(
+    { length: Math.min(visibleCount, total) },
+    (_, i) => sortedEvents[(carouselIndex + i) % total]
+  );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8 flex items-center justify-center">
+      <div
+        className={cn(
+          'min-h-screen p-8 flex items-center justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
+            'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white'
+          )
+        )}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-400 mx-auto mb-4"></div>
-          <p className="text-xl text-green-300">{t('loadingFundData')}</p>
+          <div
+            className={cn(
+              'animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4',
+              getThemeClass('border-blue-400', 'border-green-400')
+            )}
+          ></div>
+          <p className={cn('text-xl', getThemeClass('text-blue-600', 'text-green-300'))}>
+            {t('loadingFundData')}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white p-8">
+    <div
+      className={cn(
+        'min-h-screen p-8',
+        getThemeClass(
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
+          'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white'
+        )
+      )}
+    >
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -428,10 +454,20 @@ export default function FundManagement() {
               <Wallet className="text-green-400" size={48} />
             </motion.div>
             <div>
-              <h1 className="text-4xl lg:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+              <h1
+                className={cn(
+                  'text-4xl lg:text-5xl font-black tracking-wider text-transparent bg-clip-text',
+                  getThemeClass(
+                    'bg-gradient-to-r from-blue-600 to-purple-600',
+                    'bg-gradient-to-r from-green-400 to-emerald-400'
+                  )
+                )}
+              >
                 {t('fundManagement')}
               </h1>
-              <p className="text-lg text-gray-300">{t('trackRevenueAndManageWithdrawals')}</p>
+              <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-gray-300'))}>
+                {t('trackRevenueAndManageWithdrawals')}
+              </p>
             </div>
           </div>
         </div>
@@ -444,13 +480,26 @@ export default function FundManagement() {
           className="mb-8"
         >
           <div className="mb-4 flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
-            <label className="text-lg font-semibold text-green-300">{t('selectEvent')}:</label>
+            <label
+              className={cn(
+                'text-lg font-semibold',
+                getThemeClass('text-blue-600', 'text-green-300')
+              )}
+            >
+              {t('selectEvent')}:
+            </label>
             <input
               type="text"
               placeholder={t('searchEvents')}
               value={searchEvent}
-              onChange={e => setSearchEvent(e.target.value)}
-              className="flex-1 min-w-[200px] p-3 rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 placeholder:text-green-200"
+              onChange={(e) => setSearchEvent(e.target.value)}
+              className={cn(
+                'flex-1 min-w-[200px] p-3 rounded-xl border-2 focus:outline-none',
+                getThemeClass(
+                  'bg-white text-gray-900 border-blue-300 focus:border-blue-500 placeholder:text-gray-500',
+                  'bg-[#2d0036]/80 text-white border-green-500/30 focus:border-green-400 placeholder:text-green-200'
+                )
+              )}
             />
           </div>
           <div className="flex flex-col items-center gap-4">
@@ -466,7 +515,9 @@ export default function FundManagement() {
               <div className="flex gap-6">
                 {visibleEvents.map((event, idx) => {
                   const isSelected = selectedEvent?.eventId === event.eventId;
-                  let cardClass = `transition-all duration-300 rounded-2xl p-8 border-4 shadow-2xl min-w-[320px] max-w-[400px] cursor-pointer ${getCardColor((carouselIndex + idx) % total)}`;
+                  let cardClass = `transition-all duration-300 rounded-2xl p-8 border-4 shadow-2xl min-w-[320px] max-w-[400px] cursor-pointer ${getCardColor(
+                    (carouselIndex + idx) % total
+                  )}`;
                   if (isSelected) {
                     cardClass += ' scale-105 shadow-2xl z-10 ring-4 ring-green-400/60';
                   } else {
@@ -484,10 +535,14 @@ export default function FundManagement() {
                       </div>
                       <div className="text-gray-800 text-sm mb-1">
                         {event.startAt && event.endAt
-                          ? `${new Date(event.startAt).toLocaleDateString('vi-VN')} - ${new Date(event.endAt).toLocaleDateString('vi-VN')}`
+                          ? `${new Date(event.startAt).toLocaleDateString('vi-VN')} - ${new Date(
+                              event.endAt
+                            ).toLocaleDateString('vi-VN')}`
                           : ''}
                       </div>
-                      <div className="text-black text-xs font-semibold mb-2">{event.eventLocation}</div>
+                      <div className="text-black text-xs font-semibold mb-2">
+                        {event.eventLocation}
+                      </div>
                     </div>
                   );
                 })}
@@ -503,10 +558,12 @@ export default function FundManagement() {
             </div>
             {/* Dots indicator */}
             <div className="flex gap-2 mt-2">
-              {Array.from({length: total}).map((_, idx) => (
+              {Array.from({ length: total }).map((_, idx) => (
                 <button
                   key={idx}
-                  className={`w-3 h-3 rounded-full ${carouselIndex === idx ? 'bg-green-400' : 'bg-gray-400'}`}
+                  className={`w-3 h-3 rounded-full ${
+                    carouselIndex === idx ? 'bg-green-400' : 'bg-gray-400'
+                  }`}
                   onClick={() => setCarouselIndex(idx)}
                   aria-label={t('selectCard', { card: idx + 1 })}
                 />
@@ -583,11 +640,16 @@ export default function FundManagement() {
             className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl"
           >
             <div className="flex flex-col lg:flex-row items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-blue-300 mb-4 lg:mb-0">{t('transactionHistory')}</h2>
-              
+              <h2 className="text-2xl font-bold text-blue-300 mb-4 lg:mb-0">
+                {t('transactionHistory')}
+              </h2>
+
               <div className="flex gap-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={20}
+                  />
                   <Input
                     type="text"
                     placeholder={t('searchTransactions')}
@@ -596,7 +658,7 @@ export default function FundManagement() {
                     className="pl-10 bg-[#1a0022]/60 border-blue-500/30 text-white placeholder-gray-400"
                   />
                 </div>
-                
+
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
@@ -619,12 +681,18 @@ export default function FundManagement() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-blue-500/30">
-                      <th className="text-left p-4 text-blue-300 font-semibold">{t('transactionId')}</th>
+                      <th className="text-left p-4 text-blue-300 font-semibold">
+                        {t('transactionId')}
+                      </th>
                       <th className="text-left p-4 text-blue-300 font-semibold">{t('orderId')}</th>
-                      <th className="text-left p-4 text-blue-300 font-semibold">{t('description')}</th>
+                      <th className="text-left p-4 text-blue-300 font-semibold">
+                        {t('description')}
+                      </th>
                       <th className="text-center p-4 text-blue-300 font-semibold">{t('amount')}</th>
                       <th className="text-center p-4 text-blue-300 font-semibold">{t('status')}</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">{t('createdAt')}</th>
+                      <th className="text-center p-4 text-blue-300 font-semibold">
+                        {t('createdAt')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -640,17 +708,35 @@ export default function FundManagement() {
                         <td className="p-4">{transaction.orderId}</td>
                         <td className="p-4">
                           <div>
-                            <p className="font-semibold text-white">{transaction.transactionDescription}</p>
+                            <p className="font-semibold text-white">
+                              {transaction.transactionDescription}
+                            </p>
                           </div>
                         </td>
                         <td className="p-4 text-center">
-                          <span className={`font-semibold ${transaction.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(Math.abs(transaction.amount))}</span>
+                          <span
+                            className={`font-semibold ${
+                              transaction.amount >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {formatCurrency(Math.abs(transaction.amount))}
+                          </span>
                         </td>
                         <td className="p-4 text-center">
-                          <span className={`text-sm font-semibold ${transaction.transactionStatus === 0 ? 'text-green-400' : 'text-red-400'}`}>{getTransactionStatusText(transaction.transactionStatus)}</span>
+                          <span
+                            className={`text-sm font-semibold ${
+                              transaction.transactionStatus === 0
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {getTransactionStatusText(transaction.transactionStatus)}
+                          </span>
                         </td>
                         <td className="p-4 text-center">
-                          <span className="text-gray-400 text-sm">{formatDateTime(transaction.createdAt)}</span>
+                          <span className="text-gray-400 text-sm">
+                            {formatDateTime(transaction.createdAt)}
+                          </span>
                         </td>
                       </motion.tr>
                     ))}
@@ -672,49 +758,98 @@ export default function FundManagement() {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-gradient-to-br from-[#2d0036] to-[#3a0ca3] rounded-2xl p-8 border-2 border-green-500/30 shadow-2xl max-w-md w-full mx-4"
+              className={cn(
+                'rounded-2xl p-8 border-2 shadow-2xl max-w-md w-full mx-4',
+                getThemeClass(
+                  'bg-white/95 border border-gray-200 shadow-lg',
+                  'bg-gradient-to-br from-[#2d0036] to-[#3a0ca3] border-green-500/30'
+                )
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-2xl font-bold text-green-300 mb-6">{t('withdrawalRequest')}</h3>
-              
+              <h3
+                className={cn(
+                  'text-2xl font-bold mb-6',
+                  getThemeClass('text-blue-600', 'text-green-300')
+                )}
+              >
+                {t('withdrawalRequest')}
+              </h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-green-300 text-sm font-semibold mb-2">{t('withdrawalAmount')}:</label>
+                  <label
+                    className={cn(
+                      'block text-sm font-semibold mb-2',
+                      getThemeClass('text-blue-600', 'text-green-300')
+                    )}
+                  >
+                    {t('withdrawalAmount')}:
+                  </label>
                   <Input
                     type="number"
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
                     placeholder={t('enterWithdrawalAmount')}
-                    className="bg-[#1a0022]/60 border-green-500/30 text-white"
+                    className={cn(
+                      getThemeClass(
+                        'bg-white border-blue-300 text-gray-900',
+                        'bg-[#1a0022]/60 border-green-500/30 text-white'
+                      )
+                    )}
                   />
-                  <p className="text-sm text-gray-400 mt-1">
+                  <p
+                    className={cn('text-sm mt-1', getThemeClass('text-gray-500', 'text-gray-400'))}
+                  >
                     {t('availableBalance')}: {formatCurrency(balance)}
                   </p>
                 </div>
-                
                 <div>
-                  <label className="block text-green-300 text-sm font-semibold mb-2">{t('withdrawalNotes')}:</label>
+                  <label
+                    className={cn(
+                      'block text-sm font-semibold mb-2',
+                      getThemeClass('text-blue-600', 'text-green-300')
+                    )}
+                  >
+                    {t('withdrawalNotes')}:
+                  </label>
                   <textarea
                     value={withdrawalNotes}
                     onChange={(e) => setWithdrawalNotes(e.target.value)}
                     placeholder={t('withdrawalNotesPlaceholder')}
-                    className="w-full p-3 rounded-lg bg-[#1a0022]/60 border border-green-500/30 text-white placeholder-gray-400 resize-none"
+                    className={cn(
+                      'w-full p-3 rounded-lg resize-none',
+                      getThemeClass(
+                        'bg-white border-blue-300 text-gray-900 placeholder-gray-500',
+                        'bg-[#1a0022]/60 border-green-500/30 text-white placeholder-gray-400'
+                      )
+                    )}
                     rows={3}
                   />
                 </div>
               </div>
-              
               <div className="flex gap-4 mt-6">
                 <Button
                   onClick={handleRequestWithdrawal}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white"
+                  className={cn(
+                    'flex-1',
+                    getThemeClass(
+                      'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white',
+                      'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white'
+                    )
+                  )}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? t('sending') : t('sendRequest')}
                 </Button>
                 <Button
                   onClick={() => setShowWithdrawalModal(false)}
-                  className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white"
+                  className={cn(
+                    'flex-1',
+                    getThemeClass(
+                      'bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-300 hover:to-gray-400 text-white',
+                      'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white'
+                    )
+                  )}
                 >
                   {t('cancel')}
                 </Button>
@@ -725,4 +860,4 @@ export default function FundManagement() {
       </motion.div>
     </div>
   );
-} 
+}

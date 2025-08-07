@@ -13,11 +13,14 @@ import { Category, CreateEventData } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
 import type { StylesConfig } from 'react-select';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
+import { config } from '@/utils/config';
 
 // Định nghĩa type cho EnhancedContent
 interface EnhancedContent {
   position: number;
-  contentType: "description" | "image";
+  contentType: 'description' | 'image';
   description: string;
   imageUrl: string;
 }
@@ -33,8 +36,8 @@ interface ValidationErrors {
 }
 
 const contentTypeOptions = [
-  { value: "description", label: "Description Only" },
-  { value: "image", label: "Image Only" }
+  { value: 'description', label: 'Description Only' },
+  { value: 'image', label: 'Image Only' },
 ];
 
 // FormField Component với inline error
@@ -44,10 +47,17 @@ const FormField: React.FC<{
   children: React.ReactNode;
   required?: boolean;
   className?: string;
-}> = ({ label, error, children, required = false, className = "" }) => {
+}> = ({ label, error, children, required = false, className = '' }) => {
+  const { getThemeClass } = useThemeClasses();
+
   return (
     <div className={`space-y-2 ${className}`}>
-      <label className="block text-sm font-medium text-slate-300">
+      <label
+        className={cn(
+          'block text-sm font-medium',
+          getThemeClass('text-gray-700', 'text-slate-300')
+        )}
+      >
         {label}
         {required && <span className="text-red-400 ml-1">*</span>}
       </label>
@@ -55,7 +65,11 @@ const FormField: React.FC<{
       {error && (
         <div className="flex items-center space-x-2 text-red-400 text-sm animate-shake">
           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+              clipRule="evenodd"
+            />
           </svg>
           <span>{error}</span>
         </div>
@@ -65,35 +79,40 @@ const FormField: React.FC<{
 };
 
 // InputField Component với error styling
-const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { error?: string }> = ({ 
-  error, className = "", ...props 
+const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { error?: string }> = ({
+  error,
+  className = '',
+  ...props
 }) => {
-  const baseClass = `w-full p-4 rounded-xl bg-slate-700/60 border text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200`;
-  const errorClass = error ? "border-red-500 focus:ring-red-500" : "border-purple-700";
-  
-  return (
-    <input
-      className={`${baseClass} ${errorClass} ${className}`}
-      {...props}
-    />
+  const { getThemeClass } = useThemeClasses();
+
+  const baseClass = cn(
+    'w-full p-4 rounded-xl border focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200',
+    getThemeClass(
+      'bg-white/90 text-gray-900 placeholder-gray-500 border-gray-300',
+      'bg-slate-700/60 text-white placeholder-slate-400 border-purple-700'
+    )
   );
+  const errorClass = error ? 'border-red-500 focus:ring-red-500' : '';
+
+  return <input className={`${baseClass} ${errorClass} ${className}`} {...props} />;
 };
 
 // Hàm loại bỏ HTML tags và trả về plain text
 function stripHtmlTags(html: string) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || "";
+  return doc.body.textContent || '';
 }
 
 // Hàm loại bỏ <p></p> và <p><br></p> rỗng ở đầu/cuối hoặc toàn bộ
 function cleanHtml(html: string) {
   const cleaned = html
-    .replace(/<p><br><\/p>/g, "")
-    .replace(/<p>\s*<\/p>/g, "")
-    .replace(/^\s+|\s+$/g, "");
+    .replace(/<p><br><\/p>/g, '')
+    .replace(/<p>\s*<\/p>/g, '')
+    .replace(/^\s+|\s+$/g, '');
   // Nếu chỉ còn lại chuỗi rỗng hoặc toàn dấu cách thì trả về plain text
   const plainText = stripHtmlTags(cleaned);
-  return plainText.trim() === "" ? "" : plainText;
+  return plainText.trim() === '' ? '' : plainText;
 }
 
 // Validation functions
@@ -104,35 +123,35 @@ const validateField = (name: string, value: any, formData?: any): string => {
       if (value.length < 3) return 'Tên sự kiện phải có ít nhất 3 ký tự';
       if (value.length > 100) return 'Tên sự kiện không được quá 100 ký tự';
       break;
-    
+
     case 'eventLocation':
       if (value && value.length > 200) return 'Địa điểm không được quá 200 ký tự';
       break;
-    
+
     case 'startAt':
       if (!value) return 'Thời gian bắt đầu là bắt buộc';
       if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
       break;
-    
+
     case 'endAt':
       if (!value) return 'Thời gian kết thúc là bắt buộc';
       if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
         return 'Thời gian kết thúc phải sau thời gian bắt đầu';
       }
       break;
-    
+
     case 'bankAccount':
       if (value && !/^[0-9]{8,20}$/.test(value)) {
         return 'Số tài khoản phải từ 8-20 chữ số';
       }
       break;
-    
+
     case 'bankAccountName':
       if (value && (value.length < 2 || value.length > 50)) {
         return 'Tên tài khoản phải từ 2-50 ký tự';
       }
       break;
-    
+
     case 'bankName':
       if (value && (value.length < 2 || value.length > 50)) {
         return 'Tên ngân hàng phải từ 2-50 ký tự';
@@ -146,7 +165,9 @@ export default function CreateEventForm() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [uploadingContentImage, setUploadingContentImage] = useState<{ [key: number]: boolean }>({});
+  const [uploadingContentImage, setUploadingContentImage] = useState<{ [key: number]: boolean }>(
+    {}
+  );
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -162,14 +183,15 @@ export default function CreateEventForm() {
     endAt: '',
     tags: [],
     categoryIds: [],
-    contents: [{ position: 1, contentType: "description", description: "", imageUrl: "" }],
-    bankAccount: "",
-    bankAccountName: "",
-    bankName: "",
+    contents: [{ position: 1, contentType: 'description', description: '', imageUrl: '' }],
+    bankAccount: '',
+    bankAccountName: '',
+    bankName: '',
   });
 
   const { quill, quillRef } = useQuill();
   const navigate = useNavigate();
+  const { getThemeClass, theme } = useThemeClasses();
 
   const fetchCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -190,9 +212,9 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     fetchCategories();
-    
+
     // Connect to EventHub and listen for category changes
-    connectEventHub();
+    connectEventHub(`${config.gatewayUrl}/eventhub`);
     onEvent('OnCategoryCreated', () => {
       fetchCategories();
     });
@@ -206,7 +228,11 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     if (quill) {
-      quill.root.setAttribute('style', 'background:#27272a;color:#fff;min-height:160px;');
+      const isDark = theme === 'dark';
+      const themeClass = isDark ? 'dark' : 'light';
+      document.body.classList.remove('light', 'dark');
+      document.body.classList.add(themeClass);
+
       quill.on('text-change', () => {
         const description = cleanHtml(quill.root.innerHTML);
         setFormData((prev) => ({
@@ -215,20 +241,20 @@ export default function CreateEventForm() {
         }));
       });
     }
-  }, [quill]);
+  }, [quill, theme]);
 
   // Validation helpers
   const validateSingleField = (name: string, value: any) => {
     const error = validateField(name, value, formData);
-    setErrors(prev => ({
+    setErrors((prev) => ({
       ...prev,
-      [name]: error
+      [name]: error,
     }));
     return !error;
   };
 
   const clearError = (fieldName: string) => {
-    setErrors(prev => {
+    setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[fieldName];
       return newErrors;
@@ -245,8 +271,9 @@ export default function CreateEventForm() {
       alert('Chỉ chấp nhận file hình ảnh');
       return;
     }
-    
-    if (file.size > 10 * 1024 * 1024) { // 10MB
+
+    if (file.size > 10 * 1024 * 1024) {
+      // 10MB
       alert('Kích thước file không được vượt quá 10MB');
       return;
     }
@@ -273,28 +300,28 @@ export default function CreateEventForm() {
     onDrop: onDropCover,
     accept: { 'image/*': [] },
     maxSize: 10 * 1024 * 1024,
-    multiple: false
+    multiple: false,
   });
 
   const handleContentImageDrop = async (index: number, file: File) => {
     if (!file.type.startsWith('image/')) {
-      setContentErrors(prev => ({
+      setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Chỉ chấp nhận file hình ảnh'
-      }));
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      setContentErrors(prev => ({
-        ...prev,
-        [index]: 'Kích thước file không được vượt quá 10MB'
+        [index]: 'Chỉ chấp nhận file hình ảnh',
       }));
       return;
     }
 
-    setUploadingContentImage(prev => ({ ...prev, [index]: true }));
-    setContentErrors(prev => {
+    if (file.size > 10 * 1024 * 1024) {
+      setContentErrors((prev) => ({
+        ...prev,
+        [index]: 'Kích thước file không được vượt quá 10MB',
+      }));
+      return;
+    }
+
+    setUploadingContentImage((prev) => ({ ...prev, [index]: true }));
+    setContentErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[index];
       return newErrors;
@@ -306,12 +333,12 @@ export default function CreateEventForm() {
       newContents[index].imageUrl = url;
       setFormData((prev) => ({ ...prev, contents: newContents }));
     } catch {
-      setContentErrors(prev => ({
+      setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Upload hình ảnh thất bại'
+        [index]: 'Upload hình ảnh thất bại',
       }));
     } finally {
-      setUploadingContentImage(prev => ({ ...prev, [index]: false }));
+      setUploadingContentImage((prev) => ({ ...prev, [index]: false }));
     }
   };
 
@@ -319,7 +346,7 @@ export default function CreateEventForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       clearError(name);
@@ -327,7 +354,7 @@ export default function CreateEventForm() {
   };
 
   const handleBlur = (fieldName: string) => {
-    setTouched(prev => ({ ...prev, [fieldName]: true }));
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
     validateSingleField(fieldName, formData[fieldName as keyof EnhancedCreateEventData]);
   };
 
@@ -338,15 +365,16 @@ export default function CreateEventForm() {
     }));
   };
 
-  const handleContentChange = (index: number, field: 'description' | 'imageUrl') => 
+  const handleContentChange =
+    (index: number, field: 'description' | 'imageUrl') =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newContents = [...formData.contents];
       newContents[index] = { ...newContents[index], [field]: e.target.value };
       setFormData((prev) => ({ ...prev, contents: newContents }));
-      
+
       // Clear content error
       if (contentErrors[index]) {
-        setContentErrors(prev => {
+        setContentErrors((prev) => {
           const newErrors = { ...prev };
           delete newErrors[index];
           return newErrors;
@@ -354,7 +382,7 @@ export default function CreateEventForm() {
       }
     };
 
-  const handleContentTypeChange = (index: number, contentType: "description" | "image") => {
+  const handleContentTypeChange = (index: number, contentType: 'description' | 'image') => {
     const newContents = [...formData.contents];
     newContents[index] = {
       ...newContents[index],
@@ -363,10 +391,10 @@ export default function CreateEventForm() {
       imageUrl: contentType === 'description' ? '' : newContents[index].imageUrl,
     };
     setFormData((prev) => ({ ...prev, contents: newContents }));
-    
+
     // Clear content error
     if (contentErrors[index]) {
-      setContentErrors(prev => {
+      setContentErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[index];
         return newErrors;
@@ -377,15 +405,17 @@ export default function CreateEventForm() {
   const handleRemoveContent = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      contents: prev.contents.filter((_, i) => i !== index).map((content, i) => ({
-        ...content,
-        position: i + 1
-      })),
+      contents: prev.contents
+        .filter((_, i) => i !== index)
+        .map((content, i) => ({
+          ...content,
+          position: i + 1,
+        })),
     }));
-    
+
     // Clear error for removed content
     if (contentErrors[index]) {
-      setContentErrors(prev => {
+      setContentErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[index];
         return newErrors;
@@ -399,11 +429,11 @@ export default function CreateEventForm() {
         ...prev,
         contents: [
           ...prev.contents,
-          { 
-            position: prev.contents.length + 1, 
-            contentType: "description", 
-            description: "", 
-            imageUrl: "" 
+          {
+            position: prev.contents.length + 1,
+            contentType: 'description',
+            description: '',
+            imageUrl: '',
           },
         ],
       }));
@@ -417,7 +447,7 @@ export default function CreateEventForm() {
     let hasError = false;
 
     // Validate main form fields
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       if (key !== 'contents') {
         const error = validateField(key, (formData as any)[key], formData);
         if (error) {
@@ -435,18 +465,18 @@ export default function CreateEventForm() {
 
     // Validate contents
     formData.contents.forEach((content, index) => {
-      if (content.contentType === "description" && !content.description.trim()) {
-        newContentErrors[index] = "Mô tả không được để trống";
+      if (content.contentType === 'description' && !content.description.trim()) {
+        newContentErrors[index] = 'Mô tả không được để trống';
         hasError = true;
-      } else if (content.contentType === "image" && !content.imageUrl.trim()) {
-        newContentErrors[index] = "Hình ảnh không được để trống";
+      } else if (content.contentType === 'image' && !content.imageUrl.trim()) {
+        newContentErrors[index] = 'Hình ảnh không được để trống';
         hasError = true;
       }
     });
 
     setErrors(newErrors);
     setContentErrors(newContentErrors);
-    
+
     return !hasError;
   };
 
@@ -486,7 +516,7 @@ export default function CreateEventForm() {
         bankAccountName: formData.bankAccountName,
         bankName: formData.bankName,
       };
-      
+
       await createEvent(apiData);
       navigate('/event-manager/pending-events');
     } catch (error: any) {
@@ -500,9 +530,15 @@ export default function CreateEventForm() {
   const selectStyles: StylesConfig = {
     control: (provided, state) => ({
       ...provided,
-      backgroundColor: '#27272a',
-      borderColor: state.isFocused ? '#a21caf' : (errors.categoryIds ? '#ef4444' : '#3f3f46'),
-      color: '#ffffff',
+      backgroundColor: theme === 'dark' ? '#27272a' : '#ffffff',
+      borderColor: state.isFocused
+        ? '#a21caf'
+        : errors.categoryIds
+        ? '#ef4444'
+        : theme === 'dark'
+        ? '#3f3f46'
+        : '#d1d5db',
+      color: theme === 'dark' ? '#ffffff' : '#374151',
       borderRadius: 12,
       minHeight: 48,
       boxShadow: 'none',
@@ -512,16 +548,17 @@ export default function CreateEventForm() {
     }),
     menu: (provided) => ({
       ...provided,
-      backgroundColor: '#18181b',
-      border: '1px solid #a21caf',
+      backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff',
+      border: `1px solid ${theme === 'dark' ? '#a21caf' : '#d1d5db'}`,
       zIndex: 9999,
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? '#a21caf' : '#18181b',
-      color: '#fff',
+      backgroundColor: state.isFocused ? '#a21caf' : theme === 'dark' ? '#18181b' : '#ffffff',
+      color: theme === 'dark' ? '#fff' : '#374151',
       '&:hover': {
         backgroundColor: '#a21caf',
+        color: '#fff',
       },
     }),
     multiValue: (provided) => ({
@@ -542,45 +579,108 @@ export default function CreateEventForm() {
     }),
     input: (provided) => ({
       ...provided,
-      color: '#fff',
+      color: theme === 'dark' ? '#fff' : '#374151',
     }),
     placeholder: (provided) => ({
       ...provided,
-      color: '#a3a3a3',
+      color: theme === 'dark' ? '#a3a3a3' : '#6b7280',
     }),
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-0 m-0">
+    <div
+      className={cn(
+        'w-full min-h-screen p-0 m-0',
+        getThemeClass(
+          'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900',
+          'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white'
+        )
+      )}
+    >
       <style>
         {`
-        .ql-toolbar {
+        /* Light theme styles */
+        .light .ql-toolbar {
+          background: #f8fafc !important;
+          border-radius: 0.75rem 0.75rem 0 0 !important;
+          border-color: #3b82f6 !important;
+        }
+        .light .ql-toolbar button {
+          color: #374151 !important;
+          opacity: 0.8;
+          transition: opacity 0.2s;
+          border-radius: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          margin: 0 0.125rem;
+        }
+        .light .ql-toolbar button:hover {
+          opacity: 1;
+          background-color: rgba(59, 130, 246, 0.1) !important;
+        }
+        .light .ql-container {
+          background: #ffffff !important;
+          color: #374151 !important;
+          border-radius: 0 0 0.75rem 0.75rem !important;
+          border-color: #3b82f6 !important;
+          min-height: 160px;
+        }
+        .light .ql-editor {
+          color: #374151 !important;
+        }
+        .light .ql-picker {
+          color: #374151 !important;
+        }
+        .light .ql-picker-options {
+          background: #ffffff !important;
+          color: #374151 !important;
+          border: 1px solid #3b82f6 !important;
+          z-index: 9999 !important;
+        }
+        .light .ql-picker-item {
+          color: #374151 !important;
+        }
+
+        /* Dark theme styles */
+        .dark .ql-toolbar {
           background: #18181b !important;
           border-radius: 0.75rem 0.75rem 0 0 !important;
           border-color: #a21caf !important;
         }
-        .ql-container {
+        .dark .ql-toolbar button {
+          color: #fff !important;
+          opacity: 0.8;
+          transition: opacity 0.2s;
+          border-radius: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          margin: 0 0.125rem;
+        }
+        .dark .ql-toolbar button:hover {
+          opacity: 1;
+          background-color: rgba(162, 28, 175, 0.2) !important;
+        }
+        .dark .ql-container {
           background: #27272a !important;
           color: #fff !important;
           border-radius: 0 0 0.75rem 0.75rem !important;
           border-color: #a21caf !important;
           min-height: 160px;
         }
-        .ql-editor {
+        .dark .ql-editor {
           color: #fff !important;
         }
-        .ql-picker {
+        .dark .ql-picker {
           color: #fff !important;
         }
-        .ql-picker-options {
+        .dark .ql-picker-options {
           background: #27272a !important;
           color: #fff !important;
           border: 1px solid #a21caf !important;
           z-index: 9999 !important;
         }
-        .ql-picker-item {
+        .dark .ql-picker-item {
           color: #fff !important;
         }
+
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }
@@ -591,33 +691,52 @@ export default function CreateEventForm() {
         }
         `}
       </style>
-      
+
       <div className="w-full h-full p-6">
         {/* Back Button */}
         <div className="flex justify-start mb-6">
           <button
             type="button"
             onClick={() => navigate('/event-manager')}
-            className="bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center space-x-2"
+            className={cn(
+              'px-6 py-3 rounded-xl font-medium shadow-lg transition-all duration-200 flex items-center space-x-2',
+              getThemeClass(
+                'bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white',
+                'bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white'
+              )
+            )}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             <span>{t('backToDashboard')}</span>
           </button>
         </div>
-        
+
         {/* Main Form */}
         <form
           onSubmit={handleSubmit}
-          className="space-y-8 bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-purple-700/40 w-full max-w-[1200px] mx-auto"
+          className={cn(
+            'space-y-8 p-8 rounded-3xl shadow-2xl w-full max-w-[1200px] mx-auto',
+            getThemeClass(
+              'bg-white/90 backdrop-blur-md border-blue-200',
+              'bg-slate-800/90 backdrop-blur-md border-purple-700/40'
+            )
+          )}
         >
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 drop-shadow">
               {t('createNewEvent')}
             </h2>
-            <p className="text-slate-400 text-lg">{t('fillEventDetails')}</p>
+            <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-slate-400'))}>
+              {t('fillEventDetails')}
+            </p>
           </div>
 
           {/* Basic Information Grid */}
@@ -638,8 +757,8 @@ export default function CreateEventForm() {
               <div
                 {...getCoverRootProps()}
                 className={`w-full h-48 flex items-center justify-center bg-slate-700/30 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${
-                  isCoverDragActive 
-                    ? 'border-purple-400 bg-purple-400/10' 
+                  isCoverDragActive
+                    ? 'border-purple-400 bg-purple-400/10'
                     : 'border-purple-400/50 hover:border-purple-400'
                 }`}
               >
@@ -658,7 +777,11 @@ export default function CreateEventForm() {
                     />
                     <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs flex items-center">
                       <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       Uploaded
                     </div>
@@ -724,10 +847,20 @@ export default function CreateEventForm() {
           </div>
 
           {/* Bank Information Section */}
-          <div className="bg-slate-700/30 p-6 rounded-2xl border border-slate-600/50">
+          <div
+            className={cn(
+              'p-6 rounded-2xl border-2 mb-8',
+              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+            )}
+          >
             <h3 className="text-xl font-semibold text-purple-300 mb-4 flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
               </svg>
               Thông tin ngân hàng (Tùy chọn)
             </h3>
@@ -807,11 +940,26 @@ export default function CreateEventForm() {
           </FormField>
 
           {/* Event Contents Section */}
-          <div className="bg-slate-700/30 p-6 rounded-2xl border border-slate-600/50">
+          <div
+            className={cn(
+              'p-6 rounded-2xl border-2',
+              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+            )}
+          >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center">
-                <svg className="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <svg
+                  className="w-6 h-6 mr-2 text-purple-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
                 </svg>
                 {t('eventContents')}
               </h3>
@@ -822,27 +970,45 @@ export default function CreateEventForm() {
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 text-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 <span>{t('addContent')}</span>
               </Button>
             </div>
-            
+
             {formData.contents.length === 0 && (
               <div className="text-center py-12 text-slate-400">
-                <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-16 h-16 mx-auto mb-4 opacity-50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 <p className="text-lg">{t('noContentSectionsYet')}</p>
                 <p className="text-sm">Thêm nội dung để làm phong phú thêm sự kiện của bạn</p>
               </div>
             )}
-            
+
             <div className="space-y-6">
               {formData.contents.map((content, index) => (
                 <div
                   key={index}
-                  className="relative p-6 border border-purple-700/40 rounded-xl bg-slate-800/60 backdrop-blur-sm shadow-lg"
+                  className={cn(
+                    'relative p-6 rounded-xl shadow-lg border-2',
+                    getThemeClass('bg-white border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+                  )}
                 >
                   {/* Content Header */}
                   <div className="flex items-center justify-between mb-4">
@@ -859,22 +1025,36 @@ export default function CreateEventForm() {
                       onClick={() => handleRemoveContent(index)}
                       className="bg-red-600/80 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-sm flex items-center space-x-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                       <span>{t('remove')}</span>
                     </Button>
                   </div>
-                  
+
                   {/* Content Type Selection */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-3">{t('contentType')}</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                      {t('contentType')}
+                    </label>
                     <div className="flex gap-3">
                       {contentTypeOptions.map((option) => (
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => handleContentTypeChange(index, option.value as "description" | "image")}
+                          onClick={() =>
+                            handleContentTypeChange(index, option.value as 'description' | 'image')
+                          }
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
                             content.contentType === option.value
                               ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg transform scale-105'
@@ -882,12 +1062,32 @@ export default function CreateEventForm() {
                           }`}
                         >
                           {option.value === 'description' ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h7"
+                              />
                             </svg>
                           ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
                           )}
                           <span>{option.label}</span>
@@ -895,9 +1095,9 @@ export default function CreateEventForm() {
                       ))}
                     </div>
                   </div>
-                  
+
                   {/* Content Input */}
-                  {content.contentType === "description" && (
+                  {content.contentType === 'description' && (
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-slate-300">
                         {t('descriptionRequired')} <span className="text-red-400">*</span>
@@ -905,27 +1105,35 @@ export default function CreateEventForm() {
                       <InputField
                         type="text"
                         value={content.description}
-                        onChange={handleContentChange(index, "description")}
+                        onChange={handleContentChange(index, 'description')}
                         placeholder={t('enterContentDescription')}
                         error={contentErrors[index]}
                       />
                       {contentErrors[index] && (
                         <div className="flex items-center space-x-2 text-red-400 text-sm animate-shake">
-                          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            className="w-4 h-4 flex-shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                           <span>{contentErrors[index]}</span>
                         </div>
                       )}
                     </div>
                   )}
-                  
-                  {content.contentType === "image" && (
+
+                  {content.contentType === 'image' && (
                     <div className="space-y-3">
                       <label className="block text-sm font-medium text-slate-300">
                         {t('uploadImageRequired')} <span className="text-red-400">*</span>
                       </label>
-                      
+
                       <div className="relative">
                         <input
                           type="file"
@@ -937,7 +1145,7 @@ export default function CreateEventForm() {
                             contentErrors[index] ? 'border-red-500' : 'border-purple-700'
                           }`}
                         />
-                        
+
                         {uploadingContentImage[index] && (
                           <div className="absolute inset-0 bg-slate-800/80 rounded-xl flex items-center justify-center">
                             <div className="flex items-center space-x-3">
@@ -947,16 +1155,24 @@ export default function CreateEventForm() {
                           </div>
                         )}
                       </div>
-                      
+
                       {contentErrors[index] && (
                         <div className="flex items-center space-x-2 text-red-400 text-sm animate-shake">
-                          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            className="w-4 h-4 flex-shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                           <span>{contentErrors[index]}</span>
                         </div>
                       )}
-                      
+
                       {content.imageUrl && !uploadingContentImage[index] && (
                         <div className="mt-4">
                           <img
@@ -967,7 +1183,11 @@ export default function CreateEventForm() {
                           <div className="flex items-center justify-center mt-3">
                             <div className="flex items-center space-x-2 text-green-400 text-sm bg-green-400/10 px-3 py-2 rounded-lg">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                               <span>Hình ảnh đã được tải lên thành công</span>
                             </div>
@@ -996,7 +1216,12 @@ export default function CreateEventForm() {
               ) : (
                 <div className="flex items-center justify-center space-x-3">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   <span>{t('createEvent')}</span>
                 </div>
