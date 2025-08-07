@@ -1,18 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getAllNewsHome } from '@/services/Event Manager/event.service';
-import { searchNews } from '@/services/search.service';
-import { onEvent } from '@/services/signalr.service';
-import { News } from '@/types/event';
-import { useNavigate } from 'react-router-dom';
-// import { motion } from 'framer-motion';
+import { searchNews, News } from '@/services/search.service';
+import { useNavigate, Link } from 'react-router-dom';
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
-import { Link } from 'react-router-dom';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { StageBackground } from '@/components/StageBackground';
+import { toast } from 'react-toastify';
+import { 
+  Calendar, 
+  Loader2, 
+  MapPin, 
+  Users, 
+  Clock, 
+  User,
+  ChevronRight,
+  BookOpen,
+  Tag 
+} from 'lucide-react';
+import { format } from 'date-fns';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 12;
 const BG_GRADIENTS = [
   'from-pink-500/30 to-purple-500/30',
   'from-blue-500/30 to-cyan-500/30',
@@ -25,14 +33,17 @@ function getGradient(idx: number) {
   return BG_GRADIENTS[idx % BG_GRADIENTS.length];
 }
 
+type ViewMode = 'grid' | 'list';
+
 const NewsAll: React.FC = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [newsList, setNewsList] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
 
   // Filter state
@@ -48,618 +59,484 @@ const NewsAll: React.FC = () => {
   const reloadNews = async (filters: FilterOptions, pageNum: number) => {
     setLoading(true);
     try {
-      let items: News[] = [];
-      if (!filters.searchTerm && filters.dateRange === 'all' && !filters.location) {
-        // Không có filter: lấy home news
-        const res = await getAllNewsHome(pageNum, PAGE_SIZE);
-        items = res.data?.data?.items || [];
-        setTotalPages(res.data?.data?.totalPages || 1);
-      } else {
-        // Có filter: dùng API global search cho tất cả filter
-        items = await searchNews({
-          searchTerm: filters.searchTerm,
-          dateRange: filters.dateRange,
-          location: filters.location,
-          sortBy: filters.sortBy,
-          sortOrder: filters.sortOrder,
-        });
-        setTotalPages(1);
-      }
-      // Chỉ lấy news đã duyệt, đang hoạt động
-      const visibleNews = items.filter((n) => n.status === true);
-      setNewsList(visibleNews);
-    } catch {
+      console.log('Loading news with filters:', filters, 'page:', pageNum);
+      
+      // Use the searchNews function with pagination
+      const searchResults = await searchNews(filters);
+
+      // For now, simulate pagination on client side
+      const startIndex = (pageNum - 1) * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const paginatedNews = searchResults.slice(startIndex, endIndex);
+
+      setNewsList(paginatedNews);
+      setTotalCount(searchResults.length);
+      setTotalPages(Math.ceil(searchResults.length / PAGE_SIZE) || 1);
+      
+      console.log('Loaded news:', paginatedNews.length, 'of', searchResults.length);
+    } catch (error) {
+      console.error('Error loading news:', error);
       setNewsList([]);
       setTotalPages(1);
+      setTotalCount(0);
+      toast.error('Có lỗi xảy ra khi tải tin tức. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Get unique authors for filter
-  // const authors = useMemo(() => {
-  //   const authorSet = new Set<string>();
-  //   newsList.forEach((news) => {
-  //     if (news.authorId) {
-  //       authorSet.add(news.authorId);
-  //     }
-  //   });
-  //   return Array.from(authorSet).map((author) => ({
-  //     value: author,
-  //     label: author,
-  //   }));
-  // }, [newsList]);
-
-  // Apply filters to news
-  // Không cần filter client nữa, chỉ dùng newsList trả về từ server
-  const filteredNews = newsList;
-
-  // Setup realtime listeners - News events are handled by Event hub (global connection in App.tsx)
+  // Load news when filters or page changes
   useEffect(() => {
-    // Listen for real-time news updates - News are events, so use event listeners
-    onEvent('OnNewsCreated', () => {
-      console.log('News created - reloading');
-      reloadNews(filters, page);
-    });
-    onEvent('OnNewsUpdated', () => {
-      console.log('News updated - reloading');
-      reloadNews(filters, page);
-    });
-    onEvent('OnNewsDeleted', () => {
-      console.log('News deleted - reloading');
-      reloadNews(filters, page);
-    });
-    onEvent('OnNewsApproved', () => {
-      console.log('News approved - reloading');
-      reloadNews(filters, page);
-    });
-    onEvent('OnNewsUnhidden', () => {
-      console.log('News unhidden - reloading');
-      reloadNews(filters, page);
-    });
-    // Initial data load
-    reloadNews(filters, page);
-  }, [page, filters]);
+    const timeoutId = setTimeout(() => reloadNews(filters, currentPage), 300); // Debounce
+    return () => clearTimeout(timeoutId);
+  }, [filters, currentPage]);
 
+  // Handle filter changes
+  const handleFilterChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Get unique locations from news
+  const locations = useMemo(() => {
+    // For now, return some common Vietnamese locations
+    // In a real app, you'd fetch this from the API
+    return [
+      'Hà Nội',
+      'TP. Hồ Chí Minh',
+      'Đà Nẵng',
+      'Hải Phòng',
+      'Cần Thơ',
+      'Nha Trang',
+      'Huế',
+      'Vũng Tàu',
+      'Dalat',
+      'Phan Thiết'
+    ];
+  }, []);
+
+  // Get image URL with fallback
   const getImageUrl = (news: News) => {
     // Return the image URL if it exists, otherwise use a placeholder
     if (news.imageUrl) {
-      return news.imageUrl;
+      return news.imageUrl.startsWith('http') 
+        ? news.imageUrl 
+        : `${import.meta.env.VITE_API_URL}${news.imageUrl}`;
     }
     // Fallback to a placeholder if no image URL is provided
     return 'https://via.placeholder.com/600x400';
   };
 
   return (
-    <div
-      className={cn(
-        'relative min-h-screen w-full',
-        getThemeClass(
-          'bg-gradient-to-r from-blue-500 to-cyan-400',
-          'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900'
-        )
-      )}
-    >
+    <div className="relative min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
       <StageBackground />
       <div className="relative z-10">
         {/* Header */}
         <div className="text-center pt-40 pb-10 overflow-visible">
-                <h1
-                  className={cn(
-                    'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] mb-4 overflow-visible',
-                    getThemeClass(
-                      'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600',
-                      'bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200'
-                    )
-                  )}
-                >
-            All News
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] mb-4 overflow-visible">
+            Tất cả tin tức
           </h1>
+          <p className="text-lg md:text-xl text-gray-200 max-w-3xl mx-auto mb-8">
+            Cập nhật những tin tức mới nhất về các sự kiện
+          </p>
+          
           {/* Music Visualizer */}
           <div className="flex justify-center gap-1 mb-8 music-visualizer">
             {[...Array(10)].map((_, i) => (
               <div
                 key={i}
-                className={cn(
-                        'bar rounded',
-                  getThemeClass(
-                    'bg-gradient-to-t from-blue-400 to-cyan-400',
-                    'bg-gradient-to-t from-pink-400 to-cyan-400'
-                  )
-                )}
+                className="bar rounded bg-gradient-to-t from-pink-400 to-cyan-400"
                 style={{ animationDelay: `${i * 0.1}s` }}
               />
             ))}
           </div>
         </div>
 
-        {/* Filter Component */}
-        <FilterComponent
-          filters={filters}
-          onFilterChange={(newFilters) => setFilters(newFilters as FilterOptions)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          locations={Array.from(
-            new Set(newsList.filter((n) => n.eventLocation).map((n) => n.eventLocation as string))
+        {/* Container */}
+        <div className="container mx-auto px-4 pb-20">
+          {/* Filter Component */}
+          <FilterComponent
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            locations={locations}
+            showLocationFilter={true}
+            contentType="news"
+            resultsCount={{ news: totalCount }}
+            className="mb-8"
+          />
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center items-center h-64">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
+                <p className="text-white text-lg">Đang tải tin tức...</p>
+              </div>
+            </div>
           )}
-          showLocationFilter={true}
-          contentType="tin tức"
-          resultsCount={{ total: filteredNews.length }}
-        />
 
-        {/* News Grid/List */}
-        <div
-          className={`px-4 pb-20 max-w-7xl mx-auto ${
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-6'
-          }`}
-        >
-          {loading ? (
-            <div
-              className={cn(
-                'col-span-full text-center text-2xl py-20',
-                getThemeClass('text-blue-600', 'text-pink-400')
-              )}
-            >
-              {t('loadingNews')}
-            </div>
-          ) : filteredNews.length === 0 ? (
-            <div
-              className={cn(
-                'col-span-full text-center text-lg py-20',
-                getThemeClass('text-gray-600', 'text-gray-400')
-              )}
-            >
-              {filters.searchTerm || filters.dateRange !== 'all' || filters.location
-                ? 'Không tìm thấy tin tức phù hợp với bộ lọc'
-                : t('news.noNewsFound')}
-            </div>
-          ) : (
-            filteredNews.map((news, idx) => (
-              <div
-                key={news.newsId}
-                className={cn(
-                  'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl cursor-pointer',
-                  getThemeClass(
-                    'bg-white/95 border-gray-200 hover:border-gray-300',
-                    'border-white/20 hover:border-white/40'
-                  ),
-                  viewMode === 'grid' ? 'h-full flex flex-col' : 'grid grid-cols-3 gap-6 p-6'
-                )}
-                style={
-                  viewMode === 'grid'
-                    ? ({
-                        background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                        '--tw-gradient-from': `var(--tw-gradient-to, rgba(236, 72, 153, 0.1))`,
-                        '--tw-gradient-to': `var(--tw-gradient-to, rgba(168, 85, 247, 0.1))`,
-                        ...(viewMode === 'grid' && {
-                          '--tw-gradient-to': `var(--tw-gradient-to, ${
-                            getGradient(idx).split(' ')[1]
-                          })`,
-                        }),
-                      } as React.CSSProperties)
-                    : {}
-                }
-              >
-                <Link to={`/news/${news.newsId}`} className="block h-full w-full">
-                  {viewMode === 'grid' ? (
-                    <>
-                      {/* Image */}
-                      <div className="relative w-full h-60">
-                        <img
-                          src={getImageUrl(news)}
-                          alt={news.newsTitle}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://via.placeholder.com/600x400';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex-1">
-                          <h2
-                            className={cn(
-                              'text-2xl font-bold mb-2 group-hover:transition-colors duration-200',
-                              getThemeClass(
-                                'text-gray-900 group-hover:text-blue-700',
-                                'text-white group-hover:text-cyan-300'
-                              )
-                            )}
-                          >
-                            {news.newsTitle}
-                          </h2>
-                          <p
-                            className={cn(
-                              'text-sm mb-4 line-clamp-2',
-                              getThemeClass('text-gray-700', 'text-gray-200')
-                            )}
-                          >
-                            {news.newsDescription || news.newsContent?.substring(0, 150) + '...'}
-                          </p>
-                        </div>
-
-                        <div
-                          className={cn(
-                            'space-y-2 mt-4 pt-4 border-t',
-                            getThemeClass('border-gray-200', 'border-white/10')
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'flex items-center gap-2 text-sm',
-                              getThemeClass('text-gray-600', 'text-gray-300')
-                            )}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={cn(
-                                'h-4 w-4 flex-shrink-0',
-                                getThemeClass('text-blue-600', 'text-cyan-400')
-                              )}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            <span>
-                              {news.createdAt
-                                ? new Date(news.createdAt).toLocaleDateString('vi-VN')
-                                : ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span
-                                className={cn(
-                                  'text-sm',
-                                  getThemeClass('text-gray-600', 'text-gray-300')
-                                )}
-                              >
-                                {news.eventLocation || t('tba')}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                navigate(`/news/${news.newsId}`);
-                              }}
-                              className={cn(
-                                'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
-                                getThemeClass(
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                )
-                              )}
-                            >
-                              {t('readMore')}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Image for list view */}
-                      <div className="col-span-1 w-full h-48 rounded-xl overflow-hidden relative">
-                        <img
-                          src={getImageUrl(news)}
-                          alt={news.newsTitle}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://via.placeholder.com/600x400';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
-
-                      {/* Content for list view */}
-                      <div className="col-span-2 flex-1 min-w-0">
-                        <h2
-                          className={cn(
-                            'text-xl font-bold mb-2 group-hover:transition-colors duration-200 line-clamp-1',
-                            getThemeClass(
-                              'text-gray-900 group-hover:text-blue-700',
-                              'text-white group-hover:text-cyan-300'
-                            )
-                          )}
-                        >
-                          {news.newsTitle}
-                        </h2>
-                        <p
-                          className={cn(
-                            'text-sm mb-3 line-clamp-2',
-                            getThemeClass('text-gray-700', 'text-gray-200')
-                          )}
-                        >
-                          {news.newsDescription || news.newsContent?.substring(0, 150) + '...'}
-                        </p>
-
-                        {/* Additional metadata for list view */}
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-center gap-4 text-xs">
-                            <div
-                              className={cn(
-                                'flex items-center gap-1',
-                                getThemeClass('text-gray-500', 'text-gray-400')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {news.createdAt
-                                  ? new Date(news.createdAt).toLocaleDateString('vi-VN')
-                                  : ''}
-                              </span>
-                            </div>
-                            {news.eventLocation && (
-                              <div
-                                className={cn(
-                                  'flex items-center gap-1',
-                                  getThemeClass('text-gray-500', 'text-gray-400')
-                                )}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                </svg>
-                                <span className="truncate">{news.eventLocation}</span>
-                              </div>
-                            )}
-                            {news.authorId && (
-                              <div
-                                className={cn(
-                                  'flex items-center gap-1',
-                                  getThemeClass('text-gray-500', 'text-gray-400')
-                                )}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                                <span className="truncate">{news.authorId}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={cn(
-                                'flex items-center gap-2 text-sm',
-                                getThemeClass('text-gray-600', 'text-gray-300')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {news.createdAt
-                                  ? new Date(news.createdAt).toLocaleDateString('vi-VN')
-                                  : ''}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span
-                                className={cn(
-                                  'text-sm',
-                                  getThemeClass('text-gray-600', 'text-gray-300')
-                                )}
-                              >
-                                {news.eventLocation || t('tba')}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigate(`/news/${news.newsId}`);
-                            }}
-                            className={cn(
-                              'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
-                              getThemeClass(
-                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                              )
-                            )}
-                          >
-                            {t('readMore')}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+          {/* No Results */}
+          {!loading && newsList.length === 0 && (
+            <div className="text-center py-16">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto">
+                <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">
+                  Không tìm thấy tin tức nào
+                </h3>
+                <p className="text-gray-300 mb-6">
+                  {filters.searchTerm || filters.dateRange !== 'all' || filters.location
+                    ? 'Không có tin tức nào phù hợp với bộ lọc hiện tại'
+                    : 'Hiện tại chưa có tin tức nào được công bố'}
+                </p>
+                <Link
+                  to="/"
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-all duration-200 shadow-lg"
+                >
+                  Về trang chủ
                 </Link>
               </div>
-            ))
+            </div>
+          )}
+
+          {/* News List */}
+          {!loading && newsList.length > 0 && (
+            <>
+              {/* Results Summary */}
+              <div className="mb-6 text-center">
+                <p className="text-gray-300">
+                  Hiển thị <span className="font-semibold text-white">{newsList.length}</span> trong tổng số{' '}
+                  <span className="font-semibold text-white">{totalCount}</span> tin tức
+                  {currentPage > 1 && (
+                    <span className="ml-2 text-sm">
+                      (Trang {currentPage} / {totalPages})
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* Grid/List View */}
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {newsList.map((news, idx) => (
+                    <NewsCard key={news.newsId} news={news} viewMode={viewMode} gradient={getGradient(idx)} getImageUrl={getImageUrl} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {newsList.map((news, idx) => (
+                    <NewsCard key={news.newsId} news={news} viewMode={viewMode} gradient={getGradient(idx)} getImageUrl={getImageUrl} />
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-12">
+                  <div className="flex items-center gap-2">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-colors"
+                    >
+                      Trước
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={cn(
+                              'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                              currentPage === pageNum
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white/10 border border-white/20 text-gray-300 hover:bg-white/20 hover:text-white'
+                            )}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/20 transition-colors"
+                    >
+                      Tiếp
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-12">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className={cn(
-                  'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-                  getThemeClass(
-                    'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
-                    'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                  )
-                )}
-              >
-                Trước
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (page <= 3) {
-                    pageNum = i + 1;
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = page - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
-                        page === pageNum
-                          ? getThemeClass('bg-blue-600 text-white', 'bg-cyan-500 text-white')
-                          : getThemeClass(
-                              'bg-white text-gray-900 hover:bg-gray-100',
-                              'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                            )
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className={cn(
-                  'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-                  getThemeClass(
-                    'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
-                    'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                  )
-                )}
-              >
-                Tiếp
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Custom CSS for animation */}
       <style>{`
+        .music-visualizer .bar {
+          width: 4px;
+          height: 20px;
+          animation: bounce 1.5s infinite ease-in-out;
+        }
+        .music-visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
+        .music-visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
+        .music-visualizer .bar:nth-child(4) { animation-delay: 0.3s; }
+        .music-visualizer .bar:nth-child(5) { animation-delay: 0.4s; }
+        .music-visualizer .bar:nth-child(6) { animation-delay: 0.5s; }
+        .music-visualizer .bar:nth-child(7) { animation-delay: 0.6s; }
+        .music-visualizer .bar:nth-child(8) { animation-delay: 0.7s; }
+        .music-visualizer .bar:nth-child(9) { animation-delay: 0.8s; }
+        .music-visualizer .bar:nth-child(10) { animation-delay: 0.9s; }
+
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: scaleY(1);
+          }
+          40% {
+            transform: scaleY(1.5);
+          }
+          60% {
+            transform: scaleY(1.2);
+          }
+        }
       `}</style>
+    </div>
+  );
+};
+
+// News Card Component
+const NewsCard = ({ 
+  news, 
+  viewMode, 
+  gradient, 
+  getImageUrl 
+}: { 
+  news: News; 
+  viewMode: ViewMode;
+  gradient: string;
+  getImageUrl: (news: News) => string;
+}) => {
+  const { getThemeClass } = useThemeClasses();
+  const navigate = useNavigate();
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Đang cập nhật';
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy');
+    } catch {
+      return 'Đang cập nhật';
+    }
+  };
+
+  const formatTime = (dateString: string | undefined) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'HH:mm');
+    } catch {
+      return '';
+    }
+  };
+
+  if (viewMode === 'list') {
+    return (
+      <div className="backdrop-blur-xl rounded-2xl border border-white/20 hover:border-white/40 overflow-hidden transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl cursor-pointer bg-gradient-to-r from-gray-800/30 to-gray-900/30">
+        <Link to={`/news/${news.newsId}`} className="block">
+          <div className="flex flex-col md:flex-row gap-6 p-6">
+            {/* Image */}
+            <div className="w-full md:w-1/3 lg:w-1/4 h-48 rounded-xl overflow-hidden relative flex-shrink-0">
+              <img
+                src={getImageUrl(news)}
+                alt={news.newsTitle}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = 'https://via.placeholder.com/600x400';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+              
+              {/* Category Badge */}
+              <div className="absolute top-3 left-3">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white">
+                  <Tag className="inline h-3 w-3 mr-1" />
+                  Tin tức
+                </span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2 line-clamp-2 group-hover:text-cyan-300 transition-colors">
+                  {news.newsTitle}
+                </h3>
+                
+                <p className="text-gray-200 text-sm mb-4 line-clamp-3">
+                  {news.newsDescription || news.newsContent?.substring(0, 200) + '...' || 'Không có mô tả'}
+                </p>
+
+                {/* Meta Information */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center text-sm text-gray-400">
+                    <Calendar className="h-4 w-4 mr-2 text-blue-400" />
+                    <span>{formatDate(news.createdAt)}</span>
+                    {formatTime(news.createdAt) && (
+                      <>
+                        <Clock className="h-4 w-4 ml-4 mr-1 text-green-400" />
+                        <span>{formatTime(news.createdAt)}</span>
+                      </>
+                    )}
+                  </div>
+
+                  {news.authorFullName && (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <User className="h-4 w-4 mr-2 text-purple-400" />
+                      <span>{news.authorFullName}</span>
+                    </div>
+                  )}
+
+                  {news.eventLocation && (
+                    <div className="flex items-center text-sm text-gray-400">
+                      <MapPin className="h-4 w-4 mr-2 text-red-400" />
+                      <span className="truncate">{news.eventLocation}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/10">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-400">
+                    {news.newsContent ? `${news.newsContent.length} ký tự` : 'Đọc thêm'}
+                  </span>
+                </div>
+
+                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  }
+
+  // Grid View
+  return (
+    <div className={cn(
+      'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative transition-all duration-400 hover:scale-[1.02] hover:shadow-2xl cursor-pointer',
+      'border-white/20 hover:border-white/40 h-full flex flex-col'
+    )}
+    style={{
+      background: `linear-gradient(135deg, ${gradient})`,
+    } as React.CSSProperties}>
+      <Link to={`/news/${news.newsId}`} className="block h-full w-full flex flex-col">
+        {/* Image */}
+        <div className="relative w-full h-60">
+          <img
+            src={getImageUrl(news)}
+            alt={news.newsTitle}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = 'https://via.placeholder.com/600x400';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          {/* Category Badge */}
+          <div className="absolute top-3 left-3">
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/90 text-white">
+              <Tag className="inline h-3 w-3 mr-1" />
+              Tin tức
+            </span>
+          </div>
+
+          {/* Date Overlay */}
+          <div className="absolute bottom-0 left-0 p-4 w-full">
+            <div className="flex items-center text-sm text-white/80 mb-2">
+              <Calendar className="h-4 w-4 mr-1" />
+              <span>{formatDate(news.createdAt)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex-1 flex flex-col">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold mb-2 text-white group-hover:text-cyan-300 transition-colors duration-200">
+              {news.newsTitle}
+            </h2>
+            <p className="text-sm mb-4 line-clamp-2 text-gray-200">
+              {news.newsDescription || news.newsContent?.substring(0, 150) + '...' || 'Không có mô tả'}
+            </p>
+          </div>
+
+          <div className="space-y-2 mt-4 pt-4 border-t border-white/10">
+            {/* Author */}
+            {news.authorFullName && (
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <User className="h-4 w-4 flex-shrink-0 text-purple-400" />
+                <span>{news.authorFullName}</span>
+              </div>
+            )}
+
+            {/* Location and Read More */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {news.eventLocation && (
+                  <>
+                    <MapPin className="h-4 w-4 flex-shrink-0 text-red-400" />
+                    <span className="text-sm text-gray-300 truncate">
+                      {news.eventLocation}
+                    </span>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/news/${news.newsId}`);
+                }}
+                className="px-4 py-1.5 rounded-full text-sm font-medium transition-colors bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+              >
+                Đọc thêm
+              </button>
+            </div>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 };
