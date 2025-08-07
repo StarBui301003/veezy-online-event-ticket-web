@@ -89,7 +89,7 @@ const OrderListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    connectOrderHub('http://localhost:5005/orderHub', token);
+          connectOrderHub('https://ticket.vezzy.site/orderHub', token);
     const reload = () => {
       fetchData();
     };

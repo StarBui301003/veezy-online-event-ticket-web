@@ -277,7 +277,7 @@ const EventDetail = () => {
   }, [eventId]);
 
   useEffect(() => {
-    connectCommentHub('http://localhost:5004/commentHub');
+          connectCommentHub('https://event.vezzy.site/commentHub');
     const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
     onComment('OnCommentUpdated', reloadComment);

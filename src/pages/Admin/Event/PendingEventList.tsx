@@ -128,7 +128,7 @@ export const PendingEventList = ({
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
     };

@@ -30,7 +30,7 @@ export default function ReportListTabs() {
   const [rejectedPageSize, setRejectedPageSize] = useState(5);
 
   useEffect(() => {
-    connectFeedbackHub('http://localhost:5004/feedbackHub');
+          connectFeedbackHub('https://feedback.vezzy.site/feedbackHub');
   }, []);
 
   // Khi đổi tab, update query param

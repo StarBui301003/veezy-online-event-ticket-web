@@ -96,7 +96,7 @@ const NewsAll: React.FC = () => {
 
   // Connect to NewsHub for real-time updates
   useEffect(() => {
-    connectNewsHub('http://localhost:5004/newsHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
     // Listen for real-time news updates
     onNews('OnNewsCreated', () => {
       reloadNews(filters, page);

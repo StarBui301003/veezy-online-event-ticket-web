@@ -26,7 +26,7 @@ export default function AnalyticsOverview() {
   useEffect(() => {
     fetchAnalyticsData();
     // Kết nối AnalyticsHub và lắng nghe realtime
-    connectAnalyticsHub('http://localhost:5006/analyticsHub').then(() => {
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub').then(() => {
       onAnalytics('OnEventManagerRealtimeOverview', (data) => {
         if (data && typeof data === 'object') {
           setAnalyticsData((prev) => ({ ...prev, ...data }));

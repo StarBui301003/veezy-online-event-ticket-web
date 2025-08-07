@@ -46,7 +46,7 @@ export function FundTabs() {
   useEffect(() => {
     // Luôn truyền token khi connectFundHub
     const token = localStorage.getItem('access_token');
-    connectFundHub('http://localhost:5005/fundHub', token);
+          connectFundHub('https://ticket.vezzy.site/fundHub', token);
 
     // Listen for fund-related events
     const reloadPendingCount = () => {

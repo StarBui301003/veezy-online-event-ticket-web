@@ -145,7 +145,7 @@ export const CanceledEventList = ({
   }, [filters, sortBy, sortDescending, canceledEventSearch]);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData();
     };

@@ -23,7 +23,7 @@ export default function UserListTabs() {
 
   // Setup SignalR cho realtime user updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
+          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
 
     // Lắng nghe realtime SignalR cho user events
     const handleUserUpdates = () => {

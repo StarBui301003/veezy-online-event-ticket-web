@@ -118,7 +118,7 @@ export const CollaboratorList = () => {
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
+          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
 
     // Listen for real-time collaborator updates
     onIdentity('CollaboratorCreated', (data: any) => {
