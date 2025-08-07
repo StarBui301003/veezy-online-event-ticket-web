@@ -3,7 +3,7 @@ import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { AuthContext } from '@/contexts/AuthContext';
 import AuthModals from '@/components/AuthModals';
 
-
+// Thêm import cho RegisterModal
 import { RegisterModal } from '@/components/RegisterModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -129,14 +129,14 @@ const EventDetail = () => {
   } | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
-  const [reportModal, setReportModal] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [pendingReport, setPendingReport] = useState<{type: 'event' | 'comment'; id: string} | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingReport, setPendingReport] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
+  const [pendingFollow, setPendingFollow] = useState(false);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceError, setFaceError] = useState('');
   const [isFollowingEvent, setIsFollowingEvent] = useState(false);
-  const [pendingFollow, setPendingFollow] = useState(false);
   const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
@@ -146,41 +146,56 @@ const EventDetail = () => {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
+  const { isLoggedIn, user } = useContext(AuthContext);
+  const customerId = user?.userId || user?.accountId || '';
+  
+  // Handle successful login and pending actions
+  useEffect(() => {
+    if (isLoggedIn) {
+      if (pendingReport) {
+        // Show report modal after successful login if there was a pending report
+        setShowReportModal(true);
+        setPendingReport(null);
+      } else if (pendingFollow) {
+        // Handle pending follow action if any
+        handleFollowEvent();
+        setPendingFollow(false);
+      }
+    }
+  }, [isLoggedIn, pendingReport, pendingFollow]);
 
   // Handle report event logic
   const handleReportEvent = () => {
-    // Check if user is logged in
-    const token = localStorage.getItem('access_token');
-    const accStr = localStorage.getItem('account');
-    
-    if (!token || token === 'null' || token === 'undefined' || !accStr) {
-      // User not logged in, show login modal and set pending report
+    // Check login status directly from AuthContext
+    if (!isLoggedIn) {
+      // If not logged in, set pending report and show login modal
       setPendingReport({ type: 'event', id: eventId || '' });
       setShowLoginModal(true);
-      return;
+    } else {
+      // If logged in, show report modal directly
+      setShowReportModal(true);
     }
-    
-    // User is logged in, show report modal directly
-    setReportModal({ type: 'event', id: eventId || '' });
   };
-  const { user } = useContext(AuthContext);
-  // Fallback: if user or customerId is missing, get from localStorage
-  let customerId = user?.userId || user?.accountId || '';
-  if (!customerId) {
-    const accStr = localStorage.getItem('account');
-    if (accStr) {
-      try {
-        const accObj = JSON.parse(accStr);
-        customerId = accObj.userId || accObj.accountId || '';
-      } catch (e) {
-        // ignore parse error
-      }
-    }
-  }
+
+  // Handle login required callback from ReportModal
+  const handleLoginRequired = () => {
+    setPendingReport({ type: 'event', id: eventId || '' });
+    setShowReportModal(false);
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // The useEffect will handle showing the report modal if there's a pending report
+  };
 
   const location = useLocation();
   useEffect(() => {
-    return () => setReportModal(null);
+    return () => {
+      // Clean up any pending states when component unmounts or location changes
+      setShowReportModal(false);
+      setPendingReport(null);
+    };
   }, [location]);
 
   useEffect(() => {
@@ -224,7 +239,7 @@ const EventDetail = () => {
 
     fetchEventData();
     fetchTicketData();
-  }, [eventId]);
+  }, [eventId, t]);
 
   // ================== FIX: Kiểm tra trạng thái đã follow khi vào trang ==================
   useEffect(() => {
@@ -237,16 +252,6 @@ const EventDetail = () => {
 
   useEffect(() => {
     setLoadingEvents(true);
-    const accStr = localStorage.getItem('account');
-    let isLoggedIn = false;
-    if (accStr) {
-      try {
-        const accObj = JSON.parse(accStr);
-        isLoggedIn = !!(accObj?.userId || accObj?.account?.userId);
-      } catch {
-        isLoggedIn = false;
-      }
-    }
     const fetchEvents = async () => {
       if (isLoggedIn) {
         try {
@@ -295,7 +300,7 @@ const EventDetail = () => {
       }
     };
     fetchEvents();
-  }, [eventId]);
+  }, [eventId, isLoggedIn]);
 
   useEffect(() => {
           connectCommentHub('https://event.vezzy.site/commentHub');
@@ -458,7 +463,7 @@ const EventDetail = () => {
     return () => {
       // SignalR cleanup is handled globally in App.tsx
     };
-  }, [eventId, t, tickets]);
+  }, [eventId, t]);
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
     const newQuantity = Math.max(0, Math.min(quantity, ticket.quantityAvailable));
@@ -497,19 +502,9 @@ const EventDetail = () => {
     }
     // Kiểm tra đăng nhập, nếu chưa thì hiện modal
     requireLogin(() => {
-      // Sau khi login modal, luôn lấy user và customerId mới nhất từ localStorage
-      let latestUser = user;
-      let latestCustomerId = customerId;
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        try {
-          const accObj = JSON.parse(accStr);
-          latestUser = accObj;
-          latestCustomerId = accObj.userId || accObj.accountId || '';
-        } catch (e) {
-          // ignore parse error
-        }
-      }
+      // Sau khi login modal, luôn lấy user và customerId mới nhất từ AuthContext
+      const latestUser = user;
+      const latestCustomerId = latestUser?.userId || latestUser?.accountId || '';
       // Chỉ cho phép role customer mua vé
       if (!latestUser || latestUser.role !== 1) {
         toast.error(t('onlyCustomerCanBuyTicket'));
@@ -1103,7 +1098,7 @@ const EventDetail = () => {
               ))}
 
             {/* ====== COMMENT SECTION START ====== */}
-            <CommentSection eventId={event.eventId} setReportModal={setReportModal} />
+            <CommentSection eventId={event.eventId} setReportModal={setShowReportModal} />
             {/* ====== COMMENT SECTION END ====== */}
 
             {/* ====== EVENT CHAT ASSISTANT ====== */}
@@ -1655,58 +1650,42 @@ const EventDetail = () => {
           </motion.div>
         </div>
       </div>
-      {reportModal && (
+      {showReportModal && eventId && (
         <ReportModal
-          key={reportModal.id}
-          open={Boolean(reportModal)}
-          targetType={reportModal.type}
-          targetId={reportModal.id}
-          onClose={() => setReportModal(null)}
-          onLoginRequired={() => {
-            // When login is required from ReportModal, show login modal and set pending report
-            setPendingReport(reportModal);
-            setReportModal(null);
+          open={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetType="event"
+          targetId={eventId}
+          onLoginRequired={handleLoginRequired}
+        />
+      )}
+      
+      {/* Login Modal */}
+      {showLoginModal && (
+        <AuthModals 
+          open={showLoginModal} 
+          onClose={() => {
+            setShowLoginModal(false);
+            setPendingReport(null); 
+          }} 
+          onLoginSuccess={handleLoginSuccess}
+          onRegisterSuccess={() => {
+            // After successful registration, show login modal
             setShowLoginModal(true);
           }}
         />
       )}
-      {/* Modal đăng nhập */}
-      {showLoginModal && (
-        <AuthModals
-          open={showLoginModal}
-          onClose={() => {
-            setShowLoginModal(false);
-            setPendingReport(null); // Clear pending report when modal is closed
-          }}
-          onLoginSuccess={() => {
-            setShowLoginModal(false);
-            // After successful login, check for pending report
-            if (pendingReport) {
-              setTimeout(() => {
-                setReportModal(pendingReport);
-                setPendingReport(null);
-              }, 100); // Small delay to ensure login modal is fully closed
-            }
-            if (pendingFollow) {
-              setPendingFollow(false);
-              handleFollowEvent();
-            }
-          }}
-        />
-      )}
-
+      
+      {/* Register Modal */}
       {showRegisterModal && (
         <RegisterModal
           open={showRegisterModal}
           onClose={() => setShowRegisterModal(false)}
           onRegisterSuccess={() => {
             setShowRegisterModal(false);
-            if (pendingFollow) {
-              setPendingFollow(false);
-              handleFollowEvent();
-            }
+            // The useEffect will handle pending actions after successful registration
           }}
-          onLoginClick={() => {
+          onLoginRedirect={() => {
             setShowRegisterModal(false);
             setShowLoginModal(true);
           }}
