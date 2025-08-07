@@ -93,21 +93,16 @@ export default function EventManagerDashboard() {
     const setupRealtimeDashboard = async () => {
       try {
         const {
-          connectAnalyticsHub,
           onAnalytics,
-          connectTicketHub,
           onTicket,
-          connectEventHub,
           onEvent,
-          connectNotificationHub,
           onNotification,
         } = await import('@/services/signalr.service');
 
-        const token = localStorage.getItem('access_token');
+        // Setup realtime listeners using global connections
+        // All SignalR connections are managed globally in App.tsx
 
-        // Connect to Analytics Hub for real-time dashboard updates
-        await connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', token || undefined);
-        
+        // Analytics Hub listeners
         onAnalytics('OnEventManagerRealtimeOverview', (data) => {
           console.log('Real-time analytics overview:', data);
           // Force refresh of dashboard components
@@ -126,9 +121,7 @@ export default function EventManagerDashboard() {
           window.dispatchEvent(new CustomEvent('revenueDataUpdate', { detail: data }));
         });
 
-        // Connect to Ticket Hub for ticket sales updates
-        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
-        
+        // Ticket Hub listeners using global connections
         onTicket('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - dashboard update:', data);
           // Update ticket statistics
@@ -146,8 +139,7 @@ export default function EventManagerDashboard() {
           window.dispatchEvent(new CustomEvent('orderStatusUpdate', { detail: data }));
         });
 
-        // Connect to Event Hub for event updates
-        await connectEventHub('https://event.vezzy.site/notificationHub');
+        // Event Hub listeners using global connections
 
         onEvent('OnEventApproved', (data) => {
           if (data.createdBy === userId || data.CreatedBy === userId) {
@@ -170,29 +162,25 @@ export default function EventManagerDashboard() {
           }
         });
 
-        // Connect to Notification Hub for dashboard notifications
-        if (token) {
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-          
-          onNotification('ReceiveNotification', (notification) => {
-            // Handle dashboard-specific notifications
-            if (
-              notification.type === 'DashboardUpdate' ||
-              notification.type === 'AnalyticsUpdate' ||
-              notification.type === 'RevenueAlert' ||
-              notification.type === 'SalesTarget'
-            ) {
-              console.log('Dashboard notification:', notification);
+        // Notification Hub listeners using global connections
+        onNotification('ReceiveNotification', (notification) => {
+          // Handle dashboard-specific notifications
+          if (
+            notification.type === 'DashboardUpdate' ||
+            notification.type === 'AnalyticsUpdate' ||
+            notification.type === 'RevenueAlert' ||
+            notification.type === 'SalesTarget'
+          ) {
+            console.log('Dashboard notification:', notification);
 
-              // Show notification based on type
-              if (notification.type === 'RevenueAlert') {
-                toast.info(notification.message);
-              } else if (notification.type === 'SalesTarget') {
-                toast.success(notification.message);
-              }
+            // Show notification based on type
+            if (notification.type === 'RevenueAlert') {
+              toast.info(notification.message);
+            } else if (notification.type === 'SalesTarget') {
+              toast.success(notification.message);
             }
-          });
-        }
+          }
+        });
       } catch (error) {
         console.error('Failed to setup realtime dashboard:', error);
       }

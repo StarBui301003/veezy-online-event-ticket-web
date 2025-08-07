@@ -29,7 +29,7 @@ import {
 import PendingEventDetailModal from '@/pages/Admin/Event/PendingEventDetailModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useCategoryMapping } from '@/contexts/CategoryMappingContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
@@ -126,9 +126,8 @@ export const PendingEventList = ({
     searchRef.current = pendingEventSearch;
   }, [pendingEventSearch]);
 
-  // Connect hub chỉ 1 lần khi mount
+  // Connect hub chỉ 1 lần khi mount using global connections
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
     };

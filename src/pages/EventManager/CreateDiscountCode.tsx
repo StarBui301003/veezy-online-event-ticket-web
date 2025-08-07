@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import instance from '@/services/axios.customize';
 import { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onNotification } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
@@ -76,18 +76,15 @@ export default function CreateDiscountCode() {
 
   // Setup realtime connection for discount code creation
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectEventHub(token || undefined);
-
-    // Listen for discount code creation confirmations
-    onEvent('DiscountCodeCreated', (data: any) => {
+    // Listen for discount code creation confirmations using global connections
+    onNotification('OnDiscountCodeCreated', (data: any) => {
       if (data.eventId === eventId) {
         toast.success('Mã giảm giá đã được tạo thành công!');
         navigate(`/event-manager/discount-codes`);
       }
     });
 
-    onEvent('DiscountCodeCreateFailed', (data: any) => {
+    onNotification('OnDiscountCodeCreateFailed', (data: any) => {
       if (data.eventId === eventId) {
         toast.error('Không thể tạo mã giảm giá. Vui lòng thử lại!');
       }

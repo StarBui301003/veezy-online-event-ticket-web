@@ -98,7 +98,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { getMyApprovedEvents, cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate } from 'react-router-dom';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -131,9 +131,8 @@ const ApprovedEventsManager = () => {
   };
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
     fetchEvents();
-    // Lắng nghe realtime SignalR
+    // Lắng nghe realtime SignalR với global connections
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
     onEvent('OnEventDeleted', reload);

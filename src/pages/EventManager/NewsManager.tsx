@@ -4,8 +4,8 @@ import { News } from '@/types/event';
 import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
+import { onNews } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -140,8 +140,7 @@ const NewsManager: React.FC = () => {
   });
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    // Setup real-time listeners using global connections managed by App.tsx
     (async () => {
       setLoadingEvents(true);
       try {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getAllNewsHome } from '@/services/Event Manager/event.service';
 import { searchNews } from '@/services/search.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
 // import { motion } from 'framer-motion';
@@ -94,17 +94,27 @@ const NewsAll: React.FC = () => {
   // Không cần filter client nữa, chỉ dùng newsList trả về từ server
   const filteredNews = newsList;
 
-  // Connect to NewsHub for real-time updates
+  // Setup realtime listeners - News events are handled by Event hub (global connection in App.tsx)
   useEffect(() => {
-          connectNewsHub('https://event.vezzy.site/newsHub');
-    // Listen for real-time news updates
-    onNews('OnNewsCreated', () => {
+    // Listen for real-time news updates - News are events, so use event listeners
+    onEvent('OnNewsCreated', () => {
+      console.log('News created - reloading');
       reloadNews(filters, page);
     });
-    onNews('OnNewsUpdated', () => {
+    onEvent('OnNewsUpdated', () => {
+      console.log('News updated - reloading');
       reloadNews(filters, page);
     });
-    onNews('OnNewsDeleted', () => {
+    onEvent('OnNewsDeleted', () => {
+      console.log('News deleted - reloading');
+      reloadNews(filters, page);
+    });
+    onEvent('OnNewsApproved', () => {
+      console.log('News approved - reloading');
+      reloadNews(filters, page);
+    });
+    onEvent('OnNewsUnhidden', () => {
+      console.log('News unhidden - reloading');
       reloadNews(filters, page);
     });
     // Initial data load

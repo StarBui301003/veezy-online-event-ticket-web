@@ -33,11 +33,7 @@ const PaymentSuccessPage = () => {
     // Setup realtime listeners for ticket and payment updates
     const setupRealtimeListeners = async () => {
       try {
-        const { connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
-        const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken') || localStorage.getItem('token');
-        
-        // Connect to Ticket Hub for ticket generation updates
-        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
+        const { onTicket, onNotification } = await import('@/services/signalr.service');
         
         // Listen for ticket generation
         onTicket('TicketGenerated', (data: any) => {
@@ -71,32 +67,28 @@ const PaymentSuccessPage = () => {
         });
 
         // Connect to Notification Hub for payment notifications
-        if (token) {
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-          
-          onNotification('ReceiveNotification', (notification: any) => {
-            // Check if this notification is related to current order
-            if (notification.redirectUrl && 
-                (notification.redirectUrl.includes(checkout?.orderId || '') ||
-                 notification.type === 'PaymentSuccess' ||
-                 notification.type === 'OrderConfirmed')) {
-              console.log('Payment/Order notification:', notification);
-              toast.info(notification.message || notification.title);
-            }
-          });
+        onNotification('ReceiveNotification', (notification: any) => {
+          // Check if this notification is related to current order
+          if (notification.redirectUrl && 
+              (notification.redirectUrl.includes(checkout?.orderId || '') ||
+               notification.type === 'PaymentSuccess' ||
+               notification.type === 'OrderConfirmed')) {
+            console.log('Payment/Order notification:', notification);
+            toast.info(notification.message || notification.title);
+          }
+        });
 
-          // Listen for payment status changes
-          onNotification('PaymentStatusChanged', (data: any) => {
-            console.log('Payment status changed:', data);
-            if (data.orderId === checkout?.orderId) {
-              if (data.status === 'Success' || data.status === 'Completed') {
-                toast.success(t('paymentConfirmed'));
-              } else if (data.status === 'Failed') {
-                toast.error(t('paymentFailed'));
-              }
+        // Listen for payment status changes
+        onNotification('PaymentStatusChanged', (data: any) => {
+          console.log('Payment status changed:', data);
+          if (data.orderId === checkout?.orderId) {
+            if (data.status === 'Success' || data.status === 'Completed') {
+              toast.success(t('paymentConfirmed'));
+            } else if (data.status === 'Failed') {
+              toast.error(t('paymentFailed'));
             }
-          });
-        }
+          }
+        });
       } catch (error) {
         console.error('Failed to setup realtime listeners:', error);
       }

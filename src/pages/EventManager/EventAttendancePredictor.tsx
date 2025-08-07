@@ -21,9 +21,7 @@ import {
 import { getEventAttendancePrediction } from '@/services/Event Manager/attendancePrediction.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import {
-  connectAnalyticsHub,
   onAnalytics,
-  connectEventHub,
   onEvent,
 } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -64,9 +62,6 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates
   useEffect(() => {
-            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
-            connectEventHub('https://event.vezzy.site/notificationHub');
-
     // Listen for event updates
     onEvent('EventCreated', () => {
       loadEvents();
@@ -103,9 +98,6 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates for predictions
   useEffect(() => {
-            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
-            connectEventHub('https://event.vezzy.site/notificationHub');
-
     // Listen for analytics updates
     onAnalytics('PredictionUpdated', () => {
       if (selectedEvent) {

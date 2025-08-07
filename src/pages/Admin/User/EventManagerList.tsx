@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { getEventManagersWithFilter, UserFilterParams } from '@/services/Admin/user.service';
-import { connectIdentityHub } from '@/services/signalr.service';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
@@ -115,10 +114,9 @@ export const EventManagerList = () => {
     }
   };
 
-  // Connect to IdentityHub for real-time updates
+  // Identity Hub listeners using global connections  
   useEffect(() => {
-          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
-
+    // Identity hub connection is managed globally in App.tsx
     // Listen for real-time event manager updates
     // No specific events for EventManager in backend currently
     // eslint-disable-next-line react-hooks/exhaustive-deps

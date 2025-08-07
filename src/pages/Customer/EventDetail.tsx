@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
-import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent, checkFollowEventByList } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
@@ -147,16 +147,6 @@ const EventDetail = () => {
 
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
 
-  // Handle report event logic
-  const handleReportEvent = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token || token === 'null' || token === 'undefined') {
-      setPendingReport({ type: 'event', id: eventId || '' });
-      setShowLoginModal(true);
-    } else {
-      setReportModal({ type: 'event', id: eventId || '' });
-    }
-  };
   const { user } = useContext(AuthContext);
   // Fallback: if user or customerId is missing, get from localStorage
   let customerId = user?.userId || user?.accountId || '';
@@ -292,167 +282,96 @@ const EventDetail = () => {
   }, [eventId]);
 
   useEffect(() => {
-          connectCommentHub('https://event.vezzy.site/commentHub');
-    const reloadComment = () => {};
-    onComment('OnCommentCreated', reloadComment);
-    onComment('OnCommentUpdated', reloadComment);
-    onComment('OnCommentDeleted', reloadComment);
+    // Setup comment realtime listeners - comments are handled by Event hub
+    const setupCommentListeners = () => {
+      onEvent('OnCommentCreated', (data) => {
+        console.log('Comment created:', data);
+        // Force comment section reload
+        window.dispatchEvent(new CustomEvent('reloadComments'));
+      });
+      onEvent('OnCommentUpdated', (data) => {
+        console.log('Comment updated:', data);
+        // Force comment section reload
+        window.dispatchEvent(new CustomEvent('reloadComments'));
+      });
+      onEvent('OnCommentDeleted', (data) => {
+        console.log('Comment deleted:', data);
+        // Force comment section reload
+        window.dispatchEvent(new CustomEvent('reloadComments'));
+      });
+    };
+    
+    setupCommentListeners();
   }, []);
 
-  // Realtime events for event updates
+  // Realtime events for event updates - simplified
   useEffect(() => {
     if (!eventId) return;
 
-    const setupRealtimeEventListeners = async () => {
-      try {
-        const { connectEventHub, onEvent, connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
-        
-        // Connect to Event Hub for event updates
-        await connectEventHub('https://event.vezzy.site/notificationHub');
-        
-        // Listen for event status changes
-        onEvent('OnEventUpdated', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event updated:', data);
-            // Refresh event data
-            getEventById(eventId).then((eventData) => {
-              if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
-                setEvent(eventData);
-              } else {
-                setError(t('eventNotFoundOrCancelled'));
-                setEvent(null);
-              }
-            }).catch(() => {
-              setError(t('failedToLoadEventInfo'));
-            });
+    // Listen for event updates
+    onEvent('OnEventUpdated', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event updated:', data);
+        toast.info(t('eventHasBeenUpdated'));
+        // Refresh event data
+        getEventById(eventId).then((eventData) => {
+          if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
+            setEvent(eventData);
           }
-        });
-
-        onEvent('OnEventCancelled', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event cancelled:', data);
-            toast.error(t('eventHasBeenCancelled'));
-            setEvent(prev => prev ? { ...prev, isCancelled: true } : null);
-          }
-        });
-
-        onEvent('OnEventApproved', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event approved:', data);
-            toast.success(t('eventHasBeenApproved'));
-            // Refresh event data
-            getEventById(eventId).then((eventData) => {
-              setEvent(eventData);
-            }).catch(console.error);
-          }
-        });
-
-        // Connect to Ticket Hub for ticket updates
-        await connectTicketHub('https://ticket.vezzy.site/notificationHub');
-        
-        // Listen for ticket sold updates (capacity changes)
-        onTicket('OnTicketSoldIncremented', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket sold incremented:', data);
-            // Update ticket availability
-            setTickets(prev => prev.map(ticket => {
-              if (ticket.ticketId === data.ticketId || ticket.ticketId === data.TicketId) {
-                const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
-                return { ...ticket, quantityAvailable: newQuantity };
-              }
-              return ticket;
-            }));
-            
-            // Show notification if ticket is running low
-            const updatedTicket = tickets.find(t => t.ticketId === (data.ticketId || data.TicketId));
-            if (updatedTicket && updatedTicket.quantityAvailable <= 5) {
-              toast.warning(t('ticketRunningLow', { ticketName: updatedTicket.ticketName, remaining: updatedTicket.quantityAvailable - (data.quantity || 1) }));
-            }
-          }
-        });
-
-        onTicket('OnTicketSoldDecremented', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket sold decremented:', data);
-            // Update ticket availability (increase)
-            setTickets(prev => prev.map(ticket => {
-              if (ticket.ticketId === data.ticketId || ticket.ticketId === data.TicketId) {
-                return { ...ticket, quantityAvailable: ticket.quantityAvailable + (data.quantity || 1) };
-              }
-              return ticket;
-            }));
-          }
-        });
-
-        // Listen for ticket changes (price, name updates)
-        onTicket('TicketUpdated', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket updated:', data);
-            // Refresh tickets data
-            getTicketsByEvent(eventId).then((ticketData) => {
-              setTickets(ticketData || []);
-            }).catch(console.error);
-          }
-        });
-
-        onTicket('TicketCreated', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('New ticket created:', data);
-            toast.info(t('newTicketTypeAdded'));
-            // Refresh tickets data
-            getTicketsByEvent(eventId).then((ticketData) => {
-              setTickets(ticketData || []);
-            }).catch(console.error);
-          }
-        });
-
-        onTicket('TicketDeleted', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket deleted:', data);
-            toast.info(t('ticketTypeRemoved'));
-            // Remove from local state
-            setTickets(prev => prev.filter(ticket => ticket.ticketId !== (data.ticketId || data.TicketId)));
-            // Remove from selected tickets if was selected
-            setSelectedTickets(prev => {
-              const updated = { ...prev };
-              delete updated[data.ticketId || data.TicketId];
-              return updated;
-            });
-          }
-        });
-
-        // Connect to Notification Hub for general notifications
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-          
-          // Listen for event-specific notifications
-          onNotification('ReceiveNotification', (notification: any) => {
-            if (notification.redirectUrl && notification.redirectUrl.includes(eventId)) {
-              console.log('Event-related notification:', notification);
-              // Show toast notification
-              toast.info(notification.message || notification.title);
-            }
-          });
-        }
-
-      } catch (error) {
-        console.error('Failed to setup realtime event listeners:', error);
+        }).catch(console.error);
       }
-    };
+    });
 
-    setupRealtimeEventListeners();
+    onEvent('OnEventCancelled', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event cancelled:', data);
+        toast.error(t('eventHasBeenCancelled'));
+        setEvent(prev => prev ? { ...prev, isCancelled: true } : null);
+      }
+    });
 
-    // Cleanup on unmount
+    onEvent('OnEventApproved', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event approved:', data);
+        toast.success(t('eventHasBeenApproved'));
+        getEventById(eventId).then(setEvent).catch(console.error);
+      }
+    });
+
+    // Listen for ticket updates
+    onEvent('OnTicketSoldIncremented', (data: any) => {
+      const ticketEventId = data.eventId || data.EventId;
+      if (ticketEventId === eventId) {
+        console.log('Ticket sold:', data);
+        // Update ticket availability
+        setTickets(prev => prev.map(ticket => {
+          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+            const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
+            return { ...ticket, quantityAvailable: newQuantity };
+          }
+          return ticket;
+        }));
+      }
+    });
+
+    onEvent('OnTicketSoldDecremented', (data: any) => {
+      const ticketEventId = data.eventId || data.EventId;
+      if (ticketEventId === eventId) {
+        console.log('Ticket refunded:', data);
+        setTickets(prev => prev.map(ticket => {
+          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+            return { ...ticket, quantityAvailable: ticket.quantityAvailable + (data.quantity || 1) };
+          }
+          return ticket;
+        }));
+      }
+    });
+
+    // Cleanup on unmount - connections are managed globally in App.tsx
     return () => {
-      // SignalR cleanup is handled globally in App.tsx
+      // No cleanup needed - SignalR connections are handled globally
     };
-  }, [eventId, t, tickets]);
+  }, [eventId, t]);
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
     const newQuantity = Math.max(0, Math.min(quantity, ticket.quantityAvailable));
@@ -1690,7 +1609,7 @@ const EventDetail = () => {
               handleFollowEvent();
             }
           }}
-          onLoginClick={() => {
+          onLoginRedirect={() => {
             setShowRegisterModal(false);
             setShowLoginModal(true);
           }}

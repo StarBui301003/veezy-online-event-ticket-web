@@ -11,7 +11,7 @@ import {
 import { createTicket } from '@/services/Event Manager/event.service';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { onNotification } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -37,20 +37,19 @@ export default function CreateTicket() {
   const [loading, setLoading] = useState(false);
   const [showBankError, setShowBankError] = useState(false);
 
-  // Setup realtime connection for ticket creation
+  // Setup realtime listeners using global connections
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectTicketHub(token || undefined);
+    // Notification hub connection is managed globally in App.tsx
 
     // Listen for ticket creation confirmations
-    onTicket('TicketCreated', (data: any) => {
+    onNotification('OnTicketCreated', (data: any) => {
       if (data.eventId === eventId) {
         toast.success('Vé đã được tạo thành công!');
         navigate(`/event-manager/events/${eventId}/tickets`);
       }
     });
 
-    onTicket('TicketCreateFailed', (data: any) => {
+    onNotification('OnTicketCreateFailed', (data: any) => {
       if (data.eventId === eventId) {
         toast.error('Không thể tạo vé. Vui lòng thử lại!');
       }
@@ -158,10 +157,9 @@ export default function CreateTicket() {
               'bg-gradient-to-br from-[#2d0036] via-[#3a0ca3]/80 to-[#ff008e]/80 border-pink-500/30'
             )
           )}
-          style={getThemeClass(
-            { boxShadow: '0 0 80px 0 #3b82f688' },
-            { boxShadow: '0 0 80px 0 #ff008e88' }
-          )}
+          style={{
+            boxShadow: getThemeClass('0 0 80px 0 #3b82f688', '0 0 80px 0 #ff008e88')
+          }}
         >
           <div className="flex items-center gap-3 mb-8">
             <FaTicketAlt

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CreditCard } from "lucide-react";
-import { createOrder, createVnPayPayment, useDiscountCode, getOrderById } from '@/services/Event Manager/event.service';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { createOrder, createVnPayPayment, getOrderById } from '@/services/Event Manager/event.service';
+import { onTicket } from '@/services/signalr.service';
 import type { CheckoutData, OrderInfo, CheckoutItem } from '@/types/checkout';
 import { useTranslation } from 'react-i18next';
 
@@ -20,45 +20,40 @@ const ConfirmOrderPage = () => {
   const [paymentStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
 
-  // Connect to TicketHub for real-time order updates
+  // Setup realtime listeners for order updates - TicketHub connection managed globally in App.tsx
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      connectTicketHub(token);
-      
-      // Listen for real-time order updates
-      onTicket('OrderCreated', (data: unknown) => {
-        // ...removed log...
-        // Update order info if it matches current order
-        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
-          setOrderInfo(data as OrderInfo);
-        }
-      });
-      
-      onTicket('OrderUpdated', (data: unknown) => {
-        // ...removed log...
-        // Update order info if it matches current order
-        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
-          setOrderInfo(data as OrderInfo);
-        }
-      });
-      
-      onTicket('PaymentCompleted', (data: unknown) => {
-        // ...removed log...
-        // Redirect to success page if payment is completed
-        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
-          navigate('/customer/payment-success');
-        }
-      });
-      
-      onTicket('PaymentFailed', (data: unknown) => {
-        // ...removed log...
-        // Redirect to failed page if payment failed
-        if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
-          navigate('/customer/payment-failed');
-        }
-      });
-    }
+    // Listen for real-time order updates
+    onTicket('OrderCreated', (data: unknown) => {
+      console.log('Order created:', data);
+      // Update order info if it matches current order
+      if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+        setOrderInfo(data as OrderInfo);
+      }
+    });
+    
+    onTicket('OrderUpdated', (data: unknown) => {
+      console.log('Order updated:', data);
+      // Update order info if it matches current order
+      if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+        setOrderInfo(data as OrderInfo);
+      }
+    });
+    
+    onTicket('PaymentCompleted', (data: unknown) => {
+      console.log('Payment completed:', data);
+      // Redirect to success page if payment is completed
+      if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+        navigate('/payment-success');
+      }
+    });
+    
+    onTicket('PaymentFailed', (data: unknown) => {
+      console.log('Payment failed:', data);
+      // Redirect to failed page if payment failed
+      if (typeof data === 'object' && data && 'orderId' in data && orderInfo?.orderId === (data as { orderId: string }).orderId) {
+        navigate('/payment-failed');
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderInfo?.orderId, navigate]);
 

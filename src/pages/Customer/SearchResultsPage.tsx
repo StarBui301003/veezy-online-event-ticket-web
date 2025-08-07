@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { searchEvents } from '@/services/search.service';
+import { searchEvents, type EventSearchFilter, type Event } from '@/services/search.service';
 import { getAllCategories } from '@/services/Event Manager/event.service';
 import { getProvinces } from 'sub-vn';
+import { onEvent } from '@/services/signalr.service';
 import {
   Loader2,
   Calendar,
@@ -74,8 +75,30 @@ export const SearchResultsPage = () => {
       setError(null);
 
       try {
-        const searchResults = await searchEvents(query);
-        const eventResults = searchResults.filter((item) => item.type.toLowerCase() === 'event');
+        const searchFilter: EventSearchFilter = {
+          searchTerm: query,
+          location: '',
+          dateRange: '',
+          sortBy: 'date',
+          sortOrder: 'asc'
+        };
+        const searchResults = await searchEvents(searchFilter);
+        
+        // Transform Event objects to SearchResult objects
+        const eventResults = searchResults.map((event: Event) => ({
+          id: event.eventId,
+          name: event.eventName,
+          description: event.description || '',
+          type: event.type || 'event',
+          imageUrl: event.eventCoverImageUrl || '',
+          date: event.startAt,
+          location: event.eventLocation || '',
+          category: '', // Category info would need to be fetched separately
+          price: 0, // Price info would need to be fetched from tickets
+          rating: 0, // Rating info would need to be fetched separately
+          attendees: 0 // Attendee count would need to be calculated
+        }));
+        
         setResults(eventResults);
       } catch (err) {
         console.error('Error fetching search results:', err);
@@ -86,6 +109,21 @@ export const SearchResultsPage = () => {
     };
 
     fetchSearchResults();
+    
+    // Setup realtime listeners for event updates  
+    const refreshSearchResults = () => {
+      if (query.trim()) {
+        fetchSearchResults();
+      }
+    };
+    
+    // Listen for event changes that might affect search results
+    onEvent('OnEventCreated', refreshSearchResults);
+    onEvent('OnEventUpdated', refreshSearchResults);  
+    onEvent('OnEventApproved', refreshSearchResults);
+    onEvent('OnEventCancelled', refreshSearchResults);
+    onEvent('OnEventShown', refreshSearchResults);
+    onEvent('OnEventHidden', refreshSearchResults);
   }, [query, t]);
 
   // Fetch categories from API

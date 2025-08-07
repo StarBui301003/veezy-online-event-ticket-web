@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchEvents } from '@/services/search.service'; // Make sure searchEvents uses axios.customize instance
 import { getHomeEvents } from '@/services/Event Manager/event.service';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { StageBackground } from '@/components/StageBackground';
 import { useTranslation } from 'react-i18next';
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
@@ -72,27 +72,34 @@ const AllEventsPage = () => {
       .finally(() => setLoading(false));
   };
 
-  // Connect to EventHub for real-time updates
+  // Setup realtime listeners - Event hub connection is managed globally in App.tsx
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    // Create a function to reload all events
+    const refreshAllEvents = () => {
+      console.log('Refreshing all events due to realtime update');
+      setLoading(true);
+      getHomeEvents()
+        .then((fetchedEvents) => {
+          const activeEvents = fetchedEvents ? fetchedEvents.filter((event: Event) => event.isActive) : [];
+          setAllEvents(activeEvents);
+          // Re-apply current filters
+          reloadEvents(filters);
+        })
+        .catch(() => {
+          setAllEvents([]);
+          setEvents([]);
+        })
+        .finally(() => setLoading(false));
+    };
 
     // Listen for real-time event updates
-    onEvent('EventCreated', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventUpdated', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventApproved', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventCancelled', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-  }, []);
+    onEvent('OnEventCreated', refreshAllEvents);
+    onEvent('OnEventUpdated', refreshAllEvents);
+    onEvent('OnEventApproved', refreshAllEvents);
+    onEvent('OnEventCancelled', refreshAllEvents);
+    onEvent('OnEventShown', refreshAllEvents);
+    onEvent('OnEventHidden', refreshAllEvents);
+  }, [filters]);
 
   // Initial load: get home events
   useEffect(() => {

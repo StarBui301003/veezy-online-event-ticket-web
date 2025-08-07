@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { analyzeEventSentiment } from '@/services/Event Manager/sentiment.service';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { onAnalytics } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -49,14 +49,7 @@ const EventReviews = () => {
     };
     fetchEvents();
 
-    // Setup realtime connections for analytics
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectAnalyticsHub(token || undefined);
-
-    // Note: Comment realtime updates not available - no CommentHub implemented
-    // onComment functions removed
-
-    // Listen for analytics updates
+    // Listen for analytics updates using global connections
     onAnalytics('SentimentAnalyzed', (data: any) => {
       if (data.eventId === selectedEvent) {
         toast.success('Phân tích cảm xúc đã được cập nhật!');

@@ -7,7 +7,7 @@ import {
 import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { connectEventHub, onEvent, connectTicketHub, onTicket } from '@/services/signalr.service';
+import { onEvent, onTicket } from '@/services/signalr.service';
 import EventChatSupportButton from '@/components/EventManager/EventChatSupportButton';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -82,29 +82,26 @@ export default function EventListWithTicketManager() {
     loadEvents();
   }, []);
 
-  // SignalR real-time updates
+  // SignalR real-time updates using global connections
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
-          connectTicketHub('https://ticket.vezzy.site/notificationHub');
-
-    // Listen for real-time event updates
-    onEvent('EventCreated', () => {
+    // Listen for real-time event updates using global connections managed by App.tsx
+    onEvent('OnEventCreated', () => {
       loadEvents();
     });
 
-    onEvent('EventUpdated', () => {
+    onEvent('OnEventUpdated', () => {
       loadEvents();
     });
 
-    onEvent('EventDeleted', () => {
+    onEvent('OnEventDeleted', () => {
       loadEvents();
     });
 
-    onEvent('EventApproved', () => {
+    onEvent('OnEventApproved', () => {
       loadEvents();
     });
 
-    // Listen for real-time ticket updates
+    // Listen for real-time ticket updates using global connections managed by App.tsx
     onTicket('TicketCreated', () => {
       if (selectedEvent) {
         loadTicketsForEvent(selectedEvent.eventId);

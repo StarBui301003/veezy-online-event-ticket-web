@@ -12,9 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import noPicture from '@/assets/img/no-picture-available.png';
 import { useTranslation } from 'react-i18next';
 import {
-  connectIdentityHub,
   onIdentity,
-  connectEventHub,
   onEvent,
 } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -98,8 +96,8 @@ export default function CollaboratorManager() {
 
   // SignalR real-time updates
   useEffect(() => {
-          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
-    connectEventHub('https://event.vezzy.site/notificationHub');
+    // Setup SignalR listeners using global connections 
+    // Identity and Event hub connections are managed globally in App.tsx
 
     // Listen for collaborator updates
     onIdentity('UserRegistered', () => {

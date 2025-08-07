@@ -23,7 +23,7 @@ const AttendanceListPage = () => {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [totalAttendees, setTotalAttendees] = useState(0);
-  const [setEventManagerId] = useState('');
+  const [_eventManagerId, setEventManagerId] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(10); // pageSize fixed, not changing
   // Removed unused totalItems state
@@ -50,67 +50,58 @@ const AttendanceListPage = () => {
   useEffect(() => {
     const setupRealtimeAttendance = async () => {
       try {
-        const { connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import(
-          '@/services/signalr.service'
-        );
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const { onTicket, onNotification } = await import('@/services/signalr.service');
 
-        if (token) {
-          // Connect to Ticket Hub for attendance updates
-          await connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
+        // Listen for real-time attendance updates using global connections
+        onTicket('AttendanceCheckedIn', (data: any) => {
+          console.log('Attendance checked in:', data);
+          loadAttendances();
+          toast.success(
+            t('attendanceCheckedInRealtime', {
+              customerName: data.customerName || data.userName || 'Customer',
+            })
+          );
+        });
 
-          // Listen for real-time attendance updates
-          onTicket('AttendanceCheckedIn', (data: any) => {
-            console.log('Attendance checked in:', data);
+        onTicket('AttendanceUpdated', (data: any) => {
+          console.log('Attendance updated:', data);
+          loadAttendances();
+          toast.info(t('attendanceUpdatedRealtime'));
+        });
+
+        onTicket('TicketIssued', (data: any) => {
+          console.log('Ticket issued:', data);
+          loadAttendances();
+          toast.success(t('ticketIssuedRealtime'));
+        });
+
+        onTicket('TicketGenerated', (data: any) => {
+          console.log('Ticket generated:', data);
+          loadAttendances();
+          toast.info(t('ticketGeneratedRealtime'));
+        });
+
+        onTicket('TicketValidated', (data: any) => {
+          console.log('Ticket validated:', data);
+          if (selectedEvent && data.eventId === selectedEvent) {
             loadAttendances();
-            toast.success(
-              t('attendanceCheckedInRealtime', {
-                customerName: data.customerName || data.userName || 'Customer',
-              })
-            );
-          });
+            toast.success(t('ticketValidatedRealtime'));
+          }
+        });
 
-          onTicket('AttendanceUpdated', (data: any) => {
-            console.log('Attendance updated:', data);
+        // Listen for attendance-related notifications using global connections
+
+        onNotification('ReceiveNotification', (notification: any) => {
+          // Handle attendance-related notifications
+          if (
+            notification.type === 'AttendanceUpdate' ||
+            notification.type === 'CheckIn' ||
+            notification.type === 'TicketValidation'
+          ) {
+            console.log('Attendance notification:', notification);
             loadAttendances();
-            toast.info(t('attendanceUpdatedRealtime'));
-          });
-
-          onTicket('TicketIssued', (data: any) => {
-            console.log('Ticket issued:', data);
-            loadAttendances();
-            toast.success(t('ticketIssuedRealtime'));
-          });
-
-          onTicket('TicketGenerated', (data: any) => {
-            console.log('Ticket generated:', data);
-            loadAttendances();
-            toast.info(t('ticketGeneratedRealtime'));
-          });
-
-          onTicket('TicketValidated', (data: any) => {
-            console.log('Ticket validated:', data);
-            if (selectedEvent && data.eventId === selectedEvent) {
-              loadAttendances();
-              toast.success(t('ticketValidatedRealtime'));
-            }
-          });
-
-          // Connect to Notification Hub for attendance notifications
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-
-          onNotification('ReceiveNotification', (notification: any) => {
-            // Handle attendance-related notifications
-            if (
-              notification.type === 'AttendanceUpdate' ||
-              notification.type === 'CheckIn' ||
-              notification.type === 'TicketValidation'
-            ) {
-              console.log('Attendance notification:', notification);
-              loadAttendances();
-            }
-          });
-        }
+          }
+        });
       } catch (error) {
         console.error('Failed to setup real-time attendance:', error);
       }

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { getMyPendingEvents, cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -141,9 +141,8 @@ const PendingEventsManager = () => {
   };
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
     fetchEvents();
-    // Lắng nghe realtime SignalR
+    // Listen for realtime SignalR events using global connections managed by App.tsx
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
     onEvent('OnEventDeleted', reload);

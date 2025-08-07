@@ -14,7 +14,7 @@ import {
 } from 'react-icons/fa';
 import type { TicketForm as BaseTicketForm } from '@/types/ticket';
 import { useTranslation } from 'react-i18next';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { onNotification } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -59,20 +59,17 @@ export default function EditTicket() {
     })();
   }, [eventId, ticketId]);
 
-  // Setup realtime connection for ticket updates
+  // Setup realtime connection for ticket updates using global connections
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    connectTicketHub(token || undefined);
-
     // Listen for ticket update confirmations
-    onTicket('TicketUpdated', (data: any) => {
+    onNotification('OnTicketUpdated', (data: any) => {
       if (data.ticketId === ticketId) {
         toast.success('Vé đã được cập nhật thành công!');
         navigate(`/event-manager/events/${eventId}/tickets`);
       }
     });
 
-    onTicket('TicketUpdateFailed', (data: any) => {
+    onNotification('OnTicketUpdateFailed', (data: any) => {
       if (data.ticketId === ticketId) {
         toast.error('Không thể cập nhật vé. Vui lòng thử lại!');
       }
@@ -161,10 +158,9 @@ export default function EditTicket() {
               'bg-gradient-to-br from-[#2d0036] via-[#3a0ca3]/80 to-[#ff008e]/80 border-pink-500/30'
             )
           )}
-          style={getThemeClass(
-            { boxShadow: '0 0 80px 0 #3b82f688' },
-            { boxShadow: '0 0 80px 0 #ff008e88' }
-          )}
+          style={{
+            boxShadow: getThemeClass('0 0 80px 0 #3b82f688', '0 0 80px 0 #ff008e88')
+          }}
         >
           <div className="flex items-center gap-3 mb-8">
             <FaTicketAlt

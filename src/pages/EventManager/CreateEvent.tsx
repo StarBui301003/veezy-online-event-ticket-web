@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { createEvent, getAllCategories, uploadImage } from '@/services/Event Manager/event.service';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import Select from 'react-select';
@@ -15,7 +15,6 @@ import type { StylesConfig } from 'react-select';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { config } from '@/utils/config';
 
 // Định nghĩa type cho EnhancedContent
 interface EnhancedContent {
@@ -173,7 +172,7 @@ export default function CreateEventForm() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [setTouched] = useState<{ [key: string]: boolean }>({});
+  const [_touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState<EnhancedCreateEventData>({
     eventName: '',
     eventDescription: '',
@@ -213,8 +212,8 @@ export default function CreateEventForm() {
   useEffect(() => {
     fetchCategories();
 
-    // Connect to EventHub and listen for category changes
-    connectEventHub(`${config.gatewayUrl}/eventhub`);
+    // Setup Event Hub listeners using global connections
+    // Event hub connection is managed globally in App.tsx
     onEvent('OnCategoryCreated', () => {
       fetchCategories();
     });

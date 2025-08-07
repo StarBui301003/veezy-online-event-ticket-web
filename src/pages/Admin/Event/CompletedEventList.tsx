@@ -36,7 +36,7 @@ import { FaEye, FaRegTrashAlt, FaFilter, FaSort, FaSortUp, FaSortDown } from 're
 import CompletedEventDetailModal from '@/pages/Admin/Event/CompletedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { toast } from 'react-toastify';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -136,7 +136,7 @@ export const CompletedEventList = ({
   }, [filters, sortBy, sortDescending, completedEventSearch]);
 
   useEffect(() => {
-    connectEventHub('https://event.vezzy.site/notificationHub');
+    // Use global event connections for realtime updates
     const reload = () => {
       fetchData();
     };

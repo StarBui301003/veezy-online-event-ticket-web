@@ -17,7 +17,7 @@ import {
   deleteEventImage,
   getAllCategories,
 } from '@/services/Event Manager/event.service';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { CreateEventData, Category, Content } from '@/types/event';
 import { validateEventForm } from '@/utils/validation';
 import { Button } from '@/components/ui/button';
@@ -306,8 +306,8 @@ export default function EditEvent() {
 
     fetchEventAndCategories();
 
-    // Connect to EventHub and listen for category changes
-    connectEventHub('http://localhost:5004/notificationHub');
+    // Setup Event Hub listeners using global connections
+    // Event hub connection is managed globally in App.tsx
     onEvent('OnCategoryCreated', fetchCategories);
     onEvent('OnCategoryUpdated', fetchCategories);
     onEvent('OnCategoryDeleted', fetchCategories);

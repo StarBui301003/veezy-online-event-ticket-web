@@ -8,7 +8,7 @@ import {
   exportAnalyticsExcel,
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -64,7 +64,7 @@ export default function TicketSalesDashboard() {
   }, [selectedPeriod]);
 
   useEffect(() => {
-    connectEventHub('https://event.vezzy.site/notificationHub');
+    // Setup real-time listeners using global connections managed by App.tsx
     const reload = () => fetchSalesData(selectedPeriod);
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);

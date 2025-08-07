@@ -14,7 +14,7 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
+import { onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type { AdminUserAnalyticsResponse } from '@/types/Admin/dashboard';
 import type { UserGrowth, UserDemographics } from '@/types/Admin/dashboard';
 import {
@@ -84,9 +84,9 @@ export default function UserTabs() {
     });
   };
 
-  // Connect to AnalyticsHub for real-time updates
+  // Setup Analytics Hub listeners using global connections
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    // Analytics hub connection is managed globally in App.tsx
 
     // Handler reference for cleanup
     const handler = (data: any) => {

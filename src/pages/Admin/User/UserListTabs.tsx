@@ -7,7 +7,7 @@ import { CollaboratorList } from './CollaboratorList';
 import { EventManagerList } from './EventManagerList';
 import { FaUserShield, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
 import { cn } from '@/lib/utils';
-import { connectIdentityHub, onIdentity, disconnectIdentityHub } from '@/services/signalr.service';
+import { onIdentity } from '@/services/signalr.service';
 
 export default function UserListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,9 +21,9 @@ export default function UserListTabs() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Setup SignalR cho realtime user updates
+  // Setup SignalR listeners using global connections
   useEffect(() => {
-          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
+    // Identity hub connection is managed globally in App.tsx
 
     // Lắng nghe realtime SignalR cho user events
     const handleUserUpdates = () => {
@@ -41,9 +41,9 @@ export default function UserListTabs() {
     onIdentity('UserUpdated', handleUserUpdates);
     onIdentity('UserAvatarUpdated', handleUserUpdates);
 
-    // Cleanup function
+    // Cleanup is handled by SignalR service
     return () => {
-      disconnectIdentityHub();
+      // No cleanup needed - global connections are managed in App.tsx
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

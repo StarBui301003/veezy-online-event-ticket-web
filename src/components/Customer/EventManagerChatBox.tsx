@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
-import { connectChatHub, onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
+import { onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -236,11 +236,10 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
         }
       });
 
-      // Connect to SignalR and join room
-      console.log('🔌 Connecting to SignalR...');
-      const token = localStorage.getItem('access_token');
-              await connectChatHub('https://chat.vezzy.site/chatHub', token || undefined);
-      console.log('✅ SignalR connected');
+      // Connect to chat room using global SignalR connections
+      console.log('🔌 Using global SignalR connection...');
+      // Chat hub connection is managed globally in App.tsx
+      console.log('✅ SignalR connection available');
       setIsConnected(true);
 
       console.log('🏠 Joining chat room:', room.roomId);

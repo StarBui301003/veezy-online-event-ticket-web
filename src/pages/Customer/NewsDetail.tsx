@@ -12,7 +12,7 @@ import {
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 import ReportModal from '@/components/Customer/ReportModal';
-import { connectNewsHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
@@ -54,7 +54,7 @@ const NewsDetail: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    
     const fetchNews = async () => {
       try {
         const res = await getNewsDetail(newsId || '');
@@ -75,7 +75,23 @@ const NewsDetail: React.FC = () => {
         setLoading(false);
       }
     };
-    if (newsId) fetchNews();
+    if (newsId)     fetchNews();
+    
+    // Setup realtime listeners for news updates
+    onEvent('OnNewsUpdated', (data: any) => {
+      if (data.newsId === newsId || data.NewsId === newsId) {
+        console.log('News updated - refreshing details');
+        fetchNews();
+      }
+    });
+
+    onEvent('OnNewsDeleted', (data: any) => {
+      if (data.newsId === newsId || data.NewsId === newsId) {
+        console.log('News deleted - redirecting');
+        toast.info('This news has been removed');
+        navigate('/news');
+      }
+    });
   }, [newsId, navigate]);
 
   useEffect(() => {
@@ -86,7 +102,8 @@ const NewsDetail: React.FC = () => {
     navigate(path);
   };
 
-  const { showLoginModal, setShowLoginModal, requireLogin } = useRequireLogin();
+  const { requireLogin } = useRequireLogin();
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleReportNews = () => {
     requireLogin(() => {

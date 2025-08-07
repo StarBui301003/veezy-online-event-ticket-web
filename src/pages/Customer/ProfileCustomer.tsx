@@ -200,32 +200,34 @@ const ProfileCustomer = () => {
     handleThemeChange();
   }, [theme]);
 
-  // Connect to SignalR hubs for real-time updates
+  // Setup SignalR real-time updates using global connections
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     const accountObj = accStr ? JSON.parse(accStr) : null;
-    const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken');
 
     if (accountObj?.userId) {
       const setupRealtimeUpdates = async () => {
         try {
           const {
-            connectTicketHub,
             onTicket,
-            connectNotificationHub,
             onNotification,
-            connectEventHub,
             onEvent,
           } = await import('@/services/signalr.service');
 
-          // Connect to Ticket Hub for order and ticket updates
-          await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
-
+          // Listen for ticket and order related events
           onTicket('OrderCreated', (data: any) => {
             if (data.customerId === accountObj.userId) {
               console.log('Order created:', data);
               loadOrderHistory(accountObj.userId);
               toast.info(t('newOrderCreated'));
+            }
+          });
+
+          onTicket('OrderUpdated', (data: any) => {
+            if (data.customerId === accountObj.userId) {
+              console.log('Order updated:', data);
+              loadOrderHistory(accountObj.userId);
+              toast.info(t('orderStatusChanged'));
             }
           });
 
@@ -277,9 +279,23 @@ const ProfileCustomer = () => {
             }
           });
 
-          // Connect to Event Hub for event updates that affect user's tickets
-          await connectEventHub('https://event.vezzy.site/notificationHub');
+          onTicket('PaymentCompleted', (data: any) => {
+            if (data.customerId === accountObj.userId || data.userId === accountObj.userId) {
+              console.log('Payment completed:', data);
+              loadOrderHistory(accountObj.userId);
+              toast.success(t('paymentSuccessful'));
+            }
+          });
 
+          onTicket('PaymentFailed', (data: any) => {
+            if (data.customerId === accountObj.userId || data.userId === accountObj.userId) {
+              console.log('Payment failed:', data);
+              loadOrderHistory(accountObj.userId);
+              toast.error(t('paymentFailed'));
+            }
+          });
+
+          // Listen for event updates that affect user's tickets
           onEvent('OnEventCancelled', (data: any) => {
             const eventId = data.eventId || data.EventId;
             // Check if user has tickets for this event
@@ -307,41 +323,33 @@ const ProfileCustomer = () => {
             }
           });
 
-          // Connect to Notification Hub for general notifications
-          if (token) {
-            await connectNotificationHub(
-              'https://notification.vezzy.site/hubs/notifications',
-              token
-            );
+          // Listen for general notifications
+          onNotification('ReceiveNotification', (notification: any) => {
+            // Filter notifications relevant to profile page
+            if (
+              notification.type === 'OrderUpdate' ||
+              notification.type === 'TicketIssue' ||
+              notification.type === 'EventUpdate' ||
+              notification.type === 'PaymentUpdate'
+            ) {
+              console.log('Profile-relevant notification:', notification);
+              toast.info(notification.message || notification.title);
+            }
+          });
 
-            onNotification('ReceiveNotification', (notification: any) => {
-              // Filter notifications relevant to profile page
-              if (
-                notification.type === 'OrderUpdate' ||
-                notification.type === 'TicketIssue' ||
-                notification.type === 'EventUpdate' ||
-                notification.type === 'PaymentUpdate'
-              ) {
-                console.log('Profile-relevant notification:', notification);
-                toast.info(notification.message || notification.title);
+          onNotification('PaymentStatusChanged', (data: any) => {
+            if (data.userId === accountObj.userId || data.customerId === accountObj.userId) {
+              console.log('Payment status changed:', data);
+              if (data.status === 'Success' || data.status === 'Completed') {
+                toast.success(t('paymentSuccessful'));
+              } else if (data.status === 'Failed') {
+                toast.error(t('paymentFailed'));
+              } else if (data.status === 'Refunded') {
+                toast.info(t('paymentRefunded'));
               }
-            });
-
-            // Listen for payment status changes
-            onNotification('PaymentStatusChanged', (data: any) => {
-              if (data.userId === accountObj.userId || data.customerId === accountObj.userId) {
-                console.log('Payment status changed:', data);
-                if (data.status === 'Success' || data.status === 'Completed') {
-                  toast.success(t('paymentSuccessful'));
-                } else if (data.status === 'Failed') {
-                  toast.error(t('paymentFailed'));
-                } else if (data.status === 'Refunded') {
-                  toast.info(t('paymentRefunded'));
-                }
-                loadOrderHistory(accountObj.userId);
-              }
-            });
-          }
+              loadOrderHistory(accountObj.userId);
+            }
+          });
         } catch (error) {
           console.error('Failed to setup realtime updates:', error);
         }
