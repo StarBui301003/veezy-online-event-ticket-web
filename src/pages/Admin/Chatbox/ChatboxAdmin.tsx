@@ -108,11 +108,11 @@ const ChatboxAdmin = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false); // Add loading state for messages
 
-  // ✅ Method để refresh users từ IdentityService
+  // ✅ Method để refresh users từ IdentityService (updated to use getAllUsersWithStatus)
   const refreshAllUsers = async () => {
     try {
       console.log('[ChatboxAdmin] Refreshing all users from IdentityService...');
-      const users = await identityService.getOnlineUsers();
+      const users = await identityService.getAllUsersWithStatus();
       
       const transformedUsers = users.map(user => ({
         userId: user.accountId,
@@ -191,12 +191,12 @@ const ChatboxAdmin = () => {
 
   const currentUser = getCurrentUser();
 
-  // ✅ Load all users từ IdentityService khi component mount
+  // ✅ Load all users từ IdentityService khi component mount (updated to use getAllUsersWithStatus)
   useEffect(() => {
     const loadUsers = async () => {
       try {
         console.log('[ChatboxAdmin] Loading all users from IdentityService...');
-        const users = await identityService.getOnlineUsers();
+        const users = await identityService.getAllUsersWithStatus();
         
         // Transform users để match interface hiện tại
         const transformedUsers = users.map(user => ({
