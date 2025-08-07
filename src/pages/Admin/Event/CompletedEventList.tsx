@@ -138,7 +138,7 @@ export const CompletedEventList = ({
   }, [filters, sortBy, sortDescending, completedEventSearch]);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData();
     };

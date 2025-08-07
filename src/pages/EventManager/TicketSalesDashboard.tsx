@@ -60,7 +60,7 @@ export default function TicketSalesDashboard() {
   }, [selectedPeriod]);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => fetchSalesData(selectedPeriod);
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);

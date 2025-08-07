@@ -103,7 +103,7 @@ export default function FinancialTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {

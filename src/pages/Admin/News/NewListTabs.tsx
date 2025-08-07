@@ -34,7 +34,7 @@ export function NewsListTabs() {
   };
 
   useEffect(() => {
-    connectNewsHub('http://localhost:5004/newsHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
     // Lắng nghe realtime SignalR cho news
     const reloadNews = () => fetchPendingCount();
     onNews('OnNewsCreated', reloadNews);

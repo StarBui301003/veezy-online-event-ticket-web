@@ -38,8 +38,8 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    connectEventHub('http://localhost:5004/notificationHub');
+            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+            connectEventHub('https://event.vezzy.site/notificationHub');
 
     // Listen for event updates
     onEvent('EventCreated', () => {
@@ -77,8 +77,8 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates for predictions
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
-    connectEventHub('http://localhost:5004/notificationHub');
+            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+            connectEventHub('https://event.vezzy.site/notificationHub');
 
     // Listen for analytics updates
     onAnalytics('PredictionUpdated', () => {

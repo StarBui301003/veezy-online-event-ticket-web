@@ -108,7 +108,7 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    connectNewsHub('http://localhost:5004/newsHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
     };

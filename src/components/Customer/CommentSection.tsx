@@ -116,7 +116,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   useEffect(() => {
     if (eventId) {
       fetchComments();
-      connectCommentHub('http://localhost:5004/commentHub');
+      connectCommentHub('https://event.vezzy.site/commentHub');
       // Lắng nghe realtime SignalR cho comment
       const reloadComment = (data: any) => {
         if (data?.eventId === eventId || data === eventId) {

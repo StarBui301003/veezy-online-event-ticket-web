@@ -110,7 +110,7 @@ export const FaceAuthDebug: React.FC = () => {
       console.log('[FaceAuthDebug] Testing updateFace API with OPTIONS request...');
       
       // First test with OPTIONS to see if endpoint is accessible
-      const response = await fetch('http://localhost:5000/api/Account/updateFace', {
+              const response = await fetch('https://api.vezzy.site/api/Account/updateFace', {
         method: 'OPTIONS',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,

@@ -31,7 +31,9 @@ export const Register = () => {
   const [phone, setPhone] = useState(() => sessionStorage.getItem('register_phone') || '');
   const [email, setEmail] = useState(() => sessionStorage.getItem('register_email') || '');
   const [password, setPassword] = useState(() => sessionStorage.getItem('register_password') || '');
-  const [confirmPassword, setConfirmPassword] = useState(() => sessionStorage.getItem('register_confirmPassword') || '');
+  const [confirmPassword, setConfirmPassword] = useState(
+    () => sessionStorage.getItem('register_confirmPassword') || ''
+  );
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<number | null>(() => {
     const saved = sessionStorage.getItem('register_role');
@@ -46,14 +48,30 @@ export const Register = () => {
   const navigate = useNavigate();
 
   // Save to sessionStorage on change
-  useEffect(() => { sessionStorage.setItem('register_username', username); }, [username]);
-  useEffect(() => { sessionStorage.setItem('register_fullName', fullName); }, [fullName]);
-  useEffect(() => { sessionStorage.setItem('register_phone', phone); }, [phone]);
-  useEffect(() => { sessionStorage.setItem('register_email', email); }, [email]);
-  useEffect(() => { sessionStorage.setItem('register_password', password); }, [password]);
-  useEffect(() => { sessionStorage.setItem('register_confirmPassword', confirmPassword); }, [confirmPassword]);
-  useEffect(() => { sessionStorage.setItem('register_role', role !== null ? String(role) : ''); }, [role]);
-  useEffect(() => { if (date) sessionStorage.setItem('register_date', date.toISOString()); }, [date]);
+  useEffect(() => {
+    sessionStorage.setItem('register_username', username);
+  }, [username]);
+  useEffect(() => {
+    sessionStorage.setItem('register_fullName', fullName);
+  }, [fullName]);
+  useEffect(() => {
+    sessionStorage.setItem('register_phone', phone);
+  }, [phone]);
+  useEffect(() => {
+    sessionStorage.setItem('register_email', email);
+  }, [email]);
+  useEffect(() => {
+    sessionStorage.setItem('register_password', password);
+  }, [password]);
+  useEffect(() => {
+    sessionStorage.setItem('register_confirmPassword', confirmPassword);
+  }, [confirmPassword]);
+  useEffect(() => {
+    sessionStorage.setItem('register_role', role !== null ? String(role) : '');
+  }, [role]);
+  useEffect(() => {
+    if (date) sessionStorage.setItem('register_date', date.toISOString());
+  }, [date]);
 
   const handleRegister = async () => {
     // Clear previous errors
@@ -125,7 +143,6 @@ export const Register = () => {
         role,
       });
 
-      sessionStorage.setItem('registerEmail', email);
       // Clear form data from sessionStorage after successful register
       sessionStorage.removeItem('register_username');
       sessionStorage.removeItem('register_fullName');
@@ -137,6 +154,7 @@ export const Register = () => {
       sessionStorage.removeItem('register_date');
 
       if (response && response.flag && response.code === 200) {
+        sessionStorage.setItem('registerEmail', email);
         toast.success('Registration successful! Please verify your email.');
         setTimeout(() => {
           navigate('/verify-email', { replace: true });
@@ -188,6 +206,39 @@ export const Register = () => {
       // Parse backend errors for field-specific display
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
 
+      // Check for unverified email case
+      let hasUnverifiedEmailError = false;
+      let unverifiedEmailMessage = '';
+
+      if (error && typeof error === 'object') {
+        if ('response' in error && typeof (error as any).response?.data?.message === 'string') {
+          const backendMessage = (error as any).response.data.message;
+
+          // Check for unverified email error
+          if (
+            backendMessage.includes('A verification code has already been sent to this email') ||
+            backendMessage.includes('already been sent') ||
+            backendMessage.includes('verification code has already been sent') ||
+            backendMessage.includes('Please check your inbox or wait')
+          ) {
+            hasUnverifiedEmailError = true;
+            unverifiedEmailMessage = backendMessage;
+          }
+        }
+      }
+
+      // If it's an unverified email case, redirect to verify page
+      if (hasUnverifiedEmailError) {
+        sessionStorage.setItem('registerEmail', email);
+        toast.info(
+          'Email already registered but not verified. Redirecting to verification page...'
+        );
+        setTimeout(() => {
+          navigate('/verify-email', { replace: true });
+        }, 1000);
+        return;
+      }
+
       // Set field errors for inline display
       setFieldErrors(backendFieldErrors);
 
@@ -209,7 +260,7 @@ export const Register = () => {
   const handleRegisterWithFace = async (faceFile?: File) => {
     if (faceRegisteringRef.current) return; // Chặn double submit bằng ref
     faceRegisteringRef.current = true;
-    
+
     // Clear previous errors
     setFieldErrors({});
 
@@ -301,18 +352,52 @@ export const Register = () => {
       }
     } catch (err: unknown) {
       console.error('Face registration error:', err);
-      
+
       // Parse backend errors for field-specific display (same as normal registration)
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(err);
+
+      // Check for unverified email case (same as normal registration)
+      let hasUnverifiedEmailError = false;
+      let unverifiedEmailMessage = '';
+
+      if (err && typeof err === 'object') {
+        if ('response' in err && typeof (err as any).response?.data?.message === 'string') {
+          const backendMessage = (err as any).response.data.message;
+
+          // Check for unverified email error
+          if (
+            backendMessage.includes('A verification code has already been sent to this email') ||
+            backendMessage.includes('already been sent') ||
+            backendMessage.includes('verification code has already been sent') ||
+            backendMessage.includes('Please check your inbox or wait')
+          ) {
+            hasUnverifiedEmailError = true;
+            unverifiedEmailMessage = backendMessage;
+          }
+        }
+      }
+
+      // If it's an unverified email case, redirect to verify page
+      if (hasUnverifiedEmailError) {
+        sessionStorage.setItem('registerEmail', email);
+        toast.info(
+          'Email already registered but not verified. Redirecting to verification page...'
+        );
+        setTimeout(() => {
+          navigate('/verify-email', { replace: true });
+        }, 1000);
+        faceRegisteringRef.current = false;
+        return;
+      }
 
       // Check for face-specific errors from backend
       let hasFaceError = false;
       let faceErrorMessage = '';
-      
+
       if (err && typeof err === 'object') {
         if ('response' in err && typeof (err as any).response?.data?.message === 'string') {
           const backendMessage = (err as any).response.data.message;
-          
+
           // Check for face-specific errors from AI service
           if (
             backendMessage.includes('This face is already registered to another account') ||
@@ -342,7 +427,7 @@ export const Register = () => {
       if (hasFaceError) {
         finalFieldErrors.face = [faceErrorMessage];
       }
-      
+
       setFieldErrors(finalFieldErrors);
 
       // Show toast for errors
@@ -654,7 +739,7 @@ export const Register = () => {
               >
                 Face Registration
               </Button>
-              
+
               {getFieldError(fieldErrors, 'face') && (
                 <div className="text-red-400 text-sm mt-1 ml-2 mb-4">
                   {getFieldError(fieldErrors, 'face')}
@@ -676,7 +761,7 @@ export const Register = () => {
         <FaceCapture
           onCapture={({ image }) => {
             if (faceRegisteringRef.current) return; // Chặn double callback bằng ref
-            
+
             // Clear face error when successfully capturing
             if (hasFieldError(fieldErrors, 'face')) {
               setFieldErrors((prev) => {
@@ -685,7 +770,7 @@ export const Register = () => {
                 return newErrors;
               });
             }
-            
+
             setShowFaceModal(false);
             handleRegisterWithFace(
               new File([image], 'face.jpg', { type: image.type || 'image/jpeg' })

@@ -54,7 +54,7 @@ const NewsDetail: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-    connectNewsHub('http://localhost:5004/newsHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
     const fetchNews = async () => {
       try {
         const res = await getNewsDetail(newsId || '');

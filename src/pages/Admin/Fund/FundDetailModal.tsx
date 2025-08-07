@@ -48,7 +48,6 @@ const FundDetailModal = ({
       setReason('');
       // Gọi callback để refresh danh sách trước khi đóng modal
       onSuccess?.();
-      toast.success('List refreshed successfully');
       // Đóng modal sau khi refresh
       setTimeout(() => {
         onClose();

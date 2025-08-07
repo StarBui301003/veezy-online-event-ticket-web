@@ -1,15 +1,9 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { updateDiscountCode } from '@/services/Admin/discountCode.service';
 import type { DiscountCodeUpdateInput } from '@/types/Admin/discountCode';
 import {
-  Select,
+  Select as UISelect,
   SelectTrigger,
   SelectValue,
   SelectContent,
@@ -26,7 +20,7 @@ import { toast } from 'react-toastify';
 import { formatCurrency } from '@/utils/format';
 
 interface Props {
-  discount: (DiscountCodeUpdateInput & { discountId: string }) | null;
+  discount: (DiscountCodeUpdateInput & { discountId: string; eventName?: string }) | null;
   onClose: () => void;
   onUpdated?: () => void;
 }
@@ -144,13 +138,26 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 p-6 pt-0">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Code</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Event Name
+            </label>
+            <input
+              className="border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 border-gray-200 dark:border-gray-600 cursor-not-allowed"
+              value={discount?.eventName || 'Unknown Event'}
+              disabled={true}
+              readOnly
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Code
+            </label>
             <input
               className={getErrorClass(
                 'code',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.code}
               onChange={handleCodeChange}
@@ -164,10 +171,10 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Discount Type
             </label>
-            <Select
+            <UISelect
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
               disabled={loading}
@@ -175,17 +182,32 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               <SelectTrigger
                 className={getErrorClass(
                   'discountType',
-                  'border-gray-200 dark:border-gray-600 border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
+                  'border-gray-200 dark:border-gray-600 border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
                 )}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                <SelectItem value="0" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Percentage</SelectItem>
-                <SelectItem value="1" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Amount</SelectItem>
-                <SelectItem value="3" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Other</SelectItem>
+                <SelectItem
+                  value="0"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Percentage
+                </SelectItem>
+                <SelectItem
+                  value="1"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Amount
+                </SelectItem>
+                <SelectItem
+                  value="3"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Other
+                </SelectItem>
               </SelectContent>
-            </Select>
+            </UISelect>
             {getFieldError('discountType') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
                 {getFieldError('discountType')}
@@ -193,14 +215,14 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Value {form.discountType === 0 ? '(%)' : '(VND)'}
             </label>
             <input
               type="number"
               className={getErrorClass(
                 'value',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.value || ''}
               onChange={handleValueChange}
@@ -220,7 +242,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Minimum Amount (VND){' '}
               <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
@@ -228,7 +250,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               type="number"
               className={getErrorClass(
                 'minimum',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.minimum || ''}
               onChange={handleMinimumChange}
@@ -244,7 +266,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Maximum Discount (VND){' '}
               <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
@@ -252,7 +274,7 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
               type="number"
               className={getErrorClass(
                 'maximum',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.maximum || ''}
               onChange={handleMaximumChange}
@@ -268,12 +290,14 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max Usage</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Max Usage
+            </label>
             <input
               type="number"
               className={getErrorClass(
                 'maxUsage',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.maxUsage}
               onChange={handleMaxUsageChange}
@@ -289,14 +313,14 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Expired At
             </label>
             <input
               type="datetime-local"
               className={getErrorClass(
                 'expiredAt',
-                'border rounded px-2 py-1 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                'border rounded px-3 py-2 w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
               value={form.expiredAt}
               onChange={handleExpiredAtChange}
@@ -309,32 +333,30 @@ export const EditDiscountCodeModal = ({ discount, onClose, onUpdated }: Props) =
             )}
           </div>
         </div>
-        <div className="p-4">
-          <DialogFooter>
-            <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
-              onClick={onClose}
-              disabled={loading}
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
-              onClick={handleEdit}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update'
-              )}
-            </button>
-          </DialogFooter>
+        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
+          <button
+            className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
+            onClick={onClose}
+            disabled={loading}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
+            onClick={handleEdit}
+            disabled={loading}
+            type="button"
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                Updating...
+              </>
+            ) : (
+              'Update'
+            )}
+          </button>
         </div>
       </DialogContent>
     </Dialog>

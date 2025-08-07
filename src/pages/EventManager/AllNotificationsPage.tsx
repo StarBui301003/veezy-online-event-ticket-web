@@ -205,7 +205,7 @@ export default function AllNotificationsPage() {
       // Connect to SignalR hub
       try {
         const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        connectNotificationHub('http://localhost:5003/hubs/notifications', token || undefined);
+        connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token || undefined);
 
         // Subscribe to new notifications
         onNotification('ReceiveNotification', (newNotification: Notification) => {

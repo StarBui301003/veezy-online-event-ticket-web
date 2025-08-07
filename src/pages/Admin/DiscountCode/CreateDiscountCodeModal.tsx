@@ -10,8 +10,9 @@ import { createDiscountCode } from '@/services/Admin/discountCode.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import type { DiscountCodeCreateInput } from '@/types/Admin/discountCode';
+import Select from 'react-select';
 import {
-  Select,
+  Select as UISelect,
   SelectTrigger,
   SelectValue,
   SelectContent,
@@ -46,9 +47,30 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   });
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
 
   // Use theme classes
   const { getProfileInputClass } = useThemeClasses();
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -198,39 +220,116 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
             </DialogTitle>
           </DialogHeader>
         </div>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-gray-800">
+        <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Event</label>
-            <Select onValueChange={handleEventChange} disabled={loading} value={form.eventId}>
-              <SelectTrigger
-                className={getErrorClass(
-                  'eventId',
-                  'border-gray-200 dark:border-gray-600 w-full border px-3 py-2 rounded text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
-                )}
-              >
-                <SelectValue placeholder="Select event" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                {events.map((event) => (
-                  <SelectItem
-                    key={event.eventId}
-                    value={event.eventId.toString()}
-                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    {event.eventName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Event
+            </label>
+            <Select
+              options={events.map((event) => ({
+                value: event.eventId,
+                label: event.eventName,
+              }))}
+              value={events
+                .map((event) => ({
+                  value: event.eventId,
+                  label: event.eventName,
+                }))
+                .find((option) => option.value === form.eventId)}
+              onChange={(selectedOption) => handleEventChange(selectedOption?.value || '')}
+              placeholder="Select event"
+              isDisabled={loading}
+              isSearchable={true}
+              classNamePrefix="react-select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  borderColor: getFieldError('eventId')
+                    ? '#ef4444'
+                    : state.isFocused
+                    ? '#3b82f6'
+                    : isDarkMode
+                    ? '#4b5563'
+                    : '#d1d5db',
+                  '&:hover': {
+                    borderColor: getFieldError('eventId')
+                      ? '#ef4444'
+                      : isDarkMode
+                      ? '#6b7280'
+                      : '#9ca3af',
+                  },
+                  minHeight: '40px',
+                  borderRadius: '6px',
+                  boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  boxShadow:
+                    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 9999,
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isSelected
+                    ? '#3b82f6'
+                    : state.isFocused
+                    ? isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6'
+                    : 'transparent',
+                  color: state.isSelected ? 'white' : isDarkMode ? '#f9fafb' : '#111827',
+                  '&:hover': {
+                    backgroundColor: state.isSelected
+                      ? '#3b82f6'
+                      : isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6',
+                  },
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                placeholder: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                menuList: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                }),
+                noOptionsMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                loadingMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+              }}
+            />
             {getFieldError('eventId') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('eventId')}</div>
             )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Code</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Code
+            </label>
             <input
-              className={getErrorClass('code', getProfileInputClass())}
+              className={getErrorClass(
+                'code',
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               name="code"
               value={form.code}
               onChange={handleCodeChange}
@@ -243,10 +342,10 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Discount Type
             </label>
-            <Select
+            <UISelect
               value={String(form.discountType)}
               onValueChange={handleDiscountTypeChange}
               disabled={loading}
@@ -254,7 +353,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               <SelectTrigger
                 className={getErrorClass(
                   'discountType',
-                  'border-gray-200 dark:border-gray-600 border px-3 py-2 rounded w-full text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700'
+                  'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                 )}
               >
                 <SelectValue />
@@ -279,29 +378,31 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
                   Other
                 </SelectItem>
               </SelectContent>
-            </Select>
+            </UISelect>
             {getFieldError('discountType') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('discountType')}</div>
             )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Value {form.discountType === 0 ? '(%)' : '(VND)'}
             </label>
             <input
-              className={getErrorClass('value', getProfileInputClass())}
-              name="value"
               type="number"
+              className={getErrorClass(
+                'value',
+                'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
+              name="value"
               value={form.value || ''}
               onChange={handleValueChange}
               disabled={loading}
               min={0}
-              max={form.discountType === 0 ? 100 : undefined}
-              step={form.discountType === 0 ? 1 : 1000}
+              step={form.discountType === 0 ? 0.01 : 1000}
               placeholder={
                 form.discountType === 0
-                  ? 'Enter percentage (1-100)'
+                  ? 'Enter percentage (0-100)'
                   : `Enter amount (e.g., ${formatCurrency(50000)})`
               }
             />
@@ -311,61 +412,70 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Minimum Amount (VND){' '}
-              <span className="text-gray-400 dark:text-gray-500">- Optional</span>
+              <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
             <input
-              className={getErrorClass('minimum', getProfileInputClass())}
-              name="minimum"
               type="number"
+              className={getErrorClass(
+                'minimum',
+                'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
+              name="minimum"
               value={form.minimum || ''}
               onChange={handleMinimumChange}
               disabled={loading}
               min={0}
               step={1000}
-              placeholder={`Minimum order amount (e.g., ${formatCurrency(100000)})`}
+              placeholder={`Enter minimum amount (e.g., ${formatCurrency(100000)})`}
             />
             {getFieldError('minimum') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('minimum')}</div>
             )}
           </div>
 
-          {form.discountType !== 1 && (
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Maximum Discount (VND){' '}
-                <span className="text-gray-400 dark:text-gray-500">- Optional</span>
-              </label>
-              <input
-                className={getErrorClass('maximum', getProfileInputClass())}
-                name="maximum"
-                type="number"
-                value={form.maximum || ''}
-                onChange={handleMaximumChange}
-                disabled={loading}
-                min={0}
-                step={1000}
-                placeholder={`Maximum discount amount (e.g., ${formatCurrency(50000)})`}
-              />
-              {getFieldError('maximum') && (
-                <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Maximum Discount (VND){' '}
+              <span className="text-gray-400 dark:text-gray-500">(optional)</span>
+            </label>
+            <input
+              type="number"
+              className={getErrorClass(
+                'maximum',
+                'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
               )}
-            </div>
-          )}
+              name="maximum"
+              value={form.maximum || ''}
+              onChange={handleMaximumChange}
+              disabled={loading}
+              min={0}
+              step={1000}
+              placeholder={`Enter maximum discount amount (e.g., ${formatCurrency(50000)})`}
+            />
+            {getFieldError('maximum') && (
+              <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maximum')}</div>
+            )}
+          </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Max Usage</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Max Usage
+            </label>
             <input
-              className={getErrorClass('maxUsage', getProfileInputClass())}
-              name="maxUsage"
               type="number"
+              className={getErrorClass(
+                'maxUsage',
+                'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
+              name="maxUsage"
               value={form.maxUsage}
               onChange={handleMaxUsageChange}
               disabled={loading}
               min={1}
               step={1}
-              placeholder="Maximum number of uses"
+              placeholder="Enter maximum usage count"
             />
             {getFieldError('maxUsage') && (
               <div className="text-red-400 text-sm mt-1 ml-2">{getFieldError('maxUsage')}</div>
@@ -373,13 +483,16 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Expired At
             </label>
             <input
-              className={getErrorClass('expiredAt', getProfileInputClass())}
-              name="expiredAt"
               type="datetime-local"
+              className={getErrorClass(
+                'expiredAt',
+                'border rounded px-3 py-2 w-full transition-colors text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+              )}
+              name="expiredAt"
               value={form.expiredAt}
               onChange={handleExpiredAtChange}
               disabled={loading}
@@ -389,10 +502,10 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
             )}
           </div>
         </div>
-        <div className="p-6 border-t border-gray-200 dark:border-gray-600 flex justify-end gap-2">
+        <div className="p-4">
           <DialogFooter>
             <button
-              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500"
+              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
               onClick={onClose}
               disabled={loading}
               type="button"
@@ -400,16 +513,16 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
               Cancel
             </button>
             <button
-              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2]"
+              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
               onClick={handleCreate}
               disabled={loading}
               type="button"
             >
               {loading ? (
-                <div className="flex items-center gap-2">
+                <>
                   <FaSpinner className="animate-spin" />
                   Creating...
-                </div>
+                </>
               ) : (
                 'Create'
               )}

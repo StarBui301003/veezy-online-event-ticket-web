@@ -96,7 +96,7 @@ export const useEventManagerChat = ({
       setOnlineParticipants(room.participants || []);
 
       // Connect to SignalR
-      await connectChatHub('http://localhost:5007/chatHub');
+              await connectChatHub('https://chat.vezzy.site/chatHub');
       setIsConnected(true);
 
       // Join room

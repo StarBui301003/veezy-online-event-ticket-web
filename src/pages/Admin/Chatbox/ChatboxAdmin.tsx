@@ -287,7 +287,7 @@ const ChatboxAdmin = () => {
         console.log('🔗 Attempting to connect to ChatHub...');
         const token = localStorage.getItem('access_token');
         console.log('🔑 Admin connecting with token:', token ? 'Present' : 'Missing');
-        await connectChatHub('http://localhost:5007/chatHub', token || undefined);
+        await connectChatHub('https://chat.vezzy.site/chatHub', token || undefined);
         setIsConnected(true);
         console.log('✅ Connected to ChatHub successfully');
 

@@ -141,7 +141,7 @@ function App() {
       }
     }
 
-    connectNotificationHub('http://localhost:5003/hubs/notifications', finalToken).then(
+    connectNotificationHub('https://notification.vezzy.site/hubs/notifications', finalToken).then(
       async () => {
         console.log('Connected to NotificationService SignalR');
 
@@ -191,7 +191,7 @@ function App() {
       }
     );
     // EventService
-    connectEventHub('http://localhost:5004/notificationHub').then(() => {
+    connectEventHub('https://event.vezzy.site/notificationHub').then(() => {
       console.log('Connected to EventService SignalR');
       onEvent('OnEventCreated', (data) => {
         console.log('OnEventCreated:', data);
@@ -240,21 +240,21 @@ function App() {
       });
     });
     // TicketService
-    connectTicketHub('http://localhost:5005/notificationHub').then(() => {
+    connectTicketHub('https://ticket.vezzy.site/notificationHub').then(() => {
       console.log('Connected to TicketService SignalR');
       onTicket('TicketChanged', (data) => {
         console.log('TicketService:', data);
       });
     });
     // FeedbackService
-    connectFeedbackHub('http://localhost:5008/notificationHub').then(() => {
+    connectFeedbackHub('https://feedback.vezzy.site/notificationHub').then(() => {
       console.log('Connected to FeedbackService SignalR');
       onFeedback('FeedbackChanged', (data) => {
         console.log('FeedbackService:', data);
       });
     });
     // IdentityService
-    connectIdentityHub('http://localhost:5001/hubs/notifications').then(() => {
+    connectIdentityHub('https://identity.vezzy.site/hubs/notifications').then(() => {
       console.log('Connected to IdentityService SignalR');
       onIdentity('OnUserCreated', (data) => {
         console.log('OnUserCreated:', data);
@@ -270,7 +270,7 @@ function App() {
       });
     });
     // AnalyticsService
-    connectAnalyticsHub('http://localhost:5006/analyticsHub').then(() => {
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub').then(() => {
       console.log('Connected to AnalyticsService SignalR');
       onAnalytics('OnEventManagerRealtimeOverview', (data) => {
         console.log('AnalyticsService: OnEventManagerRealtimeOverview', data);

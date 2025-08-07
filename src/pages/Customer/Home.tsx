@@ -72,8 +72,8 @@ export const HomePage = () => {
       .finally(() => setLoadingNews(false));
 
     // Kết nối SignalR hub
-    connectNewsHub('http://localhost:5004/newsHub');
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     // Lắng nghe realtime news
     const reloadNews = () => {
       setLoadingNews(true);

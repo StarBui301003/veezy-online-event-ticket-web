@@ -74,7 +74,7 @@ export const DiscountCodeList = () => {
   const [pageSize, setPageSize] = useState(5);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editDiscount, setEditDiscount] = useState<
-    (DiscountCodeUpdateInput & { discountId: string }) | null
+    (DiscountCodeUpdateInput & { discountId: string; eventName?: string }) | null
   >(null);
   const [viewDiscount, setViewDiscount] = useState<
     DiscountCodeResponse['data']['items'][number] | null
@@ -101,7 +101,7 @@ export const DiscountCodeList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
 
     const reload = () => reloadList();
     onEvent('OnDiscountCodeCreated', reload);
@@ -586,6 +586,7 @@ export const DiscountCodeList = () => {
                           onClick={() =>
                             setEditDiscount({
                               discountId: item.discountId,
+                              eventName: item.eventName,
                               code: item.code,
                               discountType: item.discountType,
                               value: item.value,
@@ -694,7 +695,7 @@ export const DiscountCodeList = () => {
                                     className={`transition-colors rounded border
                                       ${
                                         item === (filters.page || 1)
-                                          ? 'bg-purple-500 text-white border-purple-500 hover:bg-purple-700 hover:text-white'
+                                          ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-700 hover:text-white'
                                           : 'text-gray-700 dark:text-gray-100 border-none hover:bg-slate-200 dark:hover:bg-gray-600 hover:text-black dark:hover:text-white'
                                       }
                                       px-2 py-1 mx-0.5`}

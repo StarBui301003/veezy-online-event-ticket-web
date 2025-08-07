@@ -84,7 +84,7 @@ export default function FundManagement() {
         const token = localStorage.getItem('access_token');
 
         // Connect to Event Hub for fund-related events
-        await connectEventHub('http://localhost:5004/notificationHub');
+        connectEventHub('https://event.vezzy.site/notificationHub');
         
         const accountStr = localStorage.getItem('account');
         const accountObj = accountStr ? JSON.parse(accountStr) : null;
@@ -135,7 +135,7 @@ export default function FundManagement() {
         });
 
         // Connect to Ticket Hub for transaction updates
-        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
 
         onTicket('OrderCreated', (data) => {
           console.log('Order created - fund update:', data);
@@ -180,7 +180,7 @@ export default function FundManagement() {
 
         // Connect to Notification Hub for fund notifications
         if (token) {
-          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
           
           onNotification('ReceiveNotification', (notification) => {
             // Handle fund-related notifications

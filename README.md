@@ -8,10 +8,10 @@ Create a `.env` file in the root directory with the following variables:
 
 ```env
 # Gateway Configuration (required)
-VITE_GATEWAY_URL=http://localhost:5000
+VITE_GATEWAY_URL=https://api.vezzy.site
 
 # API Configuration (optional - will be derived from gateway if not provided)
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=https://api.vezzy.site/api
 
 # Other configurations
 VITE_APP_NAME=Veezy Event Ticket

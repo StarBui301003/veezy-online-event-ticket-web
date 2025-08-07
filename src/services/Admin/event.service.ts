@@ -2,6 +2,7 @@ import type {
   AdminTicketListResponse,
   ApprovedEvent,
   EventListResponse,
+  SuggestQuantityResponse,
 } from '@/types/Admin/event';
 import instance from '@/services/axios.customize';
 import type { EventApproveStatus } from '@/types/Admin/event';

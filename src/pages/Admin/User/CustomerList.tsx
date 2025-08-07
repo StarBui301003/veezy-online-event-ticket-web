@@ -117,7 +117,7 @@ export const CustomerList = () => {
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
+          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
 
     // Listen for real-time customer user updates
     // No specific events for Customer in backend currently

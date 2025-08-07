@@ -14,8 +14,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
+import Select from 'react-select';
 import {
-  Select,
+  Select as UISelect,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -44,6 +45,27 @@ interface CreateNewsFormData {
 
 export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) => {
   const { getProfileInputClass, getSelectClass } = useThemeClasses();
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
   const [form, setForm] = useState<CreateNewsFormData>({
     eventId: '',
     newsDescription: '',
@@ -183,35 +205,103 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               {t('event')}
             </label>
             <Select
-              value={form.eventId || '__no_event__'}
-              onValueChange={handleEventChange}
-              disabled={loading}
-            >
-              <SelectTrigger
-                className={getErrorClass(
-                  'eventId',
-                  `border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`
-                )}
-              >
-                <SelectValue placeholder={t('selectEvent')} />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                {events.length === 0 ? (
-                  <SelectItem value="__no_event__" disabled className="text-gray-500 dark:text-gray-400">
-                    {t('noEventFound')}
-                  </SelectItem>
-                ) : (
-                  <>
-                    <SelectItem value="__no_event__" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">{t('noEvent')}</SelectItem>
-                    {events.map((ev) => (
-                      <SelectItem key={ev.eventId} value={ev.eventId} className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        {ev.eventName}
-                      </SelectItem>
-                    ))}
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+              options={[
+                { value: '__no_event__', label: t('noEvent') },
+                ...events.map((ev) => ({
+                  value: ev.eventId,
+                  label: ev.eventName,
+                })),
+              ]}
+              value={[
+                { value: '__no_event__', label: t('noEvent') },
+                ...events.map((ev) => ({
+                  value: ev.eventId,
+                  label: ev.eventName,
+                })),
+              ].find((option) => option.value === (form.eventId || '__no_event__'))}
+              onChange={(selectedOption) => {
+                handleEventChange(selectedOption?.value || '');
+              }}
+              placeholder={t('selectEvent')}
+              isDisabled={loading}
+              isSearchable={true}
+              className={getErrorClass('eventId', '')}
+              classNamePrefix="react-select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  borderColor: getFieldError('eventId')
+                    ? '#ef4444'
+                    : state.isFocused
+                    ? '#3b82f6'
+                    : isDarkMode
+                    ? '#4b5563'
+                    : '#d1d5db',
+                  '&:hover': {
+                    borderColor: getFieldError('eventId')
+                      ? '#ef4444'
+                      : isDarkMode
+                      ? '#6b7280'
+                      : '#9ca3af',
+                  },
+                  minHeight: '40px',
+                  borderRadius: '6px',
+                  boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  boxShadow:
+                    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 9999,
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isSelected
+                    ? '#3b82f6'
+                    : state.isFocused
+                    ? isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6'
+                    : 'transparent',
+                  color: state.isSelected ? 'white' : isDarkMode ? '#f9fafb' : '#111827',
+                  '&:hover': {
+                    backgroundColor: state.isSelected
+                      ? '#3b82f6'
+                      : isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6',
+                  },
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                placeholder: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                menuList: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                }),
+                noOptionsMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                loadingMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+              }}
+            />
             {getFieldError('eventId') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
                 {getFieldError('eventId')}
@@ -325,7 +415,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Status
             </label>
-            <Select
+            <UISelect
               value={form.status ? 'true' : 'false'}
               onValueChange={handleStatusChange}
               disabled={loading}
@@ -339,10 +429,20 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                <SelectItem value="true" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Active</SelectItem>
-                <SelectItem value="false" className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Inactive</SelectItem>
+                <SelectItem
+                  value="true"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Active
+                </SelectItem>
+                <SelectItem
+                  value="false"
+                  className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Inactive
+                </SelectItem>
               </SelectContent>
-            </Select>
+            </UISelect>
             {getFieldError('status') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
                 {getFieldError('status')}
