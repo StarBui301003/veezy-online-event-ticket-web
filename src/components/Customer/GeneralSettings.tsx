@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -184,4 +183,3 @@ export default function GeneralSettings({
     </div>
   );
 }
-

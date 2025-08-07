@@ -5,7 +5,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { createAdminAPI } from '@/services/Admin/user.service';
 import { toast } from 'react-toastify';

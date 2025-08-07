@@ -1,13 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from 'react';
 import { getNewAnalytics } from '@/services/Admin/dashboard.service';
 import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
   BarChart,
   Bar,
   LineChart,
@@ -148,7 +141,7 @@ export default function NewsTabs() {
         );
         // Use real data from backend, but map to frontend structure
         const backendNewsByEvent = Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : [];
-        const mappedNewsByEvent = backendNewsByEvent.map((item: any) => ({
+        const mappedNewsByEvent = backendNewsByEvent.map((item: NewsByEvent) => ({
           eventId: item.eventId || '',
           eventName: item.eventName || 'Unknown Event',
           newsCount: item.newsCount || 0,
@@ -161,7 +154,7 @@ export default function NewsTabs() {
         const backendNewsByAuthor = Array.isArray(res.data?.newsByAuthor)
           ? res.data.newsByAuthor
           : [];
-        const mappedNewsByAuthor = backendNewsByAuthor.map((item: any) => ({
+        const mappedNewsByAuthor = backendNewsByAuthor.map((item: NewsByAuthor) => ({
           authorId: item.authorId || '',
           authorName: item.authorName || 'Unknown Author',
           totalNews: item.totalNews || 0,
@@ -178,10 +171,10 @@ export default function NewsTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
-    const handler = (data: any) => {
+    const handler = (data: AdminNewsAnalyticsResponse['data']) => {
       if (document.visibilityState !== 'visible') return;
       // Defensive: always ensure arrays
       const safeApprovalTrend = Array.isArray(data.approvalTrend) ? data.approvalTrend : [];
@@ -195,7 +188,7 @@ export default function NewsTabs() {
       }
       if (JSON.stringify(safeNewsByEvent) !== JSON.stringify(newsByEvent)) {
         // Map the real-time data to match the expected structure
-        const mappedNewsByEvent = safeNewsByEvent.map((item: any) => ({
+        const mappedNewsByEvent = safeNewsByEvent.map((item: NewsByEvent) => ({
           eventId: item.eventId || '',
           eventName: item.eventName || 'Unknown Event',
           newsCount: item.newsCount || 0,
@@ -208,7 +201,7 @@ export default function NewsTabs() {
       }
       if (JSON.stringify(safeNewsByAuthor) !== JSON.stringify(newsByAuthor)) {
         // Map the real-time data to match the expected structure
-        const mappedNewsByAuthor = safeNewsByAuthor.map((item: any) => ({
+        const mappedNewsByAuthor = safeNewsByAuthor.map((item: NewsByAuthor) => ({
           authorId: item.authorId || '',
           authorName: item.authorName || 'Unknown Author',
           totalNews: item.totalNews || 0,

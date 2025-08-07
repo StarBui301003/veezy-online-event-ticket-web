@@ -220,7 +220,7 @@ const ProfileCustomer = () => {
 
           // Connect to Ticket Hub for order and ticket updates
           await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
-          
+
           onTicket('OrderCreated', (data: any) => {
             if (data.customerId === accountObj.userId) {
               console.log('Order created:', data);
@@ -309,8 +309,11 @@ const ProfileCustomer = () => {
 
           // Connect to Notification Hub for general notifications
           if (token) {
-            await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-            
+            await connectNotificationHub(
+              'https://notification.vezzy.site/hubs/notifications',
+              token
+            );
+
             onNotification('ReceiveNotification', (notification: any) => {
               // Filter notifications relevant to profile page
               if (

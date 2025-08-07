@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { initializeCategoryMapping, getCategoryIdsFromNames, getCategoryIdByName } from '@/services/Admin/category.service';
 
 export const useCategoryMapping = () => {

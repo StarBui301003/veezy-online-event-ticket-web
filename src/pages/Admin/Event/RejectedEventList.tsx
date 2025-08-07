@@ -13,7 +13,6 @@ import {
 import {
   getRejectedEventsWithFilter,
   EventFilterParams,
-  getCategoryById,
   deleteEvent,
 } from '@/services/Admin/event.service';
 
@@ -36,7 +35,6 @@ import {
 import { FaEye, FaRegTrashAlt, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import RejectedEventDetailModal from '@/pages/Admin/Event/RejectedEventDetailModal';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-import { Category } from '@/types/Admin/category';
 import { toast } from 'react-toastify';
 import { onEvent, connectEventHub } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -60,7 +58,6 @@ export const RejectedEventList = ({
     getProfileInputClass,
     getEventListCardClass,
     getEventListTableClass,
-    getEventListTableHeaderClass,
     getEventListTableRowClass,
     getAdminListDropdownClass,
     getAdminListDropdownItemClass,
@@ -139,7 +136,7 @@ export const RejectedEventList = ({
   }, [filters, sortBy, sortDescending, rejectedEventSearch]);
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData();
     };
@@ -148,7 +145,7 @@ export const RejectedEventList = ({
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
+  const fetchData = () => {
     setLoading(true);
 
     // Separate pagination parameters from filter parameters

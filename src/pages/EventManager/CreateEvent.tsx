@@ -173,7 +173,7 @@ export default function CreateEventForm() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [setTouched] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState<EnhancedCreateEventData>({
     eventName: '',
     eventDescription: '',

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, Download, Clock, Search, Filter, RefreshCw } from 'lucide-react';
+import { Users, Download, Clock, Search, RefreshCw } from 'lucide-react';
 import { exportAttendanceCheckin } from '@/services/Event Manager/attendance.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { getAttendanceByEvent } from '@/services/Event Manager/attendance.service';
@@ -20,11 +20,10 @@ const AttendanceListPage = () => {
   const [loading, setLoading] = useState(false);
   // Removed unused searchTerm/setSearchTerm
   const [eventSearch, setEventSearch] = useState('');
-  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [totalAttendees, setTotalAttendees] = useState(0);
-  const [eventManagerId, setEventManagerId] = useState('');
+  const [setEventManagerId] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(10); // pageSize fixed, not changing
   // Removed unused totalItems state

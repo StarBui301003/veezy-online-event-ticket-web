@@ -826,7 +826,7 @@ function App() {
                   pauseOnHover
                   theme="colored"
                 />
-                <AuthModals />
+                <AuthModals open={false} onClose={() => {}} />
               </AuthProvider>
             </CategoryMappingProvider>
           </OnlineStatusProvider>
