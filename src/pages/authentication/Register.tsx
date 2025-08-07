@@ -22,7 +22,7 @@ export const Register = () => {
   // Restore from sessionStorage if available
   const [date, setDate] = useState<Date | undefined>(() => {
     const saved = sessionStorage.getItem('register_date');
-    return saved ? new Date(saved) : undefined;
+    return saved ? new Date(saved) : undefined; // Don't set current date as default
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -177,11 +177,11 @@ export const Register = () => {
               if (parts.length === 4 && parts[1] === 'REDIRECT_TO_VERIFY') {
                 const email = parts[2];
                 const minutesLeft = parseInt(parts[3], 10);
-                
+
                 // Store the email and minutes left for the verification page
                 sessionStorage.setItem('registerEmail', email);
                 sessionStorage.setItem('verificationCountdown', minutesLeft.toString());
-                
+
                 // Clear form data from sessionStorage since we're redirecting
                 sessionStorage.removeItem('register_username');
                 sessionStorage.removeItem('register_fullName');

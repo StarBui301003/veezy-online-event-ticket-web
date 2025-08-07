@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MessageCircle, Users, Send, MoreVertical, Search, Paperclip, Smile } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,13 +9,21 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 // Remove unused interface EventChatSupportProps and fix function parameter usage
 
 const ChatSupportManager: React.FC = () => {
-  // ...existing code...
+  const { getThemeClass } = useThemeClasses();
+
   const [events, setEvents] = useState<any[]>([]); // List of events managed by event manager
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]); // Chatrooms of selected event
@@ -61,13 +68,15 @@ const ChatSupportManager: React.FC = () => {
       const { getMyApprovedEvents } = await import('@/services/Event Manager/event.service');
       const eventsRes = await getMyApprovedEvents(1, 100);
       // Map backend event properties to frontend expected keys
-      const mappedEvents = (Array.isArray(eventsRes) ? eventsRes : (eventsRes?.data || [])).map(ev => ({
-        id: ev.eventId || ev.id,
-        name: ev.eventName || ev.name,
-        description: ev.eventDescription || ev.description,
-        avatar: ev.eventAvatar || ev.avatar,
-        ...ev
-      }));
+      const mappedEvents = (Array.isArray(eventsRes) ? eventsRes : eventsRes?.data || []).map(
+        (ev) => ({
+          id: ev.eventId || ev.id,
+          name: ev.eventName || ev.name,
+          description: ev.eventDescription || ev.description,
+          avatar: ev.eventAvatar || ev.avatar,
+          ...ev,
+        })
+      );
       setEvents(mappedEvents);
     } catch (error) {
       toast.error('Unable to load event list');
@@ -113,34 +122,35 @@ const ChatSupportManager: React.FC = () => {
 
       // Transform rooms to handle backend field names
       const transformedRooms = Array.isArray(rooms)
-        ? rooms.map((room: any) => ({
-            ...room,
-            // Handle both backend field names (PascalCase) and frontend (camelCase)
-            roomId: room.roomId || room.id || room.Id,
-            roomName: room.roomName || room.name || room.Name || 'Unnamed Room',
-            participants: (room.participants || []).map((p: any) => ({
-              userId: p.userId || p.UserId,
-              username: p.username || p.userName || p.UserName,
-              fullName: p.fullName || p.userName || p.UserName || p.username || 'Unknown User',
-              avatar: p.avatar || p.avatarUrl || p.AvatarUrl,
-              isOnline: p.isOnline || p.IsOnline || false,
-              role: p.role || p.Role || 'Customer',
-            })),
-            lastMessage: room.lastMessage || room.LastMessage,
-            lastMessageAt: room.lastMessageAt || room.LastMessageAt,
-            unreadCount: room.unreadCount || room.UnreadCount || 0,
-            roomType: room.roomType || room.type || room.Type || 'Support',
-            createdAt: room.createdAt || room.CreatedAt,
-            createdByUserId: room.createdByUserId || room.CreatedByUserId,
-            createdByUserName: room.createdByUserName || room.CreatedByUserName,
-            // Remove AI mode since this is customer-event manager chat only
-          }))
-          // Sort by latest activity
-          .sort((a, b) => {
-            const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
-            const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
-            return new Date(bTime).getTime() - new Date(aTime).getTime();
-          })
+        ? rooms
+            .map((room: any) => ({
+              ...room,
+              // Handle both backend field names (PascalCase) and frontend (camelCase)
+              roomId: room.roomId || room.id || room.Id,
+              roomName: room.roomName || room.name || room.Name || 'Unnamed Room',
+              participants: (room.participants || []).map((p: any) => ({
+                userId: p.userId || p.UserId,
+                username: p.username || p.userName || p.UserName,
+                fullName: p.fullName || p.userName || p.UserName || p.username || 'Unknown User',
+                avatar: p.avatar || p.avatarUrl || p.AvatarUrl,
+                isOnline: p.isOnline || p.IsOnline || false,
+                role: p.role || p.Role || 'Customer',
+              })),
+              lastMessage: room.lastMessage || room.LastMessage,
+              lastMessageAt: room.lastMessageAt || room.LastMessageAt,
+              unreadCount: room.unreadCount || room.UnreadCount || 0,
+              roomType: room.roomType || room.type || room.Type || 'Support',
+              createdAt: room.createdAt || room.CreatedAt,
+              createdByUserId: room.createdByUserId || room.CreatedByUserId,
+              createdByUserName: room.createdByUserName || room.CreatedByUserName,
+              // Remove AI mode since this is customer-event manager chat only
+            }))
+            // Sort by latest activity
+            .sort((a, b) => {
+              const aTime = a.lastMessageAt || a.lastMessage?.createdAt || a.createdAt;
+              const bTime = b.lastMessageAt || b.lastMessage?.createdAt || b.createdAt;
+              return new Date(bTime).getTime() - new Date(aTime).getTime();
+            })
         : [];
 
       setChatRooms(transformedRooms);
@@ -217,7 +227,6 @@ const ChatSupportManager: React.FC = () => {
     }
   }, [selectedEvent, loadChatRooms]);
 
-
   // When chatroom selected, load messages and setup SignalR real-time updates
   useEffect(() => {
     let disconnectChatHub: (() => void) | null = null;
@@ -228,7 +237,8 @@ const ChatSupportManager: React.FC = () => {
       loadMessages(selectedRoom.roomId);
       (async () => {
         try {
-          const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } = await import('@/services/signalr.service');
+          const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } =
+            await import('@/services/signalr.service');
           const token = localStorage.getItem('access_token');
           await connectHub('chat', 'http://localhost:5007/chatHub', token || undefined);
           await joinChatRoom(selectedRoom.roomId);
@@ -239,7 +249,7 @@ const ChatSupportManager: React.FC = () => {
           // Listen for new messages (backend: ReceiveMessage)
           onHubEvent('chat', 'ReceiveMessage', async (messageDto) => {
             if (!isMounted) return;
-            
+
             console.log('📩 Received SignalR message:', messageDto);
             console.log('📩 Message DTO structure:', {
               id: messageDto.Id,
@@ -252,7 +262,8 @@ const ChatSupportManager: React.FC = () => {
 
             // Transform backend DTO to frontend interface (no AI bot handling for customer-event manager chat)
             const senderId = messageDto.SenderUserId || messageDto.senderUserId;
-            const senderName = messageDto.SenderUserName || messageDto.senderUserName || 'Unknown User';
+            const senderName =
+              messageDto.SenderUserName || messageDto.senderUserName || 'Unknown User';
 
             const message: ChatMessage = {
               messageId: messageDto.Id || messageDto.id,
@@ -274,8 +285,8 @@ const ChatSupportManager: React.FC = () => {
 
             // Add message to current room if it belongs to the active room
             if (message.roomId === selectedRoom.roomId) {
-              setMessages(prev => {
-                if (prev.some(m => m.messageId === message.messageId)) return prev;
+              setMessages((prev) => {
+                if (prev.some((m) => m.messageId === message.messageId)) return prev;
                 const newMessages = [...prev, message];
                 // Scroll to bottom after adding new message
                 setTimeout(() => {
@@ -287,7 +298,7 @@ const ChatSupportManager: React.FC = () => {
               });
             }
           });
-          
+
           // Listen for message deleted
           onHubEvent('chat', 'MessageDeleted', (data: { messageId: string; deletedBy: string }) => {
             console.log('🗑️ Message deleted:', data);
@@ -304,7 +315,10 @@ const ChatSupportManager: React.FC = () => {
           onHubEvent('chat', 'MessageUpdated', (updatedMessageDto: any) => {
             console.log('✏️ Message updated:', updatedMessageDto);
             const senderId = updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId;
-            const senderName = updatedMessageDto.SenderUserName || updatedMessageDto.senderUserName || 'Unknown User';
+            const senderName =
+              updatedMessageDto.SenderUserName ||
+              updatedMessageDto.senderUserName ||
+              'Unknown User';
 
             const updatedMessage: ChatMessage = {
               messageId: updatedMessageDto.Id || updatedMessageDto.id,
@@ -327,7 +341,7 @@ const ChatSupportManager: React.FC = () => {
               prev.map((msg) => (msg.messageId === updatedMessage.messageId ? updatedMessage : msg))
             );
           });
-          
+
           // Listen for user joined room (backend: UserJoinedRoom)
           onHubEvent('chat', 'UserJoinedRoom', (_connectionId, _roomId) => {
             // Optionally handle user join (e.g., show notification or update UI)
@@ -340,30 +354,34 @@ const ChatSupportManager: React.FC = () => {
           // Listen for user online status (backend: UserOnline)
           onHubEvent('chat', 'UserOnline', (userId) => {
             if (!isMounted) return;
-            setChatRooms(prevRooms => prevRooms.map(room =>
-              room.roomId === selectedRoom.roomId
-                ? {
-                    ...room,
-                    participants: room.participants.map(p =>
-                      p.userId === userId ? { ...p, isOnline: true } : p
-                    )
-                  }
-                : room
-            ));
+            setChatRooms((prevRooms) =>
+              prevRooms.map((room) =>
+                room.roomId === selectedRoom.roomId
+                  ? {
+                      ...room,
+                      participants: room.participants.map((p) =>
+                        p.userId === userId ? { ...p, isOnline: true } : p
+                      ),
+                    }
+                  : room
+              )
+            );
           });
           // Listen for user offline status (backend: UserOffline)
           onHubEvent('chat', 'UserOffline', (userId) => {
             if (!isMounted) return;
-            setChatRooms(prevRooms => prevRooms.map(room =>
-              room.roomId === selectedRoom.roomId
-                ? {
-                    ...room,
-                    participants: room.participants.map(p =>
-                      p.userId === userId ? { ...p, isOnline: false } : p
-                    )
-                  }
-                : room
-            ));
+            setChatRooms((prevRooms) =>
+              prevRooms.map((room) =>
+                room.roomId === selectedRoom.roomId
+                  ? {
+                      ...room,
+                      participants: room.participants.map((p) =>
+                        p.userId === userId ? { ...p, isOnline: false } : p
+                      ),
+                    }
+                  : room
+              )
+            );
           });
           disconnectChatHub = () => disconnectHub('chat');
         } catch {}
@@ -447,12 +465,14 @@ const ChatSupportManager: React.FC = () => {
 
   // Filter chatrooms in selected event
   const getFilteredRooms = (rooms: ChatRoom[]) =>
-    rooms.filter(room => {
-      const matchesSearch = room.roomName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        room.participants.some(p => p.username.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesFilter = filterStatus === 'all' ||
+    rooms.filter((room) => {
+      const matchesSearch =
+        room.roomName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.participants.some((p) => p.username.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesFilter =
+        filterStatus === 'all' ||
         (filterStatus === 'unread' && room.unreadCount > 0) ||
-        (filterStatus === 'active' && room.participants.some(p => p.isOnline));
+        (filterStatus === 'active' && room.participants.some((p) => p.isOnline));
       return matchesSearch && matchesFilter;
     });
 
@@ -462,7 +482,7 @@ const ChatSupportManager: React.FC = () => {
   // Get participant count
   const getParticipantInfo = (room: ChatRoom) => {
     const totalParticipants = room.participants.length;
-    const onlineParticipants = room.participants.filter(p => p.isOnline).length;
+    const onlineParticipants = room.participants.filter((p) => p.isOnline).length;
     return { total: totalParticipants, online: onlineParticipants };
   };
 
@@ -519,11 +539,27 @@ const ChatSupportManager: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2a1435] via-[#4a1ca8] to-[#ff4da6] text-white p-4 md:p-8">
+    <div
+      className={cn(
+        'min-h-screen p-4 md:p-8',
+        getThemeClass(
+          'bg-gradient-to-br from-blue-100 via-cyan-100 to-blue-200 text-gray-900',
+          'bg-gradient-to-br from-[#2a1435] via-[#4a1ca8] to-[#ff4da6] text-white'
+        )
+      )}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
-          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">
+          <h1
+            className={cn(
+              'text-3xl md:text-4xl font-black text-transparent bg-clip-text',
+              getThemeClass(
+                'bg-gradient-to-r from-blue-600 to-cyan-600',
+                'bg-gradient-to-r from-purple-300 to-pink-300'
+              )
+            )}
+          >
             Chat Support Manager
           </h1>
         </div>
@@ -531,24 +567,64 @@ const ChatSupportManager: React.FC = () => {
         {/* Main Content */}
         <div className="h-[calc(100vh-200px)] flex gap-4">
           {/* Sidebar: Event List */}
-          <div className="w-1/4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex flex-col">
-            <div className="p-4 border-b border-white/20">
-              <h2 className="text-lg font-semibold text-white">Event List</h2>
+          <div
+            className={cn(
+              'w-1/4 backdrop-blur-sm border rounded-xl flex flex-col',
+              getThemeClass('bg-white/80 border-gray-200', 'bg-white/10 border-white/20')
+            )}
+          >
+            <div
+              className={cn('p-4 border-b', getThemeClass('border-gray-200', 'border-white/20'))}
+            >
+              <h2
+                className={cn(
+                  'text-lg font-semibold',
+                  getThemeClass('text-gray-900', 'text-white')
+                )}
+              >
+                Event List
+              </h2>
             </div>
             <ScrollArea className="flex-1">
               <div className="p-2">
                 {isLoadingEvents ? (
                   <div className="space-y-2">
                     {[...Array(5)].map((_, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-white/5 animate-pulse">
-                        <div className="h-4 bg-white/20 rounded mb-2"></div>
-                        <div className="h-3 bg-white/20 rounded w-2/3"></div>
+                      <div
+                        key={i}
+                        className={cn(
+                          'p-3 rounded-lg animate-pulse',
+                          getThemeClass('bg-gray-100', 'bg-white/5')
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'h-4 rounded mb-2',
+                            getThemeClass('bg-gray-300', 'bg-white/20')
+                          )}
+                        ></div>
+                        <div
+                          className={cn(
+                            'h-3 rounded w-2/3',
+                            getThemeClass('bg-gray-300', 'bg-white/20')
+                          )}
+                        ></div>
                       </div>
                     ))}
                   </div>
                 ) : events.length === 0 ? (
-                  <div className="text-center py-8 text-white/70">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
+                  <div
+                    className={cn(
+                      'text-center py-8',
+                      getThemeClass('text-gray-600', 'text-white/70')
+                    )}
+                  >
+                    <MessageCircle
+                      className={cn(
+                        'h-12 w-12 mx-auto mb-4',
+                        getThemeClass('text-gray-400', 'text-white/50')
+                      )}
+                    />
                     <p>No events available</p>
                   </div>
                 ) : (
@@ -556,38 +632,67 @@ const ChatSupportManager: React.FC = () => {
                     {events.map((event, idx) => {
                       // Calculate unread count from current chatRooms for this event
                       // Since we load chatRooms when an event is selected, only show unread for selected event
-                      const eventUnreadCount = selectedEvent?.id === event.id 
-                        ? chatRooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
-                        : 0;
+                      const eventUnreadCount =
+                        selectedEvent?.id === event.id
+                          ? chatRooms.reduce((total, room) => total + (room.unreadCount || 0), 0)
+                          : 0;
                       const eventRoomCount = selectedEvent?.id === event.id ? chatRooms.length : 0;
-                      
+
                       return (
                         <Card
                           key={event.id || event.roomId || idx}
-                          className={`cursor-pointer transition-all duration-200 ${
-                            selectedEvent?.id === event.id 
-                              ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
-                              : 'bg-white/5 hover:bg-white/10 border-white/10'
-                          } backdrop-blur-sm border`}
+                          className={cn(
+                            'cursor-pointer transition-all duration-200 backdrop-blur-sm border',
+                            selectedEvent?.id === event.id
+                              ? getThemeClass(
+                                  'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50 shadow-md',
+                                  'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md'
+                                )
+                              : getThemeClass(
+                                  'bg-white/80 hover:bg-white/90 border-gray-200',
+                                  'bg-white/5 hover:bg-white/10 border-white/10'
+                                )
+                          )}
                           onClick={() => setSelectedEvent(event)}
                         >
-                          <CardContent className="p-3" key={"event-content-" + (event.id || event.roomId || idx)}>
+                          <CardContent
+                            className="p-3"
+                            key={'event-content-' + (event.id || event.roomId || idx)}
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3 flex-1 min-w-0">
                                 <Avatar className="h-10 w-10">
                                   <AvatarImage src={event.avatar} />
-                                  <AvatarFallback className="bg-white/20 text-white">
+                                  <AvatarFallback
+                                    className={cn(
+                                      getThemeClass(
+                                        'bg-blue-100 text-blue-600',
+                                        'bg-white/20 text-white'
+                                      )
+                                    )}
+                                  >
                                     <Users className="h-5 w-5" />
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate">{event.name}</p>
+                                  <p
+                                    className={cn(
+                                      'font-medium truncate',
+                                      getThemeClass('text-gray-900', 'text-white')
+                                    )}
+                                  >
+                                    {event.name}
+                                  </p>
                                   <div className="flex items-center space-x-2 mt-1">
-                                    <span className="text-xs text-white/70">
-                                      {selectedEvent?.id === event.id 
-                                        ? `${eventRoomCount} chat rooms` 
-                                        : 'Click to view'
-                                      }
+                                    <span
+                                      className={cn(
+                                        'text-xs',
+                                        getThemeClass('text-gray-600', 'text-white/70')
+                                      )}
+                                    >
+                                      {selectedEvent?.id === event.id
+                                        ? `${eventRoomCount} chat rooms`
+                                        : 'Click to view'}
                                     </span>
                                   </div>
                                 </div>
@@ -608,317 +713,810 @@ const ChatSupportManager: React.FC = () => {
             </ScrollArea>
           </div>
 
-      {/* Middle Panel: Chatroom List */}
-      <div className="w-1/4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl flex flex-col">
-        <div className="p-4 border-b border-white/20">
-          <h2 className="text-lg font-semibold text-white">Event Chat Rooms</h2>
-          <div className="space-y-2 mt-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
-              <Input
-                placeholder="Search chat rooms..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-400"
-              />
-            </div>
-            <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
-              <TabsList className="grid w-full grid-cols-3 bg-white/10">
-                <TabsTrigger value="all" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">All</TabsTrigger>
-                <TabsTrigger value="unread" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Unread</TabsTrigger>
-                <TabsTrigger value="active" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">Active</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {isLoadingRooms ? (
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-white/5 animate-pulse">
-                    <div className="h-4 bg-white/20 rounded mb-2"></div>
-                    <div className="h-3 bg-white/20 rounded w-2/3"></div>
-                  </div>
-                ))}
-              </div>
-            ) : chatRooms.length === 0 ? (
-              <div className="text-center py-8 text-white/70">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
-                <p>No chat rooms available</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {getFilteredRooms(chatRooms).map((room, idx) => {
-                  const participantInfo = getParticipantInfo(room);
-                  const isSelected = selectedRoom?.roomId === room.roomId;
-                  return (
-                    <Card
-                      key={room.roomId || idx}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        isSelected 
-                          ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md' 
-                          : 'bg-white/5 hover:bg-white/10 border-white/10'
-                      } backdrop-blur-sm border`}
-                      onClick={() => setSelectedRoom(room)}
+          {/* Middle Panel: Chatroom List */}
+          <div
+            className={cn(
+              'w-1/4 backdrop-blur-sm border rounded-xl flex flex-col',
+              getThemeClass('bg-white/80 border-gray-200', 'bg-white/10 border-white/20')
+            )}
+          >
+            <div
+              className={cn('p-4 border-b', getThemeClass('border-gray-200', 'border-white/20'))}
+            >
+              <h2
+                className={cn(
+                  'text-lg font-semibold',
+                  getThemeClass('text-gray-900', 'text-white')
+                )}
+              >
+                Event Chat Rooms
+              </h2>
+              <div className="space-y-2 mt-2">
+                <div className="relative">
+                  <Search
+                    className={cn(
+                      'absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4',
+                      getThemeClass('text-gray-400', 'text-white/50')
+                    )}
+                  />
+                  <Input
+                    placeholder="Search chat rooms..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={cn(
+                      'pl-10',
+                      getThemeClass(
+                        'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:border-blue-500',
+                        'bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-400'
+                      )
+                    )}
+                  />
+                </div>
+                <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as any)}>
+                  <TabsList
+                    className={cn(
+                      'grid w-full grid-cols-3',
+                      getThemeClass('bg-gray-100', 'bg-white/10')
+                    )}
+                  >
+                    <TabsTrigger
+                      value="all"
+                      className={cn(
+                        getThemeClass(
+                          'data-[state=active]:bg-blue-500 data-[state=active]:text-white',
+                          'data-[state=active]:bg-purple-500 data-[state=active]:text-white'
+                        )
+                      )}
                     >
-                      <CardContent className="p-3" key={"room-content-" + (room.roomId || idx)}>
-                        <div className="flex items-start space-x-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={room.participants[0]?.avatar} />
-                            <AvatarFallback className="bg-white/20 text-white">
-                              <Users className="h-5 w-5" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-white truncate">
-                                {room.createdByUserName || room.participants[0]?.fullName || 'Unknown Customer'}
-                              </p>
-                              {room.unreadCount > 0 && (
-                                <Badge variant="destructive" className="text-xs">
-                                  {room.unreadCount > 99 ? '99+' : room.unreadCount}
-                                </Badge>
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="unread"
+                      className={cn(
+                        getThemeClass(
+                          'data-[state=active]:bg-blue-500 data-[state=active]:text-white',
+                          'data-[state=active]:bg-purple-500 data-[state=active]:text-white'
+                        )
+                      )}
+                    >
+                      Unread
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="active"
+                      className={cn(
+                        getThemeClass(
+                          'data-[state=active]:bg-blue-500 data-[state=active]:text-white',
+                          'data-[state=active]:bg-purple-500 data-[state=active]:text-white'
+                        )
+                      )}
+                    >
+                      Active
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2">
+                {isLoadingRooms ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          'p-3 rounded-lg animate-pulse',
+                          getThemeClass('bg-gray-100', 'bg-white/5')
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'h-4 rounded mb-2',
+                            getThemeClass('bg-gray-300', 'bg-white/20')
+                          )}
+                        ></div>
+                        <div
+                          className={cn(
+                            'h-3 rounded w-2/3',
+                            getThemeClass('bg-gray-300', 'bg-white/20')
+                          )}
+                        ></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : chatRooms.length === 0 ? (
+                  <div
+                    className={cn(
+                      'text-center py-8',
+                      getThemeClass('text-gray-600', 'text-white/70')
+                    )}
+                  >
+                    <MessageCircle
+                      className={cn(
+                        'h-12 w-12 mx-auto mb-4',
+                        getThemeClass('text-gray-400', 'text-white/50')
+                      )}
+                    />
+                    <p>No chat rooms available</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {getFilteredRooms(chatRooms).map((room, idx) => {
+                      const participantInfo = getParticipantInfo(room);
+                      const isSelected = selectedRoom?.roomId === room.roomId;
+                      return (
+                        <Card
+                          key={room.roomId || idx}
+                          className={cn(
+                            'cursor-pointer transition-all duration-200 backdrop-blur-sm border',
+                            isSelected
+                              ? getThemeClass(
+                                  'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 border-blue-400/50 shadow-md',
+                                  'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 shadow-md'
+                                )
+                              : getThemeClass(
+                                  'bg-white/80 hover:bg-white/90 border-gray-200',
+                                  'bg-white/5 hover:bg-white/10 border-white/10'
+                                )
+                          )}
+                          onClick={() => setSelectedRoom(room)}
+                        >
+                          <CardContent className="p-3" key={'room-content-' + (room.roomId || idx)}>
+                            <div className="flex items-start space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={room.participants[0]?.avatar} />
+                                <AvatarFallback
+                                  className={cn(
+                                    getThemeClass(
+                                      'bg-blue-100 text-blue-600',
+                                      'bg-white/20 text-white'
+                                    )
+                                  )}
+                                >
+                                  <Users className="h-5 w-5" />
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <p
+                                    className={cn(
+                                      'font-medium truncate',
+                                      getThemeClass('text-gray-900', 'text-white')
+                                    )}
+                                  >
+                                    {room.createdByUserName ||
+                                      room.participants[0]?.fullName ||
+                                      'Unknown Customer'}
+                                  </p>
+                                  {room.unreadCount > 0 && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      {room.unreadCount > 99 ? '99+' : room.unreadCount}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between mt-1">
+                                  <p
+                                    className={cn(
+                                      'text-sm truncate',
+                                      getThemeClass('text-gray-600', 'text-white/70')
+                                    )}
+                                  >
+                                    {room.lastMessage?.content || 'No messages yet'}
+                                  </p>
+                                  <span
+                                    className={cn(
+                                      'text-xs ml-2',
+                                      getThemeClass('text-gray-500', 'text-white/50')
+                                    )}
+                                  >
+                                    {formatTimestamp(
+                                      room.lastMessageAt ||
+                                        room.lastMessage?.timestamp ||
+                                        room.lastMessage?.createdAt ||
+                                        room.createdAt
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="flex items-center mt-2 space-x-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      'text-xs',
+                                      getThemeClass(
+                                        'border-gray-300 text-gray-700',
+                                        'border-white/20 text-white/80'
+                                      )
+                                    )}
+                                  >
+                                    <Users className="h-3 w-3 mr-1" />
+                                    {participantInfo.total}
+                                  </Badge>
+                                  {participantInfo.online > 0 && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs text-green-400 border-green-400/30"
+                                    >
+                                      {participantInfo.online} online
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Main Panel: Chat Messages */}
+          <div
+            className={cn(
+              'flex-1 flex flex-col rounded-xl border backdrop-blur-sm overflow-hidden',
+              getThemeClass('bg-white/80 border-gray-200', 'bg-white/10 border-white/20')
+            )}
+          >
+            {selectedRoom ? (
+              <>
+                <div
+                  className={cn(
+                    'backdrop-blur-sm border-b p-4 rounded-t-xl',
+                    getThemeClass(
+                      'bg-white/90 border-gray-200 shadow-sm',
+                      'bg-gradient-to-r from-[#3a324e] to-[#4b3e65] border-gray-700/50'
+                    )
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={selectedRoom.participants[0]?.avatar} />
+                        <AvatarFallback
+                          className={cn(
+                            getThemeClass('bg-blue-100 text-blue-600', 'bg-white/20 text-white')
+                          )}
+                        >
+                          <Users className="h-5 w-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3
+                          className={cn(
+                            'font-semibold',
+                            getThemeClass('text-gray-900', 'text-white')
+                          )}
+                        >
+                          {selectedRoom.createdByUserName ||
+                            selectedRoom.participants[0]?.fullName ||
+                            'Unknown Customer'}
+                        </h3>
+                        <div
+                          className={cn(
+                            'flex items-center space-x-2 text-sm',
+                            getThemeClass('text-gray-600', 'text-white/70')
+                          )}
+                        >
+                          <Users className="h-4 w-4" />
+                          <span>{selectedRoom.participants.length} members</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          getThemeClass(
+                            'border-gray-300 text-gray-700 hover:bg-gray-100',
+                            'border-white/20 text-white hover:bg-white/10'
+                          )
+                        )}
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Members
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-700 hover:bg-gray-100',
+                                'text-white hover:bg-white/10'
+                              )
+                            )}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          className={cn(
+                            'backdrop-blur-sm',
+                            getThemeClass('bg-white border-gray-200', 'bg-white/10 border-white/20')
+                          )}
+                        >
+                          <DropdownMenuItem
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-700 hover:bg-gray-100',
+                                'text-white hover:bg-white/10'
+                              )
+                            )}
+                          >
+                            Room Info
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-700 hover:bg-gray-100',
+                                'text-white hover:bg-white/10'
+                              )
+                            )}
+                          >
+                            Chat History
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className={cn(
+                              getThemeClass(
+                                'text-gray-700 hover:bg-gray-100',
+                                'text-white hover:bg-white/10'
+                              )
+                            )}
+                          >
+                            Notification Settings
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+                <ScrollArea
+                  className={cn(
+                    'flex-1 p-4 backdrop-blur-sm',
+                    getThemeClass('bg-white/95', 'bg-gradient-to-br from-[#1e1b2e] to-[#2c2a40]')
+                  )}
+                >
+                  <div className="space-y-4">
+                    {isLoadingMessages ? (
+                      <div
+                        className={cn(
+                          'text-center py-8',
+                          getThemeClass('text-gray-600', 'text-white/70')
+                        )}
+                      >
+                        <MessageCircle
+                          className={cn(
+                            'h-12 w-12 mx-auto mb-4',
+                            getThemeClass('text-gray-400', 'text-white/50')
+                          )}
+                        />
+                        <p>Loading messages...</p>
+                      </div>
+                    ) : currentMessages.length === 0 ? (
+                      <div
+                        className={cn(
+                          'text-center py-8',
+                          getThemeClass('text-gray-600', 'text-white/70')
+                        )}
+                      >
+                        <MessageCircle
+                          className={cn(
+                            'h-12 w-12 mx-auto mb-4',
+                            getThemeClass('text-gray-400', 'text-white/50')
+                          )}
+                        />
+                        <p>No messages yet</p>
+                        <p className="text-sm">Start the conversation!</p>
+                      </div>
+                    ) : (
+                      currentMessages.map((message, index) => {
+                        const isMyMsg = isMyMessage(message);
+                        const isConsecutive =
+                          index > 0 && currentMessages[index - 1].senderId === message.senderId;
+                        // Regular sender name handling (no AI bot for customer-event manager chat)
+                        const safeSenderName = message.senderName || 'Unknown User';
+
+                        return (
+                          <motion.div
+                            key={message.messageId || index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`flex ${isMyMsg ? 'justify-end' : 'justify-start'} group`}
+                          >
+                            <div
+                              className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${
+                                isMyMsg ? 'flex-row-reverse space-x-reverse' : ''
+                              }`}
+                            >
+                              {!isConsecutive && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback
+                                    className={cn(
+                                      getThemeClass(
+                                        'bg-blue-100 text-blue-600',
+                                        'bg-white/20 text-white'
+                                      )
+                                    )}
+                                  >
+                                    {safeSenderName.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
                               )}
+                              <div
+                                className={`${isConsecutive && !isMyMsg ? 'ml-10' : ''} ${
+                                  isConsecutive && isMyMsg ? 'mr-10' : ''
+                                }`}
+                              >
+                                {!isConsecutive && (
+                                  <div
+                                    className={`flex items-center gap-2 mb-1 ${
+                                      isMyMsg ? 'flex-row-reverse' : ''
+                                    }`}
+                                  >
+                                    <span
+                                      className={cn(
+                                        `text-xs ${isMyMsg ? 'text-right' : 'text-left'}`,
+                                        getThemeClass('text-gray-600', 'text-white/70')
+                                      )}
+                                    >
+                                      {safeSenderName}
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        'text-xs',
+                                        getThemeClass('text-gray-500', 'text-white/50')
+                                      )}
+                                    >
+                                      {formatTime(message.timestamp || message.createdAt)}
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Reply preview */}
+                                {message.replyToMessage && (
+                                  <div
+                                    className={cn(
+                                      'text-xs mb-2 p-2 rounded backdrop-blur-sm border-l-2',
+                                      getThemeClass(
+                                        'bg-gray-100 border-gray-300',
+                                        'bg-white/10 border-white/30'
+                                      )
+                                    )}
+                                  >
+                                    <div
+                                      className={cn(
+                                        'font-medium',
+                                        getThemeClass('text-gray-900', 'text-white')
+                                      )}
+                                    >
+                                      {message.replyToMessage.senderName}
+                                    </div>
+                                    <div
+                                      className={cn(
+                                        'truncate opacity-75',
+                                        getThemeClass('text-gray-600', 'text-white/70')
+                                      )}
+                                    >
+                                      {message.replyToMessage.content}
+                                    </div>
+                                  </div>
+                                )}
+                                {/* Edit mode */}
+                                {editingMessage?.messageId === message.messageId ? (
+                                  <div
+                                    className={cn(
+                                      'w-full rounded-xl px-3 py-2 backdrop-blur-sm border',
+                                      getThemeClass(
+                                        'bg-white border-gray-300',
+                                        'bg-white/10 border-white/20'
+                                      )
+                                    )}
+                                  >
+                                    <Input
+                                      value={editingContent}
+                                      onChange={(e) => setEditingContent(e.target.value)}
+                                      onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleSendMessage();
+                                        } else if (e.key === 'Escape') {
+                                          cancelEditing();
+                                        }
+                                      }}
+                                      className={cn(
+                                        'bg-transparent border-none p-0 focus-visible:ring-0 rounded-full',
+                                        getThemeClass(
+                                          'text-gray-900 placeholder:text-gray-500',
+                                          'text-white placeholder:text-white/50'
+                                        )
+                                      )}
+                                      autoFocus
+                                    />
+                                    <div className="flex justify-end gap-2 mt-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={cancelEditing}
+                                        className={cn(
+                                          'rounded-full',
+                                          getThemeClass(
+                                            'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300',
+                                            'bg-white/10 text-white hover:bg-white/20 border-white/20'
+                                          )
+                                        )}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={handleSendMessage}
+                                        className={cn(
+                                          'rounded-full',
+                                          getThemeClass(
+                                            'bg-blue-500 text-white hover:bg-blue-600',
+                                            'bg-white/20 text-white hover:bg-white/30'
+                                          )
+                                        )}
+                                      >
+                                        Save
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="relative">
+                                    <div
+                                      className={cn(
+                                        'rounded-xl px-4 py-2 max-w-full break-words shadow backdrop-blur-sm',
+                                        message.isDeleted
+                                          ? getThemeClass(
+                                              'bg-gray-100 text-gray-400 italic',
+                                              'bg-white/5 text-white/40 italic'
+                                            )
+                                          : isMyMsg
+                                          ? getThemeClass(
+                                              'bg-blue-500 text-white',
+                                              'bg-white/20 text-white'
+                                            )
+                                          : getThemeClass(
+                                              'bg-white text-gray-900',
+                                              'bg-white/10 text-white'
+                                            )
+                                      )}
+                                    >
+                                      {message.content}
+                                      {message.isEdited && !message.isDeleted && (
+                                        <span
+                                          className={cn(
+                                            'text-xs opacity-70 ml-2',
+                                            getThemeClass('text-gray-500', 'text-white/70')
+                                          )}
+                                        >
+                                          (edited)
+                                        </span>
+                                      )}
+                                    </div>
+                                    {/* Message options dropdown */}
+                                    {!message.isDeleted && (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 -right-8 top-1 text-white hover:bg-white/20"
+                                          >
+                                            <MoreVertical className="h-3 w-3" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                          align={isMyMsg ? 'end' : 'start'}
+                                          className={cn(
+                                            'backdrop-blur-md',
+                                            getThemeClass(
+                                              'bg-white border-gray-200',
+                                              'bg-white/10 border-white/20'
+                                            )
+                                          )}
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={() => handleReplyToMessage(message)}
+                                            className={cn(
+                                              getThemeClass(
+                                                'text-gray-700 hover:bg-gray-100',
+                                                'text-white hover:bg-white/20'
+                                              )
+                                            )}
+                                          >
+                                            Reply
+                                          </DropdownMenuItem>
+                                          {isMyMsg && (
+                                            <>
+                                              <DropdownMenuItem
+                                                onClick={() => handleEditMessage(message)}
+                                                className={cn(
+                                                  getThemeClass(
+                                                    'text-gray-700 hover:bg-gray-100',
+                                                    'text-white hover:bg-white/20'
+                                                  )
+                                                )}
+                                              >
+                                                Edit
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                onClick={() =>
+                                                  handleDeleteMessage(message.messageId)
+                                                }
+                                                className={cn(
+                                                  getThemeClass(
+                                                    'text-red-600 hover:bg-red-100',
+                                                    'text-red-300 hover:bg-red-500/20 hover:text-red-200'
+                                                  )
+                                                )}
+                                              >
+                                                Delete
+                                              </DropdownMenuItem>
+                                            </>
+                                          )}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between mt-1">
-                              <p className="text-sm text-white/70 truncate">{room.lastMessage?.content || 'No messages yet'}</p>
-                              <span className="text-xs text-white/50 ml-2">
-                                {formatTimestamp(room.lastMessageAt || room.lastMessage?.timestamp || room.lastMessage?.createdAt || room.createdAt)}
-                              </span>
-                            </div>
-                            <div className="flex items-center mt-2 space-x-2">
-                              <Badge variant="outline" className="text-xs border-white/20 text-white/80">
-                                <Users className="h-3 w-3 mr-1" />
-                                {participantInfo.total}
-                              </Badge>
-                              {participantInfo.online > 0 && (
-                                <Badge variant="outline" className="text-xs text-green-400 border-green-400/30">{participantInfo.online} online</Badge>
-                              )}
-                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+                {/* Message Input */}
+                <div
+                  className={cn(
+                    'backdrop-blur-sm border-t p-4',
+                    getThemeClass('bg-white border-gray-200', 'bg-white/5 border-white/20')
+                  )}
+                >
+                  {replyingTo && (
+                    <div
+                      className={cn(
+                        'mb-3 p-3 backdrop-blur-sm rounded-lg border-l-4',
+                        getThemeClass('bg-gray-100 border-gray-400', 'bg-white/10 border-white/50')
+                      )}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div
+                            className={cn(
+                              'text-sm font-medium',
+                              getThemeClass('text-gray-900', 'text-white')
+                            )}
+                          >
+                            Replying to {replyingTo.senderName}
+                          </div>
+                          <div
+                            className={cn(
+                              'text-sm truncate',
+                              getThemeClass('text-gray-600', 'text-white/70')
+                            )}
+                          >
+                            {replyingTo.content}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={cancelReply}
+                          className={cn(
+                            'p-1 h-6 w-6',
+                            getThemeClass(
+                              'text-gray-600 hover:bg-gray-200',
+                              'text-white hover:bg-white/20'
+                            )
+                          )}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        getThemeClass(
+                          'text-gray-600 hover:bg-gray-200',
+                          'text-white hover:bg-white/20'
+                        )
+                      )}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        getThemeClass(
+                          'text-gray-600 hover:bg-gray-200',
+                          'text-white hover:bg-white/20'
+                        )
+                      )}
+                    >
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                    <div className="flex-1 flex space-x-2">
+                      <Input
+                        placeholder={
+                          replyingTo
+                            ? `Reply to ${replyingTo.senderName}...`
+                            : editingMessage
+                            ? 'Edit message...'
+                            : 'Type a message...'
+                        }
+                        value={editingMessage ? editingContent : newMessage}
+                        onChange={(e) =>
+                          editingMessage
+                            ? setEditingContent(e.target.value)
+                            : setNewMessage(e.target.value)
+                        }
+                        onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                        className={cn(
+                          'flex-1 backdrop-blur-sm',
+                          getThemeClass(
+                            'bg-white border-gray-300 text-gray-900 placeholder:text-gray-500',
+                            'bg-white/10 border-white/20 text-white placeholder:text-white/50'
+                          )
+                        )}
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={editingMessage ? !editingContent.trim() : !newMessage.trim()}
+                        className={cn(
+                          'px-4',
+                          getThemeClass(
+                            'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300 disabled:text-gray-500',
+                            'bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10 disabled:text-white/50'
+                          )
+                        )}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div
+                className={cn(
+                  'flex-1 flex items-center justify-center backdrop-blur-sm',
+                  getThemeClass('bg-white/95', 'bg-gradient-to-br from-[#1e1b2e] to-[#2c2a40]')
+                )}
+              >
+                <div className="text-center">
+                  <MessageCircle
+                    className={cn(
+                      'h-16 w-16 mx-auto mb-4',
+                      getThemeClass('text-gray-400', 'text-white/50')
+                    )}
+                  />
+                  <h3
+                    className={cn(
+                      'text-lg font-medium mb-2',
+                      getThemeClass('text-gray-900', 'text-white')
+                    )}
+                  >
+                    Select a chat room to start
+                  </h3>
+                  <p className={cn(getThemeClass('text-gray-600', 'text-white/70'))}>
+                    Choose a chat room from the list to view and reply to messages
+                  </p>
+                </div>
               </div>
             )}
           </div>
-        </ScrollArea>
-      </div>
-
-      {/* Main Panel: Chat Messages */}
-      <div className="flex-1 flex flex-col">
-        {selectedRoom ? (
-          <>
-            <div className="bg-white/10 backdrop-blur-sm border-b border-white/20 p-4 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedRoom.participants[0]?.avatar} />
-                    <AvatarFallback className="bg-white/20 text-white">
-                      <Users className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold text-white">
-                      {selectedRoom.createdByUserName || selectedRoom.participants[0]?.fullName || 'Unknown Customer'}
-                    </h3>
-                    <div className="flex items-center space-x-2 text-sm text-white/70">
-                      <Users className="h-4 w-4" />
-                      <span>{selectedRoom.participants.length} members</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
-                    <Users className="h-4 w-4 mr-2" />
-                    Members
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-white/10 backdrop-blur-sm border-white/20">
-                      <DropdownMenuItem className="text-white hover:bg-white/10">Room Info</DropdownMenuItem>
-                      <DropdownMenuItem className="text-white hover:bg-white/10">Chat History</DropdownMenuItem>
-                      <DropdownMenuItem className="text-white hover:bg-white/10">Notification Settings</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </div>
-            <ScrollArea className="flex-1 p-4 bg-white/5 backdrop-blur-sm">
-              <div className="space-y-4">
-                {isLoadingMessages ? (
-                  <div className="text-center py-8 text-white/70">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
-                    <p>Loading messages...</p>
-                  </div>
-                ) : currentMessages.length === 0 ? (
-                  <div className="text-center py-8 text-white/70">
-                    <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/50" />
-                    <p>No messages yet</p>
-                    <p className="text-sm">Start the conversation!</p>
-                  </div>
-                ) : (
-                  currentMessages.map((message, index) => {
-                    const isMyMsg = isMyMessage(message);
-                    const isConsecutive = index > 0 && currentMessages[index - 1].senderId === message.senderId;
-                    // Regular sender name handling (no AI bot for customer-event manager chat)
-                    const safeSenderName = message.senderName || 'Unknown User';
-                    
-                    return (
-                      <motion.div
-                        key={message.messageId || index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${isMyMsg ? 'justify-end' : 'justify-start'} group`}
-                      >
-                        <div className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${isMyMsg ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                          {!isConsecutive && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="bg-white/20 text-white">
-                                {safeSenderName.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className={`${isConsecutive && !isMyMsg ? 'ml-10' : ''} ${isConsecutive && isMyMsg ? 'mr-10' : ''}`}>
-                            {!isConsecutive && (
-                              <div className={`flex items-center gap-2 mb-1 ${isMyMsg ? 'flex-row-reverse' : ''}`}>
-                                <span className={`text-xs text-white/70 ${isMyMsg ? 'text-right' : 'text-left'}`}>
-                                  {safeSenderName}
-                                </span>
-                                <span className="text-xs text-white/50">
-                                  {formatTime(message.timestamp || message.createdAt)}
-                                </span>
-                              </div>
-                            )}
-                            {/* Reply preview */}
-                            {message.replyToMessage && (
-                              <div className="text-xs mb-2 p-2 rounded bg-white/10 backdrop-blur-sm border-l-2 border-white/30">
-                                <div className="font-medium text-white">{message.replyToMessage.senderName}</div>
-                                <div className="truncate opacity-75 text-white/70">{message.replyToMessage.content}</div>
-                              </div>
-                            )}
-                            {/* Edit mode */}
-                            {editingMessage?.messageId === message.messageId ? (
-                              <div className="w-full rounded-xl px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20">
-                                <Input
-                                  value={editingContent}
-                                  onChange={(e) => setEditingContent(e.target.value)}
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      handleSendMessage();
-                                    } else if (e.key === 'Escape') {
-                                      cancelEditing();
-                                    }
-                                  }}
-                                  className="bg-transparent text-white placeholder:text-white/50 border-none p-0 focus-visible:ring-0 rounded-full"
-                                  autoFocus
-                                />
-                                <div className="flex justify-end gap-2 mt-2">
-                                  <Button size="sm" variant="outline" onClick={cancelEditing} className="rounded-full bg-white/10 text-white hover:bg-white/20 border-white/20">Cancel</Button>
-                                  <Button size="sm" onClick={handleSendMessage} className="rounded-full bg-white/20 text-white hover:bg-white/30">Save</Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="relative">
-                                <div className={`rounded-xl px-4 py-2 max-w-full break-words shadow backdrop-blur-sm ${message.isDeleted ? 'bg-white/5 text-white/40 italic' : isMyMsg ? 'bg-white/20 text-white' : 'bg-white/10 text-white'}`}>
-                                  {message.content}
-                                  {message.isEdited && !message.isDeleted && (
-                                    <span className="text-xs opacity-70 ml-2 text-white/70">(edited)</span>
-                                  )}
-                                </div>
-                                {/* Message options dropdown */}
-                                {!message.isDeleted && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 -right-8 top-1 text-white hover:bg-white/20">
-                                        <MoreVertical className="h-3 w-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align={isMyMsg ? 'end' : 'start'} className="bg-white/10 backdrop-blur-md border-white/20 text-white">
-                                      <DropdownMenuItem onClick={() => handleReplyToMessage(message)} className="text-white hover:bg-white/20">
-                                        Reply
-                                      </DropdownMenuItem>
-                                      {isMyMsg && (
-                                        <>
-                                          <DropdownMenuItem onClick={() => handleEditMessage(message)} className="text-white hover:bg-white/20">
-                                            Edit
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => handleDeleteMessage(message.messageId)} className="text-red-300 hover:bg-red-500/20 hover:text-red-200">
-                                            Delete
-                                          </DropdownMenuItem>
-                                        </>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-            {/* Message Input */}
-            <div className="bg-white/5 backdrop-blur-sm border-t border-white/20 p-4">
-              {replyingTo && (
-                <div className="mb-3 p-3 bg-white/10 backdrop-blur-sm rounded-lg border-l-4 border-white/50">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-white">Replying to {replyingTo.senderName}</div>
-                      <div className="text-sm text-white/70 truncate">{replyingTo.content}</div>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={cancelReply} className="p-1 h-6 w-6 text-white hover:bg-white/20">Cancel</Button>
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                  <Smile className="h-4 w-4" />
-                </Button>
-                <div className="flex-1 flex space-x-2">
-                  <Input
-                    placeholder={replyingTo ? `Reply to ${replyingTo.senderName}...` : editingMessage ? 'Edit message...' : 'Type a message...'}
-                    value={editingMessage ? editingContent : newMessage}
-                    onChange={(e) => editingMessage ? setEditingContent(e.target.value) : setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                    className="flex-1 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder:text-white/50"
-                  />
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={editingMessage ? !editingContent.trim() : !newMessage.trim()}
-                    className="px-4 bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10 disabled:text-white/50"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center bg-white/5 backdrop-blur-sm">
-            <div className="text-center">
-              <MessageCircle className="h-16 w-16 mx-auto mb-4 text-white/50" />
-              <h3 className="text-lg font-medium text-white mb-2">Select a chat room to start</h3>
-              <p className="text-white/70">Choose a chat room from the list to view and reply to messages</p>
-            </div>
-          </div>
-        )}
-        </div>
         </div>
       </div>
     </div>

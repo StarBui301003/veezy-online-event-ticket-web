@@ -20,7 +20,7 @@ const NotificationDropdown = ({
   t,
   onRedirect,
 }: NotificationDropdownProps) => {
-  const { getThemeClass, getTextClass } = useThemeClasses();
+  const { getThemeClass } = useThemeClasses();
 
   // Use the hook for API and UI update
   const { notifications, markAsRead, markAllAsRead, refreshNotifications } =

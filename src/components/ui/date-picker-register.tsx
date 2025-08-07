@@ -29,7 +29,7 @@ export function DatePickerRegister({
   error,
   className,
 }: DatePickerRegisterProps) {
-  const [date, setDate] = React.useState<Date>(selectedDate || new Date());
+  const [date, setDate] = React.useState<Date | undefined>(selectedDate);
 
   // Update date when selectedDate prop changes
   React.useEffect(() => {
@@ -55,11 +55,13 @@ export function DatePickerRegister({
   const years = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
 
   const handleMonthChange = (month: string) => {
+    if (!date) return;
     const newDate = setMonth(date, months.indexOf(month));
     setDate(newDate);
   };
 
   const handleYearChange = (year: string) => {
+    if (!date) return;
     const newDate = setYear(date, parseInt(year));
     setDate(newDate);
   };
@@ -99,7 +101,7 @@ export function DatePickerRegister({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded">
           <div className="flex justify-between p-3 bg-gray-50 border-b border-gray-200 rounded-t">
-            <Select onValueChange={handleMonthChange} value={months[getMonth(date)]}>
+            <Select onValueChange={handleMonthChange} value={date ? months[getMonth(date)] : ''}>
               <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
                 <SelectValue placeholder="Month" />
               </SelectTrigger>
@@ -111,7 +113,7 @@ export function DatePickerRegister({
                 ))}
               </SelectContent>
             </Select>
-            <Select onValueChange={handleYearChange} value={getYear(date).toString()}>
+            <Select onValueChange={handleYearChange} value={date ? getYear(date).toString() : ''}>
               <SelectTrigger className="w-[110px] bg-white border border-gray-300 rounded">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
