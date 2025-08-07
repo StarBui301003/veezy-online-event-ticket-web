@@ -4,13 +4,7 @@ import { getApprovedEvents } from '@/services/Admin/event.service';
 import { suggestEventQuantity } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import { FaSpinner, FaUsers, FaBrain } from 'react-icons/fa';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '@/components/ui/select';
+import Select from 'react-select';
 import type { ApprovedEvent } from '@/types/Admin/event';
 import type { SuggestQuantityResponse } from '@/types/Admin/event';
 
@@ -25,6 +19,27 @@ export const SuggestQuantityModal = ({ open, onClose }: Props) => {
   const [loading, setLoading] = useState(false);
   const [predicting, setPredicting] = useState(false);
   const [result, setResult] = useState<number | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -48,7 +63,7 @@ export const SuggestQuantityModal = ({ open, onClose }: Props) => {
     setPredicting(true);
     setResult(null);
     try {
-      const res = await suggestEventQuantity(selectedEventId);
+      const res: SuggestQuantityResponse = await suggestEventQuantity(selectedEventId);
       if (res.flag && res.data) {
         setResult(res.data.suggested_quantity);
         toast.success('Prediction completed successfully!');
@@ -69,7 +84,7 @@ export const SuggestQuantityModal = ({ open, onClose }: Props) => {
     <Dialog open={open} onOpenChange={onClose} modal={true}>
       <DialogContent
         className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg flex flex-col rounded-xl border-0 dark:border-0"
-        style={{ maxHeight: '80vh', minHeight: '200px' }}
+        style={{ maxHeight: '800px', minHeight: '600px' }}
       >
         <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
@@ -86,28 +101,89 @@ export const SuggestQuantityModal = ({ open, onClose }: Props) => {
               Select Event
             </label>
             <Select
-              value={selectedEventId}
-              onValueChange={(val) => {
-                setSelectedEventId(val);
+              options={events.map((event) => ({
+                value: event.eventId,
+                label: event.eventName,
+              }))}
+              value={events
+                .map((event) => ({
+                  value: event.eventId,
+                  label: event.eventName,
+                }))
+                .find((option) => option.value === selectedEventId)}
+              onChange={(selectedOption) => {
+                setSelectedEventId(selectedOption?.value || '');
                 setResult(null);
               }}
-              disabled={loading || predicting}
-            >
-              <SelectTrigger className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full">
-                <SelectValue placeholder="Select event" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                {events.map((event) => (
-                  <SelectItem
-                    key={event.eventId}
-                    value={event.eventId}
-                    className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600"
-                  >
-                    {event.eventName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Select event"
+              isDisabled={loading || predicting}
+              isSearchable={true}
+              classNamePrefix="react-select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  borderColor: state.isFocused ? '#3b82f6' : isDarkMode ? '#4b5563' : '#d1d5db',
+                  '&:hover': {
+                    borderColor: isDarkMode ? '#6b7280' : '#9ca3af',
+                  },
+                  minHeight: '40px',
+                  borderRadius: '6px',
+                  boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  boxShadow:
+                    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 9999,
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isSelected
+                    ? '#3b82f6'
+                    : state.isFocused
+                    ? isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6'
+                    : 'transparent',
+                  color: state.isSelected ? 'white' : isDarkMode ? '#f9fafb' : '#111827',
+                  '&:hover': {
+                    backgroundColor: state.isSelected
+                      ? '#3b82f6'
+                      : isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6',
+                  },
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                placeholder: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                menuList: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                }),
+                noOptionsMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                loadingMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+              }}
+            />
           </div>
 
           {/* Event Details */}

@@ -359,10 +359,12 @@ export const ApprovedEventList = ({
                   {/* Category Filter - only show if categories exist */}
                   {allCategories.length > 0 && (
                     <>
-                      <div className="px-2 py-1 text-sm font-semibold">Category</div>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Category
+                      </div>
                       <DropdownMenuItem
                         onSelect={() => updateFilter('categoryIds', undefined)}
-                        className={`flex items-center gap-2 ${getEventListDropdownItemClass()}`}
+                        className={`flex items-center gap-2 ${getEventListDropdownItemClass()} dark:text-white`}
                       >
                         <input
                           type="checkbox"
@@ -382,7 +384,7 @@ export const ApprovedEventList = ({
                               : [...currentIds, category];
                             updateFilter('categoryIds', newIds);
                           }}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 dark:text-white"
                         >
                           <input
                             type="checkbox"
@@ -398,9 +400,11 @@ export const ApprovedEventList = ({
                   )}
 
                   {/* Date Range Filters */}
-                  <div className="px-2 py-1 text-sm font-semibold">Start Date Range</div>
+                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    Start Date Range
+                  </div>
                   <DropdownMenuItem
-                    className="flex flex-col items-start p-3"
+                    className="flex flex-col items-start p-3 dark:text-white"
                     onSelect={(e) => e.preventDefault()}
                   >
                     <div className="space-y-2 w-full">
