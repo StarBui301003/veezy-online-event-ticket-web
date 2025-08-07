@@ -48,8 +48,8 @@ const NotificationManager = () => {
 
   // Connect to NotificationHub for real-time updates
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    connectNotificationHub(token || undefined);
+    const token = localStorage.getItem('access_token');
+    connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token || undefined);
     
     // Listen for notification status updates
     onNotification('NotificationSent', (data: any) => {
