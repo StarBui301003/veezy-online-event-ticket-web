@@ -637,14 +637,23 @@ export default function FundManagement() {
             transition={{ delay: 0.4 }}
             className="mb-8"
           >
-                         <div className={cn(
-               'rounded-2xl p-6 border-2 shadow-2xl',
-               getThemeClass(
-                 'bg-white/95 border-green-500/30',
-                 'bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-green-500/30'
-               )
-             )}>
-               <h2 className={cn('text-2xl font-bold mb-6', getThemeClass('text-green-700', 'text-green-300'))}>{t('withdrawalRequest')}</h2>
+            <div
+              className={cn(
+                'rounded-2xl p-6 border-2 shadow-2xl',
+                getThemeClass(
+                  'bg-white/95 border-green-500/30',
+                  'bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-green-500/30'
+                )
+              )}
+            >
+              <h2
+                className={cn(
+                  'text-2xl font-bold mb-6',
+                  getThemeClass('text-green-700', 'text-green-300')
+                )}
+              >
+                {t('withdrawalRequest')}
+              </h2>
               {withdrawalError && (
                 <div className="mb-4 p-3 bg-red-500/20 border border-red-400 rounded-lg text-red-200 text-sm">
                   {withdrawalError}
