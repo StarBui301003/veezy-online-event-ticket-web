@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { connectTicketHub, onTicket } from '@/services/signalr.service';
+import { toast } from 'react-toastify';
 
 interface CheckoutData {
   eventName?: string;
@@ -30,22 +30,82 @@ const PaymentSuccessPage = () => {
     };
     window.addEventListener('beforeunload', handleUnload);
     
-    // Setup realtime listeners for ticket updates
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    
-    connectTicketHub(token || undefined);
-    
-    // Listen for ticket generation
-    onTicket('TicketGenerated', (data: any) => {
-      // ...removed log...
-      if (data.orderId === checkout?.orderId) {
-        // Update checkout data with ticket info
-        setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
+    // Setup realtime listeners for ticket and payment updates
+    const setupRealtimeListeners = async () => {
+      try {
+        const { connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
+        const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken') || localStorage.getItem('token');
+        
+        // Connect to Ticket Hub for ticket generation updates
+        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+        
+        // Listen for ticket generation
+        onTicket('TicketGenerated', (data: any) => {
+          console.log('Ticket generated:', data);
+          if (data.orderId === checkout?.orderId) {
+            setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
+            // Show success notification
+            toast.success(t('ticketGeneratedSuccessfully'));
+          }
+        });
+
+        // Listen for ticket issue status
+        onTicket('TicketIssued', (data: any) => {
+          console.log('Ticket issued:', data);
+          if (data.orderId === checkout?.orderId) {
+            setCheckout(prev => prev ? { ...prev, ticketGenerated: true } : prev);
+            toast.success(t('ticketIssuedSuccessfully'));
+          }
+        });
+
+        // Listen for order status changes
+        onTicket('OrderStatusChanged', (data: any) => {
+          console.log('Order status changed:', data);
+          if (data.orderId === checkout?.orderId) {
+            if (data.status === 'Completed' || data.status === 'Confirmed') {
+              toast.success(t('orderConfirmed'));
+            } else if (data.status === 'Failed' || data.status === 'Cancelled') {
+              toast.error(t('orderFailed'));
+            }
+          }
+        });
+
+        // Connect to Notification Hub for payment notifications
+        if (token) {
+          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          
+          onNotification('ReceiveNotification', (notification: any) => {
+            // Check if this notification is related to current order
+            if (notification.redirectUrl && 
+                (notification.redirectUrl.includes(checkout?.orderId || '') ||
+                 notification.type === 'PaymentSuccess' ||
+                 notification.type === 'OrderConfirmed')) {
+              console.log('Payment/Order notification:', notification);
+              toast.info(notification.message || notification.title);
+            }
+          });
+
+          // Listen for payment status changes
+          onNotification('PaymentStatusChanged', (data: any) => {
+            console.log('Payment status changed:', data);
+            if (data.orderId === checkout?.orderId) {
+              if (data.status === 'Success' || data.status === 'Completed') {
+                toast.success(t('paymentConfirmed'));
+              } else if (data.status === 'Failed') {
+                toast.error(t('paymentFailed'));
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to setup realtime listeners:', error);
       }
-    });
+    };
+
+    setupRealtimeListeners();
     
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [checkout?.orderId]);
+  }, [checkout?.orderId, t]);
 
   useEffect(() => {
     const data = localStorage.getItem('checkout');
@@ -100,15 +160,11 @@ const PaymentSuccessPage = () => {
             <div className="font-semibold text-green-800 mb-3">{t('ticketDetail')}</div>
             <ul className="text-left space-y-2 mb-4">
               {checkout.items.map((item, idx) => {
-                const price = typeof item.pricePerTicket === 'number'
-                  ? item.pricePerTicket
-                  : typeof item.pricePerTicket === 'string'
-                    ? parseFloat(item.pricePerTicket) || 0
-                    : typeof item.ticketPrice === 'number'
-                      ? item.ticketPrice
-                      : typeof item.ticketPrice === 'string'
-                        ? parseFloat(item.ticketPrice) || 0
-                        : 0;
+                const price = typeof item.ticketPrice === 'number'
+                  ? item.ticketPrice
+                  : typeof item.ticketPrice === 'string'
+                    ? parseFloat(item.ticketPrice) || 0
+                    : 0;
                 const quantity = typeof item.quantity === 'number'
                   ? item.quantity
                   : typeof item.quantity === 'string'

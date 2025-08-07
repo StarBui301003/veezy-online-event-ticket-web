@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { getMyApprovedEvents, getEventFund } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
-import { connectAnalyticsHub, onAnalytics, disconnectAnalyticsHub } from '@/services/signalr.service';
 
 interface AnalyticsData {
   totalEvents: number;
@@ -25,18 +24,139 @@ export default function AnalyticsOverview() {
 
   useEffect(() => {
     fetchAnalyticsData();
-    // Kết nối AnalyticsHub và lắng nghe realtime
-    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub').then(() => {
-      onAnalytics('OnEventManagerRealtimeOverview', (data) => {
-        if (data && typeof data === 'object') {
-          setAnalyticsData((prev) => ({ ...prev, ...data }));
-        }
-      });
-    });
-    return () => {
-      disconnectAnalyticsHub();
+    
+    // Setup enhanced realtime analytics listeners
+    const setupRealtimeAnalytics = async () => {
+      try {
+        const { 
+          connectAnalyticsHub, 
+          onAnalytics, 
+          connectTicketHub, 
+          onTicket,
+          connectEventHub,
+          onEvent,
+          disconnectAnalyticsHub 
+        } = await import('@/services/signalr.service');
+
+        const token = localStorage.getItem('access_token');
+
+        // Connect to Analytics Hub for real-time metrics
+        await connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', token || undefined);
+        
+        onAnalytics('OnEventManagerRealtimeOverview', (data) => {
+          console.log('Realtime analytics overview:', data);
+          if (data && typeof data === 'object') {
+            setAnalyticsData((prev) => ({ 
+              ...prev, 
+              ...data,
+              // Preserve existing data if new data doesn't include all fields
+              totalEvents: data.totalEvents ?? prev?.totalEvents ?? 0,
+              totalRevenue: data.totalRevenue ?? prev?.totalRevenue ?? 0,
+              revenueGrowth: data.revenueGrowth ?? prev?.revenueGrowth ?? 0,
+              ticketsSold: data.ticketsSold ?? prev?.ticketsSold,
+              totalParticipants: data.totalParticipants ?? prev?.totalParticipants,
+              totalComments: data.totalComments ?? prev?.totalComments
+            }));
+          }
+        });
+
+        onAnalytics('OnEventManagerPerformanceComparison', (data) => {
+          console.log('Performance comparison update:', data);
+          // Update performance-related metrics
+          if (data?.revenueGrowth !== undefined) {
+            setAnalyticsData(prev => prev ? { ...prev, revenueGrowth: data.revenueGrowth } : prev);
+          }
+        });
+
+        onAnalytics('OnRevenueUpdate', (data) => {
+          console.log('Revenue analytics update:', data);
+          if (data?.totalRevenue !== undefined) {
+            setAnalyticsData(prev => prev ? { ...prev, totalRevenue: data.totalRevenue } : prev);
+          }
+        });
+
+        // Connect to Ticket Hub for ticket sales analytics
+        await connectTicketHub('https://ticket.vezzy.site/analyticsHub', token || undefined);
+        
+        onTicket('OnTicketSoldIncremented', (data) => {
+          console.log('Ticket sold - analytics update:', data);
+          setAnalyticsData(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              ticketsSold: (prev.ticketsSold || 0) + (data.quantity || 1),
+              totalRevenue: prev.totalRevenue + (data.totalAmount || data.ticketPrice || 0)
+            };
+          });
+        });
+
+        onTicket('OrderCreated', (data) => {
+          console.log('Order created - analytics update:', data);
+          setAnalyticsData(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              totalRevenue: prev.totalRevenue + (data.totalAmount || 0)
+            };
+          });
+        });
+
+        onTicket('AttendanceCheckedIn', (data) => {
+          console.log('Attendance check-in - analytics update:', data);
+          setAnalyticsData(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              totalParticipants: (prev.totalParticipants || 0) + 1
+            };
+          });
+        });
+
+        // Connect to Event Hub for event analytics
+        await connectEventHub('https://event.vezzy.site/analyticsHub');
+
+        const accountStr = localStorage.getItem('account');
+        const accountObj = accountStr ? JSON.parse(accountStr) : null;
+        const userId = accountObj?.userId || accountObj?.accountId;
+
+        onEvent('OnEventApproved', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event approved - analytics update:', data);
+            setAnalyticsData(prev => {
+              if (!prev) return prev;
+              return { ...prev, totalEvents: prev.totalEvents + 1 };
+            });
+            toast.success(t('eventApprovedAnalyticsUpdated'));
+          }
+        });
+
+        onEvent('OnEventCancelled', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event cancelled - analytics update:', data);
+            setAnalyticsData(prev => {
+              if (!prev) return prev;
+              return { ...prev, totalEvents: Math.max(0, prev.totalEvents - 1) };
+            });
+            toast.warning(t('eventCancelledAnalyticsUpdated'));
+          }
+        });
+
+        // Setup cleanup
+        return () => {
+          disconnectAnalyticsHub();
+        };
+
+      } catch (error) {
+        console.error('Failed to setup realtime analytics:', error);
+      }
     };
-  }, []);
+
+    const cleanup = setupRealtimeAnalytics();
+    
+    return () => {
+      cleanup?.then(cleanupFn => cleanupFn?.());
+    };
+  }, [t]);
 
   const fetchAnalyticsData = async () => {
     try {

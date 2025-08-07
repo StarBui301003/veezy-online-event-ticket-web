@@ -6,7 +6,6 @@ import {
   Wallet, 
   CreditCard, 
   Download, 
-  RefreshCw, 
   Search,
   ChevronLeft,
   ChevronRight
@@ -21,7 +20,6 @@ import {
   requestWithdrawal
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 
 interface Event {
@@ -72,17 +70,159 @@ export default function FundManagement() {
   const visibleCount = 3;
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    const setupRealtimeFundManagement = async () => {
+      try {
+        const { 
+          connectEventHub, 
+          onEvent, 
+          connectTicketHub, 
+          onTicket,
+          connectNotificationHub,
+          onNotification 
+        } = await import('@/services/signalr.service');
+
+        const token = localStorage.getItem('access_token');
+
+        // Connect to Event Hub for fund-related events
+        connectEventHub('https://event.vezzy.site/notificationHub');
+        
+        const accountStr = localStorage.getItem('account');
+        const accountObj = accountStr ? JSON.parse(accountStr) : null;
+        const userId = accountObj?.userId || accountObj?.accountId;
+
+        const reload = () => {
+          fetchEvents();
+          if (selectedEvent) {
+            fetchFundData(selectedEvent.eventId);
+          }
+        };
+
+        onEvent('OnEventCreated', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event created - fund management update:', data);
+            reload();
+          }
+        });
+
+        onEvent('OnEventUpdated', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event updated - fund management update:', data);
+            reload();
+          }
+        });
+
+        onEvent('OnEventDeleted', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event deleted - fund management update:', data);
+            reload();
+          }
+        });
+
+        onEvent('OnEventCancelled', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event cancelled - fund management update:', data);
+            toast.warning(t('eventCancelledFundsAffected'));
+            reload();
+          }
+        });
+
+        onEvent('OnEventApproved', (data) => {
+          if (data.createdBy === userId || data.CreatedBy === userId) {
+            console.log('Event approved - fund management update:', data);
+            toast.success(t('eventApprovedFundsAvailable'));
+            reload();
+          }
+        });
+
+        // Connect to Ticket Hub for transaction updates
+        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
+
+        onTicket('OrderCreated', (data) => {
+          console.log('Order created - fund update:', data);
+          // Update revenue for the affected event
+          if (selectedEvent && (data.eventId === selectedEvent.eventId)) {
+            const newRevenue = revenue + (data.totalAmount || 0);
+            setRevenue(newRevenue);
+            toast.success(t('newOrderReceived', { amount: data.totalAmount }));
+            
+            // Refresh fund data
+            fetchFundData(selectedEvent.eventId);
+          }
+        });
+
+        onTicket('OrderStatusChanged', (data) => {
+          console.log('Order status changed - fund update:', data);
+          if (selectedEvent && data.eventId === selectedEvent.eventId) {
+            if (data.status === 'Confirmed' || data.status === 'Completed') {
+              toast.success(t('orderConfirmedRevenueUpdated'));
+            } else if (data.status === 'Cancelled' || data.status === 'Refunded') {
+              toast.warning(t('orderRefundedRevenueAdjusted'));
+            }
+            
+            // Refresh fund data
+            fetchFundData(selectedEvent.eventId);
+          }
+        });
+
+        onTicket('OnTicketSoldIncremented', (data) => {
+          console.log('Ticket sold - fund update:', data);
+          if (selectedEvent && (data.eventId === selectedEvent.eventId)) {
+            const additionalRevenue = (data.ticketPrice || 0) * (data.quantity || 1);
+            setRevenue(prev => prev + additionalRevenue);
+            
+            // Update event revenues
+            setEventRevenues(prev => ({
+              ...prev,
+              [selectedEvent.eventId]: (prev[selectedEvent.eventId] || 0) + additionalRevenue
+            }));
+          }
+        });
+
+        // Connect to Notification Hub for fund notifications
+        if (token) {
+          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
+          
+          onNotification('ReceiveNotification', (notification) => {
+            // Handle fund-related notifications
+            if (notification.type === 'WithdrawalApproved' ||
+                notification.type === 'WithdrawalRejected' ||
+                notification.type === 'PaymentReceived' ||
+                notification.type === 'FundUpdate') {
+              console.log('Fund notification:', notification);
+              
+              if (notification.type === 'WithdrawalApproved') {
+                toast.success(notification.message || t('withdrawalApproved'));
+              } else if (notification.type === 'WithdrawalRejected') {
+                toast.error(notification.message || t('withdrawalRejected'));
+              } else if (notification.type === 'PaymentReceived') {
+                toast.success(notification.message || t('paymentReceived'));
+              }
+              
+              // Refresh fund data
+              if (selectedEvent) {
+                fetchFundData(selectedEvent.eventId);
+              }
+            }
+          });
+
+          // Listen for transaction status changes
+          onNotification('TransactionStatusChanged', (data) => {
+            console.log('Transaction status changed:', data);
+            if (selectedEvent && data.eventId === selectedEvent.eventId) {
+              toast.info(t('transactionStatusUpdated'));
+              fetchFundData(selectedEvent.eventId);
+            }
+          });
+        }
+
+      } catch (error) {
+        console.error('Failed to setup realtime fund management:', error);
+      }
+    };
+
+    setupRealtimeFundManagement();
     fetchEvents();
-    // Lắng nghe realtime SignalR
-    const reload = () => fetchEvents();
-    onEvent('OnEventCreated', reload);
-    onEvent('OnEventUpdated', reload);
-    onEvent('OnEventDeleted', reload);
-    onEvent('OnEventCancelled', reload);
-    onEvent('OnEventApproved', reload);
-    // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+  }, [selectedEvent, revenue, t]);
 
   useEffect(() => {
     if (selectedEvent) {
