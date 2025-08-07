@@ -83,7 +83,7 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    connectFundHub('http://localhost:5005/fundHub', token);
+          connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
       fetchData();
     };

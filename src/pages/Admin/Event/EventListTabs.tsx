@@ -52,7 +52,7 @@ export default function EventListTabs() {
   };
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     // Lắng nghe realtime SignalR cho event
     const reloadEvent = () => fetchPendingCount();
     onEvent('OnEventCreated', reloadEvent);

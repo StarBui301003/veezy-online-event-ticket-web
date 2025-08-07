@@ -77,7 +77,7 @@ export const CommentList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-    connectCommentHub('http://localhost:5004/commentHub');
+          connectCommentHub('https://event.vezzy.site/commentHub');
 
     const reload = () => reloadList();
     onComment('OnCommentCreated', reload);

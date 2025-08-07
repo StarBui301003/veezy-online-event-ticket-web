@@ -84,8 +84,8 @@ export default function EventListWithTicketManager() {
 
   // SignalR real-time updates
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
-    connectTicketHub('http://localhost:5005/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
+          connectTicketHub('https://ticket.vezzy.site/notificationHub');
 
     // Listen for real-time event updates
     onEvent('EventCreated', () => {

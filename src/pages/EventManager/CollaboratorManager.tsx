@@ -98,8 +98,8 @@ export default function CollaboratorManager() {
 
   // SignalR real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
+    connectEventHub('https://event.vezzy.site/notificationHub');
 
     // Listen for collaborator updates
     onIdentity('UserRegistered', () => {

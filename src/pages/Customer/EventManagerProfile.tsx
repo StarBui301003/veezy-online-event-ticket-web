@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { LoginModal } from '@/components/common/LoginModal';
+import { RegisterModal } from '@/components/RegisterModal';
 
 const EVENTS_PER_PAGE = 6;
 
@@ -51,18 +52,18 @@ type News = {
 };
 
 const EventManagerProfile = () => {
-  const {
-    requireLogin,
-    showLoginModal,
-    setShowLoginModal,
-    user,
-  } = useRequireLogin();
+  // Fix: useRequireLogin may not provide showLoginModal/setShowLoginModal, fallback to local state
+  // Remove destructuring from useRequireLogin
+  useRequireLogin();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const { id } = useParams<{ id: string }>();
   const [info, setInfo] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const [reportModal, setReportModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: 'eventmanager' | 'news'; id: string } | null>(null);
+  const [pendingReportTarget, setPendingReportTarget] = useState<{ type: 'eventmanager' | 'news'; id: string } | null>(null);
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<'info' | 'events' | 'news'>('info');
   const [news, setNews] = useState<News[]>([]);
@@ -150,30 +151,32 @@ const EventManagerProfile = () => {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">{t('personalInfo')}</h2>
-                {/* Nút ... báo cáo */}
+                {/* Nút ... báo cáo event manager */}
                 <div className="relative z-10">
-                  {!(reportModal || showLoginModal) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 shadow-lg">
-                          <MoreVertical className="w-5 h-5 text-white" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            requireLogin(() => {
-                              setTimeout(() => setReportModal(true), 10);
-                            });
-                          }}
-                          className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                        >
-                          <Flag className="w-4 h-4" /> {t('reportEventManager')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-full bg-slate-700 hover:bg-slate-600 border border-slate-600 shadow-lg">
+                        <MoreVertical className="w-5 h-5 text-white" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          const token = localStorage.getItem('access_token');
+                          if (!token || token === 'null' || token === 'undefined') {
+                            setPendingReportTarget({ type: 'eventmanager', id: info?.userId || '' });
+                            setShowLoginModal(true);
+                          } else {
+                            setReportTarget({ type: 'eventmanager', id: info?.userId || '' });
+                          }
+                        }}
+                        className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                      >
+                        <Flag className="w-4 h-4" /> {t('reportEventManager')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
@@ -395,6 +398,31 @@ const EventManagerProfile = () => {
                       >
                         {t('viewDetails')}
                       </a>
+                      {/* Dropdown báo cáo news */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="mt-2 px-3 py-1 rounded bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
+                            {t('actions')}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              const token = localStorage.getItem('access_token');
+                              if (!token || token === 'null' || token === 'undefined') {
+                                setPendingReportTarget({ type: 'news', id: n.newsId });
+                                setShowLoginModal(true);
+                              } else {
+                                setReportTarget({ type: 'news', id: n.newsId });
+                              }
+                            }}
+                            className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                          >
+                            <Flag className="w-4 h-4" /> {t('reportNews')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                 </div>
@@ -402,24 +430,44 @@ const EventManagerProfile = () => {
             </div>
           )}
         </main>
-        {reportModal && info?.accountId && (
+        {reportTarget && (
           <ReportModal
-            key={info.accountId}
-            open={reportModal}
-            targetType="eventmanager"
-            targetId={info.userId}
-            onClose={() => setReportModal(false)}
+            key={reportTarget.id}
+            open={!!reportTarget}
+            targetType={reportTarget.type}
+            targetId={reportTarget.id}
+            onClose={() => setReportTarget(null)}
           />
         )}
-        {/* Login Modal */}
-        <LoginModal
-          open={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={() => {
-            setShowLoginModal(false);
-            setReportModal(true);
-          }}
-        />
+        {/* Hiển thị modal đăng nhập nếu chưa đăng nhập */}
+        {showLoginModal && (
+          <LoginModal
+            open={showLoginModal}
+            onClose={() => setShowLoginModal(false)}
+            onLoginSuccess={() => {
+              setShowLoginModal(false);
+              if (pendingReportTarget) {
+                setReportTarget(pendingReportTarget);
+                setPendingReportTarget(null);
+              }
+            }}
+            onRegisterRedirect={() => {
+              setShowLoginModal(false);
+              setShowRegisterModal(true);
+            }}
+          />
+        )}
+        {showRegisterModal && (
+          <RegisterModal
+            open={showRegisterModal}
+            onClose={() => setShowRegisterModal(false)}
+            onRegisterSuccess={() => setShowRegisterModal(false)}
+            onLoginRedirect={() => {
+              setShowRegisterModal(false);
+              setShowLoginModal(true);
+            }}
+          />
+        )}
       </div>
     </div>
   );

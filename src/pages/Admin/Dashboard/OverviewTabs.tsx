@@ -196,7 +196,7 @@ export const OverviewTabs = () => {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    connectAnalyticsHub('http://localhost:5006/analyticsHub');
+          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Listen for real-time analytics updates
     onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {

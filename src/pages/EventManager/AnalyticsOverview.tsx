@@ -41,7 +41,7 @@ export default function AnalyticsOverview() {
         const token = localStorage.getItem('access_token');
 
         // Connect to Analytics Hub for real-time metrics
-        await connectAnalyticsHub('http://localhost:5006/analyticsHub', token || undefined);
+        await connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', token || undefined);
         
         onAnalytics('OnEventManagerRealtimeOverview', (data) => {
           console.log('Realtime analytics overview:', data);
@@ -76,7 +76,7 @@ export default function AnalyticsOverview() {
         });
 
         // Connect to Ticket Hub for ticket sales analytics
-        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+        await connectTicketHub('https://ticket.vezzy.site/analyticsHub', token || undefined);
         
         onTicket('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - analytics update:', data);
@@ -113,7 +113,7 @@ export default function AnalyticsOverview() {
         });
 
         // Connect to Event Hub for event analytics
-        await connectEventHub('http://localhost:5004/notificationHub');
+        await connectEventHub('https://event.vezzy.site/analyticsHub');
 
         const accountStr = localStorage.getItem('account');
         const accountObj = accountStr ? JSON.parse(accountStr) : null;

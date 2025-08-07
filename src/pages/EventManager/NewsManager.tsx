@@ -140,8 +140,8 @@ const NewsManager: React.FC = () => {
   });
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
-    connectNewsHub('http://localhost:5004/newsHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
+          connectNewsHub('https://event.vezzy.site/newsHub');
     (async () => {
       setLoadingEvents(true);
       try {

@@ -86,7 +86,7 @@ const PaymentListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    connectPaymentHub('http://localhost:5005/paymentHub', token);
+          connectPaymentHub('https://ticket.vezzy.site/paymentHub', token);
     const reload = () => {
       fetchData();
     };

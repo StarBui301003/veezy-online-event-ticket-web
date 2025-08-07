@@ -91,7 +91,7 @@ const ChatSupportManager: React.FC = () => {
       try {
         const { connectHub, onHubEvent } = await import('@/services/signalr.service');
         // Connect to event hub (adjust URL as needed)
-        await connectHub('event', 'http://localhost:5004/notificationHub');
+        await connectHub('event', 'https://event.vezzy.site/notificationHub');
         // Listen for real-time event updates
         onHubEvent('event', 'EventCreated', () => isMounted && loadEvents());
         onHubEvent('event', 'EventUpdated', () => isMounted && loadEvents());
@@ -240,7 +240,7 @@ const ChatSupportManager: React.FC = () => {
           const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } =
             await import('@/services/signalr.service');
           const token = localStorage.getItem('access_token');
-          await connectHub('chat', 'http://localhost:5007/chatHub', token || undefined);
+          await connectHub('chat', 'https://chat.vezzy.site/chatHub', token || undefined);
           await joinChatRoom(selectedRoom.roomId);
           joinedRoomId = selectedRoom.roomId;
           leaveGroup = async () => {

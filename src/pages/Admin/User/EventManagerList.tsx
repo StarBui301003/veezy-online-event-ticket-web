@@ -119,7 +119,7 @@ export const EventManagerList = () => {
 
   // Connect to IdentityHub for real-time updates
   useEffect(() => {
-    connectIdentityHub('http://localhost:5001/hubs/notifications');
+          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
 
     // Listen for real-time event manager updates
     // No specific events for EventManager in backend currently

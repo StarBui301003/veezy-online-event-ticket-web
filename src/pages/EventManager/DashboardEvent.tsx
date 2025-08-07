@@ -106,8 +106,8 @@ export default function EventManagerDashboard() {
         const token = localStorage.getItem('access_token');
 
         // Connect to Analytics Hub for real-time dashboard updates
-        await connectAnalyticsHub('http://localhost:5006/analyticsHub', token || undefined);
-
+        await connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', token || undefined);
+        
         onAnalytics('OnEventManagerRealtimeOverview', (data) => {
           console.log('Real-time analytics overview:', data);
           // Force refresh of dashboard components
@@ -127,8 +127,8 @@ export default function EventManagerDashboard() {
         });
 
         // Connect to Ticket Hub for ticket sales updates
-        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
-
+        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
+        
         onTicket('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - dashboard update:', data);
           // Update ticket statistics
@@ -147,7 +147,7 @@ export default function EventManagerDashboard() {
         });
 
         // Connect to Event Hub for event updates
-        await connectEventHub('http://localhost:5004/notificationHub');
+        await connectEventHub('https://event.vezzy.site/notificationHub');
 
         onEvent('OnEventApproved', (data) => {
           if (data.createdBy === userId || data.CreatedBy === userId) {
@@ -172,8 +172,8 @@ export default function EventManagerDashboard() {
 
         // Connect to Notification Hub for dashboard notifications
         if (token) {
-          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
-
+          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
+          
           onNotification('ReceiveNotification', (notification) => {
             // Handle dashboard-specific notifications
             if (

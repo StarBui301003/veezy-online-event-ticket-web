@@ -37,7 +37,7 @@ const PaymentSuccessPage = () => {
         const token = localStorage.getItem('access_token') || localStorage.getItem('accessToken') || localStorage.getItem('token');
         
         // Connect to Ticket Hub for ticket generation updates
-        await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
+        await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
         
         // Listen for ticket generation
         onTicket('TicketGenerated', (data: any) => {
@@ -72,7 +72,7 @@ const PaymentSuccessPage = () => {
 
         // Connect to Notification Hub for payment notifications
         if (token) {
-          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
           
           onNotification('ReceiveNotification', (notification: any) => {
             // Check if this notification is related to current order

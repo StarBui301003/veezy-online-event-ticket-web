@@ -1,18 +1,26 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+import identityService, { OnlineUserAccount } from '@/services/identity.service';
 
 interface OnlineUser {
   userId: string;
   username: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  avatarUrl?: string;
   isOnline: boolean;
   lastActiveAt: string;
 }
 
 interface OnlineStatusContextType {
   onlineUsers: Map<string, OnlineUser>;
+  allUsers: Map<string, OnlineUser>; // ✅ Thêm allUsers để lưu tất cả users từ IdentityService
   isUserOnline: (userId: string) => boolean;
   getUserLastSeen: (userId: string) => string | null;
   refreshUserStatus: (userId: string) => Promise<void>;
+  loadAllOnlineUsers: () => Promise<void>; // ✅ Method để load tất cả users từ IdentityService
+  refreshAllUsers: () => Promise<void>; // ✅ Method để refresh tất cả users
   totalOnlineUsers: number;
 }
 
@@ -24,6 +32,41 @@ interface OnlineStatusProviderProps {
 
 export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState<Map<string, OnlineUser>>(new Map());
+  const [allUsers, setAllUsers] = useState<Map<string, OnlineUser>>(new Map()); // ✅ State để lưu tất cả users
+
+  // ✅ Method để load tất cả online users từ IdentityService
+  const loadAllOnlineUsers = async () => {
+    try {
+      console.log('[OnlineStatusContext] Loading all online users from IdentityService...');
+      const users = await identityService.getOnlineUsers();
+      console.log('[OnlineStatusContext] Loaded users:', users.length);
+
+      const newAllUsers = new Map<string, OnlineUser>();
+      users.forEach(user => {
+        newAllUsers.set(user.accountId, {
+          userId: user.accountId,
+          username: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          avatarUrl: user.avatarUrl,
+          isOnline: user.isOnline,
+          lastActiveAt: user.lastActiveAt,
+        });
+      });
+
+      setAllUsers(newAllUsers);
+      console.log('[OnlineStatusContext] Updated allUsers map with', newAllUsers.size, 'users');
+    } catch (error) {
+      console.error('[OnlineStatusContext] Error loading online users:', error);
+    }
+  };
+
+  // ✅ Method để refresh tất cả users
+  const refreshAllUsers = async () => {
+    console.log('[OnlineStatusContext] Refreshing all users...');
+    await loadAllOnlineUsers();
+  };
 
   useEffect(() => {
     // Connect to Identity Hub for online status events
@@ -31,7 +74,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       try {
         const token = localStorage.getItem('access_token');
         if (token) {
-          await connectIdentityHub('http://localhost:5001/hubs/notifications', token);
+          await connectIdentityHub('https://identity.vezzy.site/hubs/notifications', token);
           console.log('✅ Connected to Identity Hub for online status');
         }
       } catch (error) {
@@ -108,20 +151,48 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       const { userId, username, isOnline, lastActiveAt } = event.detail;
       setOnlineUsers(prev => {
         const newMap = new Map(prev);
-        newMap.set(userId, {
-          userId,
-          username,
-          isOnline,
-          lastActiveAt
-        });
+        const existingUser = newMap.get(userId);
+        
+        // Only update if user doesn't exist or if we have more recent data
+        if (!existingUser) {
+          newMap.set(userId, {
+            userId,
+            username,
+            isOnline,
+            lastActiveAt
+          });
+          console.log('➕ Added NEW user to context from event:', userId, 'isOnline:', isOnline);
+        } else {
+          // For existing users, prefer real-time SignalR status over static data
+          console.log('🔄 User already exists in context:', userId, 'existing:', existingUser.isOnline, 'new:', isOnline);
+          // Don't override if existing user has more recent activity
+          const existingTime = new Date(existingUser.lastActiveAt).getTime();
+          const newTime = new Date(lastActiveAt).getTime();
+          
+          if (newTime > existingTime) {
+            newMap.set(userId, {
+              userId,
+              username: username || existingUser.username,
+              isOnline,
+              lastActiveAt
+            });
+            console.log('🔄 Updated user context with newer data:', userId, 'isOnline:', isOnline);
+          } else {
+            console.log('⏸️ Skipped updating user context - existing data is newer:', userId);
+          }
+        }
+        
         return newMap;
       });
-      console.log('➕ Added user to context from event:', userId);
     };
 
     // Setup SignalR listeners for Identity Hub events
     onIdentity('UserOnline', handleUserOnline);
     onIdentity('UserOffline', handleUserOffline);
+    
+    // Also listen to lowercase versions (backend might send these)
+    onIdentity('useronline', handleUserOnline);
+    onIdentity('useroffline', handleUserOffline);
 
     // Setup custom event listener for user activity updates
     window.addEventListener('userActivityUpdated', handleUserActivityUpdated as EventListener);
@@ -252,9 +323,12 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
 
   const contextValue: OnlineStatusContextType = {
     onlineUsers,
+    allUsers, // ✅ Thêm allUsers
     isUserOnline,
     getUserLastSeen,
     refreshUserStatus,
+    loadAllOnlineUsers, // ✅ Thêm loadAllOnlineUsers
+    refreshAllUsers, // ✅ Thêm refreshAllUsers
     totalOnlineUsers: Array.from(onlineUsers.values()).filter(user => user.isOnline).length
   };
 

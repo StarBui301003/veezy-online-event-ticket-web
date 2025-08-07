@@ -79,7 +79,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   const signalRConnectionPromiseRef = useRef<Promise<void> | null>(null); // Singleton promise for SignalR connection
   const chatRoomRef = useRef<ChatRoom | null>(null); // Add ref to track chatRoom for SignalR events
   // Use the correct ChatHub URL (port 5007) as backend is running there
-  const chatHubUrl = 'http://localhost:5007/chatHub';
+  const chatHubUrl = 'https://chat.vezzy.site/chatHub';
   const signalRSetupRef = useRef(false);
 
   // Get current user info with fallback

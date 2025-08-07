@@ -141,7 +141,7 @@ const PendingEventsManager = () => {
   };
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     fetchEvents();
     // Lắng nghe realtime SignalR
     const reload = () => fetchEvents();

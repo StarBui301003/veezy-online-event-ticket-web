@@ -139,7 +139,7 @@ export const RejectedEventList = ({
   }, [filters, sortBy, sortDescending, rejectedEventSearch]);
 
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => {
       fetchData();
     };

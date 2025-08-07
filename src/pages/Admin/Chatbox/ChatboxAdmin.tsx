@@ -45,6 +45,7 @@ import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import identityService from '@/services/identity.service';
 
 const ChatboxAdmin = () => {
   // Component render tracking
@@ -91,9 +92,58 @@ const ChatboxAdmin = () => {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
+  // ✅ Tạm thời sử dụng state local thay vì context để tránh lỗi
+  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<Array<{
+    userId: string;
+    userName: string;
+    fullName: string;
+    email: string;
+    role: string;
+    avatar: string;
+    isOnline: boolean;
+    lastActiveAt: string;
+  }>>([]);
+  
+  const onlineUsers = allUsersFromIdentity;
   const [isConnected, setIsConnected] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false); // Add loading state for messages
+
+  // ✅ Method để refresh users từ IdentityService
+  const refreshAllUsers = async () => {
+    try {
+      console.log('[ChatboxAdmin] Refreshing all users from IdentityService...');
+      const users = await identityService.getOnlineUsers();
+      
+      const transformedUsers = users.map(user => ({
+        userId: user.accountId,
+        userName: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatarUrl || '',
+        isOnline: user.isOnline,
+        lastActiveAt: user.lastActiveAt
+      }));
+      
+      setAllUsersFromIdentity(transformedUsers);
+      console.log('[ChatboxAdmin] Refreshed', transformedUsers.length, 'users from IdentityService');
+      toast.success(`Refreshed ${transformedUsers.length} users`);
+    } catch (error) {
+      console.error('[ChatboxAdmin] Error refreshing users:', error);
+      toast.error('Failed to refresh users');
+    }
+  };
+
+  // Debug log for converted users from IdentityService
+  console.log('🔧 [OnlineUsers] Total from IdentityService:', allUsersFromIdentity.length);
+  console.log('🔧 [OnlineUsers] All users from IdentityService:', allUsersFromIdentity);
+  console.log('🔧 [OnlineUsers] Filtered online from IdentityService:', allUsersFromIdentity.filter((u) => u.isOnline).length);
+  console.log('🔧 [OnlineUsers] All users detail from IdentityService:', allUsersFromIdentity.map(u => ({ 
+    userId: u.userId, 
+    fullName: u.fullName, 
+    isOnline: u.isOnline,
+    role: u.role
+  })));
 
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -140,6 +190,36 @@ const ChatboxAdmin = () => {
   };
 
   const currentUser = getCurrentUser();
+
+  // ✅ Load all users từ IdentityService khi component mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        console.log('[ChatboxAdmin] Loading all users from IdentityService...');
+        const users = await identityService.getOnlineUsers();
+        
+        // Transform users để match interface hiện tại
+        const transformedUsers = users.map(user => ({
+          userId: user.accountId,
+          userName: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatarUrl || '',
+          isOnline: user.isOnline,
+          lastActiveAt: user.lastActiveAt
+        }));
+        
+        setAllUsersFromIdentity(transformedUsers);
+        console.log('[ChatboxAdmin] Loaded', transformedUsers.length, 'users from IdentityService');
+      } catch (error) {
+        console.error('[ChatboxAdmin] Error loading users:', error);
+      }
+    };
+
+    // Delay một chút để đảm bảo services đã được khởi tạo
+    setTimeout(loadUsers, 500);
+  }, []); // Chỉ chạy một lần khi component mount
 
   // Listen for mode changes from SignalR
   useEffect(() => {
@@ -291,7 +371,7 @@ const ChatboxAdmin = () => {
         console.log('🔗 Attempting to connect to ChatHub...');
         const token = localStorage.getItem('access_token');
         console.log('🔑 Admin connecting with token:', token ? 'Present' : 'Missing');
-        await connectChatHub('http://localhost:5007/chatHub', token || undefined);
+        await connectChatHub('https://chat.vezzy.site/chatHub', token || undefined);
         setIsConnected(true);
         console.log('✅ Connected to ChatHub successfully');
 
@@ -448,18 +528,15 @@ const ChatboxAdmin = () => {
           );
         });
 
-        // Listen for user online status
+        // Listen for user online status - OnlineStatusContext handles this automatically
         onChat('UserConnected', (user: ChatUser) => {
-          setOnlineUsers((prev) => {
-            const filtered = prev.filter((u) => u.userId !== user.userId);
-            return [...filtered, { ...user, isOnline: true }];
-          });
+          console.log('👤 User connected via SignalR:', user);
+          // OnlineStatusContext will handle this via Identity Hub events
         });
 
         onChat('UserDisconnected', (userId: string) => {
-          setOnlineUsers((prev) =>
-            prev.map((user) => (user.userId === userId ? { ...user, isOnline: false } : user))
-          );
+          console.log('👤 User disconnected via SignalR:', userId);
+          // OnlineStatusContext will handle this via Identity Hub events
         });
 
         // Handle user joined room event
@@ -551,7 +628,7 @@ const ChatboxAdmin = () => {
 
     connectToChat();
     fetchChatRooms();
-    fetchOnlineUsers();
+    // OnlineStatusContext handles online users automatically
 
     return () => {
       // Leave all rooms before disconnecting
@@ -566,6 +643,12 @@ const ChatboxAdmin = () => {
       disconnectChatHub();
     };
   }, []);
+
+  // OnlineStatusContext handles refresh automatically
+  // Removed periodic refresh as OnlineStatusContext manages online users via SignalR
+
+  // OnlineStatusContext handles cleanup automatically
+  // Removed cleanup effect as OnlineStatusContext manages online users
 
   // Auto scroll when new messages arrive
   useEffect(() => {
@@ -663,7 +746,11 @@ const ChatboxAdmin = () => {
                 'fullName:',
                 p?.fullName,
                 'username:',
-                p?.username
+                p?.username,
+                'isOnline:',
+                p?.isOnline,
+                'lastActiveAt:',
+                p?.lastActiveAt
               );
               return {
                 ...p,
@@ -696,24 +783,8 @@ const ChatboxAdmin = () => {
         }
       }
 
-      // Add chat participants to OnlineStatusContext for testing
-      validatedRooms.forEach((room) => {
-        room.participants.forEach((participant) => {
-          if (participant.userId) {
-            // Emit event to add participant to context
-            window.dispatchEvent(
-              new CustomEvent('addUserToOnlineContext', {
-                detail: {
-                  userId: participant.userId,
-                  username: participant.username || participant.fullName,
-                  isOnline: participant.isOnline || true, // Default to online for testing
-                  lastActiveAt: new Date().toISOString(),
-                },
-              })
-            );
-          }
-        });
-      });
+      // ✅ Users từ IdentityService được load tự động trong OnlineStatusContext
+      // Không cần add chat participants vào context nữa
     } catch (error: any) {
       console.error('Error fetching chat rooms:', error);
 
@@ -733,37 +804,8 @@ const ChatboxAdmin = () => {
   };
 
   // Fetch online users
-  const fetchOnlineUsers = async () => {
-    try {
-      // Check if user is admin before fetching
-      if (!isCurrentUserAdmin()) {
-        console.warn('User is not admin, cannot fetch online users');
-        setOnlineUsers([]);
-        return;
-      }
-
-      const users = await chatService.getOnlineUsers();
-      // Validate and sanitize user data
-      const validatedUsers = (users || []).map((user) => ({
-        ...user,
-        fullName: user?.fullName || 'Unknown User',
-      }));
-      setOnlineUsers(validatedUsers);
-    } catch (error: any) {
-      console.error('Error fetching online users:', error);
-
-      // Handle different error types
-      if (error.response?.status === 403 || error.response?.status === 401) {
-        console.warn('Access denied to online users');
-      } else if (error.response?.status === 404) {
-        console.warn('Online users endpoint not found');
-      } else {
-        toast.error('Không thể tải danh sách người dùng online');
-      }
-
-      setOnlineUsers([]); // Set empty array on error
-    }
-  };
+  // OnlineStatusContext handles online users automatically
+  // Removed fetchOnlineUsers as OnlineStatusContext manages this
 
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
@@ -1627,10 +1669,22 @@ const ChatboxAdmin = () => {
       {/* Right Sidebar - Online Users */}
       <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
         <CardHeader className="pb-3">
-          <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
-            <Users className="h-5 w-5" />
-            Online Users ({onlineUsers.filter((u) => u.isOnline).length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
+              <Users className="h-5 w-5" />
+              Online Users ({onlineUsers.filter((u) => u.isOnline).length})
+            </CardTitle>
+            {/* ✅ Debug button để refresh users từ IdentityService */}
+            <Button
+              size="sm" 
+              variant="outline"
+              onClick={refreshAllUsers}
+              className="text-xs h-6 w-6 p-0"
+              title="Refresh users from IdentityService"
+            >
+              🔄
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-0">

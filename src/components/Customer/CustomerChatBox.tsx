@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   Bot,
   Send,
@@ -501,8 +501,123 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
   }, [isOpen, closeChat]);
 
   // Chuẩn hóa messages cho hiển thị (hỗ trợ reply, attachment, trạng thái, nguồn AI)
-  // Always show AI messages (admin can join same room, but UI is unified)
-  const displayMessages = messages;
+  // Combine both local AI messages and admin messages from database
+  const displayMessages = useMemo(() => {
+    // Get current user info to determine message ownership
+    const getCurrentUser = () => {
+      const accountStr = localStorage.getItem('account');
+      if (accountStr) {
+        try {
+          return JSON.parse(accountStr);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+
+    const currentUser = getCurrentUser();
+    
+    console.log('🔧 [CustomerChatBox] Current user:', currentUser);
+    console.log('🔧 [CustomerChatBox] Admin messages count:', adminMessages.length);
+    
+    // Helper function to check if message is from current user
+    const isMessageFromCurrentUser = (msg: any) => {
+      if (!currentUser) return false;
+      
+      // Try multiple possible ID matches (same logic as useCustomerChat)
+      const possibleMatches = [
+        msg.senderId === currentUser.userId,
+        msg.senderId === currentUser.accountId,
+        msg.senderId === currentUser.id,
+        // Also check by username as backup
+        msg.senderName === currentUser.username,
+        msg.senderName === currentUser.fullName
+      ];
+      
+      console.log('🔧 [CustomerChatBox] Checking message ownership:', {
+        msgSenderId: msg.senderId,
+        msgSenderName: msg.senderName,
+        currentUserIds: {
+          userId: currentUser.userId,
+          accountId: currentUser.accountId,
+          id: currentUser.id,
+          username: currentUser.username,
+          fullName: currentUser.fullName
+        },
+        matches: possibleMatches,
+        result: possibleMatches.some(match => match)
+      });
+      
+      return possibleMatches.some(match => match);
+    };
+    
+    // Convert admin messages to unified format
+    const convertedAdminMessages: UnifiedMessage[] = adminMessages.map(msg => {
+      const isFromCurrentUser = isMessageFromCurrentUser(msg);
+      
+      return {
+        id: msg.messageId,
+        roomId: msg.roomId || '',
+        senderUserId: msg.senderId,
+        senderUserName: msg.senderName,
+        content: msg.content,
+        type: 0, // Text message
+        createdAt: msg.createdAt || msg.timestamp,
+        updatedAt: msg.createdAt || msg.timestamp,
+        isUser: isFromCurrentUser, // Correctly determine if message is from current user
+        isAI: msg.senderId === 'system-ai-bot',
+        isError: false,
+        isStreaming: false,
+        isEdited: msg.isEdited || false,
+        isDeleted: msg.isDeleted || false,
+        senderName: msg.senderName,
+        sources: [],
+        attachments: [],
+        readByUserIds: [],
+        mentionedUserIds: [],
+        replyToMessageId: msg.replyToMessageId,
+        replyToMessage: msg.replyToMessage ? {
+          id: msg.replyToMessage.messageId,
+          roomId: msg.roomId || '',
+          senderUserId: msg.replyToMessage.senderId,
+          senderUserName: msg.replyToMessage.senderName,
+          content: msg.replyToMessage.content,
+          type: 0,
+          createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+          updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+          isUser: isMessageFromCurrentUser(msg.replyToMessage),
+          isAI: msg.replyToMessage.senderId === 'system-ai-bot',
+          isError: false,
+          isStreaming: false,
+          isDeleted: false,
+          senderName: msg.replyToMessage.senderName,
+          sources: [],
+          attachments: [],
+          readByUserIds: [],
+          mentionedUserIds: []
+        } : undefined
+      };
+    });
+    
+    // Merge local AI messages with converted admin messages
+    const allMessages = [...messages, ...convertedAdminMessages];
+    
+    // Remove duplicates based on content and timestamp (in case AI message appears in both)
+    const uniqueMessages = allMessages.filter((msg, index, arr) => {
+      return index === arr.findIndex(m => 
+        m.content === msg.content && 
+        Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 1000
+      );
+    });
+    
+    // Sort by timestamp to maintain chronological order
+    return uniqueMessages.sort((a, b) => {
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+  }, [messages, adminMessages]);
 
   return (
     <div className={`fixed bottom-4 right-4 z-[9998] ${className}`}>

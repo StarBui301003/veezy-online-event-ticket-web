@@ -219,8 +219,8 @@ const ProfileCustomer = () => {
           } = await import('@/services/signalr.service');
 
           // Connect to Ticket Hub for order and ticket updates
-          await connectTicketHub('http://localhost:5005/notificationHub', token || undefined);
-
+          await connectTicketHub('https://ticket.vezzy.site/notificationHub', token || undefined);
+          
           onTicket('OrderCreated', (data: any) => {
             if (data.customerId === accountObj.userId) {
               console.log('Order created:', data);
@@ -278,7 +278,7 @@ const ProfileCustomer = () => {
           });
 
           // Connect to Event Hub for event updates that affect user's tickets
-          await connectEventHub('http://localhost:5004/notificationHub');
+          await connectEventHub('https://event.vezzy.site/notificationHub');
 
           onEvent('OnEventCancelled', (data: any) => {
             const eventId = data.eventId || data.EventId;
@@ -309,8 +309,8 @@ const ProfileCustomer = () => {
 
           // Connect to Notification Hub for general notifications
           if (token) {
-            await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
-
+            await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
+            
             onNotification('ReceiveNotification', (notification: any) => {
               // Filter notifications relevant to profile page
               if (

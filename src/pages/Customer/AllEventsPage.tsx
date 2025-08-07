@@ -74,7 +74,7 @@ const AllEventsPage = () => {
 
   // Connect to EventHub for real-time updates
   useEffect(() => {
-    connectEventHub('http://localhost:5004/notificationHub');
+          connectEventHub('https://event.vezzy.site/notificationHub');
 
     // Listen for real-time event updates
     onEvent('EventCreated', () => {
