@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useAuthModal } from '@/contexts/AuthModalContext';
 import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
 import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
@@ -23,16 +22,16 @@ interface ReportModalProps {
   onClose: () => void;
   targetType: TargetType;
   targetId: string;
+  onLoginRequired?: () => void; // Callback when login is required
 }
 
-const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, targetId }) => {
+const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, targetId, onLoginRequired }) => {
   // const { t } = useTranslation(); // Remove if not used
   const { getThemeClass } = useThemeClasses(); // Remove if not used elsewhere
   const [reason, setReason] = useState(REASONS[0]);
 
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setShowLoginModal } = useAuthModal();
 
   useEffect(() => {
     if (!open) {
@@ -46,9 +45,15 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
     e.preventDefault();
     setLoading(true);
     // Check login status
+    const token = localStorage.getItem('access_token');
     const accStr = localStorage.getItem('account');
-    if (!accStr) {
-      setShowLoginModal(true);
+    
+    if (!token || token === 'null' || token === 'undefined' || !accStr) {
+      // User not logged in, close report modal and trigger login
+      onClose();
+      if (onLoginRequired) {
+        onLoginRequired();
+      }
       setLoading(false);
       return;
     }
