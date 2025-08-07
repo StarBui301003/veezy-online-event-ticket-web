@@ -852,7 +852,7 @@ export default function CreateEventForm() {
               getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
             )}
           >
-            <h3 className="text-xl font-semibold text-purple-300 mb-4 flex items-center">
+            <h3 className="text-xl font-semibold text-purple-600 mb-4 flex items-center">
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -928,7 +928,9 @@ export default function CreateEventForm() {
                 </span>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-1">{t('separateTagsWithCommas')}</p>
+            <p className={cn('text-xs mt-1', getThemeClass('text-gray-500', 'text-slate-400'))}>
+              {t('separateTagsWithCommas')}
+            </p>
           </FormField>
 
           {/* Event Description */}
@@ -1043,7 +1045,12 @@ export default function CreateEventForm() {
 
                   {/* Content Type Selection */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                    <label
+                      className={cn(
+                        'block text-sm font-medium mb-2',
+                        getThemeClass('text-gray-700', 'text-slate-300')
+                      )}
+                    >
                       {t('contentType')}
                     </label>
                     <div className="flex gap-3">
@@ -1098,7 +1105,12 @@ export default function CreateEventForm() {
                   {/* Content Input */}
                   {content.contentType === 'description' && (
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-slate-300">
+                      <label
+                        className={cn(
+                          'block text-sm font-medium mb-2',
+                          getThemeClass('text-gray-700', 'text-slate-300')
+                        )}
+                      >
                         {t('descriptionRequired')} <span className="text-red-400">*</span>
                       </label>
                       <InputField

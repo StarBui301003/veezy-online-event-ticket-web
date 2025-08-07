@@ -268,7 +268,7 @@ const NewsManager: React.FC = () => {
   return (
     <div
       className={cn(
-        'w-full min-h-screen flex items-center justify-center py-0 px-0',
+        'w-full min-h-screen flex items-center justify-center px-6',
         getThemeClass(
           'bg-gradient-to-br from-blue-50 to-indigo-100',
           'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]'

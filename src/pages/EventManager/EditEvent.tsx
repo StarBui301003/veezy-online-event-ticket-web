@@ -964,7 +964,9 @@ export default function EditEvent() {
                 {uploadingCover ? (
                   <div className="text-center">
                     <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                    <p className="text-slate-400">Đang tải ảnh...</p>
+                    <p className={cn('', getThemeClass('text-gray-500', 'text-slate-400'))}>
+                      Đang tải ảnh...
+                    </p>
                   </div>
                 ) : formData.eventCoverImageUrl ? (
                   <div className="relative w-full h-full">
@@ -997,7 +999,7 @@ export default function EditEvent() {
                 ) : (
                   <div className="text-center">
                     <div className="text-5xl mb-3">📷</div>
-                    <p className="text-slate-400 mb-1">
+                    <p className={cn('mb-1', getThemeClass('text-gray-500', 'text-slate-400'))}>
                       {isCoverDragActive ? 'Thả ảnh vào đây' : 'Nhấp hoặc kéo ảnh vào đây'}
                     </p>
                     <p className="text-xs text-slate-500">PNG, JPG up to 10MB</p>
@@ -1140,7 +1142,9 @@ export default function EditEvent() {
                 </span>
               ))}
             </div>
-            <p className="text-xs text-slate-400 mt-1">Phân tách các tag bằng dấu phẩy</p>
+            <p className={cn('text-xs mt-1', getThemeClass('text-gray-500', 'text-slate-400'))}>
+              Phân tách các tag bằng dấu phẩy
+            </p>
           </FormField>
 
           {/* Event Description */}
@@ -1193,7 +1197,12 @@ export default function EditEvent() {
             </div>
 
             {contents.length === 0 && (
-              <div className="text-center py-12 text-slate-400">
+              <div
+                className={cn(
+                  'text-center py-12',
+                  getThemeClass('text-gray-500', 'text-slate-400')
+                )}
+              >
                 <svg
                   className="w-16 h-16 mx-auto mb-4 opacity-50"
                   fill="none"
@@ -1255,7 +1264,12 @@ export default function EditEvent() {
 
                   {/* Content Type Selection */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-3">
+                    <label
+                      className={cn(
+                        'block text-sm font-medium mb-2',
+                        getThemeClass('text-gray-700', 'text-slate-300')
+                      )}
+                    >
                       Loại nội dung
                     </label>
                     <div className="flex gap-3">
@@ -1310,7 +1324,12 @@ export default function EditEvent() {
                   {/* Content Input */}
                   {content.contentType === 'description' && (
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-slate-300">
+                      <label
+                        className={cn(
+                          'block text-sm font-medium',
+                          getThemeClass('text-gray-700', 'text-slate-300')
+                        )}
+                      >
                         Mô tả (Bắt buộc) <span className="text-red-400">*</span>
                       </label>
                       <InputField
