@@ -81,7 +81,7 @@ const EditNews: React.FC = () => {
       }
 
       // Set toolbar styles
-      const toolbar = quill.getModule('toolbar');
+      const toolbar = quill.getModule('toolbar') as any;
       if (toolbar && toolbar.container) {
         const toolbarElement = toolbar.container as HTMLElement;
         toolbarElement.style.border = 'none';

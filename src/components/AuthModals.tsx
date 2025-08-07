@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
@@ -22,8 +21,6 @@ const AuthModals: React.FC<AuthModalsProps> = ({
 
   // Provide setShowLoginModal to context for global usage
   React.useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     window.__setShowLoginModal = setShowLoginModal;
   }, [setShowLoginModal]);
 

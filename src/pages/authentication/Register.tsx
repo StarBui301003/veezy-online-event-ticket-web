@@ -210,7 +210,6 @@ export const Register = () => {
 
       // Check for unverified email case
       let hasUnverifiedEmailError = false;
-      let unverifiedEmailMessage = '';
 
       if (error && typeof error === 'object') {
         if ('response' in error && typeof (error as any).response?.data?.message === 'string') {
@@ -224,7 +223,6 @@ export const Register = () => {
             backendMessage.includes('Please check your inbox or wait')
           ) {
             hasUnverifiedEmailError = true;
-            unverifiedEmailMessage = backendMessage;
           }
         }
       }
@@ -360,7 +358,6 @@ export const Register = () => {
 
       // Check for unverified email case (same as normal registration)
       let hasUnverifiedEmailError = false;
-      let unverifiedEmailMessage = '';
 
       if (err && typeof err === 'object') {
         if ('response' in err && typeof (err as any).response?.data?.message === 'string') {
@@ -374,7 +371,6 @@ export const Register = () => {
             backendMessage.includes('Please check your inbox or wait')
           ) {
             hasUnverifiedEmailError = true;
-            unverifiedEmailMessage = backendMessage;
           }
         }
       }

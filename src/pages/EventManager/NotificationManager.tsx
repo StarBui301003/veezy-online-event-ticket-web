@@ -8,8 +8,6 @@ import {
 } from '@/services/notification.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { onNotification } from '@/services/signalr.service';
-import { useThemeClasses } from '@/hooks/useThemeClasses';
-import { cn } from '@/lib/utils';
 
 const NotificationManager = () => {
   const [activeTab, setActiveTab] = useState('attendance');
@@ -25,7 +23,7 @@ const NotificationManager = () => {
     title: '',
     message: '',
     roles: [],
-    sendEmail: true
+    sendEmail: true,
   });
 
   const [wishlistForm, setWishlistForm] = useState({
@@ -33,7 +31,7 @@ const NotificationManager = () => {
     eventName: '',
     title: '',
     message: '',
-    sendEmail: true
+    sendEmail: true,
   });
 
   const [attendanceEventSearch, setAttendanceEventSearch] = useState('');
@@ -51,11 +49,11 @@ const NotificationManager = () => {
   // Listen for notification status updates using global connections
   useEffect(() => {
     // Listen for notification status updates
-    onNotification('NotificationSent', (data: any) => {
+    onNotification('NotificationSent', () => {
       showMessage('success', t('Notification sent successfully'));
     });
 
-    onNotification('NotificationFailed', (data: any) => {
+    onNotification('NotificationFailed', () => {
       showMessage('error', t('Failed to send notification'));
     });
   }, [t]);
@@ -68,7 +66,9 @@ const NotificationManager = () => {
       try {
         const accObj = JSON.parse(accStr);
         if (accObj?.userId) setEventManagerId(accObj.userId);
-      } catch { /* ignore parse error */ }
+      } catch {
+        /* ignore parse error */
+      }
     }
   }, []);
 
@@ -76,40 +76,40 @@ const NotificationManager = () => {
     eventManagerId: '',
     title: '',
     message: '',
-    sendEmail: true
+    sendEmail: true,
   });
 
   const roleOptions = [
     { value: 2, label: t('Manager'), color: 'text-blue-800' },
     { value: 1, label: t('User'), color: 'text-green-800' },
-    { value: 3, label: t('Collaborator'), color: 'text-orange-800' }
+    { value: 3, label: t('Collaborator'), color: 'text-orange-800' },
   ];
 
   const tabs = [
-    { 
-      id: 'attendance', 
-      label: t('Event Attendance'), 
-      icon: Users, 
+    {
+      id: 'attendance',
+      label: t('Event Attendance'),
+      icon: Users,
       color: 'blue',
       gradient: 'from-blue-500 to-blue-600',
-      description: t('Send Notifications To Event Attendees By Role')
+      description: t('Send Notifications To Event Attendees By Role'),
     },
-    { 
-      id: 'wishlist', 
-      label: t('Event Wishlist'), 
-      icon: Heart, 
+    {
+      id: 'wishlist',
+      label: t('Event Wishlist'),
+      icon: Heart,
       color: 'pink',
       gradient: 'from-pink-500 to-rose-600',
-      description: t('Notify Users Who Added Your Event To Wishlist')
+      description: t('Notify Users Who Added Your Event To Wishlist'),
     },
-    { 
-      id: 'followers', 
-      label: t('Event Followers'), 
-      icon: Bell, 
+    {
+      id: 'followers',
+      label: t('Event Followers'),
+      icon: Bell,
       color: 'emerald',
       gradient: 'from-emerald-500 to-green-600',
-      description: t('Send Notifications To Followers Of Event Managers')
-    }
+      description: t('Send Notifications To Followers Of Event Managers'),
+    },
   ];
 
   const showMessage = (type, text) => {
@@ -196,17 +196,28 @@ const NotificationManager = () => {
           result = { flag: false, message: 'Unknown notification type' };
       }
       if (result.flag) {
-        showMessage('success', t('Notification Sent Successfully', { type: tabs.find(t => t.id === apiType).label }))
+        showMessage(
+          'success',
+          t('Notification Sent Successfully', { type: tabs.find((t) => t.id === apiType).label })
+        );
         // Reset form
         if (apiType === 'attendance') {
-          setAttendanceForm({ eventId: '', eventName: '', title: '', message: '', roles: [], sendEmail: true });
+          setAttendanceForm({
+            eventId: '',
+            eventName: '',
+            title: '',
+            message: '',
+            roles: [],
+            sendEmail: true,
+          });
           setAttendanceEventSearch('');
         }
         if (apiType === 'wishlist') {
           setWishlistForm({ eventId: '', eventName: '', title: '', message: '', sendEmail: true });
           setWishlistEventSearch('');
         }
-        if (apiType === 'followers') setFollowersForm({ eventManagerId: '', title: '', message: '', sendEmail: true });
+        if (apiType === 'followers')
+          setFollowersForm({ eventManagerId: '', title: '', message: '', sendEmail: true });
       } else {
         showMessage('error', result.message || t('Failed To Send Notification'));
       }
@@ -219,38 +230,39 @@ const NotificationManager = () => {
 
   const handleRoleChange = (roleValue) => {
     const updatedRoles = attendanceForm.roles.includes(roleValue)
-      ? attendanceForm.roles.filter(r => r !== roleValue)
+      ? attendanceForm.roles.filter((r) => r !== roleValue)
       : [...attendanceForm.roles, roleValue];
-    
+
     setAttendanceForm({ ...attendanceForm, roles: updatedRoles });
   };
 
   const handleEventSearchKeyDown = (e, formType) => {
     if (e.key === 'Enter') {
       const value = e.target.value;
-      const filtered = myEvents.filter(ev =>
-        typeof ev.eventName === 'string' &&
-        ev.eventName.toLowerCase().includes(value.toLowerCase())
+      const filtered = myEvents.filter(
+        (ev) =>
+          typeof ev.eventName === 'string' &&
+          ev.eventName.toLowerCase().includes(value.toLowerCase())
       );
-      
+
       if (filtered.length > 0) {
         const selectedEvent = filtered[0];
         if (formType === 'attendance') {
           setAttendanceForm({
             ...attendanceForm,
             eventId: selectedEvent.eventId,
-            eventName: selectedEvent.eventName
+            eventName: selectedEvent.eventName,
           });
           setAttendanceEventSearch(selectedEvent.eventName); // Show full event name
         } else if (formType === 'wishlist') {
           setWishlistForm({
             ...wishlistForm,
             eventId: selectedEvent.eventId,
-            eventName: selectedEvent.eventName
+            eventName: selectedEvent.eventName,
           });
           setWishlistEventSearch(selectedEvent.eventName); // Show full event name
         }
-        
+
         // Clear any existing error messages
         if (message.type === 'error') {
           setMessage({ type: '', text: '' });
@@ -259,7 +271,7 @@ const NotificationManager = () => {
     }
   };
 
-  const currentTab = tabs.find(tab => tab.id === activeTab);
+  const currentTab = tabs.find((tab) => tab.id === activeTab);
 
   return (
     <div className="w-full bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] min-h-full">
@@ -276,14 +288,18 @@ const NotificationManager = () => {
 
         {/* Status Message */}
         {message.text && (
-          <div className={`mb-4 mx-auto max-w-2xl transform transition-all duration-300 ${
-            message.type === 'success' 
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800' 
-              : 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-800'
-          } p-3 rounded-xl flex items-center gap-3 shadow-lg`}>
-            <div className={`p-1.5 rounded-full ${
-              message.type === 'success' ? 'bg-green-100' : 'bg-red-100'
-            }`}>
+          <div
+            className={`mb-4 mx-auto max-w-2xl transform transition-all duration-300 ${
+              message.type === 'success'
+                ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800'
+                : 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-800'
+            } p-3 rounded-xl flex items-center gap-3 shadow-lg`}
+          >
+            <div
+              className={`p-1.5 rounded-full ${
+                message.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}
+            >
               {message.type === 'success' ? <CheckCircle size={18} /> : <XCircle size={18} />}
             </div>
             <div className="flex-1">
@@ -309,10 +325,15 @@ const NotificationManager = () => {
                   }`}
                 >
                   <div className="flex flex-col items-center text-center space-y-2">
-                    <div className={`p-2 rounded-xl ${
-                      isActive ? 'bg-white/20' : `bg-${tab.color}-100`
-                    }`}>
-                      <IconComponent size={20} className={isActive ? 'text-white' : `text-${tab.color}-600`} />
+                    <div
+                      className={`p-2 rounded-xl ${
+                        isActive ? 'bg-white/20' : `bg-${tab.color}-100`
+                      }`}
+                    >
+                      <IconComponent
+                        size={20}
+                        className={isActive ? 'text-white' : `text-${tab.color}-600`}
+                      />
                     </div>
                     <div>
                       <h3 className="font-bold text-sm">{tab.label}</h3>
@@ -351,12 +372,14 @@ const NotificationManager = () => {
               <div className="space-y-4">
                 {/* Event Selection */}
                 <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-                  <label className="block text-xs font-semibold text-blue-900 mb-1.5">{t('Select Event')}</label>
+                  <label className="block text-xs font-semibold text-blue-900 mb-1.5">
+                    {t('Select Event')}
+                  </label>
                   <input
                     type="text"
                     value={attendanceEventSearch}
-                    onChange={e => setAttendanceEventSearch(e.target.value)}
-                    onKeyDown={e => handleEventSearchKeyDown(e, 'attendance')}
+                    onChange={(e) => setAttendanceEventSearch(e.target.value)}
+                    onKeyDown={(e) => handleEventSearchKeyDown(e, 'attendance')}
                     placeholder={t('Search Event')}
                     className="w-full mb-2 px-3 py-1.5 border-2 border-blue-400 rounded-lg text-sm bg-white text-blue-900 placeholder-blue-500 focus:ring-2 focus:ring-blue-400 focus:border-blue-500 font-semibold shadow-sm"
                     style={{ letterSpacing: '0.01em' }}
@@ -372,20 +395,20 @@ const NotificationManager = () => {
                     className="w-full px-3 py-2 border-2 border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-blue-900 bg-white text-sm font-semibold shadow-sm"
                     style={{ letterSpacing: '0.01em' }}
                     value={attendanceForm.eventId}
-                    onChange={e => {
-                      const event = myEvents.find(ev => ev.eventId === e.target.value);
+                    onChange={(e) => {
+                      const event = myEvents.find((ev) => ev.eventId === e.target.value);
                       if (!e.target.value) {
                         setAttendanceForm({
                           ...attendanceForm,
                           eventId: '',
-                          eventName: ''
+                          eventName: '',
                         });
                         setAttendanceEventSearch('');
                       } else {
                         setAttendanceForm({
                           ...attendanceForm,
                           eventId: e.target.value,
-                          eventName: event ? event.eventName : ''
+                          eventName: event ? event.eventName : '',
                         });
                         setAttendanceEventSearch(event ? event.eventName : '');
                         // Clear error messages
@@ -396,25 +419,48 @@ const NotificationManager = () => {
                     }}
                   >
                     {(() => {
-                      const filtered = myEvents.filter(ev =>
-                        typeof ev.eventName === 'string' &&
-                        ev.eventName.toLowerCase().includes(attendanceEventSearch.toLowerCase())
+                      const filtered = myEvents.filter(
+                        (ev) =>
+                          typeof ev.eventName === 'string' &&
+                          ev.eventName.toLowerCase().includes(attendanceEventSearch.toLowerCase())
                       );
                       if (attendanceEventSearch.trim() === '') {
                         return [
-                          <option value="" key="default">-- {t('Select Event')} --</option>,
-                          ...filtered.length === 0
+                          <option value="" key="default">
+                            -- {t('Select Event')} --
+                          </option>,
+                          ...(filtered.length === 0
                             ? []
-                            : filtered.map(ev => (
-                                <option key={ev.eventId} value={ev.eventId} className="text-blue-900 bg-blue-100 font-semibold">{ev.eventName}</option>
-                              ))
+                            : filtered.map((ev) => (
+                                <option
+                                  key={ev.eventId}
+                                  value={ev.eventId}
+                                  className="text-blue-900 bg-blue-100 font-semibold"
+                                >
+                                  {ev.eventName}
+                                </option>
+                              ))),
                         ];
                       } else {
                         if (filtered.length === 0) {
-                          return <option value="" disabled className="text-blue-700 bg-white font-semibold">{t('No events found')}</option>;
+                          return (
+                            <option
+                              value=""
+                              disabled
+                              className="text-blue-700 bg-white font-semibold"
+                            >
+                              {t('No events found')}
+                            </option>
+                          );
                         }
-                        return filtered.map(ev => (
-                          <option key={ev.eventId} value={ev.eventId} className="text-blue-900 bg-blue-100 font-semibold">{ev.eventName}</option>
+                        return filtered.map((ev) => (
+                          <option
+                            key={ev.eventId}
+                            value={ev.eventId}
+                            className="text-blue-900 bg-blue-100 font-semibold"
+                          >
+                            {ev.eventName}
+                          </option>
                         ));
                       }
                     })()}
@@ -425,11 +471,15 @@ const NotificationManager = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* Title */}
                   <div>
-                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">{t('Notification Title')} *</label>
+                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">
+                      {t('Notification Title')} *
+                    </label>
                     <input
                       type="text"
                       value={attendanceForm.title}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, title: e.target.value })}
+                      onChange={(e) =>
+                        setAttendanceForm({ ...attendanceForm, title: e.target.value })
+                      }
                       className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-blue-900 bg-white placeholder-blue-400 text-sm"
                       placeholder={t('Enter Notification Title')}
                     />
@@ -437,7 +487,9 @@ const NotificationManager = () => {
 
                   {/* Target Roles - More Compact */}
                   <div>
-                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">{t('Target Roles')}</label>
+                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">
+                      {t('Target Roles')}
+                    </label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {roleOptions.map((role) => (
                         <label key={role.value} className="cursor-pointer">
@@ -447,11 +499,13 @@ const NotificationManager = () => {
                             onChange={() => handleRoleChange(role.value)}
                             className="sr-only"
                           />
-                          <div className={`p-1.5 rounded-md border-2 transition-all text-center ${
-                            attendanceForm.roles.includes(role.value)
-                              ? 'border-blue-500 bg-blue-100 text-blue-800'
-                              : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                          }`}>
+                          <div
+                            className={`p-1.5 rounded-md border-2 transition-all text-center ${
+                              attendanceForm.roles.includes(role.value)
+                                ? 'border-blue-500 bg-blue-100 text-blue-800'
+                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                            }`}
+                          >
                             <span className="font-medium text-xs">{role.label}</span>
                           </div>
                         </label>
@@ -461,10 +515,14 @@ const NotificationManager = () => {
 
                   {/* Message */}
                   <div>
-                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">{t('Message Content')} *</label>
+                    <label className="block text-xs font-semibold text-blue-900 mb-1.5">
+                      {t('Message Content')} *
+                    </label>
                     <textarea
                       value={attendanceForm.message}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, message: e.target.value })}
+                      onChange={(e) =>
+                        setAttendanceForm({ ...attendanceForm, message: e.target.value })
+                      }
                       rows={3}
                       className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none text-blue-900 bg-white placeholder-blue-400 text-sm"
                       placeholder={t('Write Your Notification Message Here')}
@@ -478,7 +536,9 @@ const NotificationManager = () => {
                     <input
                       type="checkbox"
                       checked={attendanceForm.sendEmail}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, sendEmail: e.target.checked })}
+                      onChange={(e) =>
+                        setAttendanceForm({ ...attendanceForm, sendEmail: e.target.checked })
+                      }
                       className="w-4 h-4 text-blue-600 border-2 border-blue-300 rounded focus:ring-blue-500"
                     />
                     <span className="font-medium text-blue-900 text-sm">
@@ -502,12 +562,14 @@ const NotificationManager = () => {
             {activeTab === 'wishlist' && (
               <div className="space-y-4">
                 <div className="bg-pink-50 rounded-xl p-3 border border-pink-200">
-                  <label className="block text-xs font-semibold text-pink-900 mb-1.5">{t('Select Event')}</label>
+                  <label className="block text-xs font-semibold text-pink-900 mb-1.5">
+                    {t('Select Event')}
+                  </label>
                   <input
                     type="text"
                     value={wishlistEventSearch}
-                    onChange={e => setWishlistEventSearch(e.target.value)}
-                    onKeyDown={e => handleEventSearchKeyDown(e, 'wishlist')}
+                    onChange={(e) => setWishlistEventSearch(e.target.value)}
+                    onKeyDown={(e) => handleEventSearchKeyDown(e, 'wishlist')}
                     placeholder={t('Search Event')}
                     className="w-full mb-2 px-3 py-1.5 border-2 border-pink-400 rounded-lg text-sm bg-white text-pink-900 placeholder-pink-500 focus:ring-2 focus:ring-pink-400 focus:border-pink-500 font-semibold shadow-sm"
                     style={{ letterSpacing: '0.01em' }}
@@ -523,20 +585,20 @@ const NotificationManager = () => {
                     className="w-full px-3 py-2 border-2 border-pink-400 rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-pink-500 text-pink-900 bg-white text-sm font-semibold shadow-sm"
                     style={{ letterSpacing: '0.01em' }}
                     value={wishlistForm.eventId}
-                    onChange={e => {
-                      const event = myEvents.find(ev => ev.eventId === e.target.value);
+                    onChange={(e) => {
+                      const event = myEvents.find((ev) => ev.eventId === e.target.value);
                       if (!e.target.value) {
                         setWishlistForm({
                           ...wishlistForm,
                           eventId: '',
-                          eventName: ''
+                          eventName: '',
                         });
                         setWishlistEventSearch('');
                       } else {
                         setWishlistForm({
                           ...wishlistForm,
                           eventId: e.target.value,
-                          eventName: event ? event.eventName : ''
+                          eventName: event ? event.eventName : '',
                         });
                         setWishlistEventSearch(event ? event.eventName : '');
                         // Clear error messages
@@ -547,25 +609,48 @@ const NotificationManager = () => {
                     }}
                   >
                     {(() => {
-                      const filtered = myEvents.filter(ev =>
-                        typeof ev.eventName === 'string' &&
-                        ev.eventName.toLowerCase().includes(wishlistEventSearch.toLowerCase())
+                      const filtered = myEvents.filter(
+                        (ev) =>
+                          typeof ev.eventName === 'string' &&
+                          ev.eventName.toLowerCase().includes(wishlistEventSearch.toLowerCase())
                       );
                       if (wishlistEventSearch.trim() === '') {
                         return [
-                          <option value="" key="default">-- {t('Select Event')} --</option>,
-                          ...filtered.length === 0
+                          <option value="" key="default">
+                            -- {t('Select Event')} --
+                          </option>,
+                          ...(filtered.length === 0
                             ? []
-                            : filtered.map(ev => (
-                                <option key={ev.eventId} value={ev.eventId} className="text-pink-900 bg-pink-100 font-semibold">{ev.eventName}</option>
-                              ))
+                            : filtered.map((ev) => (
+                                <option
+                                  key={ev.eventId}
+                                  value={ev.eventId}
+                                  className="text-pink-900 bg-pink-100 font-semibold"
+                                >
+                                  {ev.eventName}
+                                </option>
+                              ))),
                         ];
                       } else {
                         if (filtered.length === 0) {
-                          return <option value="" disabled className="text-pink-700 bg-white font-semibold">{t('No events found')}</option>;
+                          return (
+                            <option
+                              value=""
+                              disabled
+                              className="text-pink-700 bg-white font-semibold"
+                            >
+                              {t('No events found')}
+                            </option>
+                          );
                         }
-                        return filtered.map(ev => (
-                          <option key={ev.eventId} value={ev.eventId} className="text-pink-900 bg-pink-100 font-semibold">{ev.eventName}</option>
+                        return filtered.map((ev) => (
+                          <option
+                            key={ev.eventId}
+                            value={ev.eventId}
+                            className="text-pink-900 bg-pink-100 font-semibold"
+                          >
+                            {ev.eventName}
+                          </option>
                         ));
                       }
                     })()}
@@ -574,7 +659,9 @@ const NotificationManager = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-pink-900 mb-1.5">{t('Notification Title')} *</label>
+                    <label className="block text-xs font-semibold text-pink-900 mb-1.5">
+                      {t('Notification Title')} *
+                    </label>
                     <input
                       type="text"
                       value={wishlistForm.title}
@@ -585,10 +672,14 @@ const NotificationManager = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-pink-900 mb-1.5">{t('Message Content')} *</label>
+                    <label className="block text-xs font-semibold text-pink-900 mb-1.5">
+                      {t('Message Content')} *
+                    </label>
                     <textarea
                       value={wishlistForm.message}
-                      onChange={(e) => setWishlistForm({ ...wishlistForm, message: e.target.value })}
+                      onChange={(e) =>
+                        setWishlistForm({ ...wishlistForm, message: e.target.value })
+                      }
                       rows={3}
                       className="w-full px-3 py-2 border-2 border-pink-200 rounded-lg focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 resize-none text-pink-900 bg-white placeholder-pink-400 text-sm"
                       placeholder={t('Write Your Notification Message Here')}
@@ -601,7 +692,9 @@ const NotificationManager = () => {
                     <input
                       type="checkbox"
                       checked={wishlistForm.sendEmail}
-                      onChange={(e) => setWishlistForm({ ...wishlistForm, sendEmail: e.target.checked })}
+                      onChange={(e) =>
+                        setWishlistForm({ ...wishlistForm, sendEmail: e.target.checked })
+                      }
                       className="w-4 h-4 text-pink-600 border-2 border-pink-300 rounded focus:ring-pink-500"
                     />
                     <span className="font-medium text-pink-900 text-sm">
@@ -627,11 +720,15 @@ const NotificationManager = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div>
-                    <label className="block text-sm font-semibold text-emerald-800 mb-3">{t('Notification Title')} *</label>
+                      <label className="block text-sm font-semibold text-emerald-800 mb-3">
+                        {t('Notification Title')} *
+                      </label>
                       <input
                         type="text"
                         value={followersForm.title}
-                        onChange={(e) => setFollowersForm({ ...followersForm, title: e.target.value })}
+                        onChange={(e) =>
+                          setFollowersForm({ ...followersForm, title: e.target.value })
+                        }
                         className="w-full px-6 py-4 border-2 border-emerald-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-lg text-emerald-900 bg-white placeholder-emerald-400"
                         placeholder={t('Enter Notification Title')}
                       />
@@ -639,10 +736,14 @@ const NotificationManager = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-emerald-800 mb-3">{t('Message Content')} *</label>
+                    <label className="block text-sm font-semibold text-emerald-800 mb-3">
+                      {t('Message Content')} *
+                    </label>
                     <textarea
                       value={followersForm.message}
-                      onChange={(e) => setFollowersForm({ ...followersForm, message: e.target.value })}
+                      onChange={(e) =>
+                        setFollowersForm({ ...followersForm, message: e.target.value })
+                      }
                       rows={8}
                       className="w-full px-6 py-4 border-2 border-emerald-200 rounded-2xl focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 text-lg resize-none text-emerald-900 bg-white placeholder-emerald-400"
                       placeholder={t('Write Your Notification Message Here')}
@@ -655,7 +756,9 @@ const NotificationManager = () => {
                     <input
                       type="checkbox"
                       checked={followersForm.sendEmail}
-                      onChange={(e) => setFollowersForm({ ...followersForm, sendEmail: e.target.checked })}
+                      onChange={(e) =>
+                        setFollowersForm({ ...followersForm, sendEmail: e.target.checked })
+                      }
                       className="w-5 h-5 text-emerald-600 border-2 border-emerald-300 rounded focus:ring-emerald-500"
                     />
                     <span className="text-lg font-medium text-emerald-800 group-hover:text-emerald-600 transition-colors">

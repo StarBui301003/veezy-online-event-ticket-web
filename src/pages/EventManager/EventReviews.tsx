@@ -35,7 +35,7 @@ const EventReviews = () => {
   const [sentimentData, setSentimentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState([]);
-  const [animateCards, setAnimateCards] = useState(false);
+  const [, setAnimateCards] = useState(false);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -50,7 +50,7 @@ const EventReviews = () => {
     fetchEvents();
 
     // Listen for analytics updates using global connections
-    onAnalytics('SentimentAnalyzed', (data: any) => {
+    onAnalytics('SentimentAnalyzed', (data: { eventId: string }) => {
       if (data.eventId === selectedEvent) {
         toast.success('Phân tích cảm xúc đã được cập nhật!');
         // Optionally refresh the sentiment data

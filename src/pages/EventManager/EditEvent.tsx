@@ -200,7 +200,6 @@ function validateSections(contents: EnhancedContent[]): string[] {
 }
 
 export default function EditEvent() {
-  const { t } = useTranslation();
   const { getThemeClass, theme } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
@@ -217,7 +216,7 @@ export default function EditEvent() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [setTouched] = useState<{ [key: string]: boolean }>({});
 
   const [formData, setFormData] = useState<CreateEventData>({
     eventName: '',
@@ -235,9 +234,9 @@ export default function EditEvent() {
   });
 
   const [contents, setContents] = useState<EnhancedContent[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationErrors] = useState<string[]>([]);
 
   const { quill, quillRef } = useQuill();
 
