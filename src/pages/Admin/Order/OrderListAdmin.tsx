@@ -30,7 +30,7 @@ import OrderDetailModal from './OrderDetailModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { connectOrderHub, onOrder } from '@/services/signalr.service';
+import { connectNotificationHub, onNotification } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
@@ -89,14 +89,15 @@ const OrderListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-          connectOrderHub('https://ticket.vezzy.site/orderHub', token);
+    // Orders events are sent via NotificationHub from TicketService
+    connectNotificationHub('https://ticket.vezzy.site/notificationHub', token);
     const reload = () => {
       fetchData();
     };
-    onOrder('OnOrderCreated', reload);
-    onOrder('OnOrderStatusUpdated', reload);
-    onOrder('OnOrderDeleted', reload);
-    onOrder('OnOrderPaidFree', reload);
+    onNotification('OnOrderCreated', reload);
+    onNotification('OnOrderStatusUpdated', reload);
+    onNotification('OnOrderDeleted', reload);
+    onNotification('OnOrderPaidFree', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
