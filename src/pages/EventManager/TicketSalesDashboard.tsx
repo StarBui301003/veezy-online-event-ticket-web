@@ -8,8 +8,6 @@ import {
   exportAnalyticsExcel,
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
-import { Dialog } from '@/components/ui/dialog';
-import { DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { connectEventHub, onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -66,7 +64,7 @@ export default function TicketSalesDashboard() {
   }, [selectedPeriod]);
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    connectEventHub('https://event.vezzy.site/notificationHub');
     const reload = () => fetchSalesData(selectedPeriod);
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
