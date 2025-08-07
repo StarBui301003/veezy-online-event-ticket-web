@@ -1,10 +1,14 @@
 import { useEffect, useState, useContext } from 'react';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { AuthContext } from '@/contexts/AuthContext';
-import { LoginModal } from '@/components/common/LoginModal';
+import AuthModals from '@/components/AuthModals';
+
+
+import { RegisterModal } from '@/components/RegisterModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
+
 import {
   Loader2,
   CalendarDays,
@@ -103,12 +107,7 @@ interface EventData {
 
 const EventDetail = () => {
   // Thêm state cho modal đăng nhập
-  const {
-    requireLogin,
-    showLoginModal,
-    setShowLoginModal,
-    handleLoginSuccess,
-  } = useRequireLogin();
+  const { requireLogin } = useRequireLogin();
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
@@ -130,19 +129,34 @@ const EventDetail = () => {
   } | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
-  const [reportModal, setReportModal] = useState<{ type: 'event' | 'comment'; id: string } | null>(
-    null
-  );
+  const [reportModal, setReportModal] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingReport, setPendingReport] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceError, setFaceError] = useState('');
   const [isFollowingEvent, setIsFollowingEvent] = useState(false);
+  const [pendingFollow, setPendingFollow] = useState(false);
   const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
+  // State for register modal switching from login modal
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
+
+  // Handle report event logic
+  const handleReportEvent = () => {
+    const token = localStorage.getItem('access_token');
+    if (!token || token === 'null' || token === 'undefined') {
+      setPendingReport({ type: 'event', id: eventId || '' });
+      setShowLoginModal(true);
+    } else {
+      setReportModal({ type: 'event', id: eventId || '' });
+    }
+  };
   const { user } = useContext(AuthContext);
   // Fallback: if user or customerId is missing, get from localStorage
   let customerId = user?.userId || user?.accountId || '';
@@ -706,24 +720,27 @@ const EventDetail = () => {
   };
 
   const handleFollowEvent = async () => {
-    // Kiểm tra đăng nhập, nếu chưa thì hiện modal
-    requireLogin(async () => {
-      if (!event?.eventId) return;
-      setLoadingFollowEvent(true);
-      try {
-        if (isFollowingEvent) {
-          await unfollowEvent(event.eventId);
-          const res = await checkFollowEventByList(customerId, event.eventId);
-          setIsFollowingEvent(!!res);
-        } else {
-          await followEvent(event.eventId);
-          const res = await checkFollowEventByList(customerId, event.eventId);
-          setIsFollowingEvent(!!res);
-        }
-      } finally {
-        setLoadingFollowEvent(false);
+    const token = localStorage.getItem('access_token');
+    if (!token || token === 'null' || token === 'undefined') {
+      setPendingFollow(true);
+      setShowLoginModal(true);
+      return;
+    }
+    if (!event?.eventId) return;
+    setLoadingFollowEvent(true);
+    try {
+      if (isFollowingEvent) {
+        await unfollowEvent(event.eventId);
+        const res = await checkFollowEventByList(customerId, event.eventId);
+        setIsFollowingEvent(!!res);
+      } else {
+        await followEvent(event.eventId);
+        const res = await checkFollowEventByList(customerId, event.eventId);
+        setIsFollowingEvent(!!res);
       }
-    });
+    } finally {
+      setLoadingFollowEvent(false);
+    }
   };
 
   if (loadingEvent) {
@@ -1644,11 +1661,41 @@ const EventDetail = () => {
         />
       )}
       {/* Modal đăng nhập */}
-      <LoginModal
-        open={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {showLoginModal && (
+        <AuthModals
+          open={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={() => {
+            setShowLoginModal(false);
+            if (pendingReport) {
+              setReportModal(pendingReport);
+              setPendingReport(null);
+            }
+            if (pendingFollow) {
+              setPendingFollow(false);
+              handleFollowEvent();
+            }
+          }}
+        />
+      )}
+
+      {showRegisterModal && (
+        <RegisterModal
+          open={showRegisterModal}
+          onClose={() => setShowRegisterModal(false)}
+          onRegisterSuccess={() => {
+            setShowRegisterModal(false);
+            if (pendingFollow) {
+              setPendingFollow(false);
+              handleFollowEvent();
+            }
+          }}
+          onLoginClick={() => {
+            setShowRegisterModal(false);
+            setShowLoginModal(true);
+          }}
+        />
+      )}
       {/* Modal FaceCapture */}
       {showFaceModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70">

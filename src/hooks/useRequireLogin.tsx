@@ -1,27 +1,38 @@
-import { useState } from 'react';
 import { useContext } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
+import { AuthModalContext } from '@/contexts/AuthModalContext';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export function useRequireLogin() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const ctx = useContext(AuthContext) as unknown;
   const user = (ctx as { user?: unknown }).user;
   const login = (ctx as { login?: unknown }).login;
+  // Dùng context modal toàn cục
+  const authModalCtx = useContext(AuthModalContext);
 
   function requireLogin(actionCallback?: () => void) {
     if (!user) {
-      setShowLoginModal(true);
+      // Mở modal login toàn cục qua context
+      if (authModalCtx && typeof authModalCtx.setShowLoginModal === 'function') {
+        authModalCtx.setShowLoginModal(true);
+      } else if (window.__setShowLoginModal) {
+        window.__setShowLoginModal(true);
+      }
     } else {
       actionCallback?.();
     }
   }
 
   function handleLoginSuccess() {
-    setShowLoginModal(false);
+    // Đóng modal login toàn cục
+    if (authModalCtx && typeof authModalCtx.setShowLoginModal === 'function') {
+      authModalCtx.setShowLoginModal(false);
+    } else if (window.__setShowLoginModal) {
+      window.__setShowLoginModal(false);
+    }
     if (typeof login === 'function') {
       login(); // Update global login state
       window.dispatchEvent(new Event('authChanged'));
@@ -49,8 +60,6 @@ export function useRequireLogin() {
 
   return {
     requireLogin,
-    showLoginModal,
-    setShowLoginModal,
     handleLoginSuccess,
   };
 }

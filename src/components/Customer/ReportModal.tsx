@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useAuthModal } from '@/contexts/AuthModalContext';
 import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
 import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
 import { toast } from 'react-toastify';
-import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,7 @@ const REASONS = [
 
 type TargetType = 'event' | 'news' | 'comment' | 'eventmanager';
 
+
 interface ReportModalProps {
   open: boolean;
   onClose: () => void;
@@ -24,12 +25,14 @@ interface ReportModalProps {
   targetId: string;
 }
 
-export default function ReportModal({ open, onClose, targetType, targetId }: ReportModalProps) {
-  const { t } = useTranslation();
-  const { getThemeClass } = useThemeClasses();
+const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, targetId }) => {
+  // const { t } = useTranslation(); // Remove if not used
+  const { getThemeClass } = useThemeClasses(); // Remove if not used elsewhere
   const [reason, setReason] = useState(REASONS[0]);
+
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const { setShowLoginModal } = useAuthModal();
 
   useEffect(() => {
     if (!open) {
@@ -42,6 +45,13 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    // Check login status
+    const accStr = localStorage.getItem('account');
+    if (!accStr) {
+      setShowLoginModal(true);
+      setLoading(false);
+      return;
+    }
     try {
       if (targetType === 'comment') {
         await reportComment(targetId, reason, description);
@@ -206,3 +216,5 @@ export default function ReportModal({ open, onClose, targetType, targetId }: Rep
     </SimpleModal>
   );
 }
+
+export default ReportModal;

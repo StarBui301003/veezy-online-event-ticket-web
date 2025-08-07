@@ -18,6 +18,7 @@ import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { AdminLayout } from './components/Admin/layout/Layout';
 import DashboardEvent from './pages/EventManager/DashboardEvent';
 import AttendanceListPage from './pages/EventManager/AttendanceListPage';
+import AuthModals from '@/components/AuthModals';
 import { EventManagerLayout } from './components/EventManager/layout/Layout';
 import CreateEventForm from './pages/EventManager/CreateEvent';
 import PendingEventsManager from './pages/EventManager/PendingEventsManager';
@@ -812,6 +813,7 @@ function App() {
             <CategoryMappingProvider>
               <AuthProvider>
                 <RouterProvider router={router} />
+                {/* Đặt AuthModals ở đây để modal luôn tồn tại */}
                 <ToastContainer
                   position="top-right"
                   autoClose={3000}
@@ -824,6 +826,7 @@ function App() {
                   pauseOnHover
                   theme="colored"
                 />
+                <AuthModals />
               </AuthProvider>
             </CategoryMappingProvider>
           </OnlineStatusProvider>

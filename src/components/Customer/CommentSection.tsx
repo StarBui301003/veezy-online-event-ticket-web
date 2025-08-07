@@ -35,10 +35,12 @@ const getLoggedInUser = (): UserData | null => {
     const accStr = localStorage.getItem('account');
     if (accStr) {
       const acc = JSON.parse(accStr);
+      // Ưu tiên userId, nếu không có thì lấy accountId
+      const userId = acc.userId || acc.accountId || '';
       return {
-        userId: acc.userId,
-        fullName: acc.fullName,
-        avatar: acc.avatar,
+        userId,
+        fullName: acc.fullName || acc.username || '',
+        avatar: acc.avatar || '',
       };
     }
     return null;
@@ -48,19 +50,6 @@ const getLoggedInUser = (): UserData | null => {
 };
 
 export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
-  // State to control dropdown visibility
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-
-  // Hide dropdowns when login modal is triggered
-  useEffect(() => {
-    const handleRequireLogin = () => {
-      setOpenDropdownId(null);
-    };
-    window.addEventListener('requireLogin', handleRequireLogin);
-    return () => {
-      window.removeEventListener('requireLogin', handleRequireLogin);
-    };
-  }, []);
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -145,16 +134,27 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     if (!newComment.trim() || !loggedInUser) return;
     setPosting(true);
     try {
-      await instance.post('/api/Comment', {
+      // Get both userId and accountId
+      const accStr = localStorage.getItem('account');
+      let userId = loggedInUser.userId;
+      let accountId = '';
+      if (accStr) {
+        const acc = JSON.parse(accStr);
+        accountId = acc.accountId || '';
+        // Fallback: if userId is empty, use accountId
+        if (!userId && accountId) userId = accountId;
+      }
+      // Log for debugging
+      console.log('Comment payload:', { eventId, content: newComment.trim(), userId, accountId });
+      const response = await instance.post('/api/Comment', {
         eventId,
         content: newComment.trim(),
+        userId,
+        accountId,
       });
-      
-      // Check if the response indicates an error despite 200 status
       if (response.data && response.data.flag === false) {
-        throw new Error(response.data.message || t('postCommentFailed'));
+        throw new Error((response.data.message || t('postCommentFailed')) + ` [userId: ${userId}, accountId: ${accountId}]`);
       }
-      
       setNewComment("");
       toast.success(t('commentSent'));
       fetchComments();
@@ -168,6 +168,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         errorMessage = errObj.response?.data?.message;
       }
       if (!errorMessage) errorMessage = t('postCommentFailed');
+      // Show both IDs in error toast for easier backend debugging
       toast.error(errorMessage);
     } finally {
       setPosting(false);
