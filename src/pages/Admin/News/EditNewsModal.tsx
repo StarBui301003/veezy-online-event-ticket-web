@@ -6,14 +6,8 @@ import { getApprovedEvents } from '@/services/Admin/event.service';
 import type { News } from '@/types/Admin/news';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import Select from 'react-select';
 
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 import { FaSpinner, FaUpload } from 'react-icons/fa';
 import { NO_IMAGE } from '@/assets/img';
 
@@ -26,7 +20,29 @@ interface Props {
 }
 
 export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
-  const { getProfileInputClass, getSelectClass } = useThemeClasses();
+  const { getProfileInputClass } = useThemeClasses();
+  const [isDarkMode, setIsDarkMode] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const [form, setForm] = useState({
     eventId: '',
     newsDescription: '',
@@ -128,23 +144,88 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
               Event
             </label>
             <Select
-              value={form.eventId}
-              onValueChange={(value) => setForm((prev) => ({ ...prev, eventId: value }))}
-              disabled={loading}
-            >
-              <SelectTrigger
-                className={`border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`}
-              >
-                <SelectValue placeholder="Select event" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-                {events.map((ev) => (
-                  <SelectItem key={ev.eventId} value={ev.eventId} className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    {ev.eventName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={events.map((ev) => ({
+                value: ev.eventId,
+                label: ev.eventName,
+              }))}
+              value={events
+                .map((ev) => ({
+                  value: ev.eventId,
+                  label: ev.eventName,
+                }))
+                .find((option) => option.value === form.eventId)}
+              onChange={(selectedOption) =>
+                setForm((prev) => ({ ...prev, eventId: selectedOption?.value || '' }))
+              }
+              placeholder="Select event"
+              isDisabled={loading}
+              isSearchable={true}
+              classNamePrefix="react-select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  borderColor: state.isFocused ? '#3b82f6' : isDarkMode ? '#4b5563' : '#d1d5db',
+                  '&:hover': {
+                    borderColor: isDarkMode ? '#6b7280' : '#9ca3af',
+                  },
+                  minHeight: '40px',
+                  borderRadius: '6px',
+                  boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                  border: `1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
+                  borderRadius: '6px',
+                  boxShadow:
+                    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  zIndex: 9999,
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isSelected
+                    ? '#3b82f6'
+                    : state.isFocused
+                    ? isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6'
+                    : 'transparent',
+                  color: state.isSelected ? 'white' : isDarkMode ? '#f9fafb' : '#111827',
+                  '&:hover': {
+                    backgroundColor: state.isSelected
+                      ? '#3b82f6'
+                      : isDarkMode
+                      ? '#374151'
+                      : '#f3f4f6',
+                  },
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#f9fafb' : '#111827',
+                }),
+                placeholder: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                menuList: (provided) => ({
+                  ...provided,
+                  backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                }),
+                noOptionsMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+                loadingMessage: (provided) => ({
+                  ...provided,
+                  color: isDarkMode ? '#9ca3af' : '#6b7280',
+                }),
+              }}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">

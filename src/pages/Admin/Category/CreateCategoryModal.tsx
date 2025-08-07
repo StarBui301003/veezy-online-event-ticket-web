@@ -6,6 +6,7 @@ import { FaSpinner } from 'react-icons/fa';
 import { validateCategoryForm } from '@/utils/validation';
 import { useAdminValidation, createFieldChangeHandler } from '@/hooks/use-admin-validation';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface Props {
   open: boolean;
@@ -25,6 +26,9 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
   });
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
+
+  // Use theme classes
+  const { getProfileInputClass } = useThemeClasses();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -94,10 +98,10 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
               {t('categoryName')}
             </label>
             <input
-              className={`${getErrorClass(
+              className={getErrorClass(
                 'categoryName',
-                'border px-3 py-2 rounded w-full'
-              )} text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600`}
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.categoryName}
               onChange={handleCategoryNameChange}
               disabled={loading}
@@ -111,13 +115,13 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               {t('categoryDescription')}{' '}
-              <span className="text-gray-400 dark:text-gray-500">- {t('optional')}</span>
+              <span className="text-gray-400 dark:text-gray-500">(optional)</span>
             </label>
             <textarea
-              className={`${getErrorClass(
+              className={getErrorClass(
                 'description',
-                'border px-3 py-2 rounded w-full'
-              )} text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-gray-600 resize-none`}
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()} resize-none`
+              )}
               value={form.description}
               onChange={handleDescriptionChange}
               disabled={loading}
@@ -129,30 +133,32 @@ export const CreateCategoryModal = ({ open, onClose, onCreated }: Props) => {
             )}
           </div>
         </div>
-        <div className="p-6 border-t border-gray-200 dark:border-0 flex justify-end gap-3">
-          <button
-            className="border-2 border-gray-400 bg-gray-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-gray-700 hover:border-gray-400"
-            onClick={onClose}
-            disabled={loading}
-            type="button"
-          >
-            {t('cancel')}
-          </button>
-          <button
-            className="border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-white hover:text-blue-500 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            onClick={handleCreate}
-            disabled={loading}
-            type="button"
-          >
-            {loading ? (
-              <>
-                <FaSpinner className="w-4 h-4 animate-spin" />
-                {t('creating')}
-              </>
-            ) : (
-              t('create')
-            )}
-          </button>
+        <div className="p-4">
+          <div className="flex justify-end gap-3">
+            <button
+              className="border-2 border-red-500 bg-red-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-white hover:text-red-500 hover:border-red-500 mr-2"
+              onClick={onClose}
+              disabled={loading}
+              type="button"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
+              onClick={handleCreate}
+              disabled={loading}
+              type="button"
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  {t('creating')}
+                </>
+              ) : (
+                t('create')
+              )}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

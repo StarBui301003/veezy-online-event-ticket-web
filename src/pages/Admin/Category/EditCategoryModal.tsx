@@ -7,6 +7,7 @@ import { validateEditCategoryForm } from '@/utils/validation';
 import { useAdminValidation, createFieldChangeHandler } from '@/hooks/use-admin-validation';
 import { useTranslation } from 'react-i18next';
 import type { Category } from '@/types/event';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 interface Props {
   category: Category;
@@ -26,6 +27,9 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
     categoryDescription: category.categoryDescription,
   });
   const [loading, setLoading] = useState(false);
+
+  // Use theme classes
+  const { getProfileInputClass } = useThemeClasses();
 
   // Use validation hook
   const { validateForm, handleApiError, getFieldError, getErrorClass, clearFieldError } =
@@ -98,10 +102,10 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
               {t('categoryName')}
             </label>
             <input
-              className={`${getErrorClass(
+              className={getErrorClass(
                 'categoryName',
-                'border rounded px-2 py-1 w-full'
-              )} text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-0`}
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()}`
+              )}
               value={form.categoryName}
               onChange={handleCategoryNameChange}
               disabled={loading}
@@ -118,10 +122,10 @@ export const EditCategoryModal = ({ category, onClose, onUpdated }: Props) => {
               {t('description')}
             </label>
             <textarea
-              className={`${getErrorClass(
+              className={getErrorClass(
                 'categoryDescription',
-                'border rounded px-2 py-1 w-full'
-              )} text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border-gray-200 dark:border-0 resize-none`}
+                `border rounded px-3 py-2 w-full transition-colors ${getProfileInputClass()} resize-none`
+              )}
               value={form.categoryDescription}
               onChange={(e) => handleDescriptionChange(e)}
               disabled={loading}

@@ -21,15 +21,31 @@ const CommentDetailModal = ({ comment, eventName, onClose, onDelete }: Props) =>
     setIsDeleting(true);
     try {
       const res = await deleteComment(comment.commentId);
-      if (res && res.commentId) {
+
+      // Debug: Log response để hiểu cấu trúc
+      console.log('Delete response:', res);
+
+      // Kiểm tra response một cách linh hoạt hơn
+      // API có thể trả về Comment object, boolean, hoặc response khác
+      const isSuccess =
+        res &&
+        (res.commentId || // Nếu trả về Comment object
+          (typeof res === 'object' && res !== null) || // Nếu trả về object khác
+          (typeof res === 'boolean' && res === true) || // Nếu trả về boolean true
+          (typeof res === 'string' && (res as string).toLowerCase() === 'success')); // Nếu trả về string
+
+      if (isSuccess) {
         toast.success('Comment deleted successfully!');
         onDelete(); // Refresh the list
         onClose(); // Close modal
       } else {
+        // Nếu response là false hoặc không có dữ liệu mong đợi
+        console.warn('Delete response indicates failure:', res);
         toast.error('Failed to delete comment!');
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
+      console.error('Delete comment error:', err);
       toast.error(err?.message || 'Cannot delete this comment!');
     } finally {
       setIsDeleting(false);
