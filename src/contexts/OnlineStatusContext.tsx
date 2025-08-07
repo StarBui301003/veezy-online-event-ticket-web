@@ -31,7 +31,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       try {
         const token = localStorage.getItem('access_token');
         if (token) {
-          await connectIdentityHub('http://localhost:5001/hubs/notifications', token);
+          await connectIdentityHub('https://identity.vezzy.site/hubs/notifications', token);
           console.log('✅ Connected to Identity Hub for online status');
         }
       } catch (error) {

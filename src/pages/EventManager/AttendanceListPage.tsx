@@ -52,7 +52,7 @@ const AttendanceListPage = () => {
         
         if (token) {
           // Connect to Ticket Hub for attendance updates
-          await connectTicketHub('http://localhost:5005/notificationHub', token);
+          await connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
           
           // Listen for real-time attendance updates
           onTicket('AttendanceCheckedIn', (data: any) => {
@@ -90,7 +90,7 @@ const AttendanceListPage = () => {
           });
 
           // Connect to Notification Hub for attendance notifications
-          await connectNotificationHub('http://localhost:5003/hubs/notifications', token);
+          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
           
           onNotification('ReceiveNotification', (notification: any) => {
             // Handle attendance-related notifications
