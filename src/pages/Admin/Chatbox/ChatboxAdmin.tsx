@@ -46,11 +46,10 @@ import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import identityService from '@/services/identity.service';
+import { MdRefresh } from 'react-icons/md';
+import { getRoleDisplayName } from '@/utils/roleMapper';
 
 const ChatboxAdmin = () => {
-  // Component render tracking
-  console.log('🔄 [Component] ChatboxAdmin rendering...');
-
   const { getProfileInputClass, getCardClass, getTextClass, theme } = useThemeClasses();
 
   // Custom scrollbar styles - theme-aware
@@ -84,7 +83,7 @@ const ChatboxAdmin = () => {
 
   // Debug: Log roomMode changes and force re-render counter
   const [forceRender, setForceRender] = useState(0);
-  // ...existing code...
+
   // States
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
@@ -92,58 +91,24 @@ const ChatboxAdmin = () => {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  // ✅ Tạm thời sử dụng state local thay vì context để tránh lỗi
-  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<Array<{
-    userId: string;
-    userName: string;
-    fullName: string;
-    email: string;
-    role: string;
-    avatar: string;
-    isOnline: boolean;
-    lastActiveAt: string;
-  }>>([]);
-  
+
+  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<
+    Array<{
+      userId: string;
+      userName: string;
+      fullName: string;
+      email: string;
+      role: string;
+      avatar: string;
+      isOnline: boolean;
+      lastActiveAt: string;
+    }>
+  >([]);
+
   const onlineUsers = allUsersFromIdentity;
   const [isConnected, setIsConnected] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false); // Add loading state for messages
-
-  // ✅ Method để refresh users từ IdentityService (updated to use getAllUsersWithStatus)
-  const refreshAllUsers = async () => {
-    try {
-      console.log('[ChatboxAdmin] Refreshing all users from IdentityService...');
-      const users = await identityService.getAllUsersWithStatus();
-      
-      const transformedUsers = users.map(user => ({
-        userId: user.accountId,
-        userName: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatarUrl || '',
-        isOnline: user.isOnline,
-        lastActiveAt: user.lastActiveAt
-      }));
-      
-      setAllUsersFromIdentity(transformedUsers);
-      console.log('[ChatboxAdmin] Refreshed', transformedUsers.length, 'users from IdentityService');
-      toast.success(`Refreshed ${transformedUsers.length} users`);
-    } catch (error) {
-      console.error('[ChatboxAdmin] Error refreshing users:', error);
-      toast.error('Failed to refresh users');
-    }
-  };
-
-  // Debug log for converted users from IdentityService
-  console.log('🔧 [OnlineUsers] Total from IdentityService:', allUsersFromIdentity.length);
-  console.log('🔧 [OnlineUsers] All users from IdentityService:', allUsersFromIdentity);
-  console.log('🔧 [OnlineUsers] Filtered online from IdentityService:', allUsersFromIdentity.filter((u) => u.isOnline).length);
-  console.log('🔧 [OnlineUsers] All users detail from IdentityService:', allUsersFromIdentity.map(u => ({ 
-    userId: u.userId, 
-    fullName: u.fullName, 
-    isOnline: u.isOnline,
-    role: u.role
-  })));
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [refreshingUsers, setRefreshingUsers] = useState(false);
 
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -180,7 +145,6 @@ const ChatboxAdmin = () => {
       };
     }
 
-    // Fallback if no account found
     return {
       userId: 'admin-id',
       username: 'admin',
@@ -191,15 +155,12 @@ const ChatboxAdmin = () => {
 
   const currentUser = getCurrentUser();
 
-  // ✅ Load all users từ IdentityService khi component mount (updated to use getAllUsersWithStatus)
+  // Load all users from IdentityService
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        console.log('[ChatboxAdmin] Loading all users from IdentityService...');
         const users = await identityService.getAllUsersWithStatus();
-        
-        // Transform users để match interface hiện tại
-        const transformedUsers = users.map(user => ({
+        const transformedUsers = users.map((user) => ({
           userId: user.accountId,
           userName: user.username,
           fullName: user.fullName,
@@ -207,19 +168,16 @@ const ChatboxAdmin = () => {
           role: user.role,
           avatar: user.avatarUrl || '',
           isOnline: user.isOnline,
-          lastActiveAt: user.lastActiveAt
+          lastActiveAt: user.lastActiveAt,
         }));
-        
         setAllUsersFromIdentity(transformedUsers);
-        console.log('[ChatboxAdmin] Loaded', transformedUsers.length, 'users from IdentityService');
       } catch (error) {
         console.error('[ChatboxAdmin] Error loading users:', error);
       }
     };
 
-    // Delay một chút để đảm bảo services đã được khởi tạo
     setTimeout(loadUsers, 500);
-  }, []); // Chỉ chạy một lần khi component mount
+  }, []);
 
   // Listen for mode changes from SignalR
   useEffect(() => {
@@ -1042,6 +1000,33 @@ const ChatboxAdmin = () => {
     }
   };
 
+  // Refresh all users from IdentityService
+  const refreshAllUsers = async () => {
+    // Prevent multiple calls while already refreshing
+    if (refreshingUsers) return;
+    setRefreshingUsers(true);
+    try {
+      const users = await identityService.getAllUsersWithStatus();
+      const transformedUsers = users.map((user) => ({
+        userId: user.accountId,
+        userName: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatarUrl || '',
+        isOnline: user.isOnline,
+        lastActiveAt: user.lastActiveAt,
+      }));
+      setAllUsersFromIdentity(transformedUsers);
+      toast.success(`Refreshed ${transformedUsers.length} users`);
+    } catch (error) {
+      console.error('[ChatboxAdmin] Error refreshing users:', error);
+      toast.error('Failed to refresh users');
+    } finally {
+      setRefreshingUsers(false);
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
       <style>{scrollbarStyles}</style>
@@ -1674,15 +1659,20 @@ const ChatboxAdmin = () => {
               <Users className="h-5 w-5" />
               Online Users ({onlineUsers.filter((u) => u.isOnline).length})
             </CardTitle>
-            {/* ✅ Debug button để refresh users từ IdentityService */}
+
             <Button
-              size="sm" 
+              size="sm"
               variant="outline"
               onClick={refreshAllUsers}
-              className="text-xs h-6 w-6 p-0"
+              disabled={refreshingUsers}
+              className="text-xs h-6 w-6 p-0 border-none"
               title="Refresh users from IdentityService"
             >
-              🔄
+              {refreshingUsers ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+              ) : (
+                <MdRefresh />
+              )}
             </Button>
           </div>
         </CardHeader>
@@ -1702,22 +1692,27 @@ const ChatboxAdmin = () => {
                         <AvatarImage src={user.avatar} />
                         <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                      <OnlineStatusIndicator userId={user.userId} size="sm" showText={false} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${getTextClass()}`}>
                         {user.fullName}
                       </p>
-                      <Badge variant="outline" className="text-xs">
-                        {user.role}
+                      <Badge
+                        variant="outline"
+                        className="text-xs rounded-full border border-blue-200 bg-white dark:text-black"
+                      >
+                        {getRoleDisplayName(Number(user.role))}
                       </Badge>
                     </div>
                   </div>
                 ))}
 
               {onlineUsers.filter((u) => u.isOnline).length === 0 && (
-                <div className={`p-4 text-center text-sm ${getTextClass()}`}>No users online</div>
+                <div className={`p-4 text-center text-sm ${getTextClass()}`}>
+                  <div className="mb-2">No users online</div>
+                </div>
               )}
             </div>
           </ScrollArea>

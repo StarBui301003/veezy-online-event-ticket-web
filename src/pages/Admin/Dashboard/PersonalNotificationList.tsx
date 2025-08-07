@@ -170,7 +170,9 @@ const formatDate = (dateString: string) => {
   }
 };
 
-export const PersonalNotificationList: React.FC<PersonalNotificationListProps> = ({ className }) => {
+export const PersonalNotificationList: React.FC<PersonalNotificationListProps> = ({
+  className,
+}) => {
   const { getCardClass, getBorderClass, getTextClass } = useThemeClasses();
   const [notifications, setNotifications] = useState<PersonalNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,7 +389,7 @@ export const PersonalNotificationList: React.FC<PersonalNotificationListProps> =
         {/* Filter trạng thái */}
         <div className="flex items-center gap-2">{/* Removed filter status */}</div>
       </CardHeader>
-      <CardContent className="bg-gray-50 dark:bg-gray-900 rounded-b-xl">
+      <CardContent className="rounded-b-xl h-auto">
         {notifications.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
@@ -462,9 +464,10 @@ export const PersonalNotificationList: React.FC<PersonalNotificationListProps> =
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() =>
-                                          handleMarkAsRead(notification.notificationId)
-                                        }
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMarkAsRead(notification.notificationId);
+                                        }}
                                         className="h-8 w-8 p-0 dark:text-white"
                                       >
                                         <CheckCircle className="h-4 w-4" />

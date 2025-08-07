@@ -9,9 +9,6 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { Bell, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface GeneralSettingsProps {
   userConfig: {
@@ -37,11 +34,6 @@ export default function GeneralSettings({
 }: GeneralSettingsProps) {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
-  const navigate = useNavigate();
-
-  const handleViewAllNotifications = () => {
-    navigate('/event-manager/notifications');
-  };
 
   return (
     <div className="flex flex-col items-center justify-center w-full">
@@ -272,58 +264,6 @@ export default function GeneralSettings({
                   }
                 />
               </div>
-            </div>
-          </div>
-
-          {/* View All Notifications Button */}
-          <div
-            className={cn(
-              'p-4 rounded-xl border transition-all duration-200',
-              getThemeClass(
-                'bg-orange-50/50 border-orange-200 hover:bg-orange-50',
-                'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
-              )
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center',
-                    getThemeClass('bg-orange-100', 'bg-slate-600')
-                  )}
-                >
-                  <Bell
-                    className={cn('w-5 h-5', getThemeClass('text-orange-600', 'text-orange-400'))}
-                  />
-                </div>
-                <div>
-                  <label
-                    className={cn(
-                      'block text-sm font-semibold',
-                      getThemeClass('text-gray-700', 'text-gray-300')
-                    )}
-                  >
-                    {t('notifications') || 'Thông báo'}
-                  </label>
-                  <p className={cn('text-xs', getThemeClass('text-gray-500', 'text-gray-400'))}>
-                    {t('viewAllNotificationsDescription') || 'Xem tất cả thông báo của bạn'}
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={handleViewAllNotifications}
-                className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2',
-                  getThemeClass(
-                    'bg-orange-600 hover:bg-orange-700 text-white shadow-md',
-                    'bg-orange-600 hover:bg-orange-700 text-white shadow-md'
-                  )
-                )}
-              >
-                {t('viewAll') || 'Xem tất cả'}
-                <ArrowRight className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>

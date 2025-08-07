@@ -24,6 +24,7 @@ import { FaRegNewspaper } from 'react-icons/fa6';
 import { useTranslation } from 'react-i18next';
 import { IoChatboxEllipsesOutline } from 'react-icons/io5';
 import { PiHandWithdraw } from 'react-icons/pi';
+import { MdDashboard } from 'react-icons/md';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation();
@@ -114,6 +115,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild size="lg">
+              <Link to="/admin">
+                <MdDashboard className="mr-2 text-xl" />
+                <span>{t('dashboard')}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+        {/* Optional: Add a separator for clarity */}
+        {/* <SidebarSeparator /> */}
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>

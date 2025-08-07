@@ -163,7 +163,7 @@ export function AdminLayout() {
         <SidebarInset>
           <header
             className={cn(
-              'flex h-16 shrink-0 items-center gap-2 border-b justify-between',
+              'flex h-14 shrink-0 items-center gap-2 border-b justify-between',
               getThemeClass(
                 'border-gray-200 bg-white',
                 'border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600'
@@ -173,11 +173,11 @@ export function AdminLayout() {
             <div className="flex items-center gap-2 px-4">
               <SidebarTrigger
                 className={cn(
-                  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-7 w-7 -ml-1',
+                  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-6 w-6 -ml-1',
                   getThemeClass('text-gray-900', 'text-black dark:text-white')
                 )}
               />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Separator orientation="vertical" className="mr-2 h-3" />
               <Breadcrumb>
                 <BreadcrumbList>
                   {/* Dashboard luôn ở đầu */}
@@ -239,12 +239,12 @@ export function AdminLayout() {
             </div>
 
             {/* Dropdown EN/VN đẹp ở góc phải header */}
-            <div className="flex items-center pr-6 gap-4">
-              <ThemeToggle className="scale-75" />
+            <div className="flex items-center pr-6 gap-3">
+              <ThemeToggle className="scale-[70%]" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#e9e6e6] dark:bg-gray-500 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-semibold shadow hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500">
-                    <Globe className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#e9e6e6] dark:bg-gray-500 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-semibold shadow hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500 text-sm">
+                    <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     {i18nInstance.language === 'vi' ? t('vn') : t('en')}
                   </button>
                 </DropdownMenuTrigger>
@@ -285,7 +285,7 @@ export function AdminLayout() {
               )
             )}
           >
-            <SpinnerOverlay show={loading} />
+            <SpinnerOverlay show={loading} fullScreen={false} />
             <Outlet />
           </div>
           {showGoTop && (

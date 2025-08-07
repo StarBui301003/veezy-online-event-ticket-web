@@ -32,7 +32,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
       )}
       {loading ? (
         <div className="flex justify-center py-12">
-          <SpinnerOverlay show={true} />
+          <SpinnerOverlay show={true} fullScreen={false} />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-12">

@@ -2,7 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Wallet, CreditCard, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Wallet,
+  CreditCard,
+  Download,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   getMyApprovedEvents,
@@ -303,12 +311,23 @@ export default function FundManagement() {
       setWithdrawalAmount('');
       setWithdrawalNotes('');
       fetchFundData(selectedEvent.eventId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Dismiss loading toast if it exists
       toast.dismiss();
 
       setShowWithdrawalModal(false); // Close modal on error
-      if (error.response?.data?.message === 'Withdrawal is not enabled for this event') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'message' in error.response.data &&
+        error.response.data.message === 'Withdrawal is not enabled for this event'
+      ) {
         setWithdrawalError(t('withdrawalNotEnabled'));
       } else {
         toast.error(t('errorSendingWithdrawalRequest'), {
@@ -367,7 +386,7 @@ export default function FundManagement() {
     (a, b) => (eventRevenues[b.eventId] || 0) - (eventRevenues[a.eventId] || 0)
   );
   const total = sortedEvents.length;
-  const getCardColor = (idx) => {
+  const getCardColor = (idx: number): string => {
     const colors = [
       'bg-yellow-100/30 border-yellow-400',
       'bg-gray-100/30 border-gray-400',
@@ -882,7 +901,14 @@ export default function FundManagement() {
                   )}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? t('sending') : t('sendRequest')}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('sending')}
+                    </>
+                  ) : (
+                    t('sendRequest')
+                  )}
                 </Button>
                 <Button
                   onClick={() => setShowWithdrawalModal(false)}

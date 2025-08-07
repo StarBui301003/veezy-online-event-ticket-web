@@ -98,12 +98,16 @@ interface SpinnerOverlayProps {
   fullScreen?: boolean;
 }
 
-const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children }) => {
+const SpinnerOverlay: React.FC<SpinnerOverlayProps> = ({ show, children, fullScreen = false }) => {
   if (!show) return null;
 
-  // Luôn sử dụng fixed để che toàn bộ màn hình
+  // Nếu fullScreen = true thì che toàn bộ màn hình, ngược lại chỉ che phần content
+  const containerClass = fullScreen
+    ? 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden'
+    : 'absolute inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden';
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden">
+    <div className={containerClass}>
       <Spinner />
       {children}
     </div>

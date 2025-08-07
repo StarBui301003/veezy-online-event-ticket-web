@@ -574,14 +574,17 @@ export const CollaboratorList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, filters.pageSize - users.length) }, (_, idx) => (
-                    <TableRow
-                      key={`empty-${idx}`}
-                      className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
-                    >
-                      <TableCell colSpan={9} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(
+                    { length: Math.max(0, filters.pageSize - users.length) },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={9} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               )}
             </TableBody>

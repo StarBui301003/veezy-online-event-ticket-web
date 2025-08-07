@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select';
 import { RingLoader } from 'react-spinners';
 import { toast } from 'react-toastify';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FILTERS = [
   { label: 'Last 30 Days', value: 12 }, // Last30Days
@@ -103,7 +104,7 @@ export default function FinancialTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
@@ -217,10 +218,21 @@ export default function FinancialTabs() {
       </div>
       {/* Card tổng quan financial */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
-        {!summary ? (
-          <div className="flex w-full items-center justify-center h-[100px]">
-            <RingLoader size={40} color="#fbbf24" />
-          </div>
+        {loading ? (
+          <>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-28 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-24 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-24 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-20 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-24 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-20 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+          </>
         ) : (
           <>
             <div className={cardClass}>

@@ -226,7 +226,7 @@ export function NavUser() {
             <DropdownMenuItem
               onClick={handleLogout}
               disabled={loadingLogout}
-              className="focus:bg-red-100 dark:focus:bg-red-500 focus:text-red-700 dark:focus:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition rounded-md text-gray-900 dark:text-white dark:bg-transparent"
+              className="focus:bg-red-100 dark:focus:bg-red-700 focus:text-red-700 dark:focus:text-white hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-white transition rounded-md text-gray-900 dark:text-white dark:bg-transparent"
             >
               <LogOut className="mr-2 text-red-500 dark:text-red-400" />
               <span className="font-medium">{loadingLogout ? t('loggingOut') : t('logOut')}</span>

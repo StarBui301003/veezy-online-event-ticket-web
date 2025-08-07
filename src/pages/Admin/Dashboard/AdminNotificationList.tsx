@@ -366,7 +366,18 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
   };
 
   // Handle notification click - mark as read and navigate based on type
-  const handleNotificationClick = async (notification: AdminNotification) => {
+  const handleNotificationClick = async (
+    notification: AdminNotification,
+    event?: React.MouseEvent
+  ) => {
+    // Prevent navigation if clicking on action buttons
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (target.closest('button') || target.closest('[role="button"]')) {
+        return;
+      }
+    }
+
     try {
       // Mark as read first
       if (!notification.isRead) {
@@ -532,7 +543,7 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                           ? 'bg-gray-200 dark:bg-gray-700 border-gray-300/40 dark:border-gray-600/40 shadow-sm hover:bg-gray-100 dark:hover:bg-gray-600 hover:shadow-md'
                           : 'bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-600 shadow-sm hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-md'
                       }`}
-                      onClick={() => handleNotificationClick(notification)}
+                      onClick={(e) => handleNotificationClick(notification, e)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-1">
@@ -590,9 +601,10 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() =>
-                                          handleMarkAsRead(notification.notificationId)
-                                        }
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMarkAsRead(notification.notificationId);
+                                        }}
                                         className="h-8 w-8 p-0 dark:text-white"
                                       >
                                         <CheckCircle className="h-4 w-4" />
@@ -612,9 +624,10 @@ export const AdminNotificationList: React.FC<AdminNotificationListProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleDeleteNotification(notification.notificationId)
-                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteNotification(notification.notificationId);
+                                      }}
                                       className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
                                     >
                                       <Trash2 className="h-4 w-4" />
