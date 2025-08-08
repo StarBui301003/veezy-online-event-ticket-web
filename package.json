@@ -22,7 +22,7 @@
     "@types/react-datepicker": "^7.0.0",
     "@types/react-dom": "^19.0.4",
     "@types/react-router-dom": "^5.3.3",
-    "@vitejs/plugin-react-swc": "^3.8.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "allure-jest": "^3.3.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.21.0",
