@@ -70,7 +70,7 @@ instance.interceptors.response.use(
           autoClose: 8000
         });
       }
-      
+
       return Promise.reject(error);
     }
 
@@ -84,6 +84,8 @@ instance.interceptors.response.use(
         .find((row) => row.startsWith('refresh_token='))
         ?.split('=')[1];
 
+
+
       // Nếu không có refresh token thì reject luôn, không refresh nữa
       if (!refreshToken) {
         return Promise.reject(error);
@@ -92,26 +94,38 @@ instance.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
+
           const response = await axios.post(
             `${config.gatewayUrl}/api/Account/refresh-token`,
             { refreshToken },
-            { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              withCredentials: true,
+              timeout: 10000 // 10 second timeout
+            }
           );
 
-          // Lấy accessToken từ response.data.data.accessToken
-          const tokenData = response.data?.data;
+
+
+          // Lấy accessToken từ response.data.data.accessToken hoặc response.data.accessToken
+          const tokenData = response.data?.data || response.data;
           if (!tokenData || !tokenData.accessToken) {
             throw new Error('No access token in refresh response');
           }
 
           const newAccessToken = tokenData.accessToken;
           window.localStorage.setItem('access_token', newAccessToken);
-          
+
+
+
           onRefreshed(newAccessToken);
 
           // Cập nhật refresh token mới vào cookie nếu có
           if (tokenData.refreshToken) {
-            document.cookie = `refresh_token=${tokenData.refreshToken}; path=/;`;
+            document.cookie = `refresh_token=${tokenData.refreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
           }
 
           // Cập nhật header của request với token mới
@@ -122,10 +136,61 @@ instance.interceptors.response.use(
               originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
             }
           }
-          
+
           return instance(originalRequest);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
+
+          // Fallback to fetch if axios fails
+          try {
+            const fetchResponse = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              credentials: 'include',
+              body: JSON.stringify({ refreshToken })
+            });
+
+            if (!fetchResponse.ok) {
+              throw new Error(`Fetch failed with status: ${fetchResponse.status}`);
+            }
+
+            const fetchData = await fetchResponse.json();
+
+            const tokenData = fetchData?.data || fetchData;
+            if (!tokenData || !tokenData.accessToken) {
+              throw new Error('No access token in fetch refresh response');
+            }
+
+            const newAccessToken = tokenData.accessToken;
+            window.localStorage.setItem('access_token', newAccessToken);
+
+            onRefreshed(newAccessToken);
+
+            if (tokenData.refreshToken) {
+              document.cookie = `refresh_token=${tokenData.refreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
+            }
+
+            if (originalRequest.headers) {
+              if (typeof originalRequest.headers.set === 'function') {
+                originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
+              } else {
+                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+              }
+            }
+
+            return instance(originalRequest);
+          } catch {
+            throw err; // Throw original error
+          }
+
+          // Kiểm tra nếu là network error, không xóa token ngay
+          if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+            return Promise.reject(error);
+          }
+
           // Xóa sạch token và refresh token nếu lỗi refresh
           window.localStorage.clear();
           document.cookie = 'refresh_token=; Max-Age=0; path=/;';
