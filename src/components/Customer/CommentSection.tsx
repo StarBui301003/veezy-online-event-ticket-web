@@ -51,7 +51,13 @@ const getLoggedInUser = (): UserData | null => {
   }
 };
 
-export default function CommentSection({ eventId, setReportModal }: { eventId: string, setReportModal: (v: {type: 'comment', id: string}) => void }) {
+export default function CommentSection({
+  eventId,
+  setReportModal,
+}: {
+  eventId: string;
+  setReportModal: (v: { type: 'comment'; id: string }) => void;
+}) {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -157,9 +163,12 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         accountId,
       });
       if (response.data && response.data.flag === false) {
-        throw new Error((response.data.message || t('postCommentFailed')) + ` [userId: ${userId}, accountId: ${accountId}]`);
+        throw new Error(
+          (response.data.message || t('postCommentFailed')) +
+            ` [userId: ${userId}, accountId: ${accountId}]`
+        );
       }
-      setNewComment("");
+      setNewComment('');
       toast.success(t('commentSent'));
       fetchComments();
     } catch (err) {
@@ -196,12 +205,12 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       setEditingCommentId(null);
       setEditContent('');
       fetchComments();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error(t('editCommentFailed') || 'Sửa bình luận thất bại!');
     }
   };
-  // Cancel edit
+
   // Delete comment handler (show modal)
   const handleDelete = (commentId: string) => {
     setDeleteConfirmId(commentId);
@@ -213,7 +222,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
       toast.success(t('deleteCommentSuccess') || 'Đã xóa bình luận!');
       setDeleteConfirmId(null);
       fetchComments();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error(t('deleteCommentFailed') || 'Xóa bình luận thất bại!');
     }
@@ -409,10 +418,14 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                             {c.fullName}
                           </p>
                           <div className="flex items-center gap-2">
-                            <p  className={cn(
+                            <p
+                              className={cn(
                                 'text-xs',
                                 getThemeClass('text-gray-500', 'text-slate-400')
-                              )}>{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
+                              )}
+                            >
+                              {new Date(c.createdAt).toLocaleString('vi-VN')}
+                            </p>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -436,8 +449,8 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                   />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent 
-                                align="end" 
+                              <DropdownMenuContent
+                                align="end"
                                 sideOffset={8}
                                 className={cn(
                                   'z-[100] min-w-[180px] p-1',
@@ -658,7 +671,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         onLoginSuccess={handleLoginSuccess}
         onRegisterRedirect={handleRegisterRedirect}
       />
-      
+
       {showRegisterModal && (
         <RegisterModal
           open={showRegisterModal}

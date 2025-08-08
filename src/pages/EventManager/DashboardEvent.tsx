@@ -92,12 +92,9 @@ export default function EventManagerDashboard() {
   useEffect(() => {
     const setupRealtimeDashboard = async () => {
       try {
-        const {
-          onAnalytics,
-          onTicket,
-          onEvent,
-          onNotification,
-        } = await import('@/services/signalr.service');
+        const { onAnalytics, onTicket, onEvent, onNotification } = await import(
+          '@/services/signalr.service'
+        );
 
         // Setup realtime listeners using global connections
         // All SignalR connections are managed globally in App.tsx

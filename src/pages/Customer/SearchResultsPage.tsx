@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchEventsAPI } from '@/services/search.service';
@@ -81,11 +82,11 @@ export const SearchResultsPage = () => {
           sortBy: 'relevance',
           sortOrder: 'desc',
           page: 1,
-          pageSize: 50 // Increase page size to get more results
+          pageSize: 50, // Increase page size to get more results
         });
-        
+
         // Map API response to SearchResult type
-        const mappedResults = events.map(event => ({
+        const mappedResults = events.map((event) => ({
           id: event.id,
           name: event.name,
           description: event.description || '',
@@ -94,9 +95,9 @@ export const SearchResultsPage = () => {
           date: event.startAt,
           location: event.location,
           isFree: event.isFree,
-          price: event.isFree ? 0 : undefined
+          price: event.isFree ? 0 : undefined,
         }));
-        
+
         setResults(mappedResults);
       } catch (err: any) {
         console.error('Search failed:', err);

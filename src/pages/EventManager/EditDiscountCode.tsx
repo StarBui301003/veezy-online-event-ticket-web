@@ -4,7 +4,11 @@ import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getDiscountCodeById, updateDiscountCode } from '@/services/Event Manager/event.service';
+import {
+  getDiscountCodeById,
+  updateDiscountCode,
+  getEventById,
+} from '@/services/Event Manager/event.service';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -71,7 +75,21 @@ export default function EditDiscountCode() {
           return;
         }
 
-        setDiscountCode(data);
+        // Fetch event name separately
+        let eventName = '';
+        try {
+          const eventData = await getEventById(data.eventId);
+          eventName = eventData?.eventName || '';
+        } catch (eventError) {
+          console.error('Failed to fetch event name:', eventError);
+        }
+
+        const discountCodeWithEventName = {
+          ...data,
+          eventName,
+        };
+
+        setDiscountCode(discountCodeWithEventName);
         setFormData({
           code: data.code || '',
           discountType: data.discountType ?? 0,
@@ -207,7 +225,7 @@ export default function EditDiscountCode() {
         >
           {t('forEvent')}:{' '}
           <span className={cn(getThemeClass('text-purple-600', 'text-pink-200'))}>
-            {discountCode.eventName}
+            {discountCode.eventName || t('eventNameNotAvailable')}
           </span>
         </h3>
 

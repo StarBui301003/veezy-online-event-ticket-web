@@ -12,12 +12,7 @@ interface NotificationDropdownProps {
   onRedirect?: (url: string) => void;
 }
 
-const NotificationDropdown = ({
-  userId,
-  onViewAll,
-  t,
-  onRedirect,
-}: NotificationDropdownProps) => {
+const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: NotificationDropdownProps) => {
   const { getThemeClass } = useThemeClasses();
 
   // Use the hook for API and UI update

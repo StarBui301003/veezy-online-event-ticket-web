@@ -346,6 +346,6 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
       )}
     </div>
   );
-}
+};
 
 export default EventManagerInfoFollow;

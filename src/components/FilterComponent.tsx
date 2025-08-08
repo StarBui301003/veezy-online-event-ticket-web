@@ -24,9 +24,15 @@ export interface FilterOptions {
 export const convertToApiParams = (filters: FilterOptions, contentType: 'event' | 'news') => {
   const params: any = {
     searchTerm: filters.searchTerm ? encodeURIComponent(filters.searchTerm) : undefined,
-    sortBy: filters.sortBy === 'date' ? (contentType === 'news' ? 'CreatedAt' : 'StartAt') : 
-            filters.sortBy === 'name' ? 'Title' : 'Relevance',
-    sortDescending: filters.sortOrder === 'desc'
+    sortBy:
+      filters.sortBy === 'date'
+        ? contentType === 'news'
+          ? 'CreatedAt'
+          : 'StartAt'
+        : filters.sortBy === 'name'
+        ? 'Title'
+        : 'Relevance',
+    sortDescending: filters.sortOrder === 'desc',
   };
 
   // Add location if exists
@@ -40,11 +46,12 @@ export const convertToApiParams = (filters: FilterOptions, contentType: 'event' 
     case 'today':
       params.startDate = now.toISOString().split('T')[0];
       break;
-    case 'week':
+    case 'week': {
       const weekStart = new Date(now);
       weekStart.setDate(now.getDate() - now.getDay());
       params.startDate = weekStart.toISOString().split('T')[0];
       break;
+    }
     case 'month':
       params.startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       break;
@@ -101,7 +108,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
 
   const getResultsText = () => {
     if (contentType === 'event') {
-      return resultsCount?.events !== undefined 
+      return resultsCount?.events !== undefined
         ? t('filter.eventsFound', { count: resultsCount.events })
         : t('filter.loading');
     } else {
@@ -111,9 +118,9 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     }
   };
 
-  const hasActiveFilters = 
-    filters.searchTerm || 
-    filters.dateRange !== 'all' || 
+  const hasActiveFilters =
+    filters.searchTerm ||
+    filters.dateRange !== 'all' ||
     filters.location ||
     filters.sortBy !== 'date' ||
     filters.sortOrder !== 'desc';
@@ -126,9 +133,11 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder={contentType === 'event' 
-              ? t('filter.searchEventPlaceholder')
-              : t('filter.searchNewsPlaceholder')}
+            placeholder={
+              contentType === 'event'
+                ? t('filter.searchEventPlaceholder')
+                : t('filter.searchNewsPlaceholder')
+            }
             className={cn(
               'w-full pl-10 pr-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-offset-2',
               getThemeClass(

@@ -16,10 +16,10 @@ export const useRealtimeNotifications = () => {
     try {
       // Update UI immediately
       markAsRead(notificationId);
-      
+
       // Call API to persist the change
       await markNotificationRead(notificationId, userId);
-      
+
       console.log('[useRealtimeNotifications] Marked notification as read:', notificationId);
     } catch (error) {
       console.error('[useRealtimeNotifications] Failed to mark notification as read:', error);
@@ -32,10 +32,10 @@ export const useRealtimeNotifications = () => {
     try {
       // Update UI immediately
       markAllAsRead();
-      
+
       // Call API to persist the change
       await markAllNotificationsRead(userId);
-      
+
       console.log('[useRealtimeNotifications] Marked all notifications as read');
     } catch (error) {
       console.error('[useRealtimeNotifications] Failed to mark all notifications as read:', error);
@@ -45,14 +45,14 @@ export const useRealtimeNotifications = () => {
 
   // Handle notification click with redirect
   const handleNotificationClick = useCallback(async (
-    notificationId: string, 
-    userId: string, 
+    notificationId: string,
+    userId: string,
     redirectUrl?: string,
     onRedirect?: (url: string) => void
   ) => {
     // Mark as read
     await handleMarkAsRead(notificationId, userId);
-    
+
     // Handle redirect
     if (redirectUrl && onRedirect) {
       onRedirect(redirectUrl);

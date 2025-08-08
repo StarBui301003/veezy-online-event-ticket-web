@@ -36,7 +36,9 @@ const NewsDetail: React.FC = () => {
   const [showCount, setShowCount] = useState(3);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(null);
+  const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(
+    null
+  );
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -83,17 +85,18 @@ const NewsDetail: React.FC = () => {
         setLoading(false);
       }
     };
-    if (newsId)     fetchNews();
-    
+    if (newsId) fetchNews();
+
     // Setup realtime listeners for news updates
-    onNews('OnNewsUpdated', (data: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onNews('OnNewsUpdated', (data: { newsId?: string; NewsId?: string }) => {
       if (data.newsId === newsId || data.NewsId === newsId) {
         console.log('News updated - refreshing details');
         fetchNews();
       }
     });
 
-    onNews('OnNewsDeleted', (data: any) => {
+    onNews('OnNewsDeleted', (data: { newsId?: string; NewsId?: string }) => {
       if (data.newsId === newsId || data.NewsId === newsId) {
         console.log('News deleted - redirecting');
         toast.info('This news has been removed');
@@ -109,7 +112,6 @@ const NewsDetail: React.FC = () => {
   const handleNavigate = (path: string) => {
     navigate(path);
   };
-
 
   const handleLoginSuccess = () => {
     setShowLoginModal(false);
@@ -130,7 +132,7 @@ const NewsDetail: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsDropdownOpen(false);
-    
+
     const token = localStorage.getItem('access_token');
     if (!token) {
       setShowLoginModal(true);
@@ -360,10 +362,10 @@ const NewsDetail: React.FC = () => {
                           <DropdownMenuTrigger asChild>
                             <button
                               className={cn(
-                                "p-2 rounded-full transition-colors focus:outline-none",
+                                'p-2 rounded-full transition-colors focus:outline-none',
                                 getThemeClass(
-                                  "hover:bg-gray-100 text-gray-500 hover:text-gray-900",
-                                  "hover:bg-gray-800 text-gray-400 hover:text-white"
+                                  'hover:bg-gray-100 text-gray-500 hover:text-gray-900',
+                                  'hover:bg-gray-800 text-gray-400 hover:text-white'
                                 )
                               )}
                               onClick={(e) => {
@@ -377,8 +379,11 @@ const NewsDetail: React.FC = () => {
                           <DropdownMenuContent
                             align="end"
                             className={cn(
-                              "min-w-[200px] py-1",
-                              getThemeClass("bg-white border-gray-200", "bg-gray-800 border-gray-700")
+                              'min-w-[200px] py-1',
+                              getThemeClass(
+                                'bg-white border-gray-200',
+                                'bg-gray-800 border-gray-700'
+                              )
                             )}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -386,10 +391,10 @@ const NewsDetail: React.FC = () => {
                               onSelect={(e) => e.preventDefault()}
                               onClick={handleReportClick}
                               className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-sm cursor-pointer focus:bg-transparent",
+                                'flex items-center gap-2 px-4 py-2 text-sm cursor-pointer focus:bg-transparent',
                                 getThemeClass(
-                                  "text-red-600 hover:bg-red-50 focus:bg-red-50",
-                                  "text-red-400 hover:bg-red-900/30 focus:bg-red-900/30"
+                                  'text-red-600 hover:bg-red-50 focus:bg-red-50',
+                                  'text-red-400 hover:bg-red-900/30 focus:bg-red-900/30'
                                 )
                               )}
                             >
