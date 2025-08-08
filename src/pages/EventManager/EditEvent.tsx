@@ -45,8 +45,28 @@ interface ValidationErrors {
 }
 
 function getContentType(content: EnhancedContent): ContentType {
-  if (content.description && !content.imageUrl) return 'description';
-  if (!content.description && content.imageUrl) return 'image';
+  // If contentType is already set, use it
+  if (content.contentType) {
+    return content.contentType;
+  }
+
+  // Determine content type based on content
+  if (content.description && content.description.trim() && !content.imageUrl) {
+    return 'description';
+  }
+  if (!content.description && content.imageUrl && content.imageUrl.trim()) {
+    return 'image';
+  }
+  if (
+    content.description &&
+    content.description.trim() &&
+    content.imageUrl &&
+    content.imageUrl.trim()
+  ) {
+    // If both exist, prioritize description
+    return 'description';
+  }
+  // Default to description
   return 'description';
 }
 
@@ -231,7 +251,29 @@ export default function EditEvent() {
       try {
         setLoading(true);
         setError(null);
+
+        // First, fetch categories to ensure they're available
+        const categoryData = await getAllCategories();
+        const categoryOptions = categoryData.map((cat) => ({
+          value: cat.categoryId,
+          label: cat.categoryName,
+        }));
+        setCategoryOptions(categoryOptions);
+
+        // Then fetch event data
         const event = await getEventById(eventId!);
+
+        // Ensure categoryIds and contents are properly preserved
+        const categoryIds = Array.isArray(event.categoryIds) ? event.categoryIds : [];
+        const contents = Array.isArray(event.contents) ? event.contents : [];
+
+        console.log('Fetched event data:', {
+          eventId: event.eventId,
+          categoryIds,
+          contents,
+          eventCoverImageUrl: event.eventCoverImageUrl,
+        });
+
         const eventData = {
           eventName: event.eventName || '',
           eventDescription: event.eventDescription || '',
@@ -239,9 +281,9 @@ export default function EditEvent() {
           eventLocation: event.eventLocation || '',
           startAt: toInputDate(event.startAt || ''),
           endAt: toInputDate(event.endAt || ''),
-          tags: event.tags || [],
-          categoryIds: event.categoryIds || [],
-          contents: event.contents || [],
+          tags: Array.isArray(event.tags) ? event.tags : [],
+          categoryIds: categoryIds, // Ensure this is preserved
+          contents: contents, // Ensure this is preserved
           bankAccount: event.bankAccount || '',
           bankAccountName: event.bankAccountName || '',
           bankName: event.bankName || '',
@@ -250,21 +292,22 @@ export default function EditEvent() {
         setTagInput(eventData.tags.join(', '));
 
         // Convert contents to EnhancedContent with contentType
-        setContents(
-          (event.contents || []).map((c: Content) => ({
+        const enhancedContents = contents.map((c: Content, index: number) => {
+          const enhancedContent: EnhancedContent = {
             ...c,
+            position: c.position || index + 1,
             contentType: getContentType(c),
-          }))
-        );
+          };
+          console.log(`Content ${index + 1}:`, enhancedContent);
+          return enhancedContent;
+        });
+        setContents(enhancedContents);
 
-        const categoryData = await getAllCategories();
-        setCategoryOptions(
-          categoryData.map((cat) => ({
-            value: cat.categoryId,
-            label: cat.categoryName,
-          }))
-        );
+        console.log('Set category options:', categoryOptions);
+        console.log('Set enhanced contents:', enhancedContents);
+        console.log('Set form data with categories:', eventData.categoryIds);
       } catch (err) {
+        console.error('Error fetching event data:', err);
         setError('Không thể tải dữ liệu sự kiện hoặc danh mục!');
       } finally {
         setLoading(false);
@@ -301,6 +344,31 @@ export default function EditEvent() {
       });
     }
   }, [quill, theme, formData.eventDescription]);
+
+  // Ensure categories are properly displayed when categoryOptions are loaded
+  useEffect(() => {
+    if (categoryOptions.length > 0 && formData.categoryIds.length > 0) {
+      console.log('Category options loaded, checking for selected categories:', {
+        categoryOptions: categoryOptions.length,
+        selectedCategoryIds: formData.categoryIds,
+        availableOptions: categoryOptions.filter((option) =>
+          formData.categoryIds.includes(option.value)
+        ),
+      });
+    }
+  }, [categoryOptions, formData.categoryIds]);
+
+  // Additional check to ensure form data is properly synchronized
+  useEffect(() => {
+    if (formData.categoryIds.length > 0 && categoryOptions.length > 0) {
+      const missingCategories = formData.categoryIds.filter(
+        (categoryId) => !categoryOptions.some((option) => option.value === categoryId)
+      );
+      if (missingCategories.length > 0) {
+        console.warn('Some categories are missing from options:', missingCategories);
+      }
+    }
+  }, [formData.categoryIds, categoryOptions]);
 
   // Validation helpers
   const validateSingleField = (name: string, value: any) => {
@@ -433,9 +501,13 @@ export default function EditEvent() {
   };
 
   const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
+    console.log('Categories changed:', selected);
+    const categoryIds = selected.map((option) => option.value);
+    console.log('New category IDs:', categoryIds);
+
     setFormData((prev) => ({
       ...prev,
-      categoryIds: selected.map((option) => option.value),
+      categoryIds: categoryIds,
     }));
   };
 
@@ -627,6 +699,13 @@ export default function EditEvent() {
         })),
       };
 
+      console.log('Submitting updated data:', {
+        eventId,
+        categoryIds: updatedData.categoryIds,
+        contents: updatedData.contents,
+        eventCoverImageUrl: updatedData.eventCoverImageUrl,
+      });
+
       await updateEvent(eventId, updatedData);
       alert('Cập nhật sự kiện thành công!');
       if (location.state?.from) {
@@ -635,6 +714,7 @@ export default function EditEvent() {
         navigate('/event-manager/pending-events');
       }
     } catch (error: any) {
+      console.error('Error updating event:', error);
       const errorMessage = error?.response?.data?.message || 'Cập nhật sự kiện thất bại';
       alert(errorMessage);
     } finally {
@@ -1013,9 +1093,13 @@ export default function EditEvent() {
               <Select
                 isMulti
                 options={categoryOptions}
-                value={categoryOptions.filter((option) =>
-                  formData.categoryIds.includes(option.value)
-                )}
+                value={
+                  categoryOptions.length > 0
+                    ? categoryOptions.filter((option) =>
+                        formData.categoryIds.includes(option.value)
+                      )
+                    : []
+                }
                 onChange={handleCategoriesChange}
                 isLoading={loadingCategories}
                 styles={selectStyles}
