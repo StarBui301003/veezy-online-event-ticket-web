@@ -3,12 +3,12 @@ import { markNotificationRead, markAllNotificationsRead } from '@/services/notif
 import { useCallback } from 'react';
 
 export const useRealtimeNotifications = () => {
-  const {
-    notifications,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    refreshNotifications
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    refreshNotifications 
   } = useNotificationContext();
 
   // Mark single notification as read (with API call)

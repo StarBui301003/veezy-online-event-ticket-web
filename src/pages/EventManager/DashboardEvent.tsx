@@ -55,7 +55,7 @@ export default function EventManagerDashboard() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [activeTab, setActiveTab] = useState('revenue'); // New state for tab switching
-  const { unreadCount } = useRealtimeNotifications(); // Only event manager notifications
+  const { unreadCount } = useRealtimeNotifications();
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
@@ -307,7 +307,6 @@ export default function EventManagerDashboard() {
                   <div className="absolute right-0 mt-2 z-50">
                     <NotificationDropdown
                       userId={userId}
-                      userRole={2}
                       onViewAll={() => {
                         setNotifDropdown(false);
                         navigate('/event-manager/notifications');

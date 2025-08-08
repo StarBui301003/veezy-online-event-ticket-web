@@ -88,13 +88,8 @@ const AllEventsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [filters, setFilters] = useState<FilterOptions>({
-    searchTerm: '',
-    dateRange: 'all',
-    location: '',
-    sortBy: 'date',
-    sortOrder: 'desc',
+    searchTerm: '', dateRange: 'all', location: '', sortBy: 'date', sortOrder: 'desc',
   });
 
   // SignalR connection ref
@@ -291,30 +286,22 @@ const AllEventsPage = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <FilterComponent
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            locations={locations}
-            contentType="event"
-            resultsCount={{ events: events.length }}
-          />
+            <FilterComponent
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                locations={locations}
+                contentType="event"
+                resultsCount={{ events: events.length }}
+            />
         </div>
 
         {/* Conditional Rendering */}
         {loading ? (
-          <div
-            className={`grid gap-6 ${
-              viewMode === 'grid'
-                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'grid-cols-1'
-            }`}
-          >
-            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-              <EventCardSkeleton key={i} viewMode={viewMode} />
-            ))}
-          </div>
+            <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <EventCardSkeleton key={i} viewMode={'grid'} />
+                ))}
+            </div>
         ) : error ? (
           <div className="text-center py-16 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <p>{t('allEvents.errorLoadingEvents')}</p>
@@ -326,18 +313,12 @@ const AllEventsPage = () => {
             </button>
           </div>
         ) : events.length > 0 ? (
-          <>
-            <div
-              className={`grid gap-6 ${
-                viewMode === 'grid'
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  : 'grid-cols-1'
-              }`}
-            >
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} viewMode={viewMode} />
-              ))}
-            </div>
+            <>
+                <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+                    {events.map((event) => (
+                        <EventCard key={event.id} event={event} viewMode={'grid'} />
+                    ))}
+                </div>
 
             {totalPages > 1 && (
               <Pagination

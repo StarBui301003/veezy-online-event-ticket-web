@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { onNotification } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { FieldErrors, validateDiscountCodeForm  } from '@/utils/validation';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Event {
   eventId: string;
@@ -35,6 +37,7 @@ export default function CreateDiscountCode() {
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formData, setFormData] = useState<CreateDiscountCodeData>({
     eventId: eventId || '',
     code: '',
@@ -42,9 +45,39 @@ export default function CreateDiscountCode() {
     value: 0,
     minimum: 0,
     maximum: 0,
-    maxUsage: 2147483647,
+    maxUsage: 1,
     expiredAt: '',
   });
+
+  // Helper function to get field error message
+  const getFieldError = (fieldName: string): string | undefined => {
+    return fieldErrors[fieldName]?.[0];
+  };
+
+  // Helper function to check if field has error
+  const hasFieldError = (fieldName: string): boolean => {
+    return !!fieldErrors[fieldName];
+  };
+
+  // Handle input change with validation
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'discountType' || name === 'value' || name === 'minimum' || name === 'maximum' || name === 'maxUsage'
+        ? Number(value)
+        : value
+    }));
+    
+    // Clear error when user types
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -93,48 +126,45 @@ export default function CreateDiscountCode() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     // Validate form data
-    if (!formData.code.trim()) {
-      toast.error(t('discountCodeRequired'));
+    const errors = validateDiscountCodeForm({
+      ...formData,
+      eventId: eventId || ''
+    });
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      // Scroll to first error
+      const firstError = Object.keys(errors)[0];
+      document.getElementById(firstError)?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    if (formData.value <= 0) {
-      toast.error(t('discountValueMustBeGreaterThan0'));
-      return;
-    }
-    if (formData.discountType === 0 && formData.value > 100) {
-      toast.error(t('percentageDiscountCannotExceed100'));
-      return;
-    }
-    if (!formData.expiredAt) {
-      toast.error(t('expirationDateRequired'));
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      const response = await instance.post('/api/DiscountCode', formData);
-      if (response.data) {
-        toast.success(t('discountCodeCreatedSuccessfully'));
-        navigate('/event-manager/discount-codes');
+      setLoading(true);
+      const response = await instance.post('/api/DiscountCode/create-discount-code', formData);
+      
+      if (response.data.success) {
+        toast.success('Đang tạo mã giảm giá...');
+        // Wait for signalR confirmation
       } else {
-        throw new Error('No response data');
+        throw new Error(response.data.message || 'Failed to create discount code');
       }
-    } catch (err) {
-      console.error('Failed to create discount code:', err);
-      if (err instanceof AxiosError) {
-        if (err.response?.status === 404) {
-          toast.error(t('eventNotFound'));
-        } else if (err.response?.status === 400) {
-          toast.error(err.response.data?.message || t('invalidDiscountCodeData'));
-        } else {
-          toast.error(t('failedToCreateDiscountCode'));
+    } catch (error) {
+      console.error('Error creating discount code:', error);
+      let errorMessage = 'Có lỗi xảy ra khi tạo mã giảm giá';
+      
+      if (error instanceof AxiosError && error.response?.data) {
+        const backendError = error.response.data;
+        if (backendError.fieldErrors) {
+          setFieldErrors(backendError.fieldErrors);
+          return;
         }
-      } else {
-        toast.error(t('anUnexpectedErrorOccurred'));
+        errorMessage = backendError.message || errorMessage;
       }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -206,19 +236,24 @@ export default function CreateDiscountCode() {
             </Label>
             <Input
               id="code"
+              name="code"
               type="text"
               value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                ),
+                hasFieldError('code') ? 'border-red-500' : ''
               )}
               placeholder={t('enterDiscountCode')}
               required
             />
+            {hasFieldError('code') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('code')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {t('enterUniqueCodeForYourDiscount')}
             </p>
@@ -233,20 +268,25 @@ export default function CreateDiscountCode() {
             </Label>
             <select
               id="discountType"
+              name="discountType"
               value={formData.discountType}
-              onChange={(e) => setFormData({ ...formData, discountType: Number(e.target.value) })}
+              onChange={handleInputChange}
               className={cn(
                 'w-full p-3 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
-                )
+                ),
+                hasFieldError('discountType') ? 'border-red-500' : ''
               )}
               required
             >
               <option value={0}>{t('percentageDiscount')}</option>
               <option value={1}>{t('fixedAmountDiscount')}</option>
             </select>
+            {hasFieldError('discountType') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('discountType')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {formData.discountType === 0
                 ? t('discountWillBeAppliedAsAPercentageOfTheTotalAmount')
@@ -260,23 +300,28 @@ export default function CreateDiscountCode() {
             </Label>
             <Input
               id="value"
+              name="value"
               type="number"
               min="0"
               step={formData.discountType === 0 ? '0.01' : '1'}
               value={formData.value || ''}
-              onChange={(e) => setFormData({ ...formData, value: Number(e.target.value) })}
+              onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                ),
+                hasFieldError('value') ? 'border-red-500' : ''
               )}
               placeholder={
                 formData.discountType === 0 ? t('enterPercentage0100') : t('enterAmount')
               }
               required
             />
+            {hasFieldError('value') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('value')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {formData.discountType === 0
                 ? t('enterAValueBetween0And100')
@@ -290,20 +335,25 @@ export default function CreateDiscountCode() {
             </Label>
             <Input
               id="minimum"
+              name="minimum"
               type="number"
               min="0"
               value={formData.minimum || ''}
-              onChange={(e) => setFormData({ ...formData, minimum: Number(e.target.value) })}
+              onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                ),
+                hasFieldError('minimum') ? 'border-red-500' : ''
               )}
               placeholder={t('enterMinimumOrderAmount')}
               required
             />
+            {hasFieldError('minimum') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('minimum')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {t('minimumOrderAmountRequiredToApplyThisDiscount')}
             </p>
@@ -316,20 +366,25 @@ export default function CreateDiscountCode() {
               </Label>
               <Input
                 id="maximum"
+                name="maximum"
                 type="number"
                 min="0"
                 value={formData.maximum || ''}
-                onChange={(e) => setFormData({ ...formData, maximum: Number(e.target.value) })}
+                onChange={handleInputChange}
                 className={cn(
                   'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                   getThemeClass(
                     'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                     'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                  )
+                  ),
+                  hasFieldError('maximum') ? 'border-red-500' : ''
                 )}
                 placeholder={t('enterMaximumDiscountAmount0ForNoLimit')}
                 required
               />
+              {hasFieldError('maximum') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('maximum')}</p>
+              )}
               <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
                 {t('maximumAmountThatCanBeDiscounted0ForNoLimit')}
               </p>
@@ -342,20 +397,25 @@ export default function CreateDiscountCode() {
             </Label>
             <Input
               id="maxUsage"
+              name="maxUsage"
               type="number"
               min="1"
               value={formData.maxUsage || ''}
-              onChange={(e) => setFormData({ ...formData, maxUsage: Number(e.target.value) })}
+              onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                ),
+                hasFieldError('maxUsage') ? 'border-red-500' : ''
               )}
               placeholder={t('enterMaximumUsageCount')}
               required
             />
+            {hasFieldError('maxUsage') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('maxUsage')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {t('maximumNumberOfTimesThisCodeCanBeUsed')}
             </p>
@@ -367,24 +427,39 @@ export default function CreateDiscountCode() {
             </Label>
             <Input
               id="expiredAt"
+              name="expiredAt"
               type="datetime-local"
               value={formData.expiredAt}
-              onChange={(e) => setFormData({ ...formData, expiredAt: e.target.value })}
+              onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(
                   'bg-white border-blue-300 text-gray-900 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer',
                   'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer'
-                )
+                ),
+                hasFieldError('expiredAt') ? 'border-red-500' : ''
               )}
               required
             />
+            {hasFieldError('expiredAt') && (
+              <p className="mt-1 text-sm text-red-600">{getFieldError('expiredAt')}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200/70'))}>
               {t('whenThisDiscountCodeWillExpire')}
             </p>
           </div>
 
           <div className="flex gap-4 pt-4">
+            <Button
+              type="button"
+              onClick={() => navigate('/event-manager/discount-codes')}
+              className={cn(
+                'flex-1 text-white',
+                getThemeClass('bg-gray-600 hover:bg-gray-700', 'bg-gray-600 hover:bg-gray-700')
+              )}
+            >
+              {t('cancel')}
+            </Button>
             <Button
               type="submit"
               className={cn(
@@ -397,16 +472,6 @@ export default function CreateDiscountCode() {
               disabled={loading}
             >
               {loading ? t('creating') : t('createDiscountCode')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => navigate('/event-manager/discount-codes')}
-              className={cn(
-                'flex-1 text-white',
-                getThemeClass('bg-gray-600 hover:bg-gray-700', 'bg-gray-600 hover:bg-gray-700')
-              )}
-            >
-              {t('cancel')}
             </Button>
           </div>
         </form>

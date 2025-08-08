@@ -20,11 +20,12 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement> &
 type TextAreaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & BaseProps;
 
 type SelectOption = { value: string | number; label: string; disabled?: boolean };
-type SelectProps = BaseProps & {
+
+type SelectFieldProps = BaseProps & {
   options: SelectOption[];
+  value: string | string[];
+  onChange: (value: string | string[]) => void;
   placeholder?: string;
-  value?: string | string[];
-  onChange: (value: any) => void;
   multiple?: boolean;
   disabled?: boolean;
   className?: string;
@@ -163,24 +164,24 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaProps>(
 );
 
 // Select Component
-export const SelectField: React.FC<SelectProps> = ({
-  label,
-  error,
-  touched,
-  showError = true,
-  options,
-  containerClass = '',
-  labelClass = '',
-  errorClass = '',
-  placeholder = 'Select an option',
-  value,
-  onChange,
-  multiple = false,
-  disabled = false,
-  className = '',
-  id,
-  ...props
-}) => {
+export function SelectField({
+  label, 
+  error, 
+  touched, 
+  showError = true, 
+  options, 
+  containerClass = '', 
+  labelClass = '', 
+  errorClass = '', 
+  placeholder = 'Select an option', 
+  value, 
+  onChange, 
+  multiple = false, 
+  disabled = false, 
+  className = '', 
+  id, 
+  ...props 
+}: SelectFieldProps) {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
   const hasError = !!error && (touched || showError);
 
@@ -232,4 +233,4 @@ export const SelectField: React.FC<SelectProps> = ({
       {hasError && showError && <p className={cn(errorMessageStyles, errorClass)}>{error}</p>}
     </div>
   );
-};
+}

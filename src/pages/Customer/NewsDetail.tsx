@@ -13,8 +13,10 @@ import {
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 import ReportModal from '@/components/Customer/ReportModal';
+
 import { connectNewsHub, onNews, offNews } from '@/services/signalr.service';
 import { News } from '@/types/event';
+
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
@@ -129,9 +131,8 @@ const NewsDetail: React.FC = () => {
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSuccess = () => {
+  const handleRegisterSuccess = (_email: string) => {
     setShowRegisterModal(false);
-    toast.success('Registration successful!');
     if (news) setReportModal({ type: 'news', id: news.newsId });
   };
 
@@ -717,9 +718,8 @@ const NewsDetail: React.FC = () => {
       <RegisterModal
         open={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
-        onRegisterSuccess={() => {
-          handleRegisterSuccess();
-          toast.success('Registration successful!');
+        onRegisterSuccess={(email) => {
+          handleRegisterSuccess(email);
         }}
         onLoginRedirect={() => {
           setShowRegisterModal(false);

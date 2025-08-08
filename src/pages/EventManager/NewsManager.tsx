@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getMyApprovedEvents, getMyNews, deleteNews } from '@/services/Event Manager/event.service';
-import { News } from '@/types/event';
+import { News } from "@/services/signalr.service";
 import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';

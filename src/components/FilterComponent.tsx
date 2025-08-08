@@ -67,19 +67,14 @@ export const convertToApiParams = (filters: FilterOptions, contentType: 'event' 
   return params;
 };
 
-type ViewMode = 'grid' | 'list';
-
 interface FilterComponentProps {
   filters: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
-  viewMode?: ViewMode;
-  onViewModeChange?: (mode: ViewMode) => void;
   locations?: string[];
   showLocationFilter?: boolean;
   contentType?: 'event' | 'news';
   resultsCount?: { events?: number; news?: number; total?: number };
   className?: string;
-  showViewToggle?: boolean;
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({

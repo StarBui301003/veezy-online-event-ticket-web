@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 
 interface NotificationDropdownProps {
   userId?: string;
-  userRole?: number;
   onViewAll: () => void;
   t: (key: string) => string;
   onRedirect?: (url: string) => void;
