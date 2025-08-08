@@ -1,4 +1,3 @@
-
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import NotificationDropdown from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
@@ -321,7 +320,7 @@ export const Header = () => {
                   )
                 )}
               >
-                {t('News')}
+                {t('news')}
               </Link>
               <Link
                 to="/terms-of-use"

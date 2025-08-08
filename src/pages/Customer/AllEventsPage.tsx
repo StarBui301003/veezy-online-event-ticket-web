@@ -1,643 +1,265 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchEvents } from '@/services/search.service'; // Make sure searchEvents uses axios.customize instance
-import { getHomeEvents } from '@/services/Event Manager/event.service';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
-import { StageBackground } from '@/components/StageBackground';
 import { useTranslation } from 'react-i18next';
+import { Calendar, Loader2, MapPin, Frown } from 'lucide-react';
+
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
-// import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+// FIX: Import Event và PaginatedEventsResponse từ service
+import { searchEventsAPI, Event } from '@/services/search.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-
-export interface Event {
-  eventId: string;
-  eventName: string;
-  eventCoverImageUrl: string;
-  startAt: string;
-  endAt: string;
-  eventLocation: string;
-  isApproved: number;
-  isCancelled: boolean;
-  isActive: boolean;
-  description: string;
-  isFree: boolean;
-  type?: string; // Add type property for search results
-}
-
+import { NO_IMAGE } from '@/assets/img';
 
 type ViewMode = 'grid' | 'list';
+const PAGE_SIZE = 12;
+
+// ... (Các component con như formatDate, getImageUrl, EventCardSkeleton, NoResults giữ nguyên) ...
+const formatDate = (dateString?: string | Date): string => {
+  if (!dateString) return 'Ngày đang cập nhật';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Ngày không hợp lệ';
+    return date.toLocaleDateString('vi-VN', {
+      weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric',
+    });
+  } catch {
+    return 'Ngày đang cập nhật';
+  }
+};
+const getImageUrl = (imageUrl?: string): string => imageUrl || NO_IMAGE;
+const EventCardSkeleton = ({ viewMode }: { viewMode: ViewMode }) => ( <div className={`animate-pulse ${viewMode === 'list' ? 'flex flex-col md:flex-row' : 'flex flex-col h-full'} rounded-xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700`}> <div className={`${viewMode === 'list' ? 'md:w-1/3 h-48 md:h-auto' : 'aspect-video'} bg-gray-300 dark:bg-gray-700`}></div> <div className="p-4 flex-1 space-y-3"> <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div> <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-4/5"></div> <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div> <div className="h-9 bg-gray-300 dark:bg-gray-700 rounded mt-4"></div> </div> </div> );
+const NoResults = () => { 
+  const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses(); 
+  return ( 
+    <div className={cn("text-center py-16 px-6 rounded-lg", getThemeClass('bg-gray-50', 'bg-gray-800'))}> 
+      <Frown className="mx-auto h-12 w-12 text-gray-400" /> 
+      <h3 className={cn("mt-4 text-lg font-medium", getThemeClass('text-gray-900', 'text-white'))}>
+        {t('allEvents.noEventsFound')}
+      </h3> 
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {t('allEvents.noEventsDescription')}
+      </p> 
+    </div> 
+  ); 
+};
 
 const AllEventsPage = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
-  const [allEvents, setAllEvents] = useState<Event[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Filter state
+  // State vẫn giữ nguyên, nhưng bây giờ chúng sẽ được cập nhật đúng cách
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [filters, setFilters] = useState<FilterOptions>({
-    searchTerm: '', // empty means show all
-    dateRange: 'all',
-    location: '',
-    sortBy: 'date',
-    sortOrder: 'desc',
+    searchTerm: '', dateRange: 'all', location: '', sortBy: 'startAt', sortOrder: 'desc',
   });
 
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  useEffect(() => {
+    const loadEvents = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { events, totalCount } = await searchEventsAPI({
+          ...filters,
+          page: currentPage,
+          pageSize: PAGE_SIZE
+        });
 
-  // Function to reload events with filters
-  const reloadEvents = (filters: FilterOptions) => {
-    setLoading(true);
-    if (!filters.searchTerm && filters.dateRange === 'all' && !filters.location) {
-      // No search/filter: show all events
-      setEvents(allEvents);
-      setLoading(false);
-      return;
-    }
-    // Dùng API global search cho tất cả filter
-    searchEvents({
-      searchTerm: filters.searchTerm,
-      dateRange: filters.dateRange,
-      location: filters.location,
-      sortBy: filters.sortBy,
-      sortOrder: filters.sortOrder,
-    })
-      .then((events) => {
         setEvents(events);
-      })
-      .catch(() => setEvents([]))
-      .finally(() => setLoading(false));
-  };
+        
+        // Calculate total pages, ensure at least 1 page
+        const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        setTotalPages(calculatedTotalPages);
+        
+        // Reset to first page if current page exceeds total pages
+        if (currentPage > calculatedTotalPages) {
+          setCurrentPage(1);
+        }
 
-  // Connect to EventHub for real-time updates
-  useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
-
-    // Listen for real-time event updates
-    onEvent('EventCreated', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventUpdated', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventApproved', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-
-    onEvent('EventCancelled', () => {
-      setFilters((prev) => ({ ...prev, searchTerm: prev.searchTerm || 'all' }));
-    });
-  }, []);
-
-  // Initial load: get home events
-  useEffect(() => {
-    setLoading(true);
-    getHomeEvents()
-      .then((events) => {
-        // Chỉ lấy event đã duyệt, chưa bị hủy, đang hoạt động
-        const visibleEvents = events.filter(
-          (e) => e.isApproved === 1 && !e.isCancelled && e.isActive
-        );
-        setAllEvents(visibleEvents);
-        setEvents(visibleEvents);
-      })
-      .catch(() => {
-        setAllEvents([]);
+      } catch (err: any) {
+        console.error('Error loading events:', err);
+        setError('Không thể tải danh sách sự kiện. Vui lòng thử lại sau.');
         setEvents([]);
-      })
-      .finally(() => setLoading(false));
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, [filters, currentPage]);
+
+  const handleFilterChange = useCallback((newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
   }, []);
 
-  // Reload events when filters change
-  useEffect(() => {
-    reloadEvents(filters);
-  }, [filters, allEvents]);
+  const handlePageChange = useCallback((page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [totalPages]);
 
-  // Get unique locations for filter
   const locations = useMemo(() => {
-    return [...new Set(allEvents.map((event) => event.eventLocation).filter(Boolean))] as string[];
-  }, [allEvents]);
-
-  // Apply filters to events
-  // Không cần filter client nữa, chỉ dùng events trả về từ server
-  const filteredEvents = events;
-
-  const getGradient = (index: number) => {
-    const gradients = [
-      'from-pink-500/20 to-purple-500/20',
-      'from-cyan-500/20 to-blue-500/20',
-      'from-yellow-500/20 to-orange-500/20',
-      'from-green-500/20 to-teal-500/20',
-      'from-purple-500/20 to-indigo-500/20',
-      'from-red-500/20 to-pink-500/20',
-    ];
-    return gradients[index % gradients.length];
-  };
+    const locationSet = new Set<string>();
+    events.forEach((event) => {
+      if (event.location) locationSet.add(event.location);
+    });
+    return Array.from(locationSet).sort();
+  }, [events]);
 
   return (
-    <div
-      className={cn(
-        'relative min-h-screen w-full',
-        getThemeClass(
-          'bg-gradient-to-r from-blue-500 to-cyan-400',
-          'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900'
-        )
-      )}
-    >
-      <StageBackground />
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="text-center pt-40 pb-10 overflow-visible">
-          <h1
-            className={cn(
-              'text-5xl md:text-6xl font-extrabold leading-[1.2] py-4 font-sans bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.5)] mb-4 overflow-visible',
-              getThemeClass(
-                'bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600',
-                'bg-gradient-to-r from-pink-400 via-cyan-400 to-yellow-200'
-              )
-            )}
-          >
-            {t('allEventsTitle')}
-          </h1>
-          {/* Music Visualizer */}
-          <div className="flex justify-center gap-1 mb-8 music-visualizer">
-            {[...Array(10)].map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'bar rounded',
-                  getThemeClass(
-                    'bg-gradient-to-t from-blue-400 to-cyan-400',
-                    'bg-gradient-to-t from-pink-400 to-cyan-400'
-                  )
-                )}
-                style={{ animationDelay: `${i * 0.1}s` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Filter Component */}
-        <FilterComponent
-          filters={filters}
-          onFilterChange={(newFilters) => setFilters(newFilters as FilterOptions)}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          locations={locations}
-          showLocationFilter={true}
-          contentType="sự kiện"
-          resultsCount={{ total: filteredEvents.length }}
-        />
-
-        {/* Events Grid */}
-        <div
-          className={`px-4 pb-20 max-w-7xl mx-auto ${
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-6'
-          }`}
-        >
-          {loading ? (
-            <div
-              className={cn(
-                'col-span-full text-center text-2xl py-20',
-                getThemeClass('text-blue-600', 'text-pink-400')
-              )}
-            >
-              {t('loadingEvents')}
-            </div>
-          ) : filteredEvents.length === 0 ? (
-            <div
-              className={cn(
-                'col-span-full text-center text-lg py-20',
-                getThemeClass('text-gray-600', 'text-gray-400')
-              )}
-            >
-              {filters.searchTerm || filters.dateRange !== 'all' || filters.location
-                ? 'Không tìm thấy sự kiện phù hợp với bộ lọc'
-                : t('noApprovedEvents')}
-            </div>
-          ) : (
-            filteredEvents.map((event, idx) => (
-              <div
-                key={event.eventId}
-                className={cn(
-                  'backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden relative cursor-pointer',
-                  getThemeClass(
-                    'bg-white/95 border-gray-200 hover:border-gray-300',
-                    'border-white/20 hover:border-white/40'
-                  ),
-                  viewMode === 'grid' ? 'h-full flex flex-col' : 'grid grid-cols-3 gap-6 p-6'
-                )}
-                style={
-                  viewMode === 'grid'
-                    ? ({
-                        background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                        '--tw-gradient-from': `var(--tw-gradient-to, rgba(236, 72, 153, 0.1))`,
-                        '--tw-gradient-to': `var(--tw-gradient-to, rgba(168, 85, 247, 0.1))`,
-                        ...(viewMode === 'grid' && {
-                          '--tw-gradient-to': `var(--tw-gradient-to, ${
-                            getGradient(idx).split(' ')[1]
-                          })`,
-                        }),
-                      } as React.CSSProperties)
-                    : {}
-                }
-              >
-                <Link to={`/event/${event.eventId}`} className="block h-full w-full">
-                  {viewMode === 'grid' ? (
-                    <>
-                      {/* Image */}
-                      <div className="relative w-full h-60">
-                        <img
-                          src={
-                            event.eventCoverImageUrl ||
-                            'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-                          }
-                          alt={event.eventName}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex-1">
-                          <h2
-                            className={cn(
-                              'text-2xl font-bold mb-2 group-hover:transition-colors duration-200',
-                              getThemeClass(
-                                'text-gray-900 group-hover:text-blue-700',
-                                'text-white group-hover:text-cyan-300'
-                              )
-                            )}
-                          >
-                            {event.eventName}
-                          </h2>
-                          <p
-                            className={cn(
-                              'text-sm mb-4 line-clamp-2',
-                              getThemeClass('text-gray-700', 'text-gray-200')
-                            )}
-                          >
-                            {event.description}
-                          </p>
-                        </div>
-
-                        <div
-                          className={cn(
-                            'space-y-2 mt-4 pt-4 border-t',
-                            getThemeClass('border-gray-200', 'border-white/10')
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'flex items-center gap-2 text-sm',
-                              getThemeClass('text-gray-600', 'text-gray-300')
-                            )}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={cn(
-                                'h-4 w-4 flex-shrink-0',
-                                getThemeClass('text-blue-600', 'text-cyan-400')
-                              )}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                              />
-                            </svg>
-                            <span>
-                              {new Date(event.startAt).toLocaleString('vi-VN', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span
-                                className={cn(
-                                  'text-sm',
-                                  getThemeClass('text-gray-600', 'text-gray-300')
-                                )}
-                              >
-                                {event.eventLocation || t('tba')}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                navigate(`/event/${event.eventId}`);
-                              }}
-                              className={cn(
-                                'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
-                                getThemeClass(
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                )
-                              )}
-                            >
-                              {t('bookNow')}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Image for list view */}
-                      <div className="col-span-1 w-full h-48 rounded-xl overflow-hidden relative">
-                        <img
-                          src={
-                            event.eventCoverImageUrl ||
-                            'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-                          }
-                          alt={event.eventName}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
-
-                      {/* Content for list view */}
-                      <div className="col-span-2 flex-1 min-w-0">
-                        <h2
-                          className={cn(
-                            'text-xl font-bold mb-2 group-hover:transition-colors duration-200 line-clamp-1',
-                            getThemeClass(
-                              'text-gray-900 group-hover:text-blue-700',
-                              'text-white group-hover:text-cyan-300'
-                            )
-                          )}
-                        >
-                          {event.eventName}
-                        </h2>
-                        <p
-                          className={cn(
-                            'text-sm mb-3 line-clamp-2',
-                            getThemeClass('text-gray-700', 'text-gray-200')
-                          )}
-                        >
-                          {event.description}
-                        </p>
-
-                        {/* Additional metadata for list view */}
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-center gap-4 text-xs">
-                            <div
-                              className={cn(
-                                'flex items-center gap-1',
-                                getThemeClass('text-gray-500', 'text-gray-400')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {new Date(event.startAt).toLocaleString('vi-VN', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </div>
-                            {event.eventLocation && (
-                              <div
-                                className={cn(
-                                  'flex items-center gap-1',
-                                  getThemeClass('text-gray-500', 'text-gray-400')
-                                )}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-3 w-3"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                </svg>
-                                <span className="truncate">{event.eventLocation}</span>
-                              </div>
-                            )}
-                            <div
-                              className={cn(
-                                'flex items-center gap-1',
-                                getThemeClass('text-gray-500', 'text-gray-400')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {new Date(event.endAt).toLocaleString('vi-VN', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </div>
-                            <div
-                              className={cn(
-                                'flex items-center gap-1',
-                                getThemeClass('text-gray-500', 'text-gray-400')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>{event.isFree ? 'Miễn phí' : 'Có phí'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={cn(
-                                'flex items-center gap-2 text-sm',
-                                getThemeClass('text-gray-600', 'text-gray-300')
-                              )}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {new Date(event.startAt).toLocaleString('vi-VN', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span
-                                className={cn(
-                                  'text-sm',
-                                  getThemeClass('text-gray-600', 'text-gray-300')
-                                )}
-                              >
-                                {event.eventLocation || t('tba')}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigate(`/event/${event.eventId}`);
-                            }}
-                            className={cn(
-                              'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
-                              getThemeClass(
-                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                              )
-                            )}
-                          >
-                            {t('bookNow')}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </Link>
-              </div>
-            ))
-          )}
+    <div className={cn("min-h-screen", getThemeClass('bg-gray-50', 'bg-gray-900'))}>
+      {/* Header Section */}
+      <div className="relative bg-cover bg-center py-20 md:py-32" style={{ backgroundImage: "url('/path-to-your-header-image.jpg')"}}>
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="container mx-auto px-4 relative z-10 text-center">
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+              {t('allEvents.pageTitle')}
+            </h1>
+            <p className="text-lg md:text-xl text-gray-200 max-w-3xl mx-auto">
+              {t('allEvents.pageSubtitle')}
+            </p>
         </div>
       </div>
 
-      {/* Custom CSS for animation (đã loại bỏ) */}
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+            <FilterComponent
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                locations={locations}
+                contentType="event"
+                resultsCount={{ events: events.length }}
+            />
+        </div>
+
+        {/* Conditional Rendering */}
+        {loading ? (
+            <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                    <EventCardSkeleton key={i} viewMode={viewMode} />
+                ))}
+            </div>
+        ) : error ? (
+            <div className="text-center py-16 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p>{t('allEvents.errorLoadingEvents')}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {t('allEvents.reloadPage')}
+                </button>
+            </div>
+        ) : events.length > 0 ? (
+            <>
+                <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+                    {events.map((event) => (
+                        <EventCard key={event.id} event={event} viewMode={viewMode} />
+                    ))}
+                </div>
+
+                {totalPages > 1 && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
+                )}
+            </>
+        ) : (
+            <NoResults />
+        )}
+      </div>
     </div>
   );
 };
+
+const EventCard = React.memo(({ event, viewMode }: { event: Event; viewMode: ViewMode }) => {
+  const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
+  const navigate = useNavigate();
+
+  // Handle click on event card
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Make sure we have a valid event ID
+    if (!event.id) {
+      console.error('Event ID is missing');
+      return;
+    }
+    
+    // Navigate to event detail page
+    navigate(`/event/${event.id}`);
+    
+    // Scroll to top of the page
+    window.scrollTo(0, 0);
+  }, [event.id, navigate]);
+
+  const cardClasses = cn(
+    'flex flex-col rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer',
+    getThemeClass('bg-white border border-gray-100', 'bg-gray-800 border-gray-700'),
+    viewMode === 'grid' ? 'h-full' : 'md:flex-row'
+  );
+
+  return (
+    // FIX: onClick trên cả card và button giờ đều dùng chung 1 hàm
+    <div className={cardClasses} onClick={handleCardClick}>
+      <div className={`relative ${viewMode === 'grid' ? 'aspect-video' : 'md:w-1/3 h-48 md:h-auto flex-shrink-0'}`}>
+        {/* FIX: Dùng event.coverImageUrl đã được chuẩn hóa */}
+        <img
+          src={getImageUrl(event.coverImageUrl)}
+          alt={event.name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => (e.currentTarget.src = NO_IMAGE)}
+        />
+      </div>
+      <div className="p-4 flex-1 flex flex-col">
+        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-2">
+          <Calendar className="h-4 w-4 mr-1.5 flex-shrink-0" />
+          {/* FIX: Dùng event.startAt đã được chuẩn hóa */}
+          <span>{formatDate(event.startAt) || t('allEvents.dateUpdating')}</span>
+        </div>
+        <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 mb-2">
+          {/* FIX: Dùng event.name đã được chuẩn hóa */}
+          {event.name}
+        </h3>
+        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <MapPin className="h-4 w-4 mr-1.5 flex-shrink-0" />
+          {/* FIX: Dùng event.location đã được chuẩn hóa */}
+          <span className="truncate">{event.location || t('allEvents.locationUpdating')}</span>
+        </div>
+        <div className="mt-auto">
+          {/* Nút này cũng kích hoạt hàm handleCardClick của card cha */}
+          <button 
+            className="w-full py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/event/${event.id}`);
+            }}
+          >
+            {t('allEvents.viewDetails')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Component Pagination giữ nguyên, nó đã được viết tốt.
+const Pagination = ({ currentPage, totalPages, onPageChange }: { currentPage: number, totalPages: number, onPageChange: (page: number) => void }) => { const pages = useMemo(() => { const delta = 2; const left = currentPage - delta; const right = currentPage + delta + 1; const range = []; const rangeWithDots = []; for (let i = 1; i <= totalPages; i++) { if (i === 1 || i === totalPages || (i >= left && i < right)) { range.push(i); } } let l; for (const i of range) { if (l) { if (i - l === 2) { rangeWithDots.push(l + 1); } else if (i - l > 2) { rangeWithDots.push('...'); } } rangeWithDots.push(i); l = i; } return rangeWithDots; }, [currentPage, totalPages]); return ( <nav className="mt-12 flex justify-center items-center gap-2"> <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700">&lsaquo;</button> {pages.map((page, index) => typeof page === 'number' ? ( <button key={index} onClick={() => onPageChange(page)} className={`px-4 py-2 rounded-md text-sm font-medium ${currentPage === page ? 'bg-blue-600 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{page}</button> ) : ( <span key={index} className="px-4 py-2">...</span> ) )} <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-2 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700">&rsaquo;</button> </nav> ); };
 
 export default AllEventsPage;

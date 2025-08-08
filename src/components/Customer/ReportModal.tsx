@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useAuthModal } from '@/contexts/AuthModalContext';
+// Component: ReportModal.tsx
+
+import { useState, useEffect, FormEvent } from 'react';
 import SimpleModal from '../common/SimpleModal';
 import { Button } from '@/components/ui/button';
-import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Admin/report.service';
+import { reportComment, reportEvent, reportNews, reportEventManager } from '@/services/Event Manager/report.service';
 import { toast } from 'react-toastify';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -13,26 +14,36 @@ const REASONS = [
   'Ngôn từ thù địch',
   'Thông tin sai sự thật',
   'Khác',
-];
+] as const;
 
-type TargetType = 'event' | 'news' | 'comment' | 'eventmanager';
-
+type ReportTarget = 'event' | 'news' | 'comment' | 'eventmanager';
+type ReportReason = typeof REASONS[number];
 
 interface ReportModalProps {
   open: boolean;
   onClose: () => void;
-  targetType: TargetType;
+  targetType: ReportTarget;
   targetId: string;
+  onLoginRequired?: () => void;
 }
 
-const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, targetId }) => {
-  // const { t } = useTranslation(); // Remove if not used
-  const { getThemeClass } = useThemeClasses(); // Remove if not used elsewhere
-  const [reason, setReason] = useState(REASONS[0]);
+// Interface này khớp với tài liệu API
+interface ReportDto {
+  reason: string;
+  description: string;
+}
 
+const ReportModal: React.FC<ReportModalProps> = ({ 
+  open, 
+  onClose, 
+  targetType, 
+  targetId,
+  onLoginRequired, 
+}) => {
+  const { getThemeClass } = useThemeClasses();
+  const [reason, setReason] = useState<ReportReason>(REASONS[0]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setShowLoginModal } = useAuthModal();
 
   useEffect(() => {
     if (!open) {
@@ -42,88 +53,116 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
     }
   }, [open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Check login status
-    const accStr = localStorage.getItem('account');
-    if (!accStr) {
-      setShowLoginModal(true);
-      setLoading(false);
-      return;
-    }
+    
     try {
-      if (targetType === 'comment') {
-        await reportComment(targetId, reason, description);
-      } else if (targetType === 'event') {
-        await reportEvent(targetId, reason, description);
-      } else if (targetType === 'news') {
-        await reportNews(targetId, reason, description);
-      } else if (targetType === 'eventmanager') {
-        await reportEventManager(targetId, reason, description);
+      const accStr = localStorage.getItem('account');
+      if (!accStr) {
+        onLoginRequired?.();
+        setLoading(false);
+        return;
       }
-      toast.success('Báo cáo thành công!');
-      onClose();
-    } catch (err: unknown) {
-      let msg = 'Báo cáo thất bại!';
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        typeof (err as { response?: unknown }).response === 'object' &&
-        (err as { response?: { data?: unknown } }).response !== null &&
-        'data' in (err as { response: { data?: unknown } }).response &&
-        typeof ((err as { response: { data?: unknown } }).response as { data?: unknown }).data ===
-          'object' &&
-        (err as { response: { data: { message?: unknown } } }).response.data !== null &&
-        'message' in (err as { response: { data: { message?: unknown } } }).response.data &&
-        typeof (
-          (err as { response: { data: { message?: unknown } } }).response.data as {
-            message?: unknown;
-          }
-        ).message === 'string'
-      ) {
-        msg = (err as { response: { data: { message: string } } }).response.data.message;
+
+      // Tạo đối tượng phẳng (flat object) đúng như API yêu cầu
+      const reportData: ReportDto = {
+        reason,
+        description: description || reason, // Sử dụng reason làm mặc định nếu description rỗng
+      };
+
+      let response;
+      switch (targetType) {
+        case 'event':
+          response = await reportEvent(targetId, reportData);
+          break;
+        case 'news':
+          response = await reportNews(targetId, reportData);
+          break;
+        case 'comment':
+          // Đảm bảo gọi đúng API endpoint cho báo cáo bình luận
+          response = await reportComment(targetId, reportData);
+          break;
+        case 'eventmanager':
+          response = await reportEventManager(targetId, reportData);
+          break;
+        default:
+          throw new Error('Invalid report target type');
       }
-      toast.error(msg);
+
+      if (response) {
+        toast.success('Báo cáo của bạn đã được gửi thành công!');
+        onClose();
+      }
+    } catch (error: unknown) {
+      console.error('Error submitting report:', error);
+      
+      if (typeof error === 'object' && error !== null) {
+        const err = error as { response?: { status?: number; data?: { message?: string } } };
+        
+        if (err.response?.status === 401) {
+          onLoginRequired?.();
+        } else {
+          const errorMessage = err.response?.data?.message || 'Có lỗi xảy ra khi gửi báo cáo';
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error('Có lỗi xảy ra khi gửi báo cáo');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const getTargetName = () => {
-    const names = {
+  const getTargetName = (): string => {
+    const names: Record<ReportTarget, string> = {
       event: 'Sự kiện',
       news: 'Tin tức',
       comment: 'Bình luận',
-      eventmanager: 'Quản lý sự kiện'
+      eventmanager: 'Quản lý sự kiện',
     };
     return names[targetType] || 'Nội dung';
   };
 
+  const targetName = getTargetName();
+
   return (
     <SimpleModal open={open} onClose={onClose}>
-      <div className={cn(
-        'max-w-xs w-full rounded-xl',
-        getThemeClass(
-          'bg-white/95 border border-gray-200 shadow-lg',
-          'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
-        )
-      )}>
+      <div 
+        className={cn(
+          'max-w-xs w-full rounded-xl',
+          getThemeClass(
+            'bg-white/95 border border-gray-200 shadow-lg',
+            'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
+          )
+        )}
+        role="dialog"
+        aria-labelledby="report-modal-title"
+        aria-describedby="report-modal-description"
+      >
         <div className="p-3">
-          <h2 className={cn('text-xl font-bold mb-3', getThemeClass('text-gray-900', 'text-white'))}>
-            Báo cáo {getTargetName()}
+          <h2 
+            id="report-modal-title"
+            className={cn('text-xl font-bold mb-3', getThemeClass('text-gray-900', 'text-white'))}
+          >
+            Báo cáo {targetName}
           </h2>
           
-          <div className={cn('mb-4 p-3 rounded-lg text-sm', getThemeClass('bg-yellow-50 text-yellow-800', 'bg-yellow-900/20 text-yellow-300'))}>
+          <div 
+            id="report-modal-description"
+            className={cn(
+              'mb-4 p-3 rounded-lg text-sm', 
+              getThemeClass('bg-yellow-50 text-yellow-800', 'bg-yellow-900/20 text-yellow-300')
+            )}
+          >
             <strong>Lưu ý:</strong> Vui lòng chọn lý do phù hợp và mô tả chi tiết để chúng tôi có thể xử lý báo cáo một cách hiệu quả nhất.
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className={cn('block mb-2 text-sm font-semibold', getThemeClass('text-gray-700', 'text-purple-200'))}>
+            <fieldset>
+              <legend className={cn('block mb-2 text-sm font-semibold', getThemeClass('text-gray-700', 'text-purple-200'))}>
                 Lý do báo cáo <span className="text-red-500">*</span>
-              </label>
+              </legend>
               <div className="space-y-2">
                 {REASONS.map((r) => (
                   <label
@@ -146,23 +185,28 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
                       name="reason"
                       value={r}
                       checked={reason === r}
-                      onChange={(e) => setReason(e.target.value)}
+                      onChange={() => setReason(r)}
                       className={cn(
                         'w-4 h-4',
                         getThemeClass('text-blue-600', 'text-purple-500')
                       )}
+                      aria-label={`Lý do: ${r}`}
                     />
                     <span className="text-xs">{r}</span>
                   </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             <div>
-              <label className={cn('block mb-2 text-sm font-semibold', getThemeClass('text-gray-700', 'text-purple-200'))}>
+              <label 
+                htmlFor="report-description"
+                className={cn('block mb-2 text-sm font-semibold', getThemeClass('text-gray-700', 'text-purple-200'))}
+              >
                 Mô tả chi tiết (không bắt buộc)
               </label>
               <textarea
+                id="report-description"
                 className={cn(
                   'w-full rounded-lg px-2 py-1 min-h-[50px] border focus:ring-2 outline-none transition resize-none text-xs',
                   getThemeClass(
@@ -174,8 +218,12 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Vui lòng mô tả cụ thể vấn đề bạn gặp phải..."
                 maxLength={500}
+                aria-describedby="char-count"
               />
-              <div className={cn('text-xs text-right mt-1', getThemeClass('text-gray-400', 'text-slate-500'))}>
+              <div 
+                id="char-count"
+                className={cn('text-xs text-right mt-1', getThemeClass('text-gray-400', 'text-slate-500'))}
+              >
                 {description.length}/500 ký tự
               </div>
             </div>
@@ -193,6 +241,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
                     'bg-slate-700 text-white hover:bg-slate-600 border border-slate-600'
                   )
                 )}
+                aria-label="Hủy báo cáo"
               >
                 Hủy bỏ
               </Button>
@@ -206,6 +255,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
                     'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
                   )
                 )}
+                aria-label="Gửi báo cáo"
+                aria-busy={loading}
               >
                 {loading ? 'Đang gửi...' : 'Gửi báo cáo'}
               </Button>
@@ -215,6 +266,6 @@ const ReportModal: React.FC<ReportModalProps> = ({ open, onClose, targetType, ta
       </div>
     </SimpleModal>
   );
-}
+};
 
 export default ReportModal;

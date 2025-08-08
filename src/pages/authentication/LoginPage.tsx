@@ -326,7 +326,7 @@ export const LoginPage = () => {
         style={{ userSelect: 'none' }}
       >
         <IoReturnUpBackOutline className="w-6 h-6" />
-        <span className="font-semibold text-[16px]">Back to Home</span>
+        <span className="font-semibold text-[16px]">{t('backToHome')}</span>
       </div>
       <div className="min-h-screen text-white flex relative">
         {/* Left Side - Welcome Section */}
@@ -381,14 +381,11 @@ export const LoginPage = () => {
             {/* Main Content */}
             <div className="max-w-md">
               <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-                Hello,
-                <br />
-                welcome!
+                {t('welcomeHeading')}
               </h1>
 
               <p className="text-white/70 text-lg mb-8 leading-relaxed">
-                Join thousands of event organizers and attendees. Create unforgettable experiences
-                and discover amazing events near you.
+                {t('welcomeSubtext')}
               </p>
             </div>
 
@@ -408,7 +405,7 @@ export const LoginPage = () => {
               <div className="w-[380px] text-[#A1A1AA] text-[24px]">
                 <Input
                   type="text"
-                  placeholder="Username"
+                  placeholder={t('username')}
                   value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
@@ -440,7 +437,7 @@ export const LoginPage = () => {
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Password"
+                    placeholder={t('password')}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -525,7 +522,7 @@ export const LoginPage = () => {
               <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center">
                 <FiCamera className="text-[#6A5ACD] text-lg" />
               </span>
-              <span>Login with Face</span>
+              <span>{t('loginWithFace')}</span>
             </Button>
             {faceError && (
               <div className="text-red-500 mt-3 text-center text-base font-medium">{faceError}</div>
@@ -538,9 +535,9 @@ export const LoginPage = () => {
               />
             )}
             <div className="mt-6">
-              Don't have an account?{' '}
+              {t('dontHaveAccount')}
               <Link to="/register" className="text-[#60A5FA] hover:underline">
-                Sign Up
+                {t('signUp')}
               </Link>
             </div>
           </div>

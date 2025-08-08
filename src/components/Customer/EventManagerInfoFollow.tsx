@@ -258,9 +258,9 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
                     <span>{t('processing')}</span>
                   </div>
                 ) : isFollowing ? (
-                  t('unfollow')
+                  t('unfo')
                 ) : (
-                  t('follow')
+                  t('eventDetail.followevent')
                 )}
               </span>
             </Button>

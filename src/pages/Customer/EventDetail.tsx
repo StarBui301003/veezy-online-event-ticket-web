@@ -3,7 +3,7 @@ import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { AuthContext } from '@/contexts/AuthContext';
 import AuthModals from '@/components/AuthModals';
 
-
+// Thêm import cho RegisterModal
 import { RegisterModal } from '@/components/RegisterModal';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -122,6 +122,7 @@ const EventDetail = () => {
   const [showDetail, setShowDetail] = useState(true);
   const [showTickets, setShowTickets] = useState(true);
   const [discountCode, setDiscountCode] = useState('');
+  
   const [discountValidation, setDiscountValidation] = useState<{
     success: boolean;
     message: string;
@@ -129,53 +130,78 @@ const EventDetail = () => {
   } | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
-  const [reportModal, setReportModal] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [pendingReport, setPendingReport] = useState<{type: 'event' | 'comment'; id: string} | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingReport, setPendingReport] = useState<{ type: 'event' | 'comment'; id: string } | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false); // Added missing state
+  const [isFollowingEvent, setIsFollowingEvent] = useState(false);
+  const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
+  const [pendingFollow, setPendingFollow] = useState(false);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceError, setFaceError] = useState('');
-  const [isFollowingEvent, setIsFollowingEvent] = useState(false);
-  const [pendingFollow, setPendingFollow] = useState(false);
-  const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
 
-  // State for register modal switching from login modal
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  // State for pending actions
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'follow' | 'report';
+    data?: any;
+  } | null>(null);
 
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
-
-  // Handle report event logic
-  const handleReportEvent = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token || token === 'null' || token === 'undefined') {
-      setPendingReport({ type: 'event', id: eventId || '' });
-      setShowLoginModal(true);
-    } else {
-      setReportModal({ type: 'event', id: eventId || '' });
-    }
-  };
-  const { user } = useContext(AuthContext);
-  // Fallback: if user or customerId is missing, get from localStorage
-  let customerId = user?.userId || user?.accountId || '';
-  if (!customerId) {
-    const accStr = localStorage.getItem('account');
-    if (accStr) {
-      try {
-        const accObj = JSON.parse(accStr);
-        customerId = accObj.userId || accObj.accountId || '';
-      } catch (e) {
-        // ignore parse error
+  const { isLoggedIn, user } = useContext(AuthContext);
+  const customerId = user?.userId || user?.accountId || '';
+  
+  // Handle successful login and pending actions
+  useEffect(() => {
+    if (isLoggedIn) {
+      if (pendingReport) {
+        setShowReportModal(true);
+      } else if (pendingFollow) {
+        handleFollowEvent();
       }
     }
-  }
+  }, [isLoggedIn]);
 
-  const location = useLocation();
-  useEffect(() => {
-    return () => setReportModal(null);
-  }, [location]);
+  // Handle report event
+  const handleReportEvent = () => {
+    const reportInfo = { type: 'event' as const, id: eventId || '' };
+    if (!isLoggedIn) {
+      setPendingReport(reportInfo);
+      setShowLoginModal(true);
+    } else {
+      setPendingReport(reportInfo);
+      setShowReportModal(true);
+    }
+  };
+
+  // Handle report comment
+  const handleReportComment = (report: { type: 'comment'; id: string }) => {
+    if (!isLoggedIn) {
+      setPendingReport(report);
+      setShowLoginModal(true);
+    } else {
+      setPendingReport(report);
+      setShowReportModal(true);
+    }
+  };
+
+  // Handle login required from ReportModal
+  const handleLoginRequired = () => {
+    setShowReportModal(false);
+    setShowLoginModal(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(false);
+    // If there was a pending follow action, execute it
+    if (pendingFollow) {
+      handleFollowEvent();
+    }
+  };
 
   useEffect(() => {
     if (!eventId) {
@@ -223,24 +249,23 @@ const EventDetail = () => {
   // ================== FIX: Kiểm tra trạng thái đã follow khi vào trang ==================
   useEffect(() => {
     if (!eventId || !customerId) return;
-    checkFollowEventByList(customerId, eventId)
-      .then((isFollowed) => setIsFollowingEvent(!!isFollowed))
-      .catch(() => setIsFollowingEvent(false));
+    
+    const checkStatus = async () => {
+      try {
+        const isFollowing = await checkFollowEventByList(customerId, eventId);
+        setIsFollowingEvent(!!isFollowing);
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+        setIsFollowingEvent(false);
+      }
+    };
+
+    checkStatus();
   }, [eventId, customerId]);
   // =======================================================================================
 
   useEffect(() => {
     setLoadingEvents(true);
-    const accStr = localStorage.getItem('account');
-    let isLoggedIn = false;
-    if (accStr) {
-      try {
-        const accObj = JSON.parse(accStr);
-        isLoggedIn = !!(accObj?.userId || accObj?.account?.userId);
-      } catch {
-        isLoggedIn = false;
-      }
-    }
     const fetchEvents = async () => {
       if (isLoggedIn) {
         try {
@@ -289,10 +314,10 @@ const EventDetail = () => {
       }
     };
     fetchEvents();
-  }, [eventId]);
+  }, [eventId, isLoggedIn]);
 
   useEffect(() => {
-          connectCommentHub('https://event.vezzy.site/commentHub');
+        connectCommentHub('https://event.vezzy.site/commentHub');
     const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
     onComment('OnCommentUpdated', reloadComment);
@@ -452,7 +477,7 @@ const EventDetail = () => {
     return () => {
       // SignalR cleanup is handled globally in App.tsx
     };
-  }, [eventId, t, tickets]);
+  }, [eventId]);
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
     const newQuantity = Math.max(0, Math.min(quantity, ticket.quantityAvailable));
@@ -478,7 +503,9 @@ const EventDetail = () => {
   const calculateTotalAmount = () => {
     return Object.values(selectedTickets).reduce((total, item) => {
       const price =
-        typeof item.ticketPrice === 'number' ? item.ticketPrice : Number(item.ticketPrice) || 0;
+        typeof item.ticketPrice === 'number'
+          ? item.ticketPrice
+          : Number(item.ticketPrice) || 0;
       return total + price * item.quantity;
     }, 0);
   };
@@ -491,19 +518,9 @@ const EventDetail = () => {
     }
     // Kiểm tra đăng nhập, nếu chưa thì hiện modal
     requireLogin(() => {
-      // Sau khi login modal, luôn lấy user và customerId mới nhất từ localStorage
-      let latestUser = user;
-      let latestCustomerId = customerId;
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        try {
-          const accObj = JSON.parse(accStr);
-          latestUser = accObj;
-          latestCustomerId = accObj.userId || accObj.accountId || '';
-        } catch (e) {
-          // ignore parse error
-        }
-      }
+      // Sau khi login modal, luôn lấy user và customerId mới nhất từ AuthContext
+      const latestUser = user;
+      const latestCustomerId = latestUser?.userId || latestUser?.accountId || '';
       // Chỉ cho phép role customer mua vé
       if (!latestUser || latestUser.role !== 1) {
         toast.error(t('onlyCustomerCanBuyTicket'));
@@ -719,27 +736,34 @@ const EventDetail = () => {
     }
   };
 
+  // Handle follow/unfollow event
   const handleFollowEvent = async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token || token === 'null' || token === 'undefined') {
+    if (!isLoggedIn) {
       setPendingFollow(true);
       setShowLoginModal(true);
       return;
     }
-    if (!event?.eventId) return;
+    if (!eventId) return;
+
     setLoadingFollowEvent(true);
     try {
       if (isFollowingEvent) {
-        await unfollowEvent(event.eventId);
-        const res = await checkFollowEventByList(customerId, event.eventId);
-        setIsFollowingEvent(!!res);
+        await unfollowEvent(eventId);
+        toast.success(t('unfollowedEvent'));
       } else {
-        await followEvent(event.eventId);
-        const res = await checkFollowEventByList(customerId, event.eventId);
-        setIsFollowingEvent(!!res);
+        await followEvent(eventId);
+        toast.success(t('followedEvent'));
+      }
+      setIsFollowingEvent(!isFollowingEvent);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || t('somethingWentWrong');
+      toast.error(errorMessage);
+      if (errorMessage.includes('Already following')) {
+        setIsFollowingEvent(true);
       }
     } finally {
       setLoadingFollowEvent(false);
+      setPendingFollow(false);
     }
   };
 
@@ -869,9 +893,7 @@ const EventDetail = () => {
                 <DropdownMenuItem
                   onSelect={(e) => {
                     e.preventDefault();
-                    requireLogin(() => {
-                      setTimeout(() => setReportModal({ type: 'event', id: event.eventId }), 10);
-                    });
+                    handleReportEvent();
                   }}
                   className={cn(
                     'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
@@ -940,7 +962,10 @@ const EventDetail = () => {
                     whileHover={{ scale: 1.1, backgroundColor: '#a78bfa' }}
                     className={cn(
                       'px-3 py-1 text-xs rounded-full shadow-md cursor-pointer transition-colors',
-                      getThemeClass('bg-purple-600 text-white', 'bg-purple-600 text-white')
+                      getThemeClass(
+                        'bg-purple-600 text-white',
+                        'bg-purple-600 text-white'
+                      )
                     )}
                   >
                     {tag}
@@ -957,63 +982,46 @@ const EventDetail = () => {
                     )}
                     onClick={() => setShowAllTags(true)}
                   >
-                    +{event.tags.length - 3} {t('otherTags')}
+                    +{event.tags.length - 3} {t('eventDetail.otherTags', { count: event.tags.length - 3 })}
                   </button>
                 )}
                 {/* Nút theo dõi sự kiện */}
                 {event?.eventId && (
-                  <button
+                  <motion.button
                     onClick={handleFollowEvent}
                     disabled={loadingFollowEvent}
                     className={cn(
-                      'ml-4 px-3 py-1.5 rounded-full font-semibold transition-all shadow flex items-center gap-1 whitespace-nowrap text-sm',
+                      'ml-4 px-4 py-2 rounded-full font-semibold transition-all shadow flex items-center gap-2 whitespace-nowrap text-sm',
                       isFollowingEvent
                         ? getThemeClass(
                             'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300',
-                            'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300'
+                            'bg-gray-700 text-white hover:bg-gray-600 border-gray-600'
                           )
                         : getThemeClass(
                             'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-600',
                             'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-600'
                           )
                     )}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    {isFollowingEvent ? (
+                    {loadingFollowEvent ? (
                       <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M18 12H6"
-                          />
-                        </svg>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {t('processing')}...
+                      </>
+                    ) : isFollowingEvent ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
                         {t('unfollowEvent')}
                       </>
                     ) : (
                       <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6v12m6-6H6"
-                          />
-                        </svg>
-                        {t('followEvent')}
+                        <PlusCircle className="w-4 h-4" />
+                        {t('eventDetail.followEvent')}
                       </>
                     )}
-                  </button>
+                  </motion.button>
                 )}
               </motion.div>
             )}
@@ -1099,7 +1107,10 @@ const EventDetail = () => {
               ))}
 
             {/* ====== COMMENT SECTION START ====== */}
-            <CommentSection eventId={event.eventId} setReportModal={setReportModal} />
+            <CommentSection 
+              eventId={event.eventId} 
+              setReportModal={handleReportComment}
+            />
             {/* ====== COMMENT SECTION END ====== */}
 
             {/* ====== EVENT CHAT ASSISTANT ====== */}
@@ -1147,7 +1158,7 @@ const EventDetail = () => {
                 )}
               >
                 <span className="flex items-center">
-                  <Ticket className="w-7 h-7 mr-3" /> {t('buyTickets')}
+                  <Ticket className="w-7 h-7 mr-3" /> {t('eventDetail.buyTickets')}
                 </span>
                 <span>{showTickets ? '▲' : '▼'}</span>
               </button>
@@ -1229,9 +1240,7 @@ const EventDetail = () => {
                               getThemeClass('text-gray-500', 'text-slate-400')
                             )}
                           >
-                            {t('remainingTickets', {
-                              remaining: ticket.quantityAvailable - quantity,
-                            })}
+                            {t('eventDetail.remainingTickets', { count: ticket.quantityAvailable - quantity })}
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center space-x-3">
@@ -1288,7 +1297,7 @@ const EventDetail = () => {
                             </div>
                             <motion.div
                               key={subtotal}
-                              initial={{ scale: 1.15, color: '#34d399' }}
+                              initial={{ scale: 1.15, color: '#fbbf24' }}
                               animate={{ scale: 1, color: '#a7f3d0' }}
                               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                               className={cn(
@@ -1306,7 +1315,7 @@ const EventDetail = () => {
                                 getThemeClass('text-red-600', 'text-red-400')
                               )}
                             >
-                              {t('maxTicketsPerOrderError', { maxPerOrder })}
+                              {t('eventDetail.maxTicketsPerOrderError', { max: maxPerOrder })}
                             </div>
                           )}
                         </motion.div>
@@ -1331,7 +1340,7 @@ const EventDetail = () => {
                 >
                   <h3
                     className={cn(
-                      'text-xl font-semibold mb-4 border-b pb-2',
+                      'text-xl font-bold mb-4 border-b pb-2',
                       getThemeClass(
                         'text-blue-600 border-blue-300',
                         'text-amber-400 border-amber-700'
@@ -1418,7 +1427,7 @@ const EventDetail = () => {
                                   'border-purple-300 text-gray-900 bg-white'
                                 )
                           )}
-                          placeholder={t('enterDiscountCode')}
+                          placeholder={t('eventDetail.discountCodePlaceholder')}
                           value={discountCode}
                           onChange={(e) => {
                             setDiscountCode(e.target.value);
@@ -1468,21 +1477,16 @@ const EventDetail = () => {
                         {validatingDiscount ? (
                           <Loader2 className="w-4 h-4 animate-spin mx-2" />
                         ) : (
-                          t('applyDiscount')
+                          t('eventDetail.applyDiscount')
                         )}
                       </button>
                     </div>
                     {discountValidation && (
                       <div
-                        className={cn(
-                          'text-sm mt-1 px-2 py-1 rounded',
-                          discountValidation.success
-                            ? getThemeClass(
-                                'text-green-700 bg-green-100',
-                                'text-green-700 bg-green-100'
-                              )
-                            : getThemeClass('text-red-700 bg-red-100', 'text-red-700 bg-red-100')
-                        )}
+                        className={cn('text-sm mt-1 px-2 py-1 rounded', getThemeClass(
+                          'text-green-700 bg-green-100',
+                          'text-green-700 bg-green-100'
+                        ))}
                       >
                         <div className="flex items-start">
                           {discountValidation.success ? (
@@ -1521,8 +1525,8 @@ const EventDetail = () => {
                       <ShoppingCart className="w-6 h-6 mr-2" />
                     )}
                     {isCreatingOrder
-                      ? t('processingOrder')
-                      : `${t('bookTickets', { count: selectedItemsCount })}`}
+                      ? t('eventDetail.processingOrder')
+                      : t('eventDetail.bookTickets', { count: selectedItemsCount })}
                   </motion.button>
                   {/* Nút đặt vé bằng khuôn mặt */}
                   <motion.button
@@ -1549,7 +1553,7 @@ const EventDetail = () => {
                     ) : (
                       <Camera className="w-6 h-6 mr-2" />
                     )}
-                    {faceLoading ? t('processingFaceOrder') : t('bookTicketsWithFace')}
+                    {faceLoading ? t('eventDetail.processingFaceOrder') : t('eventDetail.bookTicketsWithFace')}
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
@@ -1573,7 +1577,7 @@ const EventDetail = () => {
                 getThemeClass('text-gray-900', 'text-white')
               )}
             >
-              Recommend Events
+              {t('recommendEvents')}
             </h2>
             {loadingEvents ? (
               <div className="flex justify-center items-center h-60">
@@ -1591,7 +1595,7 @@ const EventDetail = () => {
                   getThemeClass('text-gray-500', 'text-gray-400')
                 )}
               >
-                No events found
+                {t('eventDetail.noEventsFound')}
               </div>
             ) : (
               <Swiper
@@ -1619,6 +1623,7 @@ const EventDetail = () => {
                         )
                       )}
                       onClick={() => navigate(`/event/${event.eventId}`)}
+                      title={t('clickToViewDetails')}
                     >
                       <div className="relative h-48 w-full overflow-hidden">
                         <img
@@ -1651,46 +1656,50 @@ const EventDetail = () => {
           </motion.div>
         </div>
       </div>
-      {reportModal && (
+      {showReportModal && pendingReport && (
         <ReportModal
-          key={reportModal.id}
-          open={Boolean(reportModal)}
-          targetType={reportModal.type}
-          targetId={reportModal.id}
-          onClose={() => setReportModal(null)}
+          open={showReportModal}
+          onClose={() => {
+            setShowReportModal(false);
+            setPendingReport(null); // Clear pending report when modal is closed
+          }}
+          targetType={pendingReport.type}
+          targetId={pendingReport.id}
+          onLoginRequired={handleLoginRequired}
         />
       )}
-      {/* Modal đăng nhập */}
+      
+      {/* Login Modal */}
       {showLoginModal && (
-        <AuthModals
-          open={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={() => {
+        <AuthModals 
+          open={showLoginModal} 
+          onClose={() => {
             setShowLoginModal(false);
-            if (pendingReport) {
-              setReportModal(pendingReport);
-              setPendingReport(null);
-            }
-            if (pendingFollow) {
-              setPendingFollow(false);
-              handleFollowEvent();
-            }
+            // Clear any pending actions when modal is closed
+            setPendingReport(null);
+            setPendingFollow(false);
+          }} 
+          onLoginSuccess={handleLoginSuccess}
+          onRegisterSuccess={() => { 
+            setShowLoginModal(false);
+            setShowRegisterModal(true);
           }}
         />
       )}
-
+      
+      {/* Register Modal */}
       {showRegisterModal && (
         <RegisterModal
           open={showRegisterModal}
-          onClose={() => setShowRegisterModal(false)}
-          onRegisterSuccess={() => {
+          onClose={() => {
             setShowRegisterModal(false);
-            if (pendingFollow) {
-              setPendingFollow(false);
-              handleFollowEvent();
-            }
+            // Clear any pending actions when modal is closed
+            setPendingReport(null);
+            setPendingFollow(false);
           }}
-          onLoginClick={() => {
+          onRegisterSuccess={handleLoginSuccess}
+          onLoginRedirect={() => {
+            // Switch back to login modal
             setShowRegisterModal(false);
             setShowLoginModal(true);
           }}
@@ -1724,7 +1733,7 @@ const EventDetail = () => {
                 getThemeClass('text-gray-900', 'text-gray-900')
               )}
             >
-              {t('bookTicketsWithFace')}
+              {t('eventDetail.bookTicketsWithFace')}
             </h2>
             {faceError && (
               <div

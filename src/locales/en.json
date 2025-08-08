@@ -1,6 +1,6 @@
 {
   "notifications": "Notifications",
-  "new": "New",
+  "News": "News",
   "noNotifications": "No Notifications",
   "allRead": "All Read",
   "markAllAsRead": "Mark All As Read",
@@ -97,7 +97,8 @@
   "search_placeholder": "Search events...",
   "Home": "Home",
   "Event": "Event",
-  "News": "News",
+  
+
   "Terms of Use": "Terms Of Use",
   "termsSubtitle": "An integrated online platform for event organization, ticketing, and AI-based face recognition check-in",
   "latestNews": "News",
@@ -295,7 +296,8 @@
   "seeMore": "See more",
   "noNewNotifications": "No new notifications",
   "viewMore": "View More",
-  "news": "News",
+
+  
   "featuredEvents": "Featured Events",
   "startAt": "Start at",
   "noApprovedEvents": "No approved events.",
@@ -1161,5 +1163,94 @@
   "createCollaborator_cancel": "Cancel",
   "createCollaborator_passwordPlaceholder": "Enter password",
   "createCollaborator_dateOfBirthPlaceholder": "Select date of birth",
-  "writeComment": "Write your comment..."
+  "writeComment": "Write your comment...",
+  "allEvents": {
+    "pageTitle": "Discover Events",
+    "pageSubtitle": "Find and join the most exciting events happening now.",
+    "reloadPage": "Reload Page",
+    "viewDetails": "View Details",
+    "dateUpdating": "Date to be updated",
+    "locationUpdating": "Location to be updated",
+    "noEventsFound": "No events found",
+    "noEventsDescription": "Please try changing the filters or searching with different keywords.",
+    "errorLoadingEvents": "Error loading events"
+  },
+  "filter": {
+  "searchEventPlaceholder": "Search events...",
+  "searchNewsPlaceholder": "Search news...",
+  "allDates": "All dates",
+  "today": "Today",
+  "thisWeek": "This week",
+  "thisMonth": "This month",
+  "upcoming": "Upcoming",
+  "allLocations": "All locations",
+  "clearFilters": "Clear filters",
+  "loading": "Loading...",
+  "eventsFound": "{{count}} events",
+  "newsFound": "{{count}} news",
+  "filteringResults": "Filtering results..."
+},
+  "readMore": "Read more",
+  "clickToViewDetails": "Click to view details",
+   "unfo": "Unfollow",
+   "unfollowEvent": "Unfollow Event",
+   
+   "recommendEvents": "Recommended Events",
+  "eventDetail": {
+    "otherTags": "Other Tags",
+    
+    
+    "buyTickets": "Buy Tickets",
+    "followevent":"Follow",
+    "followEvent": "Follow Event",
+    "remainingTickets": "{{count}} Remaining",
+    "maxTicketsPerOrderError": "Maximum {{max}} tickets per order",
+    "orderSummary": "Order Summary",
+    "ticketType": "{{type}} (x{{count}})",
+    "loginToComment": "Login to comment",
+    "commentPlaceholder": "Add a comment...",
+    "discountCodePlaceholder": "Enter discount code",
+    "loginToCommentMessage": "Please login to comment",
+    "applyDiscount": "Apply Discount",
+    "bookTickets": "Book Tickets",
+    "bookTicketsWithFace": "Book with Face ID",
+    "commentDiscussion": "Comment Discussion",
+    "reportEvent": "Report Event",
+    "reportComment": "Report Comment",
+    
+    "login": "Login",
+    "register": "Register",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirmDelete": "Are you sure you want to delete this comment?",
+    "report": "Report",
+    "aiAssistant": {
+      "title": "Ask AI about this event",
+      "description": "Have questions about {{eventName}}? AI Assistant can help you with:",
+      "ticketInfo": "Ticket Information",
+      "locationTime": "Location & Time",
+      "payment": "Payment",
+      "otherQuestions": "Other Questions",
+      "cta": "Ask AI Assistant",
+      "sampleQuestions": "Sample Questions:",
+      "sample1": "How much are the tickets?",
+      "sample2": "When is the event?",
+      "sample3": "Where is the location?",
+      "sample4": "Are there any discounts?"
+    }
+  },
+  "backToHome": "Back to Home",
+  "loginWithFace": "Login with Face",
+  "dontHaveAccount": "Don't have an account? ",
+  "signUp": "Sign Up",
+  "welcomeHeading": "Hello, welcome!",
+  "welcomeSubtext": "Join thousands of event organizers and attendees. Create unforgettable experiences and discover amazing events near you.",
+  "username": "Username",
+  "password": "Password",
+  "login": "Login",
+  "rememberMe": "Remember me",
+  "forgotPassword": "Forgot password?",
+  "loggingIn": "Logging in...",
+  "or": "OR"
 }

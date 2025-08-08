@@ -8,6 +8,7 @@ import {
   Calendar,
   ArrowLeft,
   ChevronRight,
+  Flag,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
@@ -15,9 +16,15 @@ import ReportModal from '@/components/Customer/ReportModal';
 import { connectNewsHub } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
-import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { LoginModal } from '@/components/common/LoginModal';
+import { RegisterModal } from '@/components/RegisterModal';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const NewsDetail: React.FC = () => {
   const { getThemeClass } = useThemeClasses();
@@ -27,11 +34,12 @@ const NewsDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [relatedNews, setRelatedNews] = useState<News[]>([]);
   const [showCount, setShowCount] = useState(3);
-  const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(
-    null
-  );
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [reportModal, setReportModal] = useState<{ type: 'news' | 'comment'; id: string } | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -54,7 +62,7 @@ const NewsDetail: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    connectNewsHub('https://event.vezzy.site/newsHub');
     const fetchNews = async () => {
       try {
         const res = await getNewsDetail(newsId || '');
@@ -86,16 +94,42 @@ const NewsDetail: React.FC = () => {
     navigate(path);
   };
 
-  const { showLoginModal, setShowLoginModal, requireLogin } = useRequireLogin();
-
   const handleReportNews = () => {
-    requireLogin(() => {
-      if (news) setReportModal({ type: 'news', id: news.newsId });
-    });
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (news) setReportModal({ type: 'news', id: news.newsId });
   };
 
-  const handleCloseReport = () => {
-    setReportModal(null);
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    if (news) setReportModal({ type: 'news', id: news.newsId });
+  };
+
+  const handleShowRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const handleRegisterSuccess = (email: string) => {
+    setShowRegisterModal(false);
+    toast.success('Registration successful!');
+    if (news) setReportModal({ type: 'news', id: news.newsId });
+  };
+
+  const handleReportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDropdownOpen(false);
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setShowLoginModal(true);
+    } else if (news) {
+      setReportModal({ type: 'news', id: news.newsId });
+    }
   };
 
   // Function to properly process HTML content
@@ -315,12 +349,48 @@ const NewsDetail: React.FC = () => {
                         ></div>
                       </div>
                       <div className="flex items-center gap-3 ml-6">
-                        <button
-                          onClick={handleReportNews}
-                          className="p-3 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-all duration-200 group hover:scale-110 border border-red-500/30"
-                        >
-                          <MoreVertical className="w-5 h-5 text-red-300 group-hover:text-red-200" />
-                        </button>
+                        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={cn(
+                                "p-2 rounded-full transition-colors focus:outline-none",
+                                getThemeClass(
+                                  "hover:bg-gray-100 text-gray-500 hover:text-gray-900",
+                                  "hover:bg-gray-800 text-gray-400 hover:text-white"
+                                )
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                              }}
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className={cn(
+                              "min-w-[200px] py-1",
+                              getThemeClass("bg-white border-gray-200", "bg-gray-800 border-gray-700")
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              onClick={handleReportClick}
+                              className={cn(
+                                "flex items-center gap-2 px-4 py-2 text-sm cursor-pointer focus:bg-transparent",
+                                getThemeClass(
+                                  "text-red-600 hover:bg-red-50 focus:bg-red-50",
+                                  "text-red-400 hover:bg-red-900/30 focus:bg-red-900/30"
+                                )
+                              )}
+                            >
+                              <Flag className="w-4 h-4" />
+                              <span>Report</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
 
@@ -441,7 +511,7 @@ const NewsDetail: React.FC = () => {
                       <img
                         src={news.imageUrl}
                         alt={news.newsTitle}
-                        className="w-full max-h-[600px] object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full max-h-[600px] object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
@@ -611,19 +681,30 @@ const NewsDetail: React.FC = () => {
       {/* Report Modal */}
       {reportModal && (
         <ReportModal
-          open={Boolean(reportModal)}
+          open={true}
           targetType={reportModal.type}
           targetId={reportModal.id}
-          onClose={handleCloseReport}
+          onClose={() => setReportModal(null)}
         />
       )}
       {/* Login Modal */}
       <LoginModal
         open={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onLoginSuccess={() => {
-          setShowLoginModal(false);
-          if (news) setReportModal({ type: 'news', id: news.newsId });
+        onLoginSuccess={handleLoginSuccess}
+        onRegisterRedirect={handleShowRegister}
+      />
+      {/* Register Modal */}
+      <RegisterModal
+        open={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onRegisterSuccess={(email) => {
+          handleRegisterSuccess(email);
+          toast.success('Registration successful!');
+        }}
+        onLoginRedirect={() => {
+          setShowRegisterModal(false);
+          setShowLoginModal(true);
         }}
       />
       <style>{`

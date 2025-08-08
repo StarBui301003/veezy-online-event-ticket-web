@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { searchEvents } from '@/services/search.service';
+import { searchEventsAPI } from '@/services/search.service';
 import { getAllCategories } from '@/services/Event Manager/event.service';
 import { getProvinces } from 'sub-vn';
 import {
@@ -74,19 +74,41 @@ export const SearchResultsPage = () => {
       setError(null);
 
       try {
-        const searchResults = await searchEvents(query);
-        const eventResults = searchResults.filter((item) => item.type.toLowerCase() === 'event');
-        setResults(eventResults);
-      } catch (err) {
-        console.error('Error fetching search results:', err);
-        setError(t('searchErrorFetchingResults'));
+        const { events } = await searchEventsAPI({
+          searchTerm: query,
+          dateRange: 'all',
+          location: '',
+          sortBy: 'relevance',
+          sortOrder: 'desc',
+          page: 1,
+          pageSize: 50 // Increase page size to get more results
+        });
+        
+        // Map API response to SearchResult type
+        const mappedResults = events.map(event => ({
+          id: event.id,
+          name: event.name,
+          description: event.description || '',
+          type: 'event',
+          imageUrl: event.coverImageUrl || '',
+          date: event.startAt,
+          location: event.location,
+          isFree: event.isFree,
+          price: event.isFree ? 0 : undefined
+        }));
+        
+        setResults(mappedResults);
+      } catch (err: any) {
+        console.error('Search failed:', err);
+        setError(err.message || 'Có lỗi xảy ra khi tìm kiếm');
+        setResults([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchSearchResults();
-  }, [query, t]);
+  }, [query]);
 
   // Fetch categories from API
   useEffect(() => {
@@ -349,8 +371,8 @@ export const SearchResultsPage = () => {
                     className={cn(
                       'border rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors',
                       getThemeClass(
-                        'bg-white border-gray-300 text-gray-900 hover:bg-gray-50',
-                        'bg-gray-700/50 border-gray-600 text-white hover:bg-gray-700/70'
+                        'bg-white border-gray-300 text-gray-900',
+                        'bg-gray-700/50 border-gray-600 text-white'
                       )
                     )}
                   >
@@ -424,7 +446,7 @@ export const SearchResultsPage = () => {
                     value={filters.date}
                     onChange={(e) => setFilters({ ...filters, date: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'
@@ -452,7 +474,7 @@ export const SearchResultsPage = () => {
                     value={filters.category}
                     onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'
@@ -491,7 +513,7 @@ export const SearchResultsPage = () => {
                     onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                     placeholder={t('selectLocation')}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900 placeholder-gray-500',
                         'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
@@ -575,7 +597,7 @@ export const SearchResultsPage = () => {
                     value={filters.priceRange}
                     onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'

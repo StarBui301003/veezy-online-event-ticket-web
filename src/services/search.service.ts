@@ -1,118 +1,244 @@
-// Interface cho dữ liệu trả về từ API (raw)
-interface RawNews {
-  id: string;
-  eventId: string;
-  description: string;
-  title: string;
-  content: string;
-  authorId: string;
-  imageUrl: string;
-  status: boolean;
-  location?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+// src/services/search.service.ts
 
-interface RawEvent {
+import instance from "@/services/axios.customize";
+import { toast } from 'react-toastify';
+import { FilterOptions } from '@/components/FilterComponent';
+
+// ================== EVENT INTERFACES & API ==================
+
+/**
+ * @description Interface Event đã được chuẩn hóa. 
+ * Component sẽ chỉ làm việc với interface này để tránh lỗi TypeScript.
+ */
+export interface Event {
   id: string;
   name: string;
-  imageUrl: string;
-  date: string;
-  location?: string;
-  description: string;
-  type: string;
-}
-import type { News } from '@/types/event';
-
-export interface NewsSearchFilter {
-  searchTerm?: string;
-  dateRange?: string;
-  location?: string;
-  sortBy?: string;
-  sortOrder?: string;
-}
-
-export const searchNews = async (filter: NewsSearchFilter): Promise<News[]> => {
-  try {
-    const response = await instance.get('/api/News/global-search', {
-      params: filter
-    });
-    if (response.data.flag && Array.isArray(response.data.data)) {
-      // Map dữ liệu trả về về đúng kiểu News, chỉ lấy news đã duyệt, đang hoạt động
-      return response.data.data
-        .filter((item: RawNews) => item.status === true)
-        .map((item: RawNews) => ({
-          newsId: item.id,
-          eventId: item.eventId,
-          newsDescription: item.description,
-          newsTitle: item.title,
-          newsContent: item.content,
-          authorId: item.authorId,
-          imageUrl: item.imageUrl,
-          status: item.status,
-          eventLocation: item.location || '',
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-        }));
-    }
-    return [];
-  } catch (error) {
-    console.error('Search news failed:', error);
-    return [];
-  }
-};
-import instance from "@/services/axios.customize";
-
-export interface EventSearchFilter {
-  searchTerm?: string;
-  dateRange?: string;
-  location?: string;
-  sortBy?: string;
-  sortOrder?: string;
-}
-
-export interface Event {
-  eventId: string;
-  eventName: string;
-  eventCoverImageUrl: string;
+  coverImageUrl: string;
   startAt: string;
-  endAt: string;
-  eventLocation: string;
-  isApproved: number;
-  isCancelled: boolean;
-  isActive: boolean;
-  description: string;
+  endAt: string | null;
+  location: string;
   isFree: boolean;
-  type?: string;
+  isApproved?: number;
+  isCancelled?: boolean;
+  isActive?: boolean;
+  description?: string;
 }
 
-export const searchEvents = async (filter: EventSearchFilter): Promise<Event[]> => {
+/**
+ * @description Định nghĩa kiểu trả về cho API có phân trang.
+ * Luôn bao gồm danh sách items và tổng số lượng.
+ */
+export interface PaginatedEventsResponse {
+  events: Event[];
+  totalCount: number;
+}
+
+/**
+ * @description Hàm tìm kiếm SỰ KIỆN đã được cập nhật.
+ * - Nhận đầy đủ tham số filter, bao gồm cả page và pageSize.
+ * - Trả về một object chứa 'events' và 'totalCount'.
+ * - Tự động map dữ liệu thô từ API sang interface Event đã chuẩn hóa.
+ */
+export const searchEventsAPI = async (
+  filters: FilterOptions & { page?: number; pageSize?: number }
+): Promise<PaginatedEventsResponse> => {
   try {
-    const response = await instance.get('/api/Event/global-search', {
-      params: filter
-    });
-    if (response.data.flag && Array.isArray(response.data.data)) {
-      // Map dữ liệu trả về về đúng kiểu Event
-      return response.data.data
-        .filter((item: RawEvent) => item.type === 'event')
-        .map((item: RawEvent) => ({
-          eventId: item.id,
-          eventName: item.name,
-          eventCoverImageUrl: item.imageUrl,
-          startAt: item.date,
-          endAt: item.date,
-          eventLocation: item.location || '',
-          isApproved: 1,
-          isCancelled: false,
-          isActive: true,
-          description: item.description,
-          isFree: false,
-          type: item.type,
-        }));
+    const params: any = {
+      page: filters.page || 1,
+      pageSize: filters.pageSize || 12,
+      searchTerm: filters.searchTerm,
+      location: filters.location,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+    };
+    
+    // Handle date range filter
+    if (filters.dateRange && filters.dateRange !== 'all') {
+      const now = new Date();
+      const startDate = new Date(now);
+      
+      switch (filters.dateRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          params.startDate = startDate.toISOString();
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - now.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          params.startDate = startDate.toISOString();
+          break;
+        case 'month':
+          startDate.setDate(1);
+          startDate.setHours(0, 0, 0, 0);
+          params.startDate = startDate.toISOString();
+          break;
+        case 'upcoming':
+          params.startDate = now.toISOString();
+          break;
+      }
     }
-    return [];
+    
+    const response = await instance.get('/api/Event/home', { params });
+    
+    // Handle different response formats
+    if (response.data?.flag && Array.isArray(response.data.data?.items)) {
+      // Format: { flag: true, data: { items: [], totalCount: number } }
+      const apiItems = response.data.data.items;
+      const totalCount = response.data.data.totalCount || apiItems.length;
+      
+      const mappedEvents: Event[] = apiItems.map((item: any) => ({
+        id: item.eventId || item.id,
+        name: item.eventName || item.name,
+        coverImageUrl: item.eventCoverImageUrl || item.coverImageUrl || item.imageUrl || '',
+        startAt: item.startAt || item.startTime,
+        endAt: item.endAt || item.endTime || null,
+        location: item.eventLocation || item.location || 'Đang cập nhật',
+        isFree: Boolean(item.isFree),
+        isApproved: item.isApproved,
+        isCancelled: item.isCancelled,
+        isActive: item.isActive,
+        description: item.description || '',
+      }));
+
+      return { events: mappedEvents, totalCount };
+    }
+    
+    // Fallback for array response
+    if (Array.isArray(response.data)) {
+      const mappedEvents: Event[] = response.data.map((item: any) => ({
+        id: item.eventId || item.id,
+        name: item.eventName || item.name,
+        coverImageUrl: item.eventCoverImageUrl || item.coverImageUrl || item.imageUrl || '',
+        startAt: item.startAt || item.startTime,
+        endAt: item.endAt || item.endTime || null,
+        location: item.eventLocation || item.location || 'Đang cập nhật',
+        isFree: Boolean(item.isFree),
+        isApproved: item.isApproved,
+        isCancelled: item.isCancelled,
+        isActive: item.isActive,
+        description: item.description || '',
+      }));
+      return { events: mappedEvents, totalCount: mappedEvents.length };
+    }
+    
+    // Fallback for empty or unexpected response
+    return { events: [], totalCount: 0 };
+    
   } catch (error) {
-    console.error('Search failed:', error);
-    return [];
+    console.error('Event search failed:', error);
+    toast.error('Lỗi khi tìm kiếm sự kiện. Vui lòng thử lại sau.');
+    return { events: [], totalCount: 0 };
   }
 };
+
+
+// ================== NEWS INTERFACES & API ==================
+
+/**
+ * @description Interface News đã được chuẩn hóa.
+ */
+export interface News {
+  newsId: string;
+  newsTitle: string;
+  imageUrl: string | null;
+  createdAt: string;
+  authorFullName: string | null;
+  newsDescription: string | null;
+  newsContent?: string; // Giữ lại để có thể dùng cho description fallback
+  eventLocation: string | null;
+  status: boolean; // Chuẩn hóa về boolean
+}
+
+/**
+ * @description Kiểu trả về cho API News có phân trang.
+ */
+export interface PaginatedNewsResponse {
+  news: News[];
+  totalCount: number;
+}
+
+/**
+ * @description Hàm tìm kiếm TIN TỨC đã được cập nhật.
+ * - Nhận filter và tham số phân trang.
+ * - Đóng gói logic gọi API và xử lý các định dạng response khác nhau.
+ * - Trả về một object chuẩn hóa.
+ */
+export const searchNews = async (
+  filters: FilterOptions & { page?: number; pageSize?: number }
+): Promise<PaginatedNewsResponse> => {
+  try {
+    const params: any = {
+      page: filters.page || 1,
+      pageSize: filters.pageSize || 12,
+      searchTerm: filters.searchTerm,
+      location: filters.location,
+      sortBy: filters.sortBy === 'date' ? 'createdAt' : filters.sortBy, // Chuyển đổi 'date' sang 'createdAt'
+      sortOrder: filters.sortOrder,
+      // **QUAN TRỌNG**: Yêu cầu backend chỉ trả về các tin tức có status active
+      // Điều này giúp cải thiện hiệu năng, không cần lọc ở client.
+      status: 'active' 
+    };
+    
+    // Xử lý dateRange nếu có...
+    if (filters.dateRange && filters.dateRange !== 'all') {
+        // ... (logic xử lý dateRange của bạn)
+    }
+
+    const response = await instance.get('/api/News/all-Home', { params });
+
+    // Xử lý các định dạng response khác nhau
+    let items: any[] = [];
+    let totalItems = 0;
+
+    if (response.data?.data?.items) {
+      items = response.data.data.items;
+      totalItems = response.data.data.totalCount || items.length;
+    } else if (Array.isArray(response.data)) {
+      items = response.data;
+      totalItems = items.length;
+    }
+
+    // Map dữ liệu thô sang interface News đã chuẩn hóa
+    const mappedNews: News[] = items.map((item: any) => ({
+      newsId: item.newsId,
+      newsTitle: item.newsTitle,
+      imageUrl: item.imageUrl || null,
+      createdAt: item.createdAt,
+      authorFullName: item.authorFullName || null,
+      newsDescription: item.newsDescription || null,
+      newsContent: item.newsContent || '',
+      eventLocation: item.eventLocation || null,
+      // Chuẩn hóa status về boolean
+      status: [true, 1, 'true', '1'].includes(item.status), 
+    }));
+
+    return { news: mappedNews, totalCount: totalItems };
+
+  } catch (error: any) {
+    console.error('News search failed:', error);
+    toast.error(`Lỗi khi tải tin tức: ${error.message}`);
+    return { news: [], totalCount: 0 };
+  }
+};
+
+
+// ================== GLOBAL SEARCH ==================
+
+export const searchAll = async (filters: FilterOptions): Promise<{ events: Event[], news: News[] }> => {
+  try {
+    const [eventResponse, newsResponse] = await Promise.all([
+      searchEventsAPI({ ...filters, page: 1, pageSize: 200 }),
+      searchNews(filters)
+    ]);
+    
+    return { 
+      events: eventResponse.events, 
+      news: newsResponse.news 
+    };
+  } catch (error) {
+    console.error('Global search failed:', error);
+    return { events: [], news: [] };
+  }
+};
+
+export type { FilterOptions };

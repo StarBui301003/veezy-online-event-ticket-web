@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import instance from '@/services/axios.customize';
 import { Loader2, Send, MoreVertical, Flag } from 'lucide-react';
+import { LoginModal } from '@/components/common/LoginModal';
+import { RegisterModal } from '@/components/RegisterModal';
 import { toast } from 'react-toastify';
 import {
   DropdownMenu,
@@ -63,6 +65,8 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   const [editContent, setEditContent] = useState('');
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   const fetchComments = () => {
     setLoading(true);
@@ -223,6 +227,26 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     setDeleteConfirmId(null);
   };
 
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // Any additional logic after successful login
+  };
+
+  const handleRegisterRedirect = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const handleLoginRedirect = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
+  };
+
+  const handleRegisterSuccess = () => {
+    setShowRegisterModal(false);
+    // Any additional logic after successful registration
+  };
+
   // Hiển thị tối đa 3 comment, có nút xem thêm
   const sortedComments = [...comments].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -250,7 +274,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
         )}
         type="button"
       >
-        {t('commentDiscussion')}
+        {t('eventDetail.commentDiscussion')}
         <span>{showComment ? '▲' : '▼'}</span>
       </button>
       {showComment && (
@@ -318,14 +342,11 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
             ) : (
               <div
                 className={cn(
-                  'text-center mb-4 p-4 rounded-lg',
-                  getThemeClass(
-                    'text-gray-600 bg-gray-50 border border-gray-200',
-                    'text-slate-400 bg-slate-700/50'
-                  )
+                  'text-center py-4 text-sm',
+                  getThemeClass('text-gray-600', 'text-slate-400')
                 )}
               >
-                {t('loginToComment')}{' '}
+                {t('eventDetail.loginToCommentMessage')}
                 <a
                   href="/login"
                   className={cn(
@@ -336,9 +357,8 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                     )
                   )}
                 >
-                  {t('login')}
-                </a>{' '}
-                {t('comment')}
+                  {t('eventDetail.login')}
+                </a>
               </div>
             )}
           </div>
@@ -397,7 +417,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                 'text-xs',
                                 getThemeClass('text-gray-500', 'text-slate-400')
                               )}>{new Date(c.createdAt).toLocaleString("vi-VN")}</p>
-                            <DropdownMenu modal={false}>
+                            <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
                                   className={cn(
@@ -407,6 +427,10 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                       'bg-slate-800 hover:bg-slate-700 border border-slate-700'
                                     )
                                   )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
                                 >
                                   <MoreVertical
                                     className={cn(
@@ -416,21 +440,39 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                   />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" sideOffset={8} collisionPadding={8} style={{ maxHeight: 300, overflowY: 'auto' }}>
-                                {/* Report chỉ cho comment của người khác */}
-                                {loggedInUser && c.userId !== loggedInUser.userId && (
+                              <DropdownMenuContent 
+                                align="end" 
+                                sideOffset={8}
+                                className={cn(
+                                  'z-[100] min-w-[180px] p-1',
+                                  getThemeClass('bg-white', 'bg-slate-800')
+                                )}
+                              >
+                                {/* Report button - only show for other users' comments */}
+                                {loggedInUser?.userId !== c.userId && (
                                   <DropdownMenuItem
-                                    onSelect={e => {
+                                    onSelect={(e) => {
                                       e.preventDefault();
-                                      setReportModal({type: 'comment', id: c.commentId});
+                                      if (!loggedInUser) {
+                                        setShowLoginModal(true);
+                                        return;
+                                      }
+                                      setReportModal({ type: 'comment', id: c.commentId });
                                     }}
-                                    className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                                    className={cn(
+                                      'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',
+                                      getThemeClass(
+                                        'text-red-600 hover:bg-red-50',
+                                        'text-red-400 hover:bg-red-900/30'
+                                      )
+                                    )}
                                   >
-                                    <Flag className="w-4 h-4" /> {t('reportComment')}
+                                    <Flag className="w-4 h-4" />
+                                    <span>{t('eventDetail.reportComment')}</span>
                                   </DropdownMenuItem>
                                 )}
-                                {/* Sửa/Xóa chỉ cho comment của mình */}
-                                {loggedInUser && c.userId === loggedInUser.userId && (
+                                {/* Edit and Delete - only for comment owner */}
+                                {loggedInUser?.userId === c.userId && (
                                   <>
                                     <DropdownMenuItem
                                       onSelect={(e) => {
@@ -438,14 +480,15 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                         handleEdit(c.commentId, c.content);
                                       }}
                                       className={cn(
-                                        'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
+                                        'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',
                                         getThemeClass(
                                           'text-blue-600 hover:bg-blue-50',
-                                          'text-blue-400 hover:bg-blue-800/30'
+                                          'text-blue-400 hover:bg-blue-900/30'
                                         )
                                       )}
                                     >
-                                      ✏️ {t('editComment') || 'Sửa'}
+                                      <span>✏️</span>
+                                      <span>{t('edit')}</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onSelect={(e) => {
@@ -453,14 +496,15 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                         handleDelete(c.commentId);
                                       }}
                                       className={cn(
-                                        'flex items-center gap-2 font-semibold cursor-pointer rounded px-3 py-2',
+                                        'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',
                                         getThemeClass(
                                           'text-red-600 hover:bg-red-50',
-                                          'text-red-400 hover:bg-red-800/30'
+                                          'text-red-400 hover:bg-red-900/30'
                                         )
                                       )}
                                     >
-                                      🗑️ {t('deleteComment') || 'Xóa'}
+                                      <span>🗑️</span>
+                                      <span>{t('delete')}</span>
                                     </DropdownMenuItem>
                                   </>
                                 )}
@@ -496,20 +540,20 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                                 onClick={() => handleSaveEdit(c.commentId)}
                                 disabled={posting || !editContent.trim()}
                               >
-                                {t('save') || 'Lưu'}
+                                {t('save')}
                               </button>
                               <button
                                 className={cn(
                                   'px-4 py-2 rounded-lg font-semibold transition',
                                   getThemeClass(
-                                    'bg-gray-500 text-white hover:bg-gray-600 shadow-md',
-                                    'bg-slate-500 text-white hover:bg-slate-600'
+                                    'bg-gray-200 text-gray-700 hover:bg-gray-300',
+                                    'bg-slate-700 text-white hover:bg-slate-600'
                                   )
                                 )}
-                                onClick={handleCancelEdit}
+                                onClick={() => setEditingCommentId(null)}
                                 disabled={posting}
                               >
-                                {t('cancel') || 'Hủy'}
+                                {t('cancel')}
                               </button>
                             </div>
                           </div>
@@ -541,7 +585,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                               getThemeClass('text-red-700', 'text-red-400')
                             )}
                           >
-                            Bạn muốn xóa bình luận này vĩnh viễn?
+                            {t('confirmDeleteComment')}
                           </p>
                           <div className="flex gap-3">
                             <button
@@ -554,7 +598,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                               )}
                               onClick={() => confirmDelete(c.commentId)}
                             >
-                              Xóa
+                              {t('delete')}
                             </button>
                             <button
                               className={cn(
@@ -566,7 +610,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                               )}
                               onClick={cancelDelete}
                             >
-                              Hủy
+                              {t('cancel')}
                             </button>
                           </div>
                         </div>
@@ -603,7 +647,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
                       )}
                       onClick={() => setShowCount(3)}
                     >
-                      {t('collapse') || 'Thu gọn'}
+                      {t('showLess')}
                     </button>
                   </div>
                 )}
@@ -611,6 +655,21 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
             )}
           </div>
         </>
+      )}
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+        onRegisterRedirect={handleRegisterRedirect}
+      />
+      
+      {showRegisterModal && (
+        <RegisterModal
+          open={showRegisterModal}
+          onClose={() => setShowRegisterModal(false)}
+          onRegisterSuccess={handleRegisterSuccess}
+          onLoginRedirect={handleLoginRedirect}
+        />
       )}
     </div>
   );

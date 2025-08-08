@@ -109,7 +109,7 @@ const EventManagerProfile = () => {
     if (tab === 'news' && id) {
       setLoadingNews(true);
       instance
-        .get(`/api/News/byAuthor`, { params: { authorId: id, page: 1, pageSize: 20 } })
+        .get(`/api/News/byAuthorPublic`, { params: { authorId: id, page: 1, pageSize: 20 } })
         .then((res) => {
           const items = res.data?.data?.items;
           setNews(Array.isArray(items) ? items : []);
@@ -372,8 +372,38 @@ const EventManagerProfile = () => {
                   {news.map((n, idx) => (
                     <div
                       key={n.newsId || idx}
-                      className="bg-slate-800/80 rounded-xl p-6 shadow border border-purple-700/30"
+                      className="bg-slate-800/80 rounded-xl p-6 shadow border border-purple-700/30 relative group"
                     >
+                      {/* Report dropdown */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button 
+                              className="p-1.5 rounded-full bg-slate-700/80 hover:bg-slate-600/80 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="w-4 h-4 text-gray-300" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                const token = localStorage.getItem('access_token');
+                                if (!token || token === 'null' || token === 'undefined') {
+                                  setPendingReportTarget({ type: 'news', id: n.newsId });
+                                  setShowLoginModal(true);
+                                } else {
+                                  setReportTarget({ type: 'news', id: n.newsId });
+                                }
+                              }}
+                              className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
+                            >
+                              <Flag className="w-4 h-4" /> {t('reportNews')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       {n.imageUrl && (
                         <img
                           src={n.imageUrl}
@@ -398,31 +428,6 @@ const EventManagerProfile = () => {
                       >
                         {t('viewDetails')}
                       </a>
-                      {/* Dropdown báo cáo news */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="mt-2 px-3 py-1 rounded bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
-                            {t('actions')}
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              const token = localStorage.getItem('access_token');
-                              if (!token || token === 'null' || token === 'undefined') {
-                                setPendingReportTarget({ type: 'news', id: n.newsId });
-                                setShowLoginModal(true);
-                              } else {
-                                setReportTarget({ type: 'news', id: n.newsId });
-                              }
-                            }}
-                            className="flex items-center gap-2 text-red-600 font-semibold cursor-pointer hover:bg-red-50 rounded px-3 py-2"
-                          >
-                            <Flag className="w-4 h-4" /> {t('reportNews')}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   ))}
                 </div>
