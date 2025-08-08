@@ -578,16 +578,15 @@ export const Header = () => {
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
-                    userRole={1}
                     onViewAll={() => {
                       setNotifDropdown(false);
                       navigate('/notifications');
                     }}
-                    t={t}
                     onRedirect={(url) => {
                       navigate(url);
                       setNotifDropdown(false);
                     }}
+                    t={t}
                   />
                 )}
               </div>

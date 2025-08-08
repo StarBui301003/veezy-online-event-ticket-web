@@ -47,7 +47,6 @@ const NoResults = () => {
 const AllEventsPage = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
-  const navigate = useNavigate();
 
   // State vẫn giữ nguyên, nhưng bây giờ chúng sẽ được cập nhật đúng cách
   const [events, setEvents] = useState<Event[]>([]);
@@ -55,9 +54,8 @@ const AllEventsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [filters, setFilters] = useState<FilterOptions>({
-    searchTerm: '', dateRange: 'all', location: '', sortBy: 'startAt', sortOrder: 'desc',
+    searchTerm: '', dateRange: 'all', location: '', sortBy: 'date', sortOrder: 'desc',
   });
 
   useEffect(() => {
@@ -136,8 +134,6 @@ const AllEventsPage = () => {
             <FilterComponent
                 filters={filters}
                 onFilterChange={handleFilterChange}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
                 locations={locations}
                 contentType="event"
                 resultsCount={{ events: events.length }}
@@ -146,9 +142,9 @@ const AllEventsPage = () => {
 
         {/* Conditional Rendering */}
         {loading ? (
-            <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+            <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
                 {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                    <EventCardSkeleton key={i} viewMode={viewMode} />
+                    <EventCardSkeleton key={i} viewMode={'grid'} />
                 ))}
             </div>
         ) : error ? (
@@ -163,9 +159,9 @@ const AllEventsPage = () => {
             </div>
         ) : events.length > 0 ? (
             <>
-                <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+                <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
                     {events.map((event) => (
-                        <EventCard key={event.id} event={event} viewMode={viewMode} />
+                        <EventCard key={event.id} event={event} viewMode={'grid'} />
                     ))}
                 </div>
 

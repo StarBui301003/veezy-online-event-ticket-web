@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getAllNewsHome } from '@/services/Event Manager/event.service';
-import { searchNews, News } from '@/services/search.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { News } from '@/services/search.service';
 import { useNavigate } from 'react-router-dom';
 import FilterComponent, { convertToApiParams, FilterOptions } from '@/components/FilterComponent';
 import { Link } from 'react-router-dom';
@@ -30,7 +28,6 @@ const NewsAll: React.FC = () => {
   const { getThemeClass } = useThemeClasses();
   const [newsList, setNewsList] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
@@ -123,12 +120,6 @@ const NewsAll: React.FC = () => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   // Get unique locations from news
   const locations = React.useMemo(() => {
     const locationSet = new Set<string>();
@@ -197,21 +188,15 @@ const NewsAll: React.FC = () => {
         <FilterComponent
           filters={filters}
           onFilterChange={handleFilterChange}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
           locations={locations}
           showLocationFilter={true}
           contentType="news"
-          resultsCount={{ total: newsList.length }}
+          resultsCount={{ news: newsList.length }}
         />
 
         {/* News Grid/List */}
         <div
-          className={`px-4 pb-20 max-w-7xl mx-auto ${
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-6'
-          }`}
+          className={`px-4 pb-20 max-w-7xl mx-auto`}
         >
           {loading ? (
             <div
@@ -242,79 +227,96 @@ const NewsAll: React.FC = () => {
                   getThemeClass(
                     'bg-white/95 border-gray-200 hover:border-gray-300',
                     'border-white/20 hover:border-white/40'
-                  ),
-                  viewMode === 'grid' ? 'h-full flex flex-col' : 'flex flex-col md:flex-row gap-6 w-full'
+                  )
                 )}
-                style={
-                  viewMode === 'grid'
-                    ? ({
-                        background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-                        '--tw-gradient-from': `var(--tw-gradient-to, rgba(236, 72, 153, 0.1))`,
-                        '--tw-gradient-to': `var(--tw-gradient-to, rgba(168, 85, 247, 0.1))`,
-                        ...(viewMode === 'grid' && {
-                          '--tw-gradient-to': `var(--tw-gradient-to, ${
-                            getGradient(idx).split(' ')[1]
-                          })`,
-                        }),
-                      } as React.CSSProperties)
-                    : {}
-                }
+                style={{
+                  background: `linear-gradient(135deg, ${getGradient(idx)})`,
+                  backgroundImage: 'linear-gradient(135deg, var(--tw-gradient-stops))',
+                  ...({
+                    '--tw-gradient-from': 'rgba(236, 72, 153, 0.1)',
+                    '--tw-gradient-to': 'rgba(168, 85, 247, 0.1)'
+                  } as React.CSSProperties)
+                }}
               >
                 <Link to={`/news/${news.newsId}`} className="block h-full w-full">
-                  {viewMode === 'grid' ? (
-                    <>
-                      {/* Image */}
-                      <div className="relative w-full h-60">
-                        <img
-                          src={getImageUrl(news)}
-                          alt={news.newsTitle}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://via.placeholder.com/600x400';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
+                  <div className="flex flex-col">
+                    {/* Image */}
+                    <div className="relative w-full h-60">
+                      <img
+                        src={getImageUrl(news)}
+                        alt={news.newsTitle}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = 'https://via.placeholder.com/600x400';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    </div>
 
-                      {/* Content */}
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex-1">
-                          <h2
-                            className={cn(
-                              'text-2xl font-bold mb-2 group-hover:transition-colors duration-200',
-                              getThemeClass(
-                                'text-gray-900 group-hover:text-blue-700',
-                                'text-white group-hover:text-cyan-300'
-                              )
-                            )}
-                          >
-                            {news.newsTitle}
-                          </h2>
-                          <p
-                            className={cn(
-                              'text-sm mb-4 line-clamp-2',
-                              getThemeClass('text-gray-700', 'text-gray-200')
-                            )}
-                          >
-                            {news.newsDescription || news.newsContent?.substring(0, 150) + '...'}
-                          </p>
-                        </div>
-
-                        <div
+                    {/* Content */}
+                    <div className="p-6 flex-1 flex flex-col">
+                      <div className="flex-1">
+                        <h2
                           className={cn(
-                            'space-y-2 mt-4 pt-4 border-t',
-                            getThemeClass('border-gray-200', 'border-white/10')
+                            'text-2xl font-bold mb-2 group-hover:transition-colors duration-200',
+                            getThemeClass(
+                              'text-gray-900 group-hover:text-blue-700',
+                              'text-white group-hover:text-cyan-300'
+                            )
                           )}
                         >
-                          <div
+                          {news.newsTitle}
+                        </h2>
+                        <p
+                          className={cn(
+                            'text-sm mb-4 line-clamp-2',
+                            getThemeClass('text-gray-700', 'text-gray-200')
+                          )}
+                        >
+                          {news.newsDescription || news.newsContent?.substring(0, 150) + '...'}
+                        </p>
+                      </div>
+
+                      <div
+                        className={cn(
+                          'space-y-2 mt-4 pt-4 border-t',
+                          getThemeClass('border-gray-200', 'border-white/10')
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'flex items-center gap-2 text-sm',
+                            getThemeClass('text-gray-600', 'text-gray-300')
+                          )}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
                             className={cn(
-                              'flex items-center gap-2 text-sm',
-                              getThemeClass('text-gray-600', 'text-gray-300')
+                              'h-4 w-4 flex-shrink-0',
+                              getThemeClass('text-blue-600', 'text-cyan-400')
                             )}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
                           >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span>
+                            {news.createdAt
+                              ? new Date(news.createdAt).toLocaleDateString('vi-VN')
+                              : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               className={cn(
@@ -329,194 +331,44 @@ const NewsAll: React.FC = () => {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                               />
                             </svg>
-                            <span>
-                              {news.createdAt
-                                ? new Date(news.createdAt).toLocaleDateString('vi-VN')
-                                : ''}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span
-                                className={cn(
-                                  'text-sm',
-                                  getThemeClass('text-gray-600', 'text-gray-300')
-                                )}
-                              >
-                                {news.eventLocation || t('tba')}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                navigate(`/news/${news.newsId}`);
-                              }}
+                            <span
                               className={cn(
-                                'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
-                                getThemeClass(
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                )
+                                'text-sm',
+                                getThemeClass('text-gray-600', 'text-gray-300')
                               )}
                             >
-                              {t('readMore')}
-                            </button>
+                              {news.eventLocation || t('tba')}
+                            </span>
                           </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col md:flex-row gap-6 w-full">
-                      {/* Image for list view */}
-                      <div className="w-full md:w-1/3 lg:w-1/4 h-48 rounded-xl overflow-hidden relative flex-shrink-0">
-                        <img
-                          src={getImageUrl(news)}
-                          alt={news.newsTitle}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://via.placeholder.com/600x400';
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      </div>
-
-                      {/* Content for list view */}
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex-1">
-                          <h2
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigate(`/news/${news.newsId}`);
+                            }}
                             className={cn(
-                              'text-xl md:text-2xl font-bold mb-2 group-hover:transition-colors duration-200',
+                              'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
                               getThemeClass(
-                                'text-gray-900 group-hover:text-blue-700',
-                                'text-white group-hover:text-cyan-300'
+                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
+                                'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
                               )
                             )}
                           >
-                            {news.newsTitle}
-                          </h2>
-                          <p
-                            className={cn(
-                              'text-sm mb-4 line-clamp-3',
-                              getThemeClass('text-gray-700', 'text-gray-200')
-                            )}
-                          >
-                            {news.newsDescription || news.newsContent?.substring(0, 200) + '...'}
-                          </p>
-                        </div>
-
-                        <div className={cn('space-y-2 mt-4 pt-4 border-t',
-                          getThemeClass('border-gray-200', 'border-white/10')
-                        )}>
-                          <div className="flex flex-wrap items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className={cn(
-                                  'h-4 w-4 flex-shrink-0',
-                                  getThemeClass('text-blue-600', 'text-cyan-400')
-                                )}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span className={getThemeClass('text-gray-600', 'text-gray-300')}>
-                                {news.createdAt
-                                  ? new Date(news.createdAt).toLocaleDateString('vi-VN')
-                                  : ''}
-                              </span>
-                            </div>
-                            
-                            {news.eventLocation && (
-                              <div className="flex items-center gap-2">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className={cn(
-                                    'h-4 w-4 flex-shrink-0',
-                                    getThemeClass('text-blue-600', 'text-cyan-400')
-                                  )}
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                  />
-                                </svg>
-                                <span className={getThemeClass('text-gray-600', 'text-gray-300')}>
-                                  {news.eventLocation}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex justify-end mt-4">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                navigate(`/news/${news.newsId}`);
-                              }}
-                              className={cn(
-                                'px-4 py-2 rounded-full text-sm font-medium transition-colors',
-                                getThemeClass(
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white',
-                                  'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                                )
-                              )}
-                            >
-                              {t('readMore')}
-                            </button>
-                          </div>
+                            {t('readMore')}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </Link>
               </div>
             ))

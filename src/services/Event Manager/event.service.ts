@@ -6,7 +6,8 @@ export async function getApprovedEvents(page = 1, pageSize = 100) {
   });
 }
 import instance from "@/services/axios.customize";
-import { CreateEventData, NewsPayload, CreateTicketData, News } from "@/types/event";
+import { CreateEventData, NewsPayload, CreateTicketData } from "@/types/event";
+import { News } from "../signalr.service";
 import type { AIRecommendResponse } from '@/types/ai-recommend-event';
 
 // === Event APIs ===

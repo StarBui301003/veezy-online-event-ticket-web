@@ -202,10 +202,6 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
     }
   };
   // Cancel edit
-  const handleCancelEdit = () => {
-    setEditingCommentId(null);
-    setEditContent('');
-  };
   // Delete comment handler (show modal)
   const handleDelete = (commentId: string) => {
     setDeleteConfirmId(commentId);

@@ -19,18 +19,15 @@ import {
 } from '@/services/Event Manager/event.service';
 import { onEvent } from '@/services/signalr.service';
 import { CreateEventData, Category, Content } from '@/types/event';
-import { validateEventForm } from '@/utils/validation';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import Select from 'react-select';
 import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import type { StylesConfig } from 'react-select';
-import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
-const MAX_SECTIONS = 5;
 const contentTypeOptions = [
   { value: 'description', label: 'Description Only' },
   { value: 'image', label: 'Image Only' },
@@ -42,10 +39,51 @@ interface EnhancedContent extends Content {
   contentType?: ContentType;
 }
 
-// Validation errors interface
-interface ValidationErrors {
-  [key: string]: string;
-}
+// Validation functions
+const validateField = (name: string, value: any, formData?: any): string => {
+  switch (name) {
+    case 'eventName':
+      if (!value || value.trim() === '') return 'Tên sự kiện là bắt buộc';
+      if (value.length < 3) return 'Tên sự kiện phải có ít nhất 3 ký tự';
+      if (value.length > 100) return 'Tên sự kiện không được quá 100 ký tự';
+      break;
+
+    case 'eventLocation':
+      if (value && value.length > 200) return 'Địa điểm không được quá 200 ký tự';
+      break;
+
+    case 'startAt':
+      if (!value) return 'Thời gian bắt đầu là bắt buộc';
+      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
+      break;
+
+    case 'endAt':
+      if (!value) return 'Thời gian kết thúc là bắt buộc';
+      if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
+        return 'Thời gian kết thúc phải sau thời gian bắt đầu';
+      }
+      break;
+
+    case 'bankAccount':
+      if (value && !/^[0-9]{8,20}$/.test(value)) {
+        return 'Số tài khoản phải từ 8-20 chữ số';
+      }
+      break;
+
+    case 'bankAccountName':
+      if (value && (value.length < 2 || value.length > 50)) {
+        return 'Tên tài khoản phải từ 2-50 ký tự';
+      }
+      break;
+
+    case 'bankName':
+      if (value && (value.length < 2 || value.length > 50)) {
+        return 'Tên ngân hàng phải từ 2-50 ký tự';
+      }
+      break;
+  }
+  return '';
+};
 
 function getContentType(content: EnhancedContent): ContentType {
   if (content.description && !content.imageUrl) return 'description';
@@ -128,77 +166,6 @@ function cleanHtml(html: string) {
   return plainText.trim() === '' ? '' : plainText;
 }
 
-// Validation functions
-const validateField = (name: string, value: any, formData?: any): string => {
-  switch (name) {
-    case 'eventName':
-      if (!value || value.trim() === '') return 'Tên sự kiện là bắt buộc';
-      if (value.length < 3) return 'Tên sự kiện phải có ít nhất 3 ký tự';
-      if (value.length > 100) return 'Tên sự kiện không được quá 100 ký tự';
-      break;
-
-    case 'eventLocation':
-      if (value && value.length > 200) return 'Địa điểm không được quá 200 ký tự';
-      break;
-
-    case 'startAt':
-      if (!value) return 'Thời gian bắt đầu là bắt buộc';
-      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
-      break;
-
-    case 'endAt':
-      if (!value) return 'Thời gian kết thúc là bắt buộc';
-      if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
-        return 'Thời gian kết thúc phải sau thời gian bắt đầu';
-      }
-      break;
-
-    case 'bankAccount':
-      if (value && !/^[0-9]{8,20}$/.test(value)) {
-        return 'Số tài khoản phải từ 8-20 chữ số';
-      }
-      break;
-
-    case 'bankAccountName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên tài khoản phải từ 2-50 ký tự';
-      }
-      break;
-
-    case 'bankName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên ngân hàng phải từ 2-50 ký tự';
-      }
-      break;
-  }
-  return '';
-};
-
-function validateSections(contents: EnhancedContent[]): string[] {
-  const errors: string[] = [];
-  if (contents.length > MAX_SECTIONS) {
-    errors.push(`Tối đa ${MAX_SECTIONS} section.`);
-  }
-  const positions = contents.map((c) => c.position);
-  const uniquePositions = new Set(positions);
-  if (uniquePositions.size !== positions.length) {
-    errors.push('Các section phải có vị trí (position) không trùng nhau.');
-  }
-  if (positions.some((pos) => pos < 1 || pos > MAX_SECTIONS)) {
-    errors.push(`Position của section phải từ 1 đến ${MAX_SECTIONS}.`);
-  }
-  contents.forEach((content, idx) => {
-    const type = content.contentType || getContentType(content);
-    if (type === 'description' && !content.description?.trim()) {
-      errors.push(`Section #${idx + 1}: Mô tả là bắt buộc.`);
-    }
-    if (type === 'image' && !content.imageUrl) {
-      errors.push(`Section #${idx + 1}: Ảnh là bắt buộc.`);
-    }
-  });
-  return errors;
-}
-
 export default function EditEvent() {
   const { getThemeClass, theme } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
@@ -214,10 +181,6 @@ export default function EditEvent() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [setTouched] = useState<{ [key: string]: boolean }>({});
-
   const [formData, setFormData] = useState<CreateEventData>({
     eventName: '',
     eventDescription: '',
@@ -234,9 +197,7 @@ export default function EditEvent() {
   });
 
   const [contents, setContents] = useState<EnhancedContent[]>([]);
-  const [setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors] = useState<string[]>([]);
 
   const { quill, quillRef } = useQuill();
 
@@ -289,7 +250,6 @@ export default function EditEvent() {
         );
 
         const categoryData = await getAllCategories();
-        setCategories(categoryData);
         setCategoryOptions(
           categoryData.map((cat) => ({
             value: cat.categoryId,
@@ -335,22 +295,6 @@ export default function EditEvent() {
   }, [quill, theme, formData.eventDescription]);
 
   // Validation helpers
-  const validateSingleField = (name: string, value: any) => {
-    const error = validateField(name, value, formData);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-    return !error;
-  };
-
-  const clearError = (fieldName: string) => {
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldName];
-      return newErrors;
-    });
-  };
 
   // File upload handlers
   const onDropCover = useCallback(async (acceptedFiles: File[]) => {
@@ -412,27 +356,14 @@ export default function EditEvent() {
 
   const handleContentImageDrop = async (index: number, file: File) => {
     if (!file.type.startsWith('image/')) {
-      setContentErrors((prev) => ({
-        ...prev,
-        [index]: 'Chỉ chấp nhận file hình ảnh',
-      }));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setContentErrors((prev) => ({
-        ...prev,
-        [index]: 'Kích thước file không được vượt quá 10MB',
-      }));
       return;
     }
 
     setUploadingContentImage((prev) => ({ ...prev, [index]: true }));
-    setContentErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[index];
-      return newErrors;
-    });
 
     try {
       const url = await uploadImage(file);
@@ -440,10 +371,6 @@ export default function EditEvent() {
       newContents[index].imageUrl = url;
       setContents(newContents);
     } catch {
-      setContentErrors((prev) => ({
-        ...prev,
-        [index]: 'Upload hình ảnh thất bại',
-      }));
     } finally {
       setUploadingContentImage((prev) => ({ ...prev, [index]: false }));
     }
@@ -453,16 +380,6 @@ export default function EditEvent() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      clearError(name);
-    }
-  };
-
-  const handleBlur = (fieldName: string) => {
-    setTouched((prev) => ({ ...prev, [fieldName]: true }));
-    validateSingleField(fieldName, formData[fieldName as keyof CreateEventData]);
   };
 
   const handleCategoriesChange = (selected: { value: string; label: string }[]) => {
@@ -478,15 +395,6 @@ export default function EditEvent() {
       const newContents = [...contents];
       newContents[index] = { ...newContents[index], [field]: e.target.value };
       setContents(newContents);
-
-      // Clear content error
-      if (contentErrors[index]) {
-        setContentErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[index];
-          return newErrors;
-        });
-      }
     };
 
   const handleContentTypeChange = (index: number, contentType: ContentType) => {
@@ -498,15 +406,6 @@ export default function EditEvent() {
       imageUrl: contentType === 'description' ? '' : newContents[index].imageUrl,
     };
     setContents(newContents);
-
-    // Clear content error
-    if (contentErrors[index]) {
-      setContentErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[index];
-        return newErrors;
-      });
-    }
   };
 
   const handleRemoveContent = (index: number) => {
@@ -518,29 +417,18 @@ export default function EditEvent() {
           position: i + 1,
         }))
     );
-
-    // Clear error for removed content
-    if (contentErrors[index]) {
-      setContentErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[index];
-        return newErrors;
-      });
-    }
   };
 
   const handleAddContent = () => {
-    if (contents.length < 5) {
-      setContents((prev) => [
-        ...prev,
-        {
-          position: prev.length + 1,
-          contentType: 'description',
-          description: '',
-          imageUrl: '',
-        },
-      ]);
-    }
+    setContents((prev) => [
+      ...prev,
+      {
+        position: prev.length + 1,
+        contentType: 'description',
+        description: '',
+        imageUrl: '',
+      },
+    ]);
   };
 
   const handleContentImageDelete = async (idx: number) => {
@@ -589,8 +477,7 @@ export default function EditEvent() {
 
   // Validation
   const validateForm = (): boolean => {
-    const newErrors: ValidationErrors = {};
-    const newContentErrors: { [key: number]: string } = {};
+    const newErrors: string[] = [];
     let hasError = false;
 
     // Validate main form fields
@@ -598,7 +485,7 @@ export default function EditEvent() {
       if (key !== 'contents') {
         const error = validateField(key, (formData as any)[key], formData);
         if (error) {
-          newErrors[key] = error;
+          newErrors.push(error);
           hasError = true;
         }
       }
@@ -606,23 +493,20 @@ export default function EditEvent() {
 
     // Validate categories
     if (formData.categoryIds.length === 0) {
-      newErrors['categoryIds'] = 'Vui lòng chọn ít nhất một danh mục';
+      newErrors.push('Vui lòng chọn ít nhất một danh mục');
       hasError = true;
     }
 
     // Validate contents
     contents.forEach((content, index) => {
       if (content.contentType === 'description' && !content.description?.trim()) {
-        newContentErrors[index] = 'Mô tả không được để trống';
+        newErrors.push(`Section #${index + 1}: Mô tả là bắt buộc.`);
         hasError = true;
       } else if (content.contentType === 'image' && !content.imageUrl?.trim()) {
-        newContentErrors[index] = 'Hình ảnh không được để trống';
+        newErrors.push(`Section #${index + 1}: Ảnh là bắt buộc.`);
         hasError = true;
       }
     });
-
-    setErrors(newErrors);
-    setContentErrors(newContentErrors);
 
     return !hasError;
   };
@@ -681,11 +565,7 @@ export default function EditEvent() {
       backgroundColor: theme === 'dark' ? '#27272a' : '#ffffff',
       borderColor: state.isFocused
         ? '#a21caf'
-        : errors.categoryIds
-        ? '#ef4444'
-        : theme === 'dark'
-        ? '#3f3f46'
-        : '#d1d5db',
+        : '#3f3f46',
       color: theme === 'dark' ? '#ffffff' : '#374151',
       borderRadius: 12,
       minHeight: 48,
@@ -747,12 +627,17 @@ export default function EditEvent() {
         )}
       >
         <div className="text-center">
-          <div
-            className={cn(
-              'animate-spin h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4',
-              getThemeClass('border-blue-500', 'border-purple-500')
-            )}
-          />
+          <div className="animate-spin h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4">
+            <div
+              className={cn(
+                'animate-spin h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4',
+                getThemeClass(
+                  'border-blue-500',
+                  'border-purple-500'
+                )
+              )}
+            />
+          </div>
           <span className={cn('text-xl', getThemeClass('text-blue-600', 'text-purple-300'))}>
             Đang tải...
           </span>
@@ -939,15 +824,13 @@ export default function EditEvent() {
 
           {/* Basic Information Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <FormField label="Tên sự kiện" error={errors.eventName} required>
+            <FormField label="Tên sự kiện" required>
               <InputField
                 type="text"
                 name="eventName"
                 value={formData.eventName}
                 onChange={handleChange}
-                onBlur={() => handleBlur('eventName')}
                 placeholder="Nhập tên sự kiện"
-                error={errors.eventName}
               />
             </FormField>
 
@@ -1008,41 +891,35 @@ export default function EditEvent() {
               </div>
             </FormField>
 
-            <FormField label="Địa điểm tổ chức" error={errors.eventLocation}>
+            <FormField label="Địa điểm tổ chức">
               <InputField
                 type="text"
                 name="eventLocation"
                 value={formData.eventLocation}
                 onChange={handleChange}
-                onBlur={() => handleBlur('eventLocation')}
                 placeholder="Nhập địa điểm"
-                error={errors.eventLocation}
               />
             </FormField>
 
-            <FormField label="Thời gian bắt đầu" error={errors.startAt} required>
+            <FormField label="Thời gian bắt đầu" required>
               <InputField
                 type="datetime-local"
                 name="startAt"
                 value={formData.startAt}
                 onChange={handleChange}
-                onBlur={() => handleBlur('startAt')}
-                error={errors.startAt}
               />
             </FormField>
 
-            <FormField label="Thời gian kết thúc" error={errors.endAt} required>
+            <FormField label="Thời gian kết thúc" required>
               <InputField
                 type="datetime-local"
                 name="endAt"
                 value={formData.endAt}
                 onChange={handleChange}
-                onBlur={() => handleBlur('endAt')}
-                error={errors.endAt}
               />
             </FormField>
 
-            <FormField label="Chọn danh mục" error={errors.categoryIds} required>
+            <FormField label="Chọn danh mục" required>
               <Select
                 isMulti
                 options={categoryOptions}
@@ -1063,11 +940,19 @@ export default function EditEvent() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2 mb-8',
-              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+              getThemeClass(
+                'bg-white/95 border-blue-200',
+                'bg-[#2d0036]/80 border-pink-500/30'
+              )
             )}
           >
             <h3 className="text-xl font-semibold text-purple-300 mb-4 flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5 mr-2 text-purple-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -1078,39 +963,33 @@ export default function EditEvent() {
               Thông tin ngân hàng (Tùy chọn)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField label="Số tài khoản" error={errors.bankAccount}>
+              <FormField label="Số tài khoản">
                 <InputField
                   type="text"
                   name="bankAccount"
                   value={formData.bankAccount}
                   onChange={handleChange}
-                  onBlur={() => handleBlur('bankAccount')}
                   placeholder="Nhập số tài khoản"
-                  error={errors.bankAccount}
                 />
               </FormField>
 
-              <FormField label="Tên chủ tài khoản" error={errors.bankAccountName}>
+              <FormField label="Tên chủ tài khoản">
                 <InputField
                   type="text"
                   name="bankAccountName"
                   value={formData.bankAccountName}
                   onChange={handleChange}
-                  onBlur={() => handleBlur('bankAccountName')}
                   placeholder="Nhập tên chủ tài khoản"
-                  error={errors.bankAccountName}
                 />
               </FormField>
 
-              <FormField label="Tên ngân hàng" error={errors.bankName}>
+              <FormField label="Tên ngân hàng">
                 <InputField
                   type="text"
                   name="bankName"
                   value={formData.bankName}
                   onChange={handleChange}
-                  onBlur={() => handleBlur('bankName')}
                   placeholder="Nhập tên ngân hàng"
-                  error={errors.bankName}
                 />
               </FormField>
             </div>
@@ -1158,7 +1037,10 @@ export default function EditEvent() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2',
-              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+              getThemeClass(
+                'bg-white/95 border-blue-200',
+                'bg-[#2d0036]/80 border-pink-500/30'
+              )
             )}
           >
             <div className="flex items-center justify-between mb-6">
@@ -1227,7 +1109,10 @@ export default function EditEvent() {
                   key={index}
                   className={cn(
                     'relative p-6 rounded-xl shadow-lg border-2',
-                    getThemeClass('bg-white border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+                    getThemeClass(
+                      'bg-white border-blue-200',
+                      'bg-[#2d0036]/80 border-pink-500/30'
+                    )
                   )}
                 >
                   {/* Content Header */}
@@ -1266,7 +1151,7 @@ export default function EditEvent() {
                   <div className="mb-4">
                     <label
                       className={cn(
-                        'block text-sm font-medium mb-2',
+                        'block text-sm font-medium',
                         getThemeClass('text-gray-700', 'text-slate-300')
                       )}
                     >
@@ -1311,7 +1196,7 @@ export default function EditEvent() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2m0 0h.01"
                               />
                             </svg>
                           )}
@@ -1337,24 +1222,7 @@ export default function EditEvent() {
                         value={content.description}
                         onChange={handleContentChange(index, 'description')}
                         placeholder="Nhập mô tả nội dung"
-                        error={contentErrors[index]}
                       />
-                      {contentErrors[index] && (
-                        <div className="flex items-center space-x-2 text-red-400 text-sm animate-shake">
-                          <svg
-                            className="w-4 h-4 flex-shrink-0"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span>{contentErrors[index]}</span>
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -1371,37 +1239,18 @@ export default function EditEvent() {
                           onChange={(e) =>
                             e.target.files?.[0] && handleContentImageDrop(index, e.target.files[0])
                           }
-                          className={`w-full p-4 rounded-xl bg-slate-600/50 border text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 transition-all duration-200 ${
-                            contentErrors[index] ? 'border-red-500' : 'border-purple-700'
-                          }`}
+                          className={`w-full p-4 rounded-xl bg-slate-600/50 border text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 transition-all duration-200`}
                         />
 
                         {uploadingContentImage[index] && (
                           <div className="absolute inset-0 bg-slate-800/80 rounded-xl flex items-center justify-center">
                             <div className="flex items-center space-x-3">
-                              <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                              <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
                               <p className="text-sm text-slate-300">Đang tải ảnh...</p>
                             </div>
                           </div>
                         )}
                       </div>
-
-                      {contentErrors[index] && (
-                        <div className="flex items-center space-x-2 text-red-400 text-sm animate-shake">
-                          <svg
-                            className="w-4 h-4 flex-shrink-0"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span>{contentErrors[index]}</span>
-                        </div>
-                      )}
 
                       {content.imageUrl && !uploadingContentImage[index] && (
                         <div className="mt-4">
@@ -1451,34 +1300,6 @@ export default function EditEvent() {
                   />
                 </svg>
                 <span className="font-medium">{error}</span>
-              </div>
-            </div>
-          )}
-
-          {validationErrors.length > 0 && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-              <div className="flex items-start space-x-2 text-red-400">
-                <svg
-                  className="w-5 h-5 flex-shrink-0 mt-0.5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div>
-                  <p className="font-medium mb-2">Có lỗi trong form:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {validationErrors.map((err, idx) => (
-                      <li key={idx} className="text-sm">
-                        {err}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             </div>
           )}

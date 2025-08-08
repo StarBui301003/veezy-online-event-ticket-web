@@ -5,7 +5,7 @@ import AuthModals from '@/components/AuthModals';
 
 // Thêm import cho RegisterModal
 import { RegisterModal } from '@/components/RegisterModal';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -42,7 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
-import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { connectCommentHub, onComment, onEvent } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent, checkFollowEventByList } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
@@ -143,12 +143,6 @@ const EventDetail = () => {
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-
-  // State for pending actions
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'follow' | 'report';
-    data?: any;
-  } | null>(null);
 
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
   const { isLoggedIn, user } = useContext(AuthContext);

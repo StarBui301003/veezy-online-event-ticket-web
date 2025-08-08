@@ -7,7 +7,6 @@ import {
 } from '@/services/follow.service';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
 import { NO_AVATAR } from '@/assets/img';

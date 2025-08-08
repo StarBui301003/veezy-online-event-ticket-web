@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, MapPin, ChevronDown, X, Grid3X3, List, Loader2 } from 'lucide-react';
+import { Search, ChevronDown, X, Loader2 } from 'lucide-react';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -61,32 +60,24 @@ export const convertToApiParams = (filters: FilterOptions, contentType: 'event' 
   return params;
 };
 
-type ViewMode = 'grid' | 'list';
-
 interface FilterComponentProps {
   filters: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
-  viewMode?: ViewMode;
-  onViewModeChange?: (mode: ViewMode) => void;
   locations?: string[];
   showLocationFilter?: boolean;
   contentType?: 'event' | 'news';
   resultsCount?: { events?: number; news?: number; total?: number };
   className?: string;
-  showViewToggle?: boolean;
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
   filters,
   onFilterChange,
-  viewMode = 'grid',
-  onViewModeChange,
   locations = [],
   showLocationFilter = true,
   contentType = 'event',
   resultsCount,
   className = '',
-  showViewToggle = true,
 }) => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();

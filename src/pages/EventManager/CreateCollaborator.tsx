@@ -11,6 +11,18 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import {
+  validateUsername,
+  validatePassword,
+  validateEmail,
+  validateDateOfBirth,
+  parseBackendErrors,
+  getFieldError,
+  hasFieldError,
+  type FieldErrors,
+} from '@/utils/validation';
 
 interface Event {
   eventId: string;
@@ -45,7 +57,7 @@ export default function CreateCollaborator() {
     fullName: '',
     dateOfBirth: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
 
   // Get current user's accountId for emId field
@@ -81,64 +93,85 @@ export default function CreateCollaborator() {
     }
   }, [eventId, t]);
 
-  // Simple validation function
-  const validateField = (name: string, value: string) => {
-    const newErrors = { ...errors };
+  // Form validation using the same validation utils as RegisterModal
+  const validateForm = () => {
+    const newFieldErrors: FieldErrors = {};
 
-    // Required field validation
-    if (!value.trim()) {
-      newErrors[name] = t('validation_required');
+    // Username validation
+    const usernameValidation = validateUsername(formData.username);
+    if (!usernameValidation.isValid) {
+      newFieldErrors.username = [usernameValidation.errorMessage!];
+    }
+
+    // Full name validation
+    if (!formData.fullName.trim()) {
+      newFieldErrors.fullname = [t('validation_required') || 'Full name is required!'];
+    }
+
+    // Email validation
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      newFieldErrors.email = [emailValidation.errorMessage!];
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newFieldErrors.phone = [t('validation_required') || 'Phone number is required!'];
+    } else if (!/^\d+$/.test(formData.phone)) {
+      newFieldErrors.phone = [t('validation_invalidPhone') || 'Invalid phone number format!'];
+    }
+
+    // Password validation
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      newFieldErrors.password = [passwordValidation.errorMessage!];
+    }
+
+    // Date of birth validation
+    if (!formData.dateOfBirth) {
+      newFieldErrors.dateofbirth = [t('validation_required') || 'Date of birth is required!'];
     } else {
-      delete newErrors[name];
-
-      // Email format validation
-      if (name === 'email' && !/^\S+@\S+\.\S+$/.test(value)) {
-        newErrors[name] = t('validation_invalidEmail');
-      }
-
-      // Phone format validation (simple check for digits only)
-      if (name === 'phone' && !/^\d+$/.test(value)) {
-        newErrors[name] = t('validation_invalidPhone');
-      }
-
-      // Password length check
-      if (name === 'password' && value.length < 6) {
-        newErrors[name] = t('validation_passwordMinLength', { min: 6 });
+      const dateValidation = validateDateOfBirth(formData.dateOfBirth);
+      if (!dateValidation.isValid) {
+        newFieldErrors.dateofbirth = [dateValidation.errorMessage!];
       }
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newFieldErrors;
   };
 
   const handleInputChange = (field: keyof CollaboratorFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Validate on change
-    validateField(field, value);
-  };
-
-  const handleBlur = (field: keyof CollaboratorFormData) => {
-    validateField(field, formData[field]);
+    
+    // Clear field error when user starts typing
+    const fieldErrorKey = field === 'fullName' ? 'fullname' : 
+                         field === 'dateOfBirth' ? 'dateofbirth' : field;
+    
+    if (hasFieldError(fieldErrors, fieldErrorKey)) {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldErrorKey];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate all fields
-    let isValid = true;
-    Object.entries(formData).forEach(([field, value]) => {
-      if (!validateField(field, value)) {
-        isValid = false;
-      }
-    });
-
-    if (!isValid) {
-      toast.error(t('validation_fixErrors'));
+    // Clear previous errors
+    setFieldErrors({});
+    
+    // Validate form
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      toast.error(t('validation_fixErrors') || 'Please fix the errors in the form');
       return;
     }
 
     if (!currentUserAccountId) {
-      toast.error(t('validation_noEventManager'));
+      toast.error(t('validation_noEventManager') || 'Event manager ID not found');
       return;
     }
 
@@ -168,10 +201,19 @@ export default function CreateCollaborator() {
       }
 
       navigate('/event-manager/collaborators');
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || t('error_unknownError');
-      toast.error(errorMessage);
+    } catch (error: unknown) {
+      const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
+      setFieldErrors(backendFieldErrors);
+      
+      if (generalErrors.length > 0) {
+        toast.error(generalErrors[0]);
+      } else if (Object.keys(backendFieldErrors).length > 0) {
+        toast.error('Please check your input fields');
+      } else {
+        const errorMessage =
+          (error as any).response?.data?.message || (error as any).message || t('error_unknownError');
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -265,22 +307,21 @@ export default function CreateCollaborator() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  onBlur={() => handleBlur('username')}
                   className={cn(
                     'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                     getThemeClass(
                       'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                       'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
                     ),
-                    errors.username ? 'border-red-500' : ''
+                    hasFieldError(fieldErrors, 'username') ? 'border-red-500 ring-2 ring-red-400' : ''
                   )}
                   placeholder={t('createCollaborator_enterUsername')}
                 />
-                {errors.username && (
+                {getFieldError(fieldErrors, 'username') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.username}
+                    {getFieldError(fieldErrors, 'username')}
                   </div>
                 )}
               </div>
@@ -299,22 +340,21 @@ export default function CreateCollaborator() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  onBlur={() => handleBlur('email')}
                   className={cn(
                     'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                     getThemeClass(
                       'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                       'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
                     ),
-                    errors.email ? 'border-red-500' : ''
+                    hasFieldError(fieldErrors, 'email') ? 'border-red-500 ring-2 ring-red-400' : ''
                   )}
                   placeholder={t('createCollaborator_emailPlaceholder')}
                 />
-                {errors.email && (
+                {getFieldError(fieldErrors, 'email') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.email}
+                    {getFieldError(fieldErrors, 'email')}
                   </div>
                 )}
               </div>
@@ -333,22 +373,21 @@ export default function CreateCollaborator() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  onBlur={() => handleBlur('phone')}
                   className={cn(
                     'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                     getThemeClass(
                       'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                       'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
                     ),
-                    errors.phone ? 'border-red-500' : ''
+                    hasFieldError(fieldErrors, 'phone') ? 'border-red-500 ring-2 ring-red-400' : ''
                   )}
                   placeholder={t('createCollaborator_phonePlaceholder')}
                 />
-                {errors.phone && (
+                {getFieldError(fieldErrors, 'phone') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.phone}
+                    {getFieldError(fieldErrors, 'phone')}
                   </div>
                 )}
               </div>
@@ -368,14 +407,13 @@ export default function CreateCollaborator() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    onBlur={() => handleBlur('password')}
                     className={cn(
                       'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200 pr-12',
                       getThemeClass(
                         'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                         'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
                       ),
-                      errors.password ? 'border-red-500' : ''
+                      hasFieldError(fieldErrors, 'password') ? 'border-red-500 ring-2 ring-red-400' : ''
                     )}
                     placeholder={t('createCollaborator_enterPassword')}
                   />
@@ -394,11 +432,11 @@ export default function CreateCollaborator() {
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {errors.password && (
+                {getFieldError(fieldErrors, 'password') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.password}
+                    {getFieldError(fieldErrors, 'password')}
                   </div>
                 )}
               </div>
@@ -417,22 +455,21 @@ export default function CreateCollaborator() {
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  onBlur={() => handleBlur('fullName')}
                   className={cn(
                     'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                     getThemeClass(
                       'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
                       'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
                     ),
-                    errors.fullName ? 'border-red-500' : ''
+                    hasFieldError(fieldErrors, 'fullname') ? 'border-red-500 ring-2 ring-red-400' : ''
                   )}
                   placeholder={t('createCollaborator_fullNamePlaceholder')}
                 />
-                {errors.fullName && (
+                {getFieldError(fieldErrors, 'fullname') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.fullName}
+                    {getFieldError(fieldErrors, 'fullname')}
                   </div>
                 )}
               </div>
@@ -447,25 +484,34 @@ export default function CreateCollaborator() {
                 >
                   {t('createCollaborator_dateOfBirth')} *
                 </label>
-                <input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                  onBlur={() => handleBlur('dateOfBirth')}
-                  className={cn(
-                    'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                    getThemeClass(
-                      'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
-                      'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
-                    ),
-                    errors.dateOfBirth ? 'border-red-500' : ''
-                  )}
-                />
-                {errors.dateOfBirth && (
+                <div className="relative">
+                  <DatePicker
+                    selected={formData.dateOfBirth ? new Date(formData.dateOfBirth) : null}
+                    onChange={(date: Date | null) => {
+                      handleInputChange('dateOfBirth', date ? date.toISOString().slice(0, 10) : '');
+                    }}
+                    dateFormat="yyyy-MM-dd"
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    placeholderText={t('createCollaborator_dateOfBirth')}
+                    className={cn(
+                      'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
+                      getThemeClass(
+                        'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                        'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                      ),
+                      hasFieldError(fieldErrors, 'dateofbirth') ? 'border-red-500 ring-2 ring-red-400' : ''
+                    )}
+                    maxDate={new Date()}
+                    wrapperClassName="w-full"
+                  />
+                </div>
+                {getFieldError(fieldErrors, 'dateofbirth') && (
                   <div
                     className={cn('text-xs mt-1', getThemeClass('text-red-600', 'text-red-400'))}
                   >
-                    {errors.dateOfBirth}
+                    {getFieldError(fieldErrors, 'dateofbirth')}
                   </div>
                 )}
               </div>

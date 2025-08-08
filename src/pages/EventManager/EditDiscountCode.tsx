@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 interface DiscountCode {
   discountId: string;
   eventId: string;
-  eventName: string;
   code: string;
   discountType: number;
   value: number;
@@ -22,7 +21,21 @@ interface DiscountCode {
   maxUsage: number;
   usedCount: number;
   expiredAt: string;
+  createdAt: string;
   isExpired: boolean;
+  isAvailable: boolean;
+  remainingUsage: number;
+  eventName?: string;
+}
+
+interface FormData {
+  code: string;
+  discountType: number;
+  value: number;
+  minimum: number;
+  maximum: number;
+  maxUsage: number;
+  expiredAt: string;
 }
 
 export default function EditDiscountCode() {
@@ -32,7 +45,7 @@ export default function EditDiscountCode() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [discountCode, setDiscountCode] = useState<DiscountCode | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     code: '',
     discountType: 0,
     value: 0,
@@ -60,13 +73,13 @@ export default function EditDiscountCode() {
 
         setDiscountCode(data);
         setFormData({
-          code: data.code,
-          discountType: data.discountType,
-          value: data.value,
-          minimum: data.minimum,
-          maximum: data.maximum,
-          maxUsage: data.maxUsage,
-          expiredAt: format(parseISO(data.expiredAt), "yyyy-MM-dd'T'HH:mm"),
+          code: data.code || '',
+          discountType: data.discountType ?? 0,
+          value: data.value ?? 0,
+          minimum: data.minimum ?? 0,
+          maximum: data.maximum ?? 0,
+          maxUsage: data.maxUsage ?? 2147483647,
+          expiredAt: data.expiredAt ? format(parseISO(data.expiredAt), "yyyy-MM-dd'T'HH:mm") : '',
         });
       } catch (err) {
         console.error('Failed to load discount code:', err);

@@ -14,7 +14,7 @@ import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 import ReportModal from '@/components/Customer/ReportModal';
 import { connectNewsHub, onNews } from '@/services/signalr.service';
-import { News } from '@/types/event';
+import { News } from "@/services/signalr.service";
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
@@ -110,14 +110,6 @@ const NewsDetail: React.FC = () => {
     navigate(path);
   };
 
-  const handleReportNews = () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      setShowLoginModal(true);
-      return;
-    }
-    if (news) setReportModal({ type: 'news', id: news.newsId });
-  };
 
   const handleLoginSuccess = () => {
     setShowLoginModal(false);
@@ -129,9 +121,8 @@ const NewsDetail: React.FC = () => {
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSuccess = (email: string) => {
+  const handleRegisterSuccess = (_email: string) => {
     setShowRegisterModal(false);
-    toast.success('Registration successful!');
     if (news) setReportModal({ type: 'news', id: news.newsId });
   };
 
@@ -716,7 +707,6 @@ const NewsDetail: React.FC = () => {
         onClose={() => setShowRegisterModal(false)}
         onRegisterSuccess={(email) => {
           handleRegisterSuccess(email);
-          toast.success('Registration successful!');
         }}
         onLoginRedirect={() => {
           setShowRegisterModal(false);

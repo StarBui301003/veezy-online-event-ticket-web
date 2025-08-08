@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 
 interface NotificationDropdownProps {
   userId?: string;
-  userRole?: number;
   onViewAll: () => void;
   t: (key: string) => string;
   onRedirect?: (url: string) => void;
@@ -15,7 +14,6 @@ interface NotificationDropdownProps {
 
 const NotificationDropdown = ({
   userId,
-  userRole,
   onViewAll,
   t,
   onRedirect,
@@ -24,7 +22,7 @@ const NotificationDropdown = ({
 
   // Use the hook for API and UI update
   const { notifications, markAsRead, markAllAsRead, refreshNotifications } =
-    useRealtimeNotifications(userRole);
+    useRealtimeNotifications();
 
   // Calculate unread count from notifications to ensure accuracy
   const actualUnreadCount = notifications.filter((n) => !n.isRead).length;

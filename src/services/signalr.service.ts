@@ -269,3 +269,16 @@ export const disconnectOrderHub = () => disconnectHub('order');
 export const connectPaymentHub = (url: string, token?: string) => connectHub('payment', url, token);
 export const onPayment = (event: string, cb: (...args: any[]) => void) => onHubEvent('payment', event, cb);
 export const disconnectPaymentHub = () => disconnectHub('payment');
+export interface News {
+  eventLocation: string;
+  newsId: string;
+  eventId: string;
+  newsDescription: string;
+  newsTitle: string;
+  newsContent: string;
+  authorId: string;
+  imageUrl: string;
+  status: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

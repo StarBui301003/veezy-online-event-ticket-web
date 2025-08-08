@@ -74,16 +74,3 @@ export interface NewsPayload {
   status: boolean;
 }
 
-export interface News {
-  eventLocation: ReactI18NextChildren | Iterable<ReactI18NextChildren>;
-  newsId: string;
-  eventId: string;
-  newsDescription: string;
-  newsTitle: string;
-  newsContent: string;
-  authorId: string;
-  imageUrl: string;
-  status: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
