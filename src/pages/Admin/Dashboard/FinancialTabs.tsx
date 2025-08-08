@@ -88,15 +88,31 @@ export default function FinancialTabs() {
     }
     getFinancialAnalytics(params)
       .then((res: AdminFinancialAnalyticsResponse) => {
-        setRevenueTimeline(res.data.revenueTimeline || []);
-        setTopEvents(res.data.topEventsByRevenue || []);
-        setPlatformFees(res.data.platformFees?.topContributingEvents || []);
+        setRevenueTimeline(res.data?.revenueTimeline || []);
+        setTopEvents(res.data?.topEventsByRevenue || []);
+        setPlatformFees(res.data?.platformFees?.topContributingEvents || []);
         setSummary({
-          totalRevenue: res.data.totalRevenue,
-          netRevenue: res.data.revenueTimeline?.[0]?.revenue ?? 0,
-          platformFee: res.data.revenueTimeline?.[0]?.platformFee ?? 0,
-          topEventRevenue: res.data.topEventsByRevenue?.[0]?.revenue ?? 0,
-          topEventPlatformFee: res.data.platformFees?.topContributingEvents?.[0]?.feeCollected ?? 0,
+          totalRevenue: res.data?.totalRevenue || 0,
+          netRevenue: res.data?.revenueTimeline?.[0]?.revenue ?? 0,
+          platformFee: res.data?.revenueTimeline?.[0]?.platformFee ?? 0,
+          topEventRevenue: res.data?.topEventsByRevenue?.[0]?.revenue ?? 0,
+          topEventPlatformFee:
+            res.data?.platformFees?.topContributingEvents?.[0]?.feeCollected ?? 0,
+        });
+      })
+      .catch((error) => {
+        console.error('Error loading financial analytics:', error);
+        toast.error('Failed to load financial data');
+        // Set default values on error
+        setRevenueTimeline([]);
+        setTopEvents([]);
+        setPlatformFees([]);
+        setSummary({
+          totalRevenue: 0,
+          netRevenue: 0,
+          platformFee: 0,
+          topEventRevenue: 0,
+          topEventPlatformFee: 0,
         });
       })
       .finally(() => setLoading(false));
@@ -123,9 +139,9 @@ export default function FinancialTabs() {
           !platformFees ||
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
-          setSummary(data.summary);
-          setRevenueTimeline(data.revenueTimeline);
-          setTopEvents(data.topEvents);
+          setSummary(data.summary || null);
+          setRevenueTimeline(data.revenueTimeline || []);
+          setTopEvents(data.topEvents || []);
           setPlatformFees(safePlatformFees);
         }
       }
@@ -158,7 +174,7 @@ export default function FinancialTabs() {
   }
   function EventNameTick({ x = 0, y = 0, payload }: EventNameTickProps) {
     const maxLen = 16;
-    const value = payload.value;
+    const value = payload?.value || '';
     const showValue = value.length > maxLen ? value.slice(0, maxLen) + '...' : value;
     return (
       <g transform={`translate(${x},${y})`}>
@@ -238,19 +254,19 @@ export default function FinancialTabs() {
             <div className={cardClass}>
               <div className="text-gray-500 dark:text-gray-400 font-medium">Total Revenue</div>
               <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                {summary.totalRevenue.toLocaleString('vi-VN')}₫
+                {summary?.totalRevenue?.toLocaleString('vi-VN') || '0'}₫
               </div>
             </div>
             <div className={cardClass}>
               <div className="text-gray-500 dark:text-gray-400 font-medium">Net Revenue</div>
               <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                {summary.netRevenue.toLocaleString('vi-VN')}₫
+                {summary?.netRevenue?.toLocaleString('vi-VN') || '0'}₫
               </div>
             </div>
             <div className={cardClass}>
               <div className="text-gray-500 dark:text-gray-400 font-medium">Platform Fee</div>
               <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                {summary.platformFee.toLocaleString('vi-VN')}₫
+                {summary?.platformFee?.toLocaleString('vi-VN') || '0'}₫
               </div>
             </div>
           </>
@@ -262,6 +278,10 @@ export default function FinancialTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
+            </div>
+          ) : revenueTimeline.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No revenue data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -292,6 +312,10 @@ export default function FinancialTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
+            </div>
+          ) : topEvents.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No top events data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -326,6 +350,10 @@ export default function FinancialTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
+            </div>
+          ) : platformFees.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No platform fee data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
