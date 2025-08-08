@@ -19,18 +19,15 @@ import {
 } from '@/services/Event Manager/event.service';
 import { onEvent } from '@/services/signalr.service';
 import { CreateEventData, Category, Content } from '@/types/event';
-import { validateEventForm } from '@/utils/validation';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import Select from 'react-select';
 import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import type { StylesConfig } from 'react-select';
-import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
-const MAX_SECTIONS = 5;
 const contentTypeOptions = [
   { value: 'description', label: 'Description Only' },
   { value: 'image', label: 'Image Only' },
@@ -174,31 +171,6 @@ const validateField = (name: string, value: any, formData?: any): string => {
   return '';
 };
 
-function validateSections(contents: EnhancedContent[]): string[] {
-  const errors: string[] = [];
-  if (contents.length > MAX_SECTIONS) {
-    errors.push(`Tối đa ${MAX_SECTIONS} section.`);
-  }
-  const positions = contents.map((c) => c.position);
-  const uniquePositions = new Set(positions);
-  if (uniquePositions.size !== positions.length) {
-    errors.push('Các section phải có vị trí (position) không trùng nhau.');
-  }
-  if (positions.some((pos) => pos < 1 || pos > MAX_SECTIONS)) {
-    errors.push(`Position của section phải từ 1 đến ${MAX_SECTIONS}.`);
-  }
-  contents.forEach((content, idx) => {
-    const type = content.contentType || getContentType(content);
-    if (type === 'description' && !content.description?.trim()) {
-      errors.push(`Section #${idx + 1}: Mô tả là bắt buộc.`);
-    }
-    if (type === 'image' && !content.imageUrl) {
-      errors.push(`Section #${idx + 1}: Ảnh là bắt buộc.`);
-    }
-  });
-  return errors;
-}
-
 export default function EditEvent() {
   const { getThemeClass, theme } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
@@ -216,7 +188,6 @@ export default function EditEvent() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [setTouched] = useState<{ [key: string]: boolean }>({});
 
   const [formData, setFormData] = useState<CreateEventData>({
     eventName: '',
@@ -234,9 +205,7 @@ export default function EditEvent() {
   });
 
   const [contents, setContents] = useState<EnhancedContent[]>([]);
-  const [setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [validationErrors] = useState<string[]>([]);
 
   const { quill, quillRef } = useQuill();
 
@@ -289,7 +258,6 @@ export default function EditEvent() {
         );
 
         const categoryData = await getAllCategories();
-        setCategories(categoryData);
         setCategoryOptions(
           categoryData.map((cat) => ({
             value: cat.categoryId,
@@ -461,7 +429,6 @@ export default function EditEvent() {
   };
 
   const handleBlur = (fieldName: string) => {
-    setTouched((prev) => ({ ...prev, [fieldName]: true }));
     validateSingleField(fieldName, formData[fieldName as keyof CreateEventData]);
   };
 
@@ -1451,34 +1418,6 @@ export default function EditEvent() {
                   />
                 </svg>
                 <span className="font-medium">{error}</span>
-              </div>
-            </div>
-          )}
-
-          {validationErrors.length > 0 && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-              <div className="flex items-start space-x-2 text-red-400">
-                <svg
-                  className="w-5 h-5 flex-shrink-0 mt-0.5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div>
-                  <p className="font-medium mb-2">Có lỗi trong form:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {validationErrors.map((err, idx) => (
-                      <li key={idx} className="text-sm">
-                        {err}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             </div>
           )}

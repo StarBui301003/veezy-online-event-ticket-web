@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useContext } from 'react';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { AuthContext } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import AuthModals from '@/components/AuthModals';
 
 // Thêm import cho RegisterModal
 import { RegisterModal } from '@/components/RegisterModal';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -42,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
-import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { connectCommentHub, onComment, onEvent } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent, checkFollowEventByList } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
@@ -122,7 +123,7 @@ const EventDetail = () => {
   const [showDetail, setShowDetail] = useState(true);
   const [showTickets, setShowTickets] = useState(true);
   const [discountCode, setDiscountCode] = useState('');
-  
+
   const [discountValidation, setDiscountValidation] = useState<{
     success: boolean;
     message: string;
@@ -131,7 +132,10 @@ const EventDetail = () => {
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [pendingReport, setPendingReport] = useState<{type: 'event' | 'comment'; id: string} | null>(null);
+  const [pendingReport, setPendingReport] = useState<{
+    type: 'event' | 'comment';
+    id: string;
+  } | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false); // Added missing state
   const [isFollowingEvent, setIsFollowingEvent] = useState(false);
@@ -142,18 +146,11 @@ const EventDetail = () => {
   const [faceError, setFaceError] = useState('');
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(true);
-
-  // State for pending actions
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'follow' | 'report';
-    data?: any;
-  } | null>(null);
 
   // Lấy user từ AuthContext để đồng bộ trạng thái đăng nhập
   const { isLoggedIn, user } = useContext(AuthContext);
   const customerId = user?.userId || user?.accountId || '';
-  
+
   // Handle successful login and pending actions
   useEffect(() => {
     if (isLoggedIn) {
@@ -249,7 +246,7 @@ const EventDetail = () => {
   // ================== FIX: Kiểm tra trạng thái đã follow khi vào trang ==================
   useEffect(() => {
     if (!eventId || !customerId) return;
-    
+
     const checkStatus = async () => {
       try {
         const isFollowing = await checkFollowEventByList(customerId, eventId);
@@ -265,12 +262,14 @@ const EventDetail = () => {
   // =======================================================================================
 
   useEffect(() => {
-    setLoadingEvents(true);
+    setLoadingEvent(true);
     const fetchEvents = async () => {
       if (isLoggedIn) {
         try {
           const res = await getAIRecommendedEvents();
-          const aiEvents = (res.data || []).filter((event: EventData) => event.eventId !== eventId);
+          const aiEvents = (res.data || []).filter(
+            (eventItem: EventData) => eventItem.eventId !== eventId
+          );
           setEvents(aiEvents);
         } catch (error: unknown) {
           let msg = 'Lỗi khi lấy sự kiện đề xuất từ AI';
@@ -299,25 +298,25 @@ const EventDetail = () => {
           toast.error(msg);
           setEvents([]);
         } finally {
-          setLoadingEvents(false);
+          setLoadingEvent(false);
         }
       } else {
         getHomeEvents()
           .then((fetchedEvents) => {
             const activeEvents = (fetchedEvents || []).filter(
-              (event: EventData) => event.isActive === true && event.eventId !== eventId
+              (eventItem: EventData) => eventItem.isActive === true && eventItem.eventId !== eventId
             );
             setEvents(activeEvents);
           })
           .catch(() => setEvents([]))
-          .finally(() => setLoadingEvents(false));
+          .finally(() => setLoadingEvent(false));
       }
     };
     fetchEvents();
   }, [eventId, isLoggedIn]);
 
   useEffect(() => {
-        connectCommentHub('https://event.vezzy.site/commentHub');
+    connectCommentHub('https://event.vezzy.site/commentHub');
     const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
     onComment('OnCommentUpdated', reloadComment);
@@ -334,11 +333,13 @@ const EventDetail = () => {
         console.log('Event updated:', data);
         toast.info(t('eventHasBeenUpdated'));
         // Refresh event data
-        getEventById(eventId).then((eventData) => {
-          if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
-            setEvent(eventData);
-          }
-        }).catch(console.error);
+        getEventById(eventId)
+          .then((eventData) => {
+            if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
+              setEvent(eventData);
+            }
+          })
+          .catch(console.error);
       }
     });
 
@@ -346,7 +347,7 @@ const EventDetail = () => {
       if (data.eventId === eventId || data.EventId === eventId) {
         console.log('Event cancelled:', data);
         toast.error(t('eventHasBeenCancelled'));
-        setEvent(prev => prev ? { ...prev, isCancelled: true } : null);
+        setEvent((prev) => (prev ? { ...prev, isCancelled: true } : null));
       }
     });
 
@@ -364,13 +365,15 @@ const EventDetail = () => {
       if (ticketEventId === eventId) {
         console.log('Ticket sold:', data);
         // Update ticket availability
-        setTickets(prev => prev.map(ticket => {
-          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
-            const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
-            return { ...ticket, quantityAvailable: newQuantity };
-          }
-          return ticket;
-        }));
+        setTickets((prev) =>
+          prev.map((ticket) => {
+            if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+              const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
+              return { ...ticket, quantityAvailable: newQuantity };
+            }
+            return ticket;
+          })
+        );
       }
     });
 
@@ -378,12 +381,17 @@ const EventDetail = () => {
       const ticketEventId = data.eventId || data.EventId;
       if (ticketEventId === eventId) {
         console.log('Ticket refunded:', data);
-        setTickets(prev => prev.map(ticket => {
-          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
-            return { ...ticket, quantityAvailable: ticket.quantityAvailable + (data.quantity || 1) };
-          }
-          return ticket;
-        }));
+        setTickets((prev) =>
+          prev.map((ticket) => {
+            if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+              return {
+                ...ticket,
+                quantityAvailable: ticket.quantityAvailable + (data.quantity || 1),
+              };
+            }
+            return ticket;
+          })
+        );
       }
     });
 
@@ -417,9 +425,7 @@ const EventDetail = () => {
   const calculateTotalAmount = () => {
     return Object.values(selectedTickets).reduce((total, item) => {
       const price =
-        typeof item.ticketPrice === 'number'
-          ? item.ticketPrice
-          : Number(item.ticketPrice) || 0;
+        typeof item.ticketPrice === 'number' ? item.ticketPrice : Number(item.ticketPrice) || 0;
       return total + price * item.quantity;
     }, 0);
   };
@@ -876,10 +882,7 @@ const EventDetail = () => {
                     whileHover={{ scale: 1.1, backgroundColor: '#a78bfa' }}
                     className={cn(
                       'px-3 py-1 text-xs rounded-full shadow-md cursor-pointer transition-colors',
-                      getThemeClass(
-                        'bg-purple-600 text-white',
-                        'bg-purple-600 text-white'
-                      )
+                      getThemeClass('bg-purple-600 text-white', 'bg-purple-600 text-white')
                     )}
                   >
                     {tag}
@@ -896,7 +899,8 @@ const EventDetail = () => {
                     )}
                     onClick={() => setShowAllTags(true)}
                   >
-                    +{event.tags.length - 3} {t('eventDetail.otherTags', { count: event.tags.length - 3 })}
+                    +{event.tags.length - 3}{' '}
+                    {t('eventDetail.otherTags', { count: event.tags.length - 3 })}
                   </button>
                 )}
                 {/* Nút theo dõi sự kiện */}
@@ -1021,10 +1025,7 @@ const EventDetail = () => {
               ))}
 
             {/* ====== COMMENT SECTION START ====== */}
-            <CommentSection 
-              eventId={event.eventId} 
-              setReportModal={handleReportComment}
-            />
+            <CommentSection eventId={event.eventId} setReportModal={handleReportComment} />
             {/* ====== COMMENT SECTION END ====== */}
 
             {/* ====== EVENT CHAT ASSISTANT ====== */}
@@ -1154,7 +1155,9 @@ const EventDetail = () => {
                               getThemeClass('text-gray-500', 'text-slate-400')
                             )}
                           >
-                            {t('eventDetail.remainingTickets', { count: ticket.quantityAvailable - quantity })}
+                            {t('eventDetail.remainingTickets', {
+                              count: ticket.quantityAvailable - quantity,
+                            })}
                           </p>
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center space-x-3">
@@ -1397,10 +1400,13 @@ const EventDetail = () => {
                     </div>
                     {discountValidation && (
                       <div
-                        className={cn('text-sm mt-1 px-2 py-1 rounded', getThemeClass(
-                          'text-green-700 bg-green-100',
-                          'text-green-700 bg-green-100'
-                        ))}
+                        className={cn(
+                          'text-sm mt-1 px-2 py-1 rounded',
+                          getThemeClass(
+                            'text-green-700 bg-green-100',
+                            'text-green-700 bg-green-100'
+                          )
+                        )}
                       >
                         <div className="flex items-start">
                           {discountValidation.success ? (
@@ -1467,7 +1473,9 @@ const EventDetail = () => {
                     ) : (
                       <Camera className="w-6 h-6 mr-2" />
                     )}
-                    {faceLoading ? t('eventDetail.processingFaceOrder') : t('eventDetail.bookTicketsWithFace')}
+                    {faceLoading
+                      ? t('eventDetail.processingFaceOrder')
+                      : t('eventDetail.bookTicketsWithFace')}
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
@@ -1493,7 +1501,7 @@ const EventDetail = () => {
             >
               {t('recommendEvents')}
             </h2>
-            {loadingEvents ? (
+            {loadingEvent ? (
               <div className="flex justify-center items-center h-60">
                 <Loader2
                   className={cn(
@@ -1582,25 +1590,25 @@ const EventDetail = () => {
           onLoginRequired={handleLoginRequired}
         />
       )}
-      
+
       {/* Login Modal */}
       {showLoginModal && (
-        <AuthModals 
-          open={showLoginModal} 
+        <AuthModals
+          open={showLoginModal}
           onClose={() => {
             setShowLoginModal(false);
             // Clear any pending actions when modal is closed
             setPendingReport(null);
             setPendingFollow(false);
-          }} 
+          }}
           onLoginSuccess={handleLoginSuccess}
-          onRegisterSuccess={() => { 
+          onRegisterSuccess={() => {
             setShowLoginModal(false);
             setShowRegisterModal(true);
           }}
         />
       )}
-      
+
       {/* Register Modal */}
       {showRegisterModal && (
         <RegisterModal

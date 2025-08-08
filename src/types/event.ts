@@ -15,8 +15,8 @@ export interface CreateEventData {
   categoryIds: string[];
   contents: Content[];
   bankAccount: string;
-  bankAccountName: string; 
-  bankName: string; 
+  bankAccountName: string;
+  bankName: string;
 }
 
 export interface Category {
@@ -75,7 +75,7 @@ export interface NewsPayload {
 }
 
 export interface News {
-  eventLocation: ReactI18NextChildren | Iterable<ReactI18NextChildren>;
+  eventLocation: string;
   newsId: string;
   eventId: string;
   newsDescription: string;

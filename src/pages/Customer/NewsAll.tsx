@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getAllNewsHome } from '@/services/Event Manager/event.service';
-import { searchNews, News } from '@/services/search.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
 import { useNavigate } from 'react-router-dom';
 import FilterComponent, { convertToApiParams, FilterOptions } from '@/components/FilterComponent';
 import { Link } from 'react-router-dom';
@@ -11,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { StageBackground } from '@/components/StageBackground';
 import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
+import { News } from '@/types/event';
 
 const PAGE_SIZE = 12;
 const BG_GRADIENTS = [
@@ -50,7 +48,7 @@ const NewsAll: React.FC = () => {
     try {
       // Convert frontend filters to API parameters
       const apiParams = convertToApiParams(filters, 'news');
-      
+
       // Add pagination
       const params = {
         ...apiParams,
@@ -60,11 +58,11 @@ const NewsAll: React.FC = () => {
 
       console.log('Fetching news with params:', params);
       const response = await instance.get('/api/News/all-Home', { params });
-      
+
       // Handle response format
       let items: News[] = [];
       let totalItems = 0;
-      
+
       if (response.data?.data?.items) {
         // Paginated response format
         items = response.data.data.items;
@@ -83,7 +81,7 @@ const NewsAll: React.FC = () => {
       const visibleNews = items.filter((item) => {
         const status = item.status;
         if (status === undefined || status === null) return true;
-        
+
         // Handle different status formats
         if (typeof status === 'boolean') return status === true;
         if (typeof status === 'number') return status === 1;
@@ -121,12 +119,6 @@ const NewsAll: React.FC = () => {
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters);
     setCurrentPage(1); // Reset to first page when filters change
-  };
-
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Get unique locations from news
@@ -243,7 +235,9 @@ const NewsAll: React.FC = () => {
                     'bg-white/95 border-gray-200 hover:border-gray-300',
                     'border-white/20 hover:border-white/40'
                   ),
-                  viewMode === 'grid' ? 'h-full flex flex-col' : 'flex flex-col md:flex-row gap-6 w-full'
+                  viewMode === 'grid'
+                    ? 'h-full flex flex-col'
+                    : 'flex flex-col md:flex-row gap-6 w-full'
                 )}
                 style={
                   viewMode === 'grid'
@@ -434,9 +428,12 @@ const NewsAll: React.FC = () => {
                           </p>
                         </div>
 
-                        <div className={cn('space-y-2 mt-4 pt-4 border-t',
-                          getThemeClass('border-gray-200', 'border-white/10')
-                        )}>
+                        <div
+                          className={cn(
+                            'space-y-2 mt-4 pt-4 border-t',
+                            getThemeClass('border-gray-200', 'border-white/10')
+                          )}
+                        >
                           <div className="flex flex-wrap items-center gap-4 text-sm">
                             <div className="flex items-center gap-2">
                               <svg
@@ -462,7 +459,7 @@ const NewsAll: React.FC = () => {
                                   : ''}
                               </span>
                             </div>
-                            
+
                             {news.eventLocation && (
                               <div className="flex items-center gap-2">
                                 <svg
@@ -494,7 +491,7 @@ const NewsAll: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex justify-end mt-4">
                             <button
                               onClick={(e) => {
@@ -524,69 +521,72 @@ const NewsAll: React.FC = () => {
         </div>
 
         {/* Pagination - Chỉ hiển thị khi không có filter và có nhiều trang */}
-        {totalPages > 1 && !filters.searchTerm && filters.dateRange === 'all' && !filters.location && (
-          <div className="flex justify-center mt-12">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className={cn(
-                  'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-                  getThemeClass(
-                    'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
-                    'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                  )
-                )}
-              >
-                Trước
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
-                        currentPage === pageNum
-                          ? getThemeClass('bg-blue-600 text-white', 'bg-cyan-500 text-white')
-                          : getThemeClass(
-                              'bg-white text-gray-900 hover:bg-gray-100',
-                              'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                            )
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+        {totalPages > 1 &&
+          !filters.searchTerm &&
+          filters.dateRange === 'all' &&
+          !filters.location && (
+            <div className="flex justify-center mt-12">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={cn(
+                    'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+                    getThemeClass(
+                      'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
+                      'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                    )
+                  )}
+                >
+                  Trước
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={cn(
+                          'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+                          currentPage === pageNum
+                            ? getThemeClass('bg-blue-600 text-white', 'bg-cyan-500 text-white')
+                            : getThemeClass(
+                                'bg-white text-gray-900 hover:bg-gray-100',
+                                'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                              )
+                        )}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className={cn(
+                    'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+                    getThemeClass(
+                      'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
+                      'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                    )
+                  )}
+                >
+                  Tiếp
+                </button>
               </div>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className={cn(
-                  'px-4 py-2 rounded-lg border text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-                  getThemeClass(
-                    'bg-white border-gray-300 text-gray-900 hover:bg-gray-100',
-                    'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                  )
-                )}
-              >
-                Tiếp
-              </button>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Custom CSS for animation */}

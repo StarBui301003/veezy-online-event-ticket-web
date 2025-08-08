@@ -55,7 +55,7 @@ export default function EventManagerDashboard() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [activeTab, setActiveTab] = useState('revenue'); // New state for tab switching
-  const { unreadCount } = useRealtimeNotifications(2); // Only event manager notifications
+  const { unreadCount } = useRealtimeNotifications(); // Only event manager notifications
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
   const userId = accountObj?.userId || accountObj?.accountId;
@@ -92,12 +92,9 @@ export default function EventManagerDashboard() {
   useEffect(() => {
     const setupRealtimeDashboard = async () => {
       try {
-        const {
-          onAnalytics,
-          onTicket,
-          onEvent,
-          onNotification,
-        } = await import('@/services/signalr.service');
+        const { onAnalytics, onTicket, onEvent, onNotification } = await import(
+          '@/services/signalr.service'
+        );
 
         // Setup realtime listeners using global connections
         // All SignalR connections are managed globally in App.tsx
