@@ -696,17 +696,31 @@ export default function FundManagement() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-2xl p-6 border-2 border-blue-500/30 shadow-2xl"
+            className={cn(
+              'rounded-2xl p-6 border-2 shadow-2xl',
+              getThemeClass(
+                'bg-white/95 border-blue-500/30',
+                'bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 border-blue-500/30'
+              )
+            )}
           >
             <div className="flex flex-col lg:flex-row items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-blue-300 mb-4 lg:mb-0">
+              <h2
+                className={cn(
+                  'text-2xl font-bold mb-4 lg:mb-0',
+                  getThemeClass('text-blue-700', 'text-blue-300')
+                )}
+              >
                 {t('transactionHistory')}
               </h2>
 
               <div className="flex gap-4">
                 <div className="relative">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className={cn(
+                      'absolute left-3 top-1/2 -translate-y-1/2',
+                      getThemeClass('text-gray-400', 'text-gray-400')
+                    )}
                     size={20}
                   />
                   <Input
@@ -714,14 +728,26 @@ export default function FundManagement() {
                     placeholder={t('searchTransactions')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-[#1a0022]/60 border-blue-500/30 text-white placeholder-gray-400"
+                    className={cn(
+                      'pl-10',
+                      getThemeClass(
+                        'bg-white border-blue-300 text-gray-900 placeholder-gray-500',
+                        'bg-[#1a0022]/60 border-blue-500/30 text-white placeholder-gray-400'
+                      )
+                    )}
                   />
                 </div>
 
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 rounded-lg bg-[#1a0022]/60 border border-blue-500/30 text-white"
+                  className={cn(
+                    'px-4 py-2 rounded-lg',
+                    getThemeClass(
+                      'bg-white border border-blue-300 text-gray-900',
+                      'bg-[#1a0022]/60 border border-blue-500/30 text-white'
+                    )
+                  )}
                 >
                   <option value="all">{t('allStatus')}</option>
                   <option value="0">{t('success')}</option>
@@ -732,24 +758,70 @@ export default function FundManagement() {
 
             {filteredTransactions.length === 0 ? (
               <div className="text-center py-12">
-                <CreditCard className="text-gray-400 mx-auto mb-4" size={64} />
-                <p className="text-gray-400 text-lg">{t('noTransactions')}</p>
+                <CreditCard
+                  className={cn('mx-auto mb-4', getThemeClass('text-gray-400', 'text-gray-400'))}
+                  size={64}
+                />
+                <p className={cn('text-lg', getThemeClass('text-gray-500', 'text-gray-400'))}>
+                  {t('noTransactions')}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-blue-500/30">
-                      <th className="text-left p-4 text-blue-300 font-semibold">
+                    <tr
+                      className={cn(
+                        'border-b',
+                        getThemeClass('border-gray-300', 'border-blue-500/30')
+                      )}
+                    >
+                      <th
+                        className={cn(
+                          'text-left p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
                         {t('transactionId')}
                       </th>
-                      <th className="text-left p-4 text-blue-300 font-semibold">{t('orderId')}</th>
-                      <th className="text-left p-4 text-blue-300 font-semibold">
+                      <th
+                        className={cn(
+                          'text-left p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
+                        {t('orderId')}
+                      </th>
+                      <th
+                        className={cn(
+                          'text-left p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
                         {t('description')}
                       </th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">{t('amount')}</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">{t('status')}</th>
-                      <th className="text-center p-4 text-blue-300 font-semibold">
+                      <th
+                        className={cn(
+                          'text-center p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
+                        {t('amount')}
+                      </th>
+                      <th
+                        className={cn(
+                          'text-center p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
+                        {t('status')}
+                      </th>
+                      <th
+                        className={cn(
+                          'text-center p-4 font-semibold',
+                          getThemeClass('text-blue-700', 'text-blue-300')
+                        )}
+                      >
                         {t('createdAt')}
                       </th>
                     </tr>
@@ -761,39 +833,63 @@ export default function FundManagement() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
-                        className="border-b border-blue-500/10 hover:bg-blue-500/5 transition-colors"
+                        className={cn(
+                          'border-b transition-colors',
+                          getThemeClass(
+                            'border-gray-200 hover:bg-blue-50',
+                            'border-blue-500/10 hover:bg-blue-500/5'
+                          )
+                        )}
                       >
-                        <td className="p-4 text-white">{transaction.transactionId}</td>
-                        <td className="p-4 text-white">{transaction.orderId}</td>
+                        <td className={cn('p-4', getThemeClass('text-gray-900', 'text-white'))}>
+                          {transaction.transactionId}
+                        </td>
+                        <td className={cn('p-4', getThemeClass('text-gray-900', 'text-white'))}>
+                          {transaction.orderId}
+                        </td>
                         <td className="p-4">
                           <div>
-                            <p className="font-semibold text-white">
+                            <p
+                              className={cn(
+                                'font-semibold',
+                                getThemeClass('text-gray-900', 'text-white')
+                              )}
+                            >
                               {transaction.transactionDescription}
                             </p>
                           </div>
                         </td>
                         <td className="p-4 text-center">
                           <span
-                            className={`font-semibold ${
-                              transaction.amount >= 0 ? 'text-green-400' : 'text-red-400'
-                            }`}
+                            className={cn(
+                              'font-semibold',
+                              transaction.amount >= 0
+                                ? getThemeClass('text-green-600', 'text-green-400')
+                                : getThemeClass('text-red-600', 'text-red-400')
+                            )}
                           >
                             {formatCurrency(Math.abs(transaction.amount))}
                           </span>
                         </td>
                         <td className="p-4 text-center">
                           <span
-                            className={`text-sm font-semibold ${
+                            className={cn(
+                              'text-sm font-semibold',
                               transaction.transactionStatus === 0
-                                ? 'text-green-400'
-                                : 'text-red-400'
-                            }`}
+                                ? getThemeClass('text-green-600', 'text-green-400')
+                                : getThemeClass('text-red-600', 'text-red-400')
+                            )}
                           >
                             {getTransactionStatusText(transaction.transactionStatus)}
                           </span>
                         </td>
                         <td className="p-4 text-center">
-                          <span className="text-gray-400 text-sm">
+                          <span
+                            className={cn(
+                              'text-sm',
+                              getThemeClass('text-gray-500', 'text-gray-400')
+                            )}
+                          >
                             {formatDateTime(transaction.createdAt)}
                           </span>
                         </td>
