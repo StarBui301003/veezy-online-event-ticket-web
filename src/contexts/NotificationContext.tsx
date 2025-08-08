@@ -20,22 +20,26 @@ interface NotificationProviderProps {
   userRole?: number;
 }
 
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children, userId, userRole }) => {
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({
+  children,
+  userId,
+  userRole,
+}) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Add new notification to the list
   const addNotification = useCallback((notification: Notification) => {
     console.log('[NotificationContext] Adding new notification:', notification);
-    
-    setNotifications(prev => {
+
+    setNotifications((prev) => {
       // Check if notification already exists to avoid duplicates
-      const exists = prev.some(n => n.notificationId === notification.notificationId);
+      const exists = prev.some((n) => n.notificationId === notification.notificationId);
       if (exists) {
         console.log('[NotificationContext] Notification already exists, skipping');
         return prev;
       }
-      
+
       // Add to beginning and limit to 50 notifications
       const newNotifications = [notification, ...prev].slice(0, 50);
       return newNotifications;
@@ -43,27 +47,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     // Update unread count
     if (!notification.isRead) {
-      setUnreadCount(prev => prev + 1);
+      setUnreadCount((prev) => prev + 1);
     }
   }, []);
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.notificationId === notificationId 
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.notificationId === notificationId
           ? { ...n, isRead: true, readAt: new Date().toISOString() }
           : n
       )
     );
-    
-    setUnreadCount(prev => Math.max(0, prev - 1));
+
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   }, []);
 
   // Mark all as read
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
     );
     setUnreadCount(0);
   }, []);
@@ -115,14 +119,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     refreshNotifications,
   };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 };
 
-export const useNotificationContext = (userRole: number): NotificationContextType => {
+export const useNotificationContext = (): NotificationContextType => {
   const context = useContext(NotificationContext);
   if (context === undefined) {
     throw new Error('useNotificationContext must be used within a NotificationProvider');

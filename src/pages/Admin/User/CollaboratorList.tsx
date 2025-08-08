@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { getCollaboratorsWithFilter, UserFilterParams } from '@/services/Admin/user.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+import { onIdentity } from '@/services/signalr.service';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
@@ -116,10 +116,8 @@ export const CollaboratorList = () => {
     }
   };
 
-  // Connect to IdentityHub for real-time updates
+  // Listen for real-time collaborator updates using global connections
   useEffect(() => {
-          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
-
     // Listen for real-time collaborator updates
     onIdentity('CollaboratorCreated', (data: any) => {
       console.log('👤 Collaborator created:', data);
@@ -576,14 +574,17 @@ export const CollaboratorList = () => {
                     </TableRow>
                   ))}
                   {/* Add empty rows to maintain table height */}
-                  {Array.from({ length: Math.max(0, filters.pageSize - users.length) }, (_, idx) => (
-                    <TableRow
-                      key={`empty-${idx}`}
-                      className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
-                    >
-                      <TableCell colSpan={9} className="border-0"></TableCell>
-                    </TableRow>
-                  ))}
+                  {Array.from(
+                    { length: Math.max(0, filters.pageSize - users.length) },
+                    (_, idx) => (
+                      <TableRow
+                        key={`empty-${idx}`}
+                        className={`h-[56.8px] ${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
+                      >
+                        <TableCell colSpan={9} className="border-0"></TableCell>
+                      </TableRow>
+                    )
+                  )}
                 </>
               )}
             </TableBody>

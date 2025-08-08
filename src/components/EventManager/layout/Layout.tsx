@@ -28,9 +28,11 @@ import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import { toast } from 'react-toastify';
 import ThemeToggle from '@/components/Admin/ThemeToggle';
 import { CustomerChatBox } from '@/components/Customer';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
-// Custom scrollbar styles
-const scrollbarStyles = `
+// Custom scrollbar styles - will be updated dynamically based on theme
+const getScrollbarStyles = (isDark: boolean) => `
   /* Webkit browsers (Chrome, Safari, Edge) */
   ::-webkit-scrollbar {
     width: 10px;
@@ -38,22 +40,30 @@ const scrollbarStyles = `
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(15, 12, 26, 0.8);
+    background: ${isDark ? 'rgba(15, 12, 26, 0.8)' : 'rgba(243, 244, 246, 0.8)'};
     border-radius: 12px;
     margin: 4px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    background: ${
+      isDark
+        ? 'linear-gradient(135deg, #8b5cf6, #ec4899)'
+        : 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+    };
     border-radius: 12px;
-    border: 2px solid rgba(15, 12, 26, 0.8);
+    border: 2px solid ${isDark ? 'rgba(15, 12, 26, 0.8)' : 'rgba(243, 244, 246, 0.8)'};
     transition: all 0.3s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #7c3aed, #db2777);
+    background: ${
+      isDark
+        ? 'linear-gradient(135deg, #7c3aed, #db2777)'
+        : 'linear-gradient(135deg, #4f46e5, #7c3aed)'
+    };
     transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 10px ${isDark ? 'rgba(139, 92, 246, 0.5)' : 'rgba(99, 102, 241, 0.5)'};
   }
 
   ::-webkit-scrollbar-corner {
@@ -63,7 +73,9 @@ const scrollbarStyles = `
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: #8b5cf6 rgba(15, 12, 26, 0.8);
+    scrollbar-color: ${
+      isDark ? '#8b5cf6 rgba(15, 12, 26, 0.8)' : '#6366f1 rgba(243, 244, 246, 0.8)'
+    };
   }
 
   /* Custom scrollbar for specific elements */
@@ -72,17 +84,25 @@ const scrollbarStyles = `
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: ${isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'};
     border-radius: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: ${
+      isDark
+        ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+        : 'linear-gradient(135deg, #4f46e5, #6366f1)'
+    };
     border-radius: 8px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: ${
+      isDark
+        ? 'linear-gradient(135deg, #4f46e5, #7c3aed)'
+        : 'linear-gradient(135deg, #3730a3, #4f46e5)'
+    };
   }
 `;
 
@@ -276,11 +296,17 @@ export function EventManagerLayout() {
   }) => (
     <Link
       to={to}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 ${
-        isActive
-          ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-400 shadow-lg border border-pink-500/30'
-          : 'hover:bg-white/5 hover:text-pink-400'
-      } hover:drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]`}
+      className={cn(
+        'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 transform hover:scale-105',
+        getThemeClass(
+          isActive
+            ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-600 shadow-lg border border-blue-500/30 hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]'
+            : 'hover:bg-blue-50 hover:text-blue-600',
+          isActive
+            ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-400 shadow-lg border border-pink-500/30 hover:drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]'
+            : 'hover:bg-white/5 hover:text-pink-400'
+        )
+      )}
     >
       <Icon className="text-sm" />
       <span className="text-sm font-medium">{children}</span>
@@ -298,11 +324,13 @@ export function EventManagerLayout() {
   }) => (
     <button
       onClick={() => toggleSection(section)}
-      className="w-full flex items-center gap-2 px-2 py-2 text-xs font-semibold
-        text-white uppercase tracking-wide
-        bg-gradient-to-r from-[#32235a] to-[#5c357a]
-        hover:from-[#6d28d9] hover:to-[#ec4899]
-        rounded-md transition-colors"
+      className={cn(
+        'w-full flex items-center gap-2 px-2 py-2 text-xs font-semibold uppercase tracking-wide rounded-md transition-colors',
+        getThemeClass(
+          'text-gray-700 bg-gradient-to-r from-blue-100 to-purple-100 hover:from-blue-200 hover:to-purple-200 border border-blue-200',
+          'text-white bg-gradient-to-r from-[#32235a] to-[#5c357a] hover:from-[#6d28d9] hover:to-[#ec4899]'
+        )
+      )}
     >
       <Icon className="text-xs" />
       <span>{title}</span>
@@ -314,22 +342,55 @@ export function EventManagerLayout() {
     </button>
   );
 
+  const { getThemeClass, theme } = useThemeClasses();
+
   return (
     <>
       <ScrollToTop />
-      <style>{scrollbarStyles}</style>
+      <style>{getScrollbarStyles(theme === 'dark')}</style>
       {loading && <SpinnerOverlay show={loading} />}
       <SidebarProvider>
-        <div className="flex h-screen w-screen bg-gradient-to-br from-[#0f0c1a] to-[#1c1429] text-white overflow-hidden">
+        <div
+          className={cn(
+            'flex h-screen w-screen overflow-hidden',
+            getThemeClass(
+              'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
+              'bg-gradient-to-br from-[#0f0c1a] to-[#1c1429] text-white'
+            )
+          )}
+        >
           {/* Sidebar */}
-          <aside className="w-72 bg-gradient-to-br from-[#1e1b2e] to-[#2c2a40] shadow-2xl flex flex-col">
-            <div className="p-6 border-b border-gray-700/50">
+          <aside
+            className={cn(
+              'w-72 shadow-2xl flex flex-col',
+              getThemeClass(
+                'bg-white/95 border-r border-gray-200 shadow-lg',
+                'bg-gradient-to-br from-[#1e1b2e] to-[#2c2a40]'
+              )
+            )}
+          >
+            <div
+              className={cn(
+                'p-6',
+                getThemeClass('border-b border-gray-200', 'border-b border-gray-700/50')
+              )}
+            >
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]">
+                <h1
+                  className={cn(
+                    'text-2xl font-bold text-transparent bg-clip-text drop-shadow-[0_0_10px_rgba(236,72,153,0.8)]',
+                    getThemeClass(
+                      'bg-gradient-to-r from-blue-600 to-purple-600',
+                      'bg-gradient-to-r from-pink-500 to-purple-500'
+                    )
+                  )}
+                >
                   Veezy Manager
                 </h1>
               </div>
-              <p className="text-xs text-gray-400 mt-1">{t('eventManagement')}</p>
+              <p className={cn('text-xs mt-1', getThemeClass('text-gray-600', 'text-gray-400'))}>
+                {t('eventManagement')}
+              </p>
               <br />
               {/* Theme and Language controls */}
               <div className="flex items-center mb-2 ml-[-30px]">
@@ -337,13 +398,21 @@ export function EventManagerLayout() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-white font-semibold shadow-sm hover:from-gray-600 hover:to-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-200 text-xs h-7 min-w-[48px] ${
+                      className={cn(
+                        'flex items-center gap-1 px-2 py-1 rounded-full font-semibold shadow-sm transition-all duration-200 focus:outline-none text-xs h-7 min-w-[48px]',
+                        getThemeClass(
+                          'bg-white/90 hover:bg-white border-gray-300 shadow-md text-gray-700 hover:text-gray-900 focus:ring-2 focus:ring-blue-200',
+                          'bg-gradient-to-r from-gray-700 to-gray-800 border border-gray-600 text-white hover:from-gray-600 hover:to-gray-700 focus:ring-2 focus:ring-purple-200'
+                        ),
                         isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''
-                      }`}
+                      )}
                       style={{ lineHeight: '1.1', height: '28px' }}
                       disabled={isLanguageLoading}
                     >
-                      <Globe className="w-4 h-4 text-purple-300" style={{ marginBottom: '1px' }} />
+                      <Globe
+                        className={cn('w-4 h-4', getThemeClass('text-blue-600', 'text-purple-300'))}
+                        style={{ marginBottom: '1px' }}
+                      />
                       <span className="font-bold text-xs" style={{ marginTop: '1px' }}>
                         {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
                       </span>
@@ -351,27 +420,47 @@ export function EventManagerLayout() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="rounded-xl shadow-xl bg-gray-800 border border-gray-600 p-1 min-w-[90px]"
+                    className={cn(
+                      'rounded-xl shadow-xl p-1 min-w-[90px]',
+                      getThemeClass(
+                        'bg-white border border-gray-200 shadow-lg',
+                        'bg-gray-800 border border-gray-600'
+                      )
+                    )}
                   >
                     <DropdownMenuItem
                       onClick={() => handleChangeLanguage('vi')}
                       disabled={isLanguageLoading}
-                      className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
-                        i18nInstance.language === 'vi'
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      } ${isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className={cn(
+                        'flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150',
+                        getThemeClass(
+                          i18nInstance.language === 'vi'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100',
+                          i18nInstance.language === 'vi'
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        ),
+                        isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''
+                      )}
                     >
                       <span className="text-base">🇻🇳</span> VN
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleChangeLanguage('en')}
                       disabled={isLanguageLoading}
-                      className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150 ${
-                        i18nInstance.language === 'en'
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      } ${isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className={cn(
+                        'flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150',
+                        getThemeClass(
+                          i18nInstance.language === 'en'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 hover:bg-gray-100',
+                          i18nInstance.language === 'en'
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        ),
+                        isLanguageLoading ? 'opacity-70 cursor-not-allowed' : ''
+                      )}
                     >
                       <span className="text-base">🇬🇧</span> EN
                     </DropdownMenuItem>
@@ -382,7 +471,13 @@ export function EventManagerLayout() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate('/')}
-                  className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1 shadow"
+                  className={cn(
+                    'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 shadow transition-all duration-200',
+                    getThemeClass(
+                      'bg-blue-600 hover:bg-blue-700 text-white',
+                      'bg-blue-600 hover:bg-blue-700 text-white'
+                    )
+                  )}
                   title={t('home')}
                 >
                   <FaHome className="text-sm" />
@@ -391,7 +486,12 @@ export function EventManagerLayout() {
               </div>
             </div>
             {/* Navigation */}
-            <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6 custom-scrollbar">
+            <nav
+              className={cn(
+                'flex-1 px-4 py-6 overflow-y-auto space-y-6 custom-scrollbar',
+                getThemeClass('', '')
+              )}
+            >
               <div>
                 <NavItem to="" icon={FaHome} isActive={isActiveRoute('/event-manager')}>
                   {t('dashboard')}
@@ -534,13 +634,32 @@ export function EventManagerLayout() {
               </div>
             </nav>
             {/* User Account */}
-            <div className="p-4 border-t border-gray-700/50">
+            <div
+              className={cn(
+                'p-4',
+                getThemeClass('border-t border-gray-200', 'border-t border-gray-700/50')
+              )}
+            >
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!isDropdownOpen)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white bg-gradient-to-r from-[#3a324e] to-[#4b3e65] hover:from-[#4b3e65] hover:to-[#5c4d7a] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all duration-300 rounded-lg border border-purple-500/20"
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-300 rounded-lg',
+                    getThemeClass(
+                      'text-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] border border-blue-200',
+                      'text-white bg-gradient-to-r from-[#3a324e] to-[#4b3e65] hover:from-[#4b3e65] hover:to-[#5c4d7a] hover:shadow-[0_0_20px_rgba(147,51,234,0.4)] border border-purple-500/20'
+                    )
+                  )}
                 >
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-r from-pink-500 to-purple-500 overflow-hidden">
+                  <div
+                    className={cn(
+                      'w-10 h-10 rounded-full flex items-center justify-center shadow-lg overflow-hidden',
+                      getThemeClass(
+                        'bg-gradient-to-r from-blue-500 to-purple-500',
+                        'bg-gradient-to-r from-pink-500 to-purple-500'
+                      )
+                    )}
+                  >
                     {avatar ? (
                       <img
                         src={avatar}
@@ -552,27 +671,57 @@ export function EventManagerLayout() {
                     )}
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="font-medium text-white">Event Manager</div>
-                    <div className="text-xs text-gray-300">{t('accountManagement')}</div>
+                    <div
+                      className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}
+                    >
+                      Event Manager
+                    </div>
+                    <div className={cn('text-xs', getThemeClass('text-gray-600', 'text-gray-300'))}>
+                      {t('accountManagement')}
+                    </div>
                   </div>
                   <FaChevronDown
-                    className={`text-gray-400 transition-transform duration-200 ${
+                    className={cn(
+                      'transition-transform duration-200',
+                      getThemeClass('text-gray-500', 'text-gray-400'),
                       isDropdownOpen ? 'rotate-180' : 'rotate-0'
-                    }`}
+                    )}
                   />
                 </button>
                 {isDropdownOpen && (
-                  <div className="absolute left-0 bottom-full mb-2 w-full bg-[#2a243b] border border-purple-500/30 rounded-lg shadow-2xl backdrop-blur-sm z-20 overflow-hidden">
+                  <div
+                    className={cn(
+                      'absolute left-0 bottom-full mb-2 w-full rounded-lg shadow-2xl backdrop-blur-sm z-20 overflow-hidden',
+                      getThemeClass(
+                        'bg-white border border-gray-200 shadow-lg',
+                        'bg-[#2a243b] border border-purple-500/30'
+                      )
+                    )}
+                  >
                     <Link
                       to="profile"
-                      className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200"
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-3 transition-all duration-200',
+                        getThemeClass(
+                          'text-gray-700 hover:bg-blue-50',
+                          'text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20'
+                        )
+                      )}
                     >
-                      <FaUserCircle className="text-gray-400" />
+                      <FaUserCircle
+                        className={cn(getThemeClass('text-gray-500', 'text-gray-400'))}
+                      />
                       <span>{t('personalProfile')}</span>
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 transition-all duration-200 rounded-lg"
+                      className={cn(
+                        'w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-lg',
+                        getThemeClass(
+                          'bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 text-white',
+                          'bg-gradient-to-r from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 text-white'
+                        )
+                      )}
                     >
                       <svg
                         className="w-4 h-4 text-gray-200"
@@ -595,7 +744,15 @@ export function EventManagerLayout() {
             </div>
           </aside>
           {/* Main Content */}
-          <main className="flex-1 h-screen overflow-y-auto bg-gradient-to-br from-[#0f0c1a] to-[#1c1429] custom-scrollbar">
+          <main
+            className={cn(
+              'flex-1 h-screen overflow-y-auto custom-scrollbar',
+              getThemeClass(
+                'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+                'bg-gradient-to-br from-[#0f0c1a] to-[#1c1429]'
+              )
+            )}
+          >
             <Outlet />
           </main>
         </div>

@@ -46,7 +46,7 @@ export function FundTabs() {
   useEffect(() => {
     // Luôn truyền token khi connectFundHub
     const token = localStorage.getItem('access_token');
-          connectFundHub('https://ticket.vezzy.site/fundHub', token);
+    connectFundHub('https://ticket.vezzy.site/fundHub', token);
 
     // Listen for fund-related events
     const reloadPendingCount = () => {
@@ -166,7 +166,7 @@ export function FundTabs() {
           </TabsContent>
           <TabsContent value="processing">
             {loadedTabs.includes('processing') && (
-              <ProcessingWithdrawList onPendingChanged={handlePendingChanged} />
+              <ProcessingWithdrawList onProcessingChanged={handlePendingChanged} />
             )}
           </TabsContent>
           <TabsContent value="successful">
@@ -174,7 +174,7 @@ export function FundTabs() {
           </TabsContent>
           <TabsContent value="rejected">
             {loadedTabs.includes('rejected') && (
-              <RejectedWithdrawList onPendingChanged={handlePendingChanged} />
+              <RejectedWithdrawList onRejectedChanged={handlePendingChanged} />
             )}
           </TabsContent>
         </div>

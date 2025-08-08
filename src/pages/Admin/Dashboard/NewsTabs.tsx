@@ -1,13 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from 'react';
 import { getNewAnalytics } from '@/services/Admin/dashboard.service';
 import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
   BarChart,
   Bar,
   LineChart,
@@ -22,7 +15,7 @@ import {
   RadialBarChart,
   RadialBar,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
+import { onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type {
   NewsApprovalTrendItem,
   NewsByEvent,
@@ -148,7 +141,7 @@ export default function NewsTabs() {
         );
         // Use real data from backend, but map to frontend structure
         const backendNewsByEvent = Array.isArray(res.data?.newsByEvent) ? res.data.newsByEvent : [];
-        const mappedNewsByEvent = backendNewsByEvent.map((item: any) => ({
+        const mappedNewsByEvent = backendNewsByEvent.map((item: NewsByEvent) => ({
           eventId: item.eventId || '',
           eventName: item.eventName || 'Unknown Event',
           newsCount: item.newsCount || 0,
@@ -161,7 +154,7 @@ export default function NewsTabs() {
         const backendNewsByAuthor = Array.isArray(res.data?.newsByAuthor)
           ? res.data.newsByAuthor
           : [];
-        const mappedNewsByAuthor = backendNewsByAuthor.map((item: any) => ({
+        const mappedNewsByAuthor = backendNewsByAuthor.map((item: NewsByAuthor) => ({
           authorId: item.authorId || '',
           authorName: item.authorName || 'Unknown Author',
           totalNews: item.totalNews || 0,
@@ -176,26 +169,24 @@ export default function NewsTabs() {
       .finally(() => setLoading(false));
   };
 
-  // Connect to AnalyticsHub for real-time updates
+  // Setup Analytics Hub listeners using global connections
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    // Analytics hub connection is managed globally in App.tsx
 
     // Handler reference for cleanup
-    const handler = (data: any) => {
+    const handler = (data: AdminNewsAnalyticsResponse['data']) => {
       if (document.visibilityState !== 'visible') return;
       // Defensive: always ensure arrays
-      const safeApprovalTrend = Array.isArray(data.approvalTrend) ? data.approvalTrend : [];
+      const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend) ? data.approvalMetrics.approvalTrend : [];
       const safeNewsByEvent = Array.isArray(data.newsByEvent) ? data.newsByEvent : [];
       const safeNewsByAuthor = Array.isArray(data.newsByAuthor) ? data.newsByAuthor : [];
-      // Only update if data is actually different
-      let changed = false;
+      // Only update if data is actually different  
       if (JSON.stringify(safeApprovalTrend) !== JSON.stringify(approvalTrend)) {
         setApprovalTrend(safeApprovalTrend);
-        changed = true;
       }
       if (JSON.stringify(safeNewsByEvent) !== JSON.stringify(newsByEvent)) {
         // Map the real-time data to match the expected structure
-        const mappedNewsByEvent = safeNewsByEvent.map((item: any) => ({
+        const mappedNewsByEvent = safeNewsByEvent.map((item: NewsByEvent) => ({
           eventId: item.eventId || '',
           eventName: item.eventName || 'Unknown Event',
           newsCount: item.newsCount || 0,
@@ -204,11 +195,10 @@ export default function NewsTabs() {
           lastNewsDate: item.lastNewsDate || '',
         }));
         setNewsByEvent(mappedNewsByEvent);
-        changed = true;
       }
       if (JSON.stringify(safeNewsByAuthor) !== JSON.stringify(newsByAuthor)) {
         // Map the real-time data to match the expected structure
-        const mappedNewsByAuthor = safeNewsByAuthor.map((item: any) => ({
+        const mappedNewsByAuthor = safeNewsByAuthor.map((item: NewsByAuthor) => ({
           authorId: item.authorId || '',
           authorName: item.authorName || 'Unknown Author',
           totalNews: item.totalNews || 0,
@@ -219,9 +209,8 @@ export default function NewsTabs() {
           lastNewsDate: item.lastNewsDate || '',
         }));
         setNewsByAuthor(mappedNewsByAuthor);
-        changed = true;
       }
-      // If nothing changed, do nothing (keeps initial data)
+      // Analytics data updated via SignalR
     };
     onAnalytics('OnNewsAnalytics', handler);
 

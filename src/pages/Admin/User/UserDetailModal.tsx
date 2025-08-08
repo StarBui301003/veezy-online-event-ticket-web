@@ -1,11 +1,5 @@
 import { NO_AVATAR } from '@/assets/img';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { User } from '@/types/auth';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import { useTranslation } from 'react-i18next';

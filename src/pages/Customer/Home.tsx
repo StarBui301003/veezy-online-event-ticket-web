@@ -11,7 +11,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/autoplay';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { NO_IMAGE } from '@/assets/img';
-import { connectNewsHub, onNews, connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -71,10 +71,7 @@ export const HomePage = () => {
       .catch(() => setNews([]))
       .finally(() => setLoadingNews(false));
 
-    // Kết nối SignalR hub
-          connectNewsHub('https://event.vezzy.site/newsHub');
-          connectEventHub('https://event.vezzy.site/notificationHub');
-    // Lắng nghe realtime news
+    // Setup realtime listeners - News events are handled by Event hub
     const reloadNews = () => {
       setLoadingNews(true);
       getAllNewsHome()
@@ -84,12 +81,7 @@ export const HomePage = () => {
         .catch(() => setNews([]))
         .finally(() => setLoadingNews(false));
     };
-    onNews('OnNewsCreated', reloadNews);
-    onNews('OnNewsUpdated', reloadNews);
-    onNews('OnNewsDeleted', reloadNews);
-    onNews('OnNewsApproved', reloadNews);
-    onNews('OnNewsRejected', reloadNews);
-    // Lắng nghe realtime event
+
     const reloadEvents = () => {
       setLoadingEvents(true);
       getHomeEvents()
@@ -100,11 +92,22 @@ export const HomePage = () => {
         .catch(() => setEvents([]))
         .finally(() => setLoadingEvents(false));
     };
+
+    // Listen for news events (news are events, so use event listeners)
+    onEvent('OnNewsCreated', reloadNews);
+    onEvent('OnNewsUpdated', reloadNews);
+    onEvent('OnNewsDeleted', reloadNews);
+    onEvent('OnNewsApproved', reloadNews);
+    onEvent('OnNewsUnhidden', reloadNews);
+    
+    // Listen for event updates
     onEvent('OnEventCreated', reloadEvents);
     onEvent('OnEventUpdated', reloadEvents);
     onEvent('OnEventDeleted', reloadEvents);
     onEvent('OnEventApproved', reloadEvents);
     onEvent('OnEventCancelled', reloadEvents);
+    onEvent('OnEventShown', reloadEvents);
+    onEvent('OnEventHidden', reloadEvents);
   }, []);
 
   // Swiper settings

@@ -3,14 +3,23 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { resetPasswordWithCode } from '@/services/auth.service';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoKey, IoLockClosed, IoEye, IoEyeOff, IoCheckmarkCircle, IoAlertCircle, IoShield } from 'react-icons/io5';
+import {
+  IoArrowBack,
+  IoKey,
+  IoLockClosed,
+  IoEye,
+  IoEyeOff,
+  IoCheckmarkCircle,
+  IoAlertCircle,
+  IoShield,
+} from 'react-icons/io5';
 
 export const ResetNewPasswordForm = () => {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [_message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -64,9 +73,11 @@ export const ResetNewPasswordForm = () => {
           navigate('/login');
         }, 2000);
       } else {
-        setError(response.message || 'Failed to reset password. Please check your code and try again.');
+        setError(
+          response.message || 'Failed to reset password. Please check your code and try again.'
+        );
       }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // Ưu tiên message từ backend nếu có
       const backendMsg = err?.response?.data?.message;
@@ -121,7 +132,10 @@ export const ResetNewPasswordForm = () => {
           onClick={() => navigate(-1)}
           aria-label="Go back"
         >
-          <IoArrowBack size={20} className="group-hover:-translate-x-1 transition-transform duration-200" />
+          <IoArrowBack
+            size={20}
+            className="group-hover:-translate-x-1 transition-transform duration-200"
+          />
           <span className="text-sm font-medium">Back</span>
         </button>
 
@@ -148,11 +162,17 @@ export const ResetNewPasswordForm = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Verification Code */}
                 <div className="space-y-2">
-                  <label htmlFor="verification-code" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="verification-code"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Verification Code
                   </label>
                   <div className="relative">
-                    <IoKey size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <IoKey
+                      size={18}
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    />
                     <Input
                       id="verification-code"
                       type="text"
@@ -172,7 +192,10 @@ export const ResetNewPasswordForm = () => {
                     New Password
                   </label>
                   <div className="relative">
-                    <IoLockClosed size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <IoLockClosed
+                      size={18}
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    />
                     <Input
                       id="new-password"
                       type={showNewPassword ? 'text' : 'password'}
@@ -218,11 +241,17 @@ export const ResetNewPasswordForm = () => {
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="confirm-password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Confirm Password
                   </label>
                   <div className="relative">
-                    <IoLockClosed size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <IoLockClosed
+                      size={18}
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    />
                     <Input
                       id="confirm-password"
                       type={showConfirmPassword ? 'text' : 'password'}
@@ -247,10 +276,14 @@ export const ResetNewPasswordForm = () => {
                     </button>
                   </div>
                   {confirmPassword && (
-                    <p className={`text-xs ${
-                      newPassword === confirmPassword ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {newPassword === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                    <p
+                      className={`text-xs ${
+                        newPassword === confirmPassword ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {newPassword === confirmPassword
+                        ? '✓ Passwords match'
+                        : '✗ Passwords do not match'}
                     </p>
                   )}
                 </div>
@@ -267,7 +300,13 @@ export const ResetNewPasswordForm = () => {
                 <Button
                   type="submit"
                   className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={loading || !code.trim() || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                  disabled={
+                    loading ||
+                    !code.trim() ||
+                    !newPassword ||
+                    !confirmPassword ||
+                    newPassword !== confirmPassword
+                  }
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">

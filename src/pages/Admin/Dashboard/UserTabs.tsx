@@ -14,7 +14,7 @@ import {
   Bar,
   Legend,
 } from 'recharts';
-import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
+import { onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type { AdminUserAnalyticsResponse } from '@/types/Admin/dashboard';
 import type { UserGrowth, UserDemographics } from '@/types/Admin/dashboard';
 import {
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'react-toastify';
 import { RingLoader } from 'react-spinners';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FILTERS = [
   { label: 'Last 30 Days', value: 12 }, // Last30Days
@@ -84,9 +85,9 @@ export default function UserTabs() {
     });
   };
 
-  // Connect to AnalyticsHub for real-time updates
+  // Setup Analytics Hub listeners using global connections
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    // Analytics hub connection is managed globally in App.tsx
 
     // Handler reference for cleanup
     const handler = (data: any) => {
@@ -169,9 +170,33 @@ export default function UserTabs() {
       {/* Card tổng quan user */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
         {!growth ? (
-          <div className="flex w-full items-center justify-center h-[100px]">
-            <RingLoader size={40} color="#60a5fa" />
-          </div>
+          <>
+            {/* Skeleton cho Total Users */}
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-20 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-16 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            {/* Skeleton cho New Users */}
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-16 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-12 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            {/* Skeleton cho Active New Users */}
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-24 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-14 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            {/* Skeleton cho Inactive New Users */}
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-28 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-16 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+            {/* Skeleton cho Online Users */}
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-18 mb-2 bg-slate-400 dark:bg-gray-700 rounded-full" />
+              <Skeleton className="h-4 w-14 bg-slate-400 dark:bg-gray-700 rounded-full" />
+            </div>
+          </>
         ) : (
           <>
             <div className={cardClass}>

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, Download, Clock, Search, Filter, RefreshCw } from 'lucide-react';
+import { Users, Download, Clock, Search, RefreshCw } from 'lucide-react';
 import { exportAttendanceCheckin } from '@/services/Event Manager/attendance.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
 import { getAttendanceByEvent } from '@/services/Event Manager/attendance.service';
 import { toast } from 'react-toastify';
-
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 const AttendanceListPage = () => {
   // Định nghĩa đúng kiểu cho events
@@ -19,11 +20,10 @@ const AttendanceListPage = () => {
   const [loading, setLoading] = useState(false);
   // Removed unused searchTerm/setSearchTerm
   const [eventSearch, setEventSearch] = useState('');
-  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [totalAttendees, setTotalAttendees] = useState(0);
-  const [eventManagerId, setEventManagerId] = useState('');
+  const [_eventManagerId, setEventManagerId] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize] = useState(10); // pageSize fixed, not changing
   // Removed unused totalItems state
@@ -31,6 +31,7 @@ const AttendanceListPage = () => {
 
   // Add translation hook
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
 
   // Get eventManagerId from localStorage.account (like NotificationManager)
   useEffect(() => {
@@ -39,7 +40,9 @@ const AttendanceListPage = () => {
       try {
         const accObj = JSON.parse(accStr);
         if (accObj?.userId) setEventManagerId(accObj.userId);
-      } catch { /* ignore parse error */ }
+      } catch {
+        /* ignore parse error */
+      }
     }
   }, []);
 
@@ -47,456 +50,500 @@ const AttendanceListPage = () => {
   useEffect(() => {
     const setupRealtimeAttendance = async () => {
       try {
-        const { connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        
-        if (token) {
-          // Connect to Ticket Hub for attendance updates
-          await connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
-          
-          // Listen for real-time attendance updates
-          onTicket('AttendanceCheckedIn', (data: any) => {
-            console.log('Attendance checked in:', data);
-            loadAttendances();
-            toast.success(t('attendanceCheckedInRealtime', { 
-              customerName: data.customerName || data.userName || 'Customer'
-            }));
-          });
-          
-          onTicket('AttendanceUpdated', (data: any) => {
-            console.log('Attendance updated:', data);
-            loadAttendances();
-            toast.info(t('attendanceUpdatedRealtime'));
-          });
-          
-          onTicket('TicketIssued', (data: any) => {
-            console.log('Ticket issued:', data);
-            loadAttendances();
-            toast.success(t('ticketIssuedRealtime'));
-          });
+        const { onTicket, onNotification } = await import('@/services/signalr.service');
 
-          onTicket('TicketGenerated', (data: any) => {
-            console.log('Ticket generated:', data);
+        // Listen for real-time attendance updates using global connections
+        onTicket('AttendanceCheckedIn', (data: any) => {
+          console.log('Attendance checked in:', data);
+          loadAttendances();
+          toast.success(
+            t('attendanceCheckedInRealtime', {
+              customerName: data.customerName || data.userName || 'Customer',
+            })
+          );
+        });
+
+        onTicket('AttendanceUpdated', (data: any) => {
+          console.log('Attendance updated:', data);
+          loadAttendances();
+          toast.info(t('attendanceUpdatedRealtime'));
+        });
+
+        onTicket('TicketIssued', (data: any) => {
+          console.log('Ticket issued:', data);
+          loadAttendances();
+          toast.success(t('ticketIssuedRealtime'));
+        });
+
+        onTicket('TicketGenerated', (data: any) => {
+          console.log('Ticket generated:', data);
+          loadAttendances();
+          toast.info(t('ticketGeneratedRealtime'));
+        });
+
+        onTicket('TicketValidated', (data: any) => {
+          console.log('Ticket validated:', data);
+          if (selectedEvent && data.eventId === selectedEvent) {
             loadAttendances();
-            toast.info(t('ticketGeneratedRealtime'));
-          });
+            toast.success(t('ticketValidatedRealtime'));
+          }
+        });
 
-          onTicket('TicketValidated', (data: any) => {
-            console.log('Ticket validated:', data);
-            if (selectedEvent && data.eventId === selectedEvent) {
-              loadAttendances();
-              toast.success(t('ticketValidatedRealtime'));
-            }
-          });
+        // Listen for attendance-related notifications using global connections
 
-          // Connect to Notification Hub for attendance notifications
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-          
-          onNotification('ReceiveNotification', (notification: any) => {
-            // Handle attendance-related notifications
-            if (notification.type === 'AttendanceUpdate' ||
-                notification.type === 'CheckIn' ||
-                notification.type === 'TicketValidation') {
-              console.log('Attendance notification:', notification);
-              toast.info(notification.message || notification.title);
-              
-              // Refresh attendance data if related to current event
-              if (selectedEvent && notification.eventId === selectedEvent) {
-                loadAttendances();
-              }
-            }
-          });
-        }
+        onNotification('ReceiveNotification', (notification: any) => {
+          // Handle attendance-related notifications
+          if (
+            notification.type === 'AttendanceUpdate' ||
+            notification.type === 'CheckIn' ||
+            notification.type === 'TicketValidation'
+          ) {
+            console.log('Attendance notification:', notification);
+            loadAttendances();
+          }
+        });
       } catch (error) {
-        console.error('Failed to setup realtime attendance:', error);
+        console.error('Failed to setup real-time attendance:', error);
       }
     };
 
     setupRealtimeAttendance();
   }, [selectedEvent, t]);
 
-  // Only define loadAttendances once
-  // Load both events and attendances
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Load events
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const eventsData = await getMyApprovedEvents();
+        setEvents(eventsData);
+      } catch (error) {
+        console.error('Failed to load events:', error);
+        toast.error(t('failedToLoadEvents'));
+      }
+    };
+
+    loadEvents();
+  }, [t]);
+
+  // Load attendances when event is selected
   const loadAttendances = useCallback(async () => {
+    if (!selectedEvent) return;
+
     setLoading(true);
     try {
-      // 1. Get all events managed by this event manager
-      const eventsRes = await getMyApprovedEvents();
-      const myEvents = Array.isArray(eventsRes) ? eventsRes : (eventsRes?.data || []);
-      setEvents(myEvents);
-
-      // 2. Default select first event if none selected
-      if (myEvents.length > 0 && !selectedEvent) {
-        setSelectedEvent(myEvents[0].eventId);
-        setEventSearch(myEvents[0].eventName);
-        setLoading(false);
-        return;
+      const response = await getAttendanceByEvent(selectedEvent, pageNumber, pageSize);
+      if (response && response.items) {
+        setAttendances(response.items);
+        setTotalAttendees(response.totalItems || 0);
+        setTotalPages(response.totalPages || 1);
       }
-
-      // 3. Get attendances for selected event (with pagination)
-      if (selectedEvent) {
-        const res = await getAttendanceByEvent(selectedEvent, pageNumber, pageSize);
-        const data = res?.data || {};
-        setAttendances(data.items || []);
-        setTotalPages(data.totalPages || 1);
-        setTotalAttendees(data.totalItems || 0);
-      } else {
-        setAttendances([]);
-        setTotalPages(1);
-        setTotalAttendees(0);
-      }
-    } catch {
-      setAttendances([]);
-      setTotalPages(1);
-      setTotalAttendees(0);
-      setEvents([]);
+    } catch (error) {
+      console.error('Failed to load attendances:', error);
+      toast.error(t('failedToLoadAttendances'));
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, pageNumber, pageSize]);
+  }, [selectedEvent, pageNumber, pageSize, t]);
 
   useEffect(() => {
-    if (eventManagerId) loadAttendances();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventManagerId, selectedEvent, pageNumber, pageSize]);
+    loadAttendances();
+  }, [loadAttendances]);
 
-  // Xoá hàm loadAttendances bị trùng
-  // const loadAttendances = async () => { ... }
-  // Định nghĩa đúng kiểu cho events
-  interface Event {
-    eventId: string;
-    eventName: string;
-  }
-  // Đã khai báo ở đầu file
+  // Filter events based on search
+  const filteredEvents = events.filter((event) =>
+    event.eventName.toLowerCase().includes(eventSearch.toLowerCase())
+  );
 
+  // Handle event selection
+  const handleEventSelect = (eventId: string) => {
+    setSelectedEvent(eventId);
+    setPageNumber(1); // Reset to first page when changing event
+  };
+
+  // Handle export
   const handleExportAttendance = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      toast.error(t('pleaseSelectEvent'));
+      return;
+    }
+
     setExportLoading(true);
     try {
       const blob = await exportAttendanceCheckin(selectedEvent);
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `attendance-${selectedEvent}-${Date.now()}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      alert('Xuất file thành công!');
-    } catch {
-      alert('Có lỗi xảy ra khi xuất file!');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `attendance_${selectedEvent}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t('attendanceExportedSuccessfully'));
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error(t('exportFailed'));
     } finally {
       setExportLoading(false);
     }
   };
 
-  
-  // 0: Admin, 1: Customer, 2: Event Manager
+  // Helper functions
   const getRoleText = (role) => {
-    if (!role) return t('Unknown');
-    if (role === 'Admin') return t('Admin');
-    if (role === 'Customer') return t('Customer');
-    if (role === 'EventManager') return t('Event Manager');
-    return role;
+    switch (role) {
+      case 1:
+        return t('customer');
+      case 2:
+        return t('eventManager');
+      case 3:
+        return t('admin');
+      default:
+        return t('unknown');
+    }
   };
+
   const getRoleBadgeColor = (role) => {
-    if (role === 'Admin') return 'bg-purple-100 text-purple-700 border border-purple-300';
-    if (role === 'Customer') return 'bg-blue-100 text-blue-700 border border-blue-300';
-    if (role === 'EventManager') return 'bg-green-100 text-green-700 border border-green-300';
-    return 'bg-gray-100 text-gray-800 border border-gray-300';
+    switch (role) {
+      case 1:
+        return getThemeClass('bg-blue-100 text-blue-800', 'bg-blue-100 text-blue-800');
+      case 2:
+        return getThemeClass('bg-green-100 text-green-800', 'bg-green-100 text-green-800');
+      case 3:
+        return getThemeClass('bg-red-100 text-red-800', 'bg-red-100 text-red-800');
+      default:
+        return getThemeClass('bg-gray-100 text-gray-800', 'bg-gray-100 text-gray-800');
+    }
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return '--';
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleString('vi-VN');
   };
 
-
-  // Only show attendances for events managed by current event manager
-  const filteredAttendances = attendances;
-
-  const selectedEventData = events.find(e => e.eventId === selectedEvent);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div
+      className={cn(
+        'min-h-screen p-6',
+        getThemeClass(
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
+          'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] text-white'
+        )
+      )}
+    >
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-black flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
-                <Users className="text-green-400" />
-                {t('Attendance Management')}
-              </h1>
-              <p className="text-lg text-gray-200 mt-2">{t('Track And Export Event Attendees')}</p>
-            </div>
-            <button
-              onClick={loadAttendances}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl font-semibold shadow-lg transition-all"
-              disabled={loading}
-            >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-              {t('Refresh')}
-            </button>
-          </div>
+          <h1
+            className={cn('text-3xl font-bold mb-2', getThemeClass('text-blue-600', 'text-white'))}
+          >
+            {t('attendanceList')}
+          </h1>
+          <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-gray-300'))}>
+            {t('manageEventAttendance')}
+          </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-300 text-sm font-medium">{t('Total Attendees')}</p>
-                <p className="text-3xl font-bold text-blue-400">{totalAttendees}</p>
-              </div>
-              <div className="p-3 rounded-full bg-blue-500/20">
-                <Users className="text-blue-400" size={24} />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Event Selection */}
+        <div
+          className={cn(
+            'mb-6 p-6 rounded-xl shadow-lg',
+            getThemeClass(
+              'bg-white/95 border border-gray-200',
+              'bg-[#2d0036]/80 border border-purple-500/30'
+            )
+          )}
+        >
+          <h2
+            className={cn(
+              'text-xl font-semibold mb-4',
+              getThemeClass('text-blue-600', 'text-purple-300')
+            )}
+          >
+            {t('selectEvent')}
+          </h2>
 
-        {/* Filters and Export - Notification style event search */}
-        <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-xl shadow-2xl border-2 border-blue-500/30 mb-8">
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <div className="relative w-full sm:w-96">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder={t('Search Event')}
-                      value={eventSearch}
-                      onChange={e => {
-                        setEventSearch(e.target.value);
-                        setSearchActiveIndex(-1);
-                      }}
-                      onKeyDown={e => {
-                        const filtered = events.filter(ev =>
-                          typeof ev.eventName === 'string' &&
-                          ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
-                        );
-                        if (e.key === 'Enter') {
-                          if (searchActiveIndex >= 0 && filtered[searchActiveIndex]) {
-                            setSelectedEvent(filtered[searchActiveIndex].eventId);
-                            setEventSearch(filtered[searchActiveIndex].eventName);
-                          } else if (filtered.length > 0) {
-                            setSelectedEvent(filtered[0].eventId);
-                            setEventSearch(filtered[0].eventName);
-                          }
-                        } else if (e.key === 'ArrowDown') {
-                          e.preventDefault();
-                          setSearchActiveIndex(idx => Math.min(idx + 1, filtered.length - 1));
-                        } else if (e.key === 'ArrowUp') {
-                          e.preventDefault();
-                          setSearchActiveIndex(idx => Math.max(idx - 1, 0));
-                        } else if (e.key === 'Escape') {
-                          setSearchActiveIndex(-1);
-                        }
-                      }}
-                      className="pl-10 pr-8 py-2 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 placeholder:text-green-200"
-                      autoComplete="off"
-                    />
-                    {/* X button to clear search */}
-                    {eventSearch && (
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white focus:outline-none"
-                        onClick={() => {
-                          setEventSearch('');
-                          setSearchActiveIndex(-1);
-                        }}
-                        tabIndex={-1}
-                        aria-label="Clear search"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  {/* Suggestion dropdown: chỉ hiện khi search khác selectedEvent */}
-                  {eventSearch && eventSearch !== (selectedEventData?.eventName || '') && (
-                    <div className="absolute z-20 left-0 right-0 mt-1 bg-[#2d0036] border border-green-500/30 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                      {events.filter(ev =>
-                        typeof ev.eventName === 'string' &&
-                        ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
-                      ).map((ev, idx) => (
-                        <div
-                          key={ev.eventId}
-                          className={`px-4 py-2 cursor-pointer hover:bg-green-700/30 ${selectedEvent === ev.eventId ? 'bg-green-700/40' : ''} ${searchActiveIndex === idx ? 'bg-green-800/60' : ''}`}
-                          onClick={() => {
-                            setSelectedEvent(ev.eventId);
-                            setEventSearch(ev.eventName);
-                          }}
-                          onMouseEnter={() => setSearchActiveIndex(idx)}
-                        >
-                          {ev.eventName}
-                        </div>
-                      ))}
-                      {events.filter(ev =>
-                        typeof ev.eventName === 'string' &&
-                        ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
-                      ).length === 0 && (
-                        <div className="px-4 py-2 text-gray-400">{t('No Event Found')}</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="relative w-full sm:w-80">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-200 w-5 h-5" />
-                  <select
-                    value={selectedEvent}
-                    onChange={e => {
-                      const event = events.find(ev => ev.eventId === e.target.value);
-                      setSelectedEvent(e.target.value);
-                      setEventSearch(event ? event.eventName : '');
-                    }}
-                    className="pl-10 pr-8 py-2 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 appearance-none"
-                  >
-                    {/* No 'All Events' option */}
-                    {events.filter(ev =>
-                      typeof ev.eventName === 'string' &&
-                      ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
-                    ).map(event => (
-                      <option key={event.eventId} value={event.eventId} className="bg-[#2d0036] text-white">
-                        {event.eventName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <button
-                onClick={handleExportAttendance}
-                disabled={exportLoading || !selectedEvent}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all shadow-lg
-                  ${selectedEvent && !exportLoading
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
-                `}
-              >
-                {exportLoading ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    {t('Exporting')}
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-5 h-5" />
-                    {t('Export List')}
-                  </>
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search
+              className={cn(
+                'absolute left-3 top-1/2 transform -translate-y-1/2',
+                getThemeClass('text-gray-400', 'text-gray-400')
+              )}
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder={t('searchEvents')}
+              value={eventSearch}
+              onChange={(e) => setEventSearch(e.target.value)}
+              className={cn(
+                'w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2',
+                getThemeClass(
+                  'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500',
+                  'bg-[#1a0022]/80 border-purple-500/30 text-white placeholder-gray-400 focus:ring-purple-500'
+                )
+              )}
+            />
+          </div>
+
+          {/* Event List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredEvents.map((event) => (
+              <div
+                key={event.eventId}
+                className={cn(
+                  'p-4 rounded-lg cursor-pointer transition-all duration-200 border-2',
+                  selectedEvent === event.eventId
+                    ? getThemeClass(
+                        'bg-blue-50 border-blue-400 shadow-md',
+                        'bg-purple-900/50 border-purple-400 shadow-md'
+                      )
+                    : getThemeClass(
+                        'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md',
+                        'bg-[#1a0022]/60 border-purple-500/20 hover:border-purple-400 hover:shadow-md'
+                      )
                 )}
-              </button>
-            </div>
-            {selectedEventData && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-green-900/60 to-blue-900/60 rounded-xl border-2 border-green-500/30">
-                <p className="text-sm text-green-200">
-                  <strong className="text-green-300">{t('Selected Event')}:</strong> {selectedEventData.eventName}
+                onClick={() => handleEventSelect(event.eventId)}
+              >
+                <h3
+                  className={cn('font-semibold mb-2', getThemeClass('text-gray-900', 'text-white'))}
+                >
+                  {event.eventName}
+                </h3>
+                <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-300'))}>
+                  ID: {event.eventId}
                 </p>
               </div>
-            )}
+            ))}
           </div>
         </div>
 
         {/* Attendance List */}
-        <div className="bg-gradient-to-br from-[#2d0036]/90 to-[#3a0ca3]/90 rounded-xl shadow-2xl border-2 border-blue-500/30">
-          <div className="p-6 border-b border-blue-500/30">
-            <h2 className="text-xl font-bold text-blue-300">
-              {t('Attendance List')} ({filteredAttendances.length})
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 animate-spin text-green-400" />
-                <span className="ml-3 text-green-200">{t('Loading Data')}</span>
-              </div>
-            ) : filteredAttendances.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-white mb-2">{t('No Data')}</h3>
-                <p className="text-gray-300">{t('No One Has Registered For This Event Yet')}</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-[#1a0022]/60">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Attendee')}</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Event')}</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Role')}</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Registration Time')}</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-green-300 uppercase tracking-wider">{t('Check-In')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAttendances.map((attendance, idx) => (
-                    <tr key={attendance.index || idx} className="hover:bg-green-400/10 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold">
-                            {attendance.fullName?.charAt(0)}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-bold text-white">
-                              {attendance.fullName}
-                            </div>
-                            <div className="text-sm text-green-200">
-                              {attendance.email}
-                            </div>
-                            <div className="text-sm text-green-200">
-                              {attendance.phone}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-white font-semibold">{selectedEventData?.eventName || ''}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full ${getRoleBadgeColor(attendance.role)}`} style={{minWidth: 90, justifyContent: 'center'}}>
-                          {getRoleText(attendance.role)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 text-green-300 mr-2" />
-                          {formatDateTime(attendance.joinedAt)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {/* API mới không có checkedInAt, để trống hoặc custom nếu có field */}
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                          <span className="text-sm text-green-200">{t('Not Checked In Yet')}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {selectedEvent && (
+          <div
+            className={cn(
+              'p-6 rounded-xl shadow-lg',
+              getThemeClass(
+                'bg-white/95 border border-gray-200',
+                'bg-[#2d0036]/80 border border-purple-500/30'
+              )
             )}
-          </div>
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 py-4">
-              <button
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-                onClick={() => setPageNumber(p => Math.max(1, p - 1))}
-                disabled={pageNumber === 1}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2
+                className={cn(
+                  'text-xl font-semibold',
+                  getThemeClass('text-blue-600', 'text-purple-300')
+                )}
               >
-                {t('Previous')}
-              </button>
-              <span className="text-green-200">{t('Page')} {pageNumber} / {totalPages}</span>
+                {t('attendanceList')} - {events.find((e) => e.eventId === selectedEvent)?.eventName}
+              </h2>
+
               <button
-                className="px-3 py-1 rounded bg-gray-700 text-white disabled:opacity-50"
-                onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
-                disabled={pageNumber === totalPages}
+                onClick={handleExportAttendance}
+                disabled={exportLoading}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all',
+                  getThemeClass(
+                    'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50',
+                    'bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50'
+                  )
+                )}
               >
-                {t('Next')}
+                <Download size={20} />
+                {exportLoading ? t('exporting') : t('exportAttendance')}
               </button>
             </div>
-          )}
-        </div>
+
+            {/* Stats */}
+            <div
+              className={cn(
+                'mb-6 p-4 rounded-lg',
+                getThemeClass(
+                  'bg-blue-50 border border-blue-200',
+                  'bg-purple-900/30 border border-purple-500/30'
+                )
+              )}
+            >
+              <div className="flex items-center gap-4">
+                <Users
+                  className={cn(getThemeClass('text-blue-600', 'text-purple-400'))}
+                  size={24}
+                />
+                <span
+                  className={cn('font-semibold', getThemeClass('text-blue-800', 'text-purple-200'))}
+                >
+                  {t('totalAttendees')}: {totalAttendees}
+                </span>
+              </div>
+            </div>
+
+            {/* Loading */}
+            {loading && (
+              <div className="flex justify-center items-center py-8">
+                <RefreshCw
+                  className={cn('animate-spin', getThemeClass('text-blue-600', 'text-purple-400'))}
+                  size={32}
+                />
+              </div>
+            )}
+
+            {/* Attendance Table */}
+            {!loading && attendances.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={cn(getThemeClass('bg-gray-50', 'bg-purple-900/50'))}>
+                    <tr>
+                      <th
+                        className={cn(
+                          'px-4 py-3 text-left text-sm font-medium',
+                          getThemeClass('text-gray-700', 'text-purple-200')
+                        )}
+                      >
+                        {t('customerName')}
+                      </th>
+                      <th
+                        className={cn(
+                          'px-4 py-3 text-left text-sm font-medium',
+                          getThemeClass('text-gray-700', 'text-purple-200')
+                        )}
+                      >
+                        {t('role')}
+                      </th>
+                      <th
+                        className={cn(
+                          'px-4 py-3 text-left text-sm font-medium',
+                          getThemeClass('text-gray-700', 'text-purple-200')
+                        )}
+                      >
+                        {t('checkInTime')}
+                      </th>
+                      <th
+                        className={cn(
+                          'px-4 py-3 text-left text-sm font-medium',
+                          getThemeClass('text-gray-700', 'text-purple-200')
+                        )}
+                      >
+                        {t('status')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    className={cn(
+                      'divide-y',
+                      getThemeClass('divide-gray-200', 'divide-purple-500/20')
+                    )}
+                  >
+                    {attendances.map((attendance, index) => (
+                      <tr
+                        key={attendance.attendanceId || index}
+                        className={cn(
+                          'transition-colors',
+                          getThemeClass('hover:bg-gray-50', 'hover:bg-purple-900/20')
+                        )}
+                      >
+                        <td
+                          className={cn('px-4 py-3', getThemeClass('text-gray-900', 'text-white'))}
+                        >
+                          {attendance.customerName || attendance.userName || t('unknown')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              'px-2 py-1 text-xs font-medium rounded-full',
+                              getRoleBadgeColor(attendance.role)
+                            )}
+                          >
+                            {getRoleText(attendance.role)}
+                          </span>
+                        </td>
+                        <td
+                          className={cn(
+                            'px-4 py-3',
+                            getThemeClass('text-gray-600', 'text-gray-300')
+                          )}
+                        >
+                          {formatDateTime(attendance.checkInTime)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={cn(
+                              'px-2 py-1 text-xs font-medium rounded-full',
+                              attendance.status === 'CheckedIn'
+                                ? getThemeClass(
+                                    'bg-green-100 text-green-800',
+                                    'bg-green-100 text-green-800'
+                                  )
+                                : getThemeClass(
+                                    'bg-yellow-100 text-yellow-800',
+                                    'bg-yellow-100 text-yellow-800'
+                                  )
+                            )}
+                          >
+                            {attendance.status === 'CheckedIn' ? t('checkedIn') : t('pending')}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && attendances.length === 0 && (
+              <div
+                className={cn('text-center py-8', getThemeClass('text-gray-500', 'text-gray-400'))}
+              >
+                <Users size={48} className="mx-auto mb-4 opacity-50" />
+                <p>{t('noAttendancesFound')}</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-6">
+                <button
+                  onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
+                  disabled={pageNumber === 1}
+                  className={cn(
+                    'px-3 py-1 rounded border transition-all',
+                    getThemeClass(
+                      'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50',
+                      'bg-[#1a0022]/80 border-purple-500/30 text-white hover:bg-purple-900/30 disabled:opacity-50'
+                    )
+                  )}
+                >
+                  {t('previous')}
+                </button>
+
+                <span className={cn('px-3 py-1', getThemeClass('text-gray-700', 'text-white'))}>
+                  {t('page')} {pageNumber} {t('of')} {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setPageNumber(Math.min(totalPages, pageNumber + 1))}
+                  disabled={pageNumber === totalPages}
+                  className={cn(
+                    'px-3 py-1 rounded border transition-all',
+                    getThemeClass(
+                      'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50',
+                      'bg-[#1a0022]/80 border-purple-500/30 text-white hover:bg-purple-900/30 disabled:opacity-50'
+                    )
+                  )}
+                >
+                  {t('next')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* No Event Selected */}
+        {!selectedEvent && (
+          <div className={cn('text-center py-12', getThemeClass('text-gray-500', 'text-gray-400'))}>
+            <Clock size={48} className="mx-auto mb-4 opacity-50" />
+            <p>{t('pleaseSelectEventToViewAttendance')}</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { getMyApprovedEvents, getMyNews, deleteNews } from "@/services/Event Manager/event.service";
-import { News } from "@/types/event";
-import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { connectEventHub, onEvent } from '@/services/signalr.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import React, { useEffect, useState } from 'react';
+import { getMyApprovedEvents, getMyNews, deleteNews } from '@/services/Event Manager/event.service';
+import { News } from '@/types/event';
+import { FaPlus, FaChevronLeft, FaChevronRight, FaTrash, FaNewspaper } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { onEvent } from '@/services/signalr.service';
+import { onNews } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 interface Event {
   eventId: string;
@@ -23,15 +25,24 @@ const EVENTS_PER_PAGE = 3;
 
 const DeleteNewsConfirmation = ({ news, open, onClose, onConfirm, isConfirming }) => {
   const { t } = useTranslation();
-  
+  const { getThemeClass } = useThemeClasses();
+
   if (!open) return null;
-  
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 relative animate-in zoom-in-95 duration-300">
+      <div
+        className={cn(
+          'rounded-2xl shadow-2xl max-w-lg w-full p-6 relative animate-in zoom-in-95 duration-300',
+          getThemeClass('bg-white', 'bg-gray-800')
+        )}
+      >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          className={cn(
+            'absolute top-4 right-4 transition-colors',
+            getThemeClass('text-gray-400 hover:text-gray-600', 'text-gray-400 hover:text-gray-200')
+          )}
           disabled={isConfirming}
         >
           <X size={24} />
@@ -41,7 +52,12 @@ const DeleteNewsConfirmation = ({ news, open, onClose, onConfirm, isConfirming }
             <FaTrash size={32} className="text-white" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white text-center mb-4">
+        <h2
+          className={cn(
+            'text-2xl font-bold text-center mb-4',
+            getThemeClass('text-gray-800', 'text-white')
+          )}
+        >
           {t('newsManager.deleteConfirmationTitle')}
         </h2>
         <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
@@ -52,11 +68,23 @@ const DeleteNewsConfirmation = ({ news, open, onClose, onConfirm, isConfirming }
             {t('newsManager.deleteConfirmationWarning')}
           </p>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-6 border-l-4 border-red-500">
-          <h3 className="font-semibold text-gray-800 dark:text-white text-lg mb-2">
+        <div
+          className={cn(
+            'rounded-xl p-4 mb-6 border-l-4 border-red-500',
+            getThemeClass('bg-gray-50', 'bg-gray-700')
+          )}
+        >
+          <h3
+            className={cn(
+              'font-semibold text-lg mb-2',
+              getThemeClass('text-gray-800', 'text-white')
+            )}
+          >
             {news?.newsTitle || t('newsManager.notAvailable')}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+          <p
+            className={cn('text-sm line-clamp-2', getThemeClass('text-gray-600', 'text-gray-300'))}
+          >
             {news?.newsDescription || t('newsManager.notAvailable')}
           </p>
         </div>
@@ -93,15 +121,16 @@ const DeleteNewsConfirmation = ({ news, open, onClose, onConfirm, isConfirming }
 
 const NewsManager: React.FC = () => {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [searchEvent, setSearchEvent] = useState("");
+  const [searchEvent, setSearchEvent] = useState('');
   const [eventPage, setEventPage] = useState(1);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [newsList, setNewsList] = useState<News[]>([]);
   const [loadingNews, setLoadingNews] = useState(false);
-  const [searchNews, setSearchNews] = useState("");
+  const [searchNews, setSearchNews] = useState('');
   const navigate = useNavigate();
 
   const [deleteModal, setDeleteModal] = useState({
@@ -111,8 +140,7 @@ const NewsManager: React.FC = () => {
   });
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    // Setup real-time listeners using global connections managed by App.tsx
     (async () => {
       setLoadingEvents(true);
       try {
@@ -120,7 +148,7 @@ const NewsManager: React.FC = () => {
         setEvents(data);
         setFilteredEvents(data);
       } catch (error) {
-        console.error("Failed to fetch events:", error);
+        console.error('Failed to fetch events:', error);
         toast.error(t('newsManager.errorFetchingEvents'));
       } finally {
         setLoadingEvents(false);
@@ -156,9 +184,7 @@ const NewsManager: React.FC = () => {
       setFilteredEvents(events);
     } else {
       setFilteredEvents(
-        events.filter(ev =>
-          ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
-        )
+        events.filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
       );
       setEventPage(1);
     }
@@ -204,9 +230,9 @@ const NewsManager: React.FC = () => {
 
   const confirmDeleteNews = async () => {
     if (!deleteModal.news) return;
-    
-    setDeleteModal(prev => ({ ...prev, isConfirming: true }));
-    
+
+    setDeleteModal((prev) => ({ ...prev, isConfirming: true }));
+
     try {
       await deleteNews(deleteModal.news.newsId);
       // Refresh the news list after successful deletion
@@ -232,56 +258,122 @@ const NewsManager: React.FC = () => {
 
   // Lọc news theo searchNews
   const filteredNewsList = searchNews.trim()
-    ? newsList.filter(news =>
-        news.newsTitle.toLowerCase().includes(searchNews.trim().toLowerCase()) ||
-        news.newsDescription.toLowerCase().includes(searchNews.trim().toLowerCase())
+    ? newsList.filter(
+        (news) =>
+          news.newsTitle.toLowerCase().includes(searchNews.trim().toLowerCase()) ||
+          news.newsDescription.toLowerCase().includes(searchNews.trim().toLowerCase())
       )
     : newsList;
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] py-0 px-0">
-      <div className="w-full max-w-7xl mx-auto bg-[#2d0036]/80 rounded-2xl shadow-2xl p-8 mt-10 mb-10 flex flex-col md:flex-row gap-10">
+    <div
+      className={cn(
+        'w-full min-h-screen flex items-center justify-center px-6',
+        getThemeClass(
+          'bg-gradient-to-br from-blue-50 to-indigo-100',
+          'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]'
+        )
+      )}
+    >
+      <div
+        className={cn(
+          'w-full max-w-7xl mx-auto rounded-2xl shadow-2xl p-8 mt-10 mb-10 flex flex-col md:flex-row gap-10',
+          getThemeClass('bg-white/90 backdrop-blur-sm', 'bg-[#2d0036]/80')
+        )}
+      >
         {/* Event List */}
         <div className="w-full md:w-1/3">
           <div className="flex items-center gap-3 mb-6">
-            <FaNewspaper className="text-3xl text-pink-400" />
-            <h2 className="text-2xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent uppercase tracking-wide">
+            <FaNewspaper
+              className={cn('text-3xl', getThemeClass('text-blue-600', 'text-pink-400'))}
+            />
+            <h2
+              className={cn(
+                'text-2xl font-extrabold uppercase tracking-wide',
+                getThemeClass(
+                  'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent',
+                  'bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent'
+                )
+              )}
+            >
               {t('newsManager.yourEvents')}
             </h2>
           </div>
           <input
             type="text"
             value={searchEvent}
-            onChange={e => setSearchEvent(e.target.value)}
+            onChange={(e) => setSearchEvent(e.target.value)}
             placeholder={t('newsManager.searchEvents')}
-            className="w-full p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 mb-4"
+            className={cn(
+              'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-4',
+              getThemeClass(
+                'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400 focus:ring-blue-500',
+                'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+              )
+            )}
           />
           {loadingEvents ? (
-            <div className="text-pink-400 text-base text-center">
+            <div
+              className={cn(
+                'text-base text-center',
+                getThemeClass('text-blue-600', 'text-pink-400')
+              )}
+            >
               {t('newsManager.loading')}
             </div>
           ) : (
             <div className="space-y-4">
               {pagedEvents.length === 0 && (
-                <div className="text-slate-300 text-center text-base">
+                <div
+                  className={cn(
+                    'text-center text-base',
+                    getThemeClass('text-gray-600', 'text-slate-300')
+                  )}
+                >
                   {t('newsManager.noEventsFound')}
                 </div>
               )}
               {pagedEvents.map((event) => (
                 <div
                   key={event.eventId}
-                  className={`cursor-pointer bg-gradient-to-r from-[#3a0ca3]/60 to-[#ff008e]/60 rounded-xl p-5 shadow-xl border-2 border-pink-500/20
-                    ${selectedEvent?.eventId === event.eventId ? "ring-4 ring-yellow-400/60 scale-105" : "hover:ring-2 hover:ring-pink-400/60 hover:scale-105"} transition-all duration-200`}
+                  className={cn(
+                    'cursor-pointer rounded-xl p-5 shadow-xl border-2 transition-all duration-200',
+                    getThemeClass(
+                      'bg-gradient-to-r from-blue-100 to-indigo-100 border-blue-300 hover:ring-2 hover:ring-blue-400/60 hover:scale-105',
+                      'bg-gradient-to-r from-[#3a0ca3]/60 to-[#ff008e]/60 border-pink-500/20 hover:ring-2 hover:ring-pink-400/60 hover:scale-105'
+                    ),
+                    selectedEvent?.eventId === event.eventId
+                      ? getThemeClass(
+                          'ring-4 ring-blue-400/60 scale-105',
+                          'ring-4 ring-yellow-400/60 scale-105'
+                        )
+                      : ''
+                  )}
                   onClick={() => setSelectedEvent(event)}
                   style={{ minHeight: 90 }}
                 >
-                  <div className="text-base font-bold text-pink-200 mb-1">{event.eventName}</div>
-                  <div className="text-slate-300 text-xs mb-1">
+                  <div
+                    className={cn(
+                      'text-base font-bold mb-1',
+                      getThemeClass('text-blue-800', 'text-pink-200')
+                    )}
+                  >
+                    {event.eventName}
+                  </div>
+                  <div
+                    className={cn('text-xs mb-1', getThemeClass('text-gray-600', 'text-slate-300'))}
+                  >
                     {event.startAt?.slice(0, 10)} - {event.endAt?.slice(0, 10)}
                   </div>
                   <button
-                    className="mt-2 w-full bg-gradient-to-r from-yellow-400 to-pink-500 hover:from-yellow-500 hover:to-pink-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg uppercase tracking-wider transition-all duration-200 text-base"
-                    onClick={e => {
+                    className={cn(
+                      'mt-2 w-full px-4 py-2 rounded-xl font-bold shadow-lg uppercase tracking-wider transition-all duration-200 text-base',
+                      getThemeClass(
+                        'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white',
+                        'bg-gradient-to-r from-yellow-400 to-pink-500 hover:from-yellow-500 hover:to-pink-600 text-white'
+                      )
+                    )}
+                    onClick={(e) => {
                       e.stopPropagation();
                       setSelectedEvent(event);
                       navigate(`/event-manager/news/create/${event.eventId}`);
@@ -296,20 +388,32 @@ const NewsManager: React.FC = () => {
               {totalEventPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4">
                   <button
-                    className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                    className={cn(
+                      'p-2 rounded-full text-white disabled:opacity-50 transition-colors',
+                      getThemeClass(
+                        'bg-blue-500 hover:bg-blue-600',
+                        'bg-pink-500 hover:bg-pink-600'
+                      )
+                    )}
                     disabled={eventPage === 1}
-                    onClick={() => setEventPage(p => Math.max(1, p - 1))}
+                    onClick={() => setEventPage((p) => Math.max(1, p - 1))}
                     aria-label={t('newsManager.previousPage')}
                   >
                     <FaChevronLeft />
                   </button>
-                  <span className="text-white font-bold">
+                  <span className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}>
                     {t('newsManager.page')} {eventPage}/{totalEventPages}
                   </span>
                   <button
-                    className="p-2 rounded-full bg-pink-500 text-white disabled:opacity-50 hover:bg-pink-600 transition-colors"
+                    className={cn(
+                      'p-2 rounded-full text-white disabled:opacity-50 transition-colors',
+                      getThemeClass(
+                        'bg-blue-500 hover:bg-blue-600',
+                        'bg-pink-500 hover:bg-pink-600'
+                      )
+                    )}
                     disabled={eventPage === totalEventPages}
-                    onClick={() => setEventPage(p => Math.min(totalEventPages, p + 1))}
+                    onClick={() => setEventPage((p) => Math.min(totalEventPages, p + 1))}
                     aria-label={t('newsManager.nextPage')}
                   >
                     <FaChevronRight />
@@ -322,55 +426,125 @@ const NewsManager: React.FC = () => {
         {/* News List */}
         <div className="w-full md:w-2/3">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-yellow-300 mb-2">
-              {selectedEvent ? `${t('newsManager.newsFor')} "${selectedEvent.eventName}"` : t('newsManager.selectEventToViewNews')}
+            <h2
+              className={cn(
+                'text-2xl font-bold mb-2',
+                getThemeClass('text-gray-900', 'text-yellow-300')
+              )}
+            >
+              {selectedEvent
+                ? `${t('newsManager.newsFor')} "${selectedEvent.eventName}"`
+                : t('newsManager.selectEventToViewNews')}
             </h2>
             {selectedEvent && (
               <input
                 type="text"
                 placeholder={t('newsManager.searchNews')}
-                className="w-full md:w-72 p-3 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 text-base focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
+                className={cn(
+                  'w-full md:w-72 p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200',
+                  getThemeClass(
+                    'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400 focus:ring-blue-500',
+                    'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                  )
+                )}
                 value={searchNews}
-                onChange={e => setSearchNews(e.target.value)}
+                onChange={(e) => setSearchNews(e.target.value)}
               />
             )}
           </div>
           {!selectedEvent ? (
-            <div className="text-slate-300 text-center text-lg mt-10">
+            <div
+              className={cn(
+                'text-center text-lg mt-10',
+                getThemeClass('text-gray-600', 'text-slate-300')
+              )}
+            >
               {t('newsManager.pleaseSelectAnEventToViewAndManageNews')}
             </div>
           ) : (
             <>
               {loadingNews ? (
-                <div className="text-pink-400 text-base text-center">
+                <div
+                  className={cn(
+                    'text-base text-center',
+                    getThemeClass('text-blue-600', 'text-pink-400')
+                  )}
+                >
                   {t('newsManager.loadingNews')}
                 </div>
               ) : (
                 <div className="space-y-6">
                   {newsList.length === 0 ? (
-                    <div className="text-slate-300 text-center text-lg bg-[#1a0022]/40 rounded-xl p-8">
-                      <FaNewspaper className="mx-auto text-4xl text-pink-400 mb-4" />
+                    <div
+                      className={cn(
+                        'text-center text-lg rounded-xl p-8',
+                        getThemeClass('text-gray-600 bg-gray-50', 'text-slate-300 bg-[#1a0022]/40')
+                      )}
+                    >
+                      <FaNewspaper
+                        className={cn(
+                          'mx-auto text-4xl mb-4',
+                          getThemeClass('text-blue-600', 'text-pink-400')
+                        )}
+                      />
                       <p className="mb-4">
-                        {loadingNews ? t('newsManager.loadingNews') : t('newsManager.noNewsFoundForThisEvent')}
+                        {loadingNews
+                          ? t('newsManager.loadingNews')
+                          : t('newsManager.noNewsFoundForThisEvent')}
                       </p>
                     </div>
                   ) : (
                     <div className="grid gap-4">
                       {filteredNewsList.map((news) => (
-                        <div key={news.newsId} className="bg-[#1a0022]/60 rounded-xl p-6 border-2 border-pink-500/20 hover:border-pink-400/40 transition-all duration-200 hover:shadow-lg hover:shadow-pink-500/10">
+                        <div
+                          key={news.newsId}
+                          className={cn(
+                            'rounded-xl p-6 border-2 transition-all duration-200 hover:shadow-lg',
+                            getThemeClass(
+                              'bg-white border-blue-200 hover:border-blue-300 hover:shadow-blue-500/10',
+                              'bg-[#1a0022]/60 border-pink-500/20 hover:border-pink-400/40 hover:shadow-pink-500/10'
+                            )
+                          )}
+                        >
                           <div className="flex flex-col">
                             <div className="flex-1">
-                              <h3 className="text-xl font-bold text-pink-200 mb-2">{news.newsTitle}</h3>
-                              <p className="text-slate-300 text-sm mb-3 line-clamp-2">{news.newsDescription}</p>
-                              <div className="flex items-center text-xs text-slate-400 mb-4">
-                                <span className="bg-[#2d0036] px-2 py-1 rounded-md border border-pink-500/30">
-                                  {news.createdAt ? new Date(news.createdAt).toLocaleString('vi-VN', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                  }).replace(',', '') : t('newsManager.notAvailable')}
+                              <h3
+                                className={cn(
+                                  'text-xl font-bold mb-2',
+                                  getThemeClass('text-gray-900', 'text-pink-200')
+                                )}
+                              >
+                                {news.newsTitle}
+                              </h3>
+                              <p
+                                className={cn(
+                                  'text-sm mb-3 line-clamp-2',
+                                  getThemeClass('text-gray-600', 'text-slate-300')
+                                )}
+                              >
+                                {news.newsDescription}
+                              </p>
+                              <div className="flex items-center text-xs mb-4">
+                                <span
+                                  className={cn(
+                                    'px-2 py-1 rounded-md border',
+                                    getThemeClass(
+                                      'bg-gray-100 border-gray-300 text-gray-700',
+                                      'bg-[#2d0036] border-pink-500/30 text-slate-400'
+                                    )
+                                  )}
+                                >
+                                  {news.createdAt
+                                    ? new Date(news.createdAt)
+                                        .toLocaleString('vi-VN', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                        })
+                                        .replace(',', '')
+                                    : t('newsManager.notAvailable')}
                                 </span>
                               </div>
                             </div>
@@ -383,8 +557,19 @@ const NewsManager: React.FC = () => {
                                 }}
                                 title={t('newsManager.editNews')}
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6" />
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6"
+                                  />
                                 </svg>
                                 <span className="hidden md:inline">{t('newsManager.edit')}</span>
                               </button>
@@ -414,7 +599,7 @@ const NewsManager: React.FC = () => {
       <DeleteNewsConfirmation
         news={deleteModal.news}
         open={deleteModal.open}
-        onClose={() => setDeleteModal(prev => ({ ...prev, open: false }))}
+        onClose={() => setDeleteModal((prev) => ({ ...prev, open: false }))}
         onConfirm={confirmDeleteNews}
         isConfirming={deleteModal.isConfirming}
       />

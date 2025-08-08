@@ -454,7 +454,7 @@ const ProfilePage = () => {
   if (loading) {
     return (
       <div className="w-full min-h-screen flex flex-col items-center justify-center">
-        <SpinnerOverlay show={true} />
+        <SpinnerOverlay show={true} fullScreen={false} />
         <span className="mt-6 text-lg text-purple-200 animate-pulse">{t('pleaseWait')}</span>
       </div>
     );

@@ -45,15 +45,15 @@ import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import identityService from '@/services/identity.service';
+import { MdRefresh } from 'react-icons/md';
+import { getRoleDisplayName } from '@/utils/roleMapper';
 
 const ChatboxAdmin = () => {
-  // Component render tracking
-  console.log('🔄 [Component] ChatboxAdmin rendering...');
+  const { getProfileInputClass, getCardClass, getTextClass, theme } = useThemeClasses();
 
-  const { getProfileInputClass, getCardClass, getTextClass } = useThemeClasses();
-
-  // Custom scrollbar styles
-  const scrollbarStyles = `
+  // Custom scrollbar styles - theme-aware
+  const getScrollbarStyles = (isDark: boolean) => `
     .custom-scrollbar::-webkit-scrollbar {
       width: 8px;
     }
@@ -61,17 +61,21 @@ const ChatboxAdmin = () => {
       background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.5);
+      background: ${isDark ? 'rgba(156, 163, 175, 0.5)' : 'rgba(107, 114, 128, 0.5)'};
       border-radius: 4px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(156, 163, 175, 0.7);
+      background: ${isDark ? 'rgba(156, 163, 175, 0.7)' : 'rgba(107, 114, 128, 0.7)'};
     }
     .custom-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+      scrollbar-color: ${
+        isDark ? 'rgba(156, 163, 175, 0.5)' : 'rgba(107, 114, 128, 0.5)'
+      } transparent;
     }
   `;
+
+  const scrollbarStyles = getScrollbarStyles(theme === 'dark');
 
   // State for room mode (ai/human) and permission to switch
   const [roomMode, setRoomMode] = useState<'ai' | 'human'>('ai');
@@ -79,7 +83,7 @@ const ChatboxAdmin = () => {
 
   // Debug: Log roomMode changes and force re-render counter
   const [forceRender, setForceRender] = useState(0);
-  // ...existing code...
+
   // States
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
@@ -87,9 +91,24 @@ const ChatboxAdmin = () => {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState<ChatUser[]>([]);
+
+  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<
+    Array<{
+      userId: string;
+      userName: string;
+      fullName: string;
+      email: string;
+      role: string;
+      avatar: string;
+      isOnline: boolean;
+      lastActiveAt: string;
+    }>
+  >([]);
+
+  const onlineUsers = allUsersFromIdentity;
   const [isConnected, setIsConnected] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false); // Add loading state for messages
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [refreshingUsers, setRefreshingUsers] = useState(false);
 
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -126,7 +145,6 @@ const ChatboxAdmin = () => {
       };
     }
 
-    // Fallback if no account found
     return {
       userId: 'admin-id',
       username: 'admin',
@@ -136,6 +154,30 @@ const ChatboxAdmin = () => {
   };
 
   const currentUser = getCurrentUser();
+
+  // Load all users from IdentityService
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const users = await identityService.getAllUsersWithStatus();
+        const transformedUsers = users.map((user) => ({
+          userId: user.accountId,
+          userName: user.username,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatarUrl || '',
+          isOnline: user.isOnline,
+          lastActiveAt: user.lastActiveAt,
+        }));
+        setAllUsersFromIdentity(transformedUsers);
+      } catch (error) {
+        console.error('[ChatboxAdmin] Error loading users:', error);
+      }
+    };
+
+    setTimeout(loadUsers, 500);
+  }, []);
 
   // Listen for mode changes from SignalR
   useEffect(() => {
@@ -444,18 +486,15 @@ const ChatboxAdmin = () => {
           );
         });
 
-        // Listen for user online status
+        // Listen for user online status - OnlineStatusContext handles this automatically
         onChat('UserConnected', (user: ChatUser) => {
-          setOnlineUsers((prev) => {
-            const filtered = prev.filter((u) => u.userId !== user.userId);
-            return [...filtered, { ...user, isOnline: true }];
-          });
+          console.log('👤 User connected via SignalR:', user);
+          // OnlineStatusContext will handle this via Identity Hub events
         });
 
         onChat('UserDisconnected', (userId: string) => {
-          setOnlineUsers((prev) =>
-            prev.map((user) => (user.userId === userId ? { ...user, isOnline: false } : user))
-          );
+          console.log('👤 User disconnected via SignalR:', userId);
+          // OnlineStatusContext will handle this via Identity Hub events
         });
 
         // Handle user joined room event
@@ -547,7 +586,7 @@ const ChatboxAdmin = () => {
 
     connectToChat();
     fetchChatRooms();
-    fetchOnlineUsers();
+    // OnlineStatusContext handles online users automatically
 
     return () => {
       // Leave all rooms before disconnecting
@@ -562,6 +601,12 @@ const ChatboxAdmin = () => {
       disconnectChatHub();
     };
   }, []);
+
+  // OnlineStatusContext handles refresh automatically
+  // Removed periodic refresh as OnlineStatusContext manages online users via SignalR
+
+  // OnlineStatusContext handles cleanup automatically
+  // Removed cleanup effect as OnlineStatusContext manages online users
 
   // Auto scroll when new messages arrive
   useEffect(() => {
@@ -659,7 +704,11 @@ const ChatboxAdmin = () => {
                 'fullName:',
                 p?.fullName,
                 'username:',
-                p?.username
+                p?.username,
+                'isOnline:',
+                p?.isOnline,
+                'lastActiveAt:',
+                p?.lastActiveAt
               );
               return {
                 ...p,
@@ -692,24 +741,8 @@ const ChatboxAdmin = () => {
         }
       }
 
-      // Add chat participants to OnlineStatusContext for testing
-      validatedRooms.forEach((room) => {
-        room.participants.forEach((participant) => {
-          if (participant.userId) {
-            // Emit event to add participant to context
-            window.dispatchEvent(
-              new CustomEvent('addUserToOnlineContext', {
-                detail: {
-                  userId: participant.userId,
-                  username: participant.username || participant.fullName,
-                  isOnline: participant.isOnline || true, // Default to online for testing
-                  lastActiveAt: new Date().toISOString(),
-                },
-              })
-            );
-          }
-        });
-      });
+      // ✅ Users từ IdentityService được load tự động trong OnlineStatusContext
+      // Không cần add chat participants vào context nữa
     } catch (error: any) {
       console.error('Error fetching chat rooms:', error);
 
@@ -729,37 +762,8 @@ const ChatboxAdmin = () => {
   };
 
   // Fetch online users
-  const fetchOnlineUsers = async () => {
-    try {
-      // Check if user is admin before fetching
-      if (!isCurrentUserAdmin()) {
-        console.warn('User is not admin, cannot fetch online users');
-        setOnlineUsers([]);
-        return;
-      }
-
-      const users = await chatService.getOnlineUsers();
-      // Validate and sanitize user data
-      const validatedUsers = (users || []).map((user) => ({
-        ...user,
-        fullName: user?.fullName || 'Unknown User',
-      }));
-      setOnlineUsers(validatedUsers);
-    } catch (error: any) {
-      console.error('Error fetching online users:', error);
-
-      // Handle different error types
-      if (error.response?.status === 403 || error.response?.status === 401) {
-        console.warn('Access denied to online users');
-      } else if (error.response?.status === 404) {
-        console.warn('Online users endpoint not found');
-      } else {
-        toast.error('Không thể tải danh sách người dùng online');
-      }
-
-      setOnlineUsers([]); // Set empty array on error
-    }
-  };
+  // OnlineStatusContext handles online users automatically
+  // Removed fetchOnlineUsers as OnlineStatusContext manages this
 
   // Fetch messages for a room
   const fetchMessages = async (roomId: string) => {
@@ -993,6 +997,33 @@ const ChatboxAdmin = () => {
       return `${diffInHours}h ago`;
     } else {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  // Refresh all users from IdentityService
+  const refreshAllUsers = async () => {
+    // Prevent multiple calls while already refreshing
+    if (refreshingUsers) return;
+    setRefreshingUsers(true);
+    try {
+      const users = await identityService.getAllUsersWithStatus();
+      const transformedUsers = users.map((user) => ({
+        userId: user.accountId,
+        userName: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatarUrl || '',
+        isOnline: user.isOnline,
+        lastActiveAt: user.lastActiveAt,
+      }));
+      setAllUsersFromIdentity(transformedUsers);
+      toast.success(`Refreshed ${transformedUsers.length} users`);
+    } catch (error) {
+      console.error('[ChatboxAdmin] Error refreshing users:', error);
+      toast.error('Failed to refresh users');
+    } finally {
+      setRefreshingUsers(false);
     }
   };
 
@@ -1623,10 +1654,27 @@ const ChatboxAdmin = () => {
       {/* Right Sidebar - Online Users */}
       <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
         <CardHeader className="pb-3">
-          <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
-            <Users className="h-5 w-5" />
-            Online Users ({onlineUsers.filter((u) => u.isOnline).length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
+              <Users className="h-5 w-5" />
+              Online Users ({onlineUsers.filter((u) => u.isOnline).length})
+            </CardTitle>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={refreshAllUsers}
+              disabled={refreshingUsers}
+              className="text-xs h-6 w-6 p-0 border-none"
+              title="Refresh users from IdentityService"
+            >
+              {refreshingUsers ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+              ) : (
+                <MdRefresh />
+              )}
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="p-0">
@@ -1644,22 +1692,27 @@ const ChatboxAdmin = () => {
                         <AvatarImage src={user.avatar} />
                         <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
+                      <OnlineStatusIndicator userId={user.userId} size="sm" showText={false} />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${getTextClass()}`}>
                         {user.fullName}
                       </p>
-                      <Badge variant="outline" className="text-xs">
-                        {user.role}
+                      <Badge
+                        variant="outline"
+                        className="text-xs rounded-full border border-blue-200 bg-white dark:text-black"
+                      >
+                        {getRoleDisplayName(Number(user.role))}
                       </Badge>
                     </div>
                   </div>
                 ))}
 
               {onlineUsers.filter((u) => u.isOnline).length === 0 && (
-                <div className={`p-4 text-center text-sm ${getTextClass()}`}>No users online</div>
+                <div className={`p-4 text-center text-sm ${getTextClass()}`}>
+                  <div className="mb-2">No users online</div>
+                </div>
               )}
             </div>
           </ScrollArea>

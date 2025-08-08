@@ -324,158 +324,72 @@ const EventDetail = () => {
     onComment('OnCommentDeleted', reloadComment);
   }, []);
 
-  // Realtime events for event updates
+  // Realtime events for event updates - simplified
   useEffect(() => {
     if (!eventId) return;
 
-    const setupRealtimeEventListeners = async () => {
-      try {
-        const { connectEventHub, onEvent, connectTicketHub, onTicket, connectNotificationHub, onNotification } = await import('@/services/signalr.service');
-        
-        // Connect to Event Hub for event updates
-        await connectEventHub('https://event.vezzy.site/notificationHub');
-        
-        // Listen for event status changes
-        onEvent('OnEventUpdated', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event updated:', data);
-            // Refresh event data
-            getEventById(eventId).then((eventData) => {
-              if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
-                setEvent(eventData);
-              } else {
-                setError(t('eventNotFoundOrCancelled'));
-                setEvent(null);
-              }
-            }).catch(() => {
-              setError(t('failedToLoadEventInfo'));
-            });
+    // Listen for event updates
+    onEvent('OnEventUpdated', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event updated:', data);
+        toast.info(t('eventHasBeenUpdated'));
+        // Refresh event data
+        getEventById(eventId).then((eventData) => {
+          if (eventData && eventData.isApproved === 1 && !eventData.isCancelled) {
+            setEvent(eventData);
           }
-        });
-
-        onEvent('OnEventCancelled', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event cancelled:', data);
-            toast.error(t('eventHasBeenCancelled'));
-            setEvent(prev => prev ? { ...prev, isCancelled: true } : null);
-          }
-        });
-
-        onEvent('OnEventApproved', (data: any) => {
-          if (data.eventId === eventId || data.EventId === eventId) {
-            console.log('Event approved:', data);
-            toast.success(t('eventHasBeenApproved'));
-            // Refresh event data
-            getEventById(eventId).then((eventData) => {
-              setEvent(eventData);
-            }).catch(console.error);
-          }
-        });
-
-        // Connect to Ticket Hub for ticket updates
-        await connectTicketHub('https://ticket.vezzy.site/notificationHub');
-        
-        // Listen for ticket sold updates (capacity changes)
-        onTicket('OnTicketSoldIncremented', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket sold incremented:', data);
-            // Update ticket availability
-            setTickets(prev => prev.map(ticket => {
-              if (ticket.ticketId === data.ticketId || ticket.ticketId === data.TicketId) {
-                const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
-                return { ...ticket, quantityAvailable: newQuantity };
-              }
-              return ticket;
-            }));
-            
-            // Show notification if ticket is running low
-            const updatedTicket = tickets.find(t => t.ticketId === (data.ticketId || data.TicketId));
-            if (updatedTicket && updatedTicket.quantityAvailable <= 5) {
-              toast.warning(t('ticketRunningLow', { ticketName: updatedTicket.ticketName, remaining: updatedTicket.quantityAvailable - (data.quantity || 1) }));
-            }
-          }
-        });
-
-        onTicket('OnTicketSoldDecremented', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket sold decremented:', data);
-            // Update ticket availability (increase)
-            setTickets(prev => prev.map(ticket => {
-              if (ticket.ticketId === data.ticketId || ticket.ticketId === data.TicketId) {
-                return { ...ticket, quantityAvailable: ticket.quantityAvailable + (data.quantity || 1) };
-              }
-              return ticket;
-            }));
-          }
-        });
-
-        // Listen for ticket changes (price, name updates)
-        onTicket('TicketUpdated', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket updated:', data);
-            // Refresh tickets data
-            getTicketsByEvent(eventId).then((ticketData) => {
-              setTickets(ticketData || []);
-            }).catch(console.error);
-          }
-        });
-
-        onTicket('TicketCreated', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('New ticket created:', data);
-            toast.info(t('newTicketTypeAdded'));
-            // Refresh tickets data
-            getTicketsByEvent(eventId).then((ticketData) => {
-              setTickets(ticketData || []);
-            }).catch(console.error);
-          }
-        });
-
-        onTicket('TicketDeleted', (data: any) => {
-          const ticketEventId = data.eventId || data.EventId;
-          if (ticketEventId === eventId) {
-            console.log('Ticket deleted:', data);
-            toast.info(t('ticketTypeRemoved'));
-            // Remove from local state
-            setTickets(prev => prev.filter(ticket => ticket.ticketId !== (data.ticketId || data.TicketId)));
-            // Remove from selected tickets if was selected
-            setSelectedTickets(prev => {
-              const updated = { ...prev };
-              delete updated[data.ticketId || data.TicketId];
-              return updated;
-            });
-          }
-        });
-
-        // Connect to Notification Hub for general notifications
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          await connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token);
-          
-          // Listen for event-specific notifications
-          onNotification('ReceiveNotification', (notification: any) => {
-            if (notification.redirectUrl && notification.redirectUrl.includes(eventId)) {
-              console.log('Event-related notification:', notification);
-              // Show toast notification
-              toast.info(notification.message || notification.title);
-            }
-          });
-        }
-
-      } catch (error) {
-        console.error('Failed to setup realtime event listeners:', error);
+        }).catch(console.error);
       }
-    };
+    });
 
-    setupRealtimeEventListeners();
+    onEvent('OnEventCancelled', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event cancelled:', data);
+        toast.error(t('eventHasBeenCancelled'));
+        setEvent(prev => prev ? { ...prev, isCancelled: true } : null);
+      }
+    });
 
-    // Cleanup on unmount
+    onEvent('OnEventApproved', (data: any) => {
+      if (data.eventId === eventId || data.EventId === eventId) {
+        console.log('Event approved:', data);
+        toast.success(t('eventHasBeenApproved'));
+        getEventById(eventId).then(setEvent).catch(console.error);
+      }
+    });
+
+    // Listen for ticket updates
+    onEvent('OnTicketSoldIncremented', (data: any) => {
+      const ticketEventId = data.eventId || data.EventId;
+      if (ticketEventId === eventId) {
+        console.log('Ticket sold:', data);
+        // Update ticket availability
+        setTickets(prev => prev.map(ticket => {
+          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+            const newQuantity = Math.max(0, ticket.quantityAvailable - (data.quantity || 1));
+            return { ...ticket, quantityAvailable: newQuantity };
+          }
+          return ticket;
+        }));
+      }
+    });
+
+    onEvent('OnTicketSoldDecremented', (data: any) => {
+      const ticketEventId = data.eventId || data.EventId;
+      if (ticketEventId === eventId) {
+        console.log('Ticket refunded:', data);
+        setTickets(prev => prev.map(ticket => {
+          if (ticket.ticketId === (data.ticketId || data.TicketId)) {
+            return { ...ticket, quantityAvailable: ticket.quantityAvailable + (data.quantity || 1) };
+          }
+          return ticket;
+        }));
+      }
+    });
+
+    // Cleanup on unmount - connections are managed globally in App.tsx
     return () => {
-      // SignalR cleanup is handled globally in App.tsx
+      // No cleanup needed - SignalR connections are handled globally
     };
   }, [eventId]);
 

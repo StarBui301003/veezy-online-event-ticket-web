@@ -6,6 +6,11 @@ import { motion } from 'framer-motion';
 import { getMyApprovedEvents, getEventFund } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import {
+  onAnalytics,
+  onTicket,
+  onEvent,
+} from '@/services/signalr.service';
 
 interface AnalyticsData {
   totalEvents: number;
@@ -25,23 +30,10 @@ export default function AnalyticsOverview() {
   useEffect(() => {
     fetchAnalyticsData();
     
-    // Setup enhanced realtime analytics listeners
+    // Setup enhanced realtime analytics listeners using global connections
     const setupRealtimeAnalytics = async () => {
       try {
-        const { 
-          connectAnalyticsHub, 
-          onAnalytics, 
-          connectTicketHub, 
-          onTicket,
-          connectEventHub,
-          onEvent,
-          disconnectAnalyticsHub 
-        } = await import('@/services/signalr.service');
-
-        const token = localStorage.getItem('access_token');
-
-        // Connect to Analytics Hub for real-time metrics
-        await connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', token || undefined);
+        // SignalR connections are managed globally in App.tsx
         
         onAnalytics('OnEventManagerRealtimeOverview', (data) => {
           console.log('Realtime analytics overview:', data);
@@ -75,9 +67,6 @@ export default function AnalyticsOverview() {
           }
         });
 
-        // Connect to Ticket Hub for ticket sales analytics
-        await connectTicketHub('https://ticket.vezzy.site/analyticsHub', token || undefined);
-        
         onTicket('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - analytics update:', data);
           setAnalyticsData(prev => {
@@ -112,8 +101,7 @@ export default function AnalyticsOverview() {
           });
         });
 
-        // Connect to Event Hub for event analytics
-        await connectEventHub('https://event.vezzy.site/analyticsHub');
+        // Event Hub listeners using global connections
 
         const accountStr = localStorage.getItem('account');
         const accountObj = accountStr ? JSON.parse(accountStr) : null;
@@ -141,9 +129,9 @@ export default function AnalyticsOverview() {
           }
         });
 
-        // Setup cleanup
+        // No cleanup needed - global connections are managed in App.tsx
         return () => {
-          disconnectAnalyticsHub();
+          // SignalR connections are handled globally
         };
 
       } catch (error) {

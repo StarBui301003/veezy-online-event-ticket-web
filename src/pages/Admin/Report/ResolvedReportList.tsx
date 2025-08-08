@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { connectFeedbackHub, onFeedback } from '@/services/signalr.service';
+import { onFeedback } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -93,8 +93,7 @@ export const ResolvedReportList = ({
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectFeedbackHub('https://feedback.vezzy.site/feedbackHub');
-
+    // Listen for feedback updates using global connections
     const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportStatusChanged', reload);

@@ -1,10 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Users, Calendar, MapPin, Clock, Sparkles, RefreshCw, CheckCircle, Search, Filter, Brain, Zap, Activity, BarChart3, Target, Cpu, Database, Globe } from 'lucide-react';
+import {
+  Users,
+  Calendar,
+  MapPin,
+  Clock,
+  Sparkles,
+  RefreshCw,
+  CheckCircle,
+  Search,
+  Filter,
+  Brain,
+  Zap,
+  Activity,
+  BarChart3,
+  Target,
+  Cpu,
+  Database,
+  Globe,
+} from 'lucide-react';
 import { getEventAttendancePrediction } from '@/services/Event Manager/attendancePrediction.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
-import { connectAnalyticsHub, onAnalytics, connectEventHub, onEvent } from "@/services/signalr.service";
+import {
+  onAnalytics,
+  onEvent,
+} from '@/services/signalr.service';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 const EventAttendancePredictor = () => {
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState([]);
   const [eventSearch, setEventSearch] = useState('');
   // Removed unused searchActiveIndex state
@@ -38,9 +62,6 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates
   useEffect(() => {
-            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
-            connectEventHub('https://event.vezzy.site/notificationHub');
-
     // Listen for event updates
     onEvent('EventCreated', () => {
       loadEvents();
@@ -56,7 +77,7 @@ const EventAttendancePredictor = () => {
   }, []);
 
   useEffect(() => {
-    setSelectedEventData(events.find(e => e.eventId === selectedEvent));
+    setSelectedEventData(events.find((e) => e.eventId === selectedEvent));
   }, [selectedEvent, events]);
 
   const handlePredict = async () => {
@@ -77,9 +98,6 @@ const EventAttendancePredictor = () => {
 
   // SignalR real-time updates for predictions
   useEffect(() => {
-            connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
-            connectEventHub('https://event.vezzy.site/notificationHub');
-
     // Listen for analytics updates
     onAnalytics('PredictionUpdated', () => {
       if (selectedEvent) {
@@ -114,40 +132,76 @@ const EventAttendancePredictor = () => {
     return num ? num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0';
   };
 
-  const filteredEvents = events.filter(ev =>
-    typeof ev.eventName === 'string' &&
-    ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
+  const filteredEvents = events.filter(
+    (ev) =>
+      typeof ev.eventName === 'string' &&
+      ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      {/* <div className="absolute inset-0 bg-gradient-to-r from-purple-800/20 to-pink-800/20 animate-pulse"></div>
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none select-none">
-        <div className="absolute top-10 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl animate-bounce"></div>
-        <div className="absolute top-40 right-20 w-32 h-32 bg-purple-500/20 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 left-1/3 w-24 h-24 bg-pink-500/20 rounded-full blur-xl animate-bounce delay-300"></div>
-        <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-cyan-500/20 rounded-full blur-xl animate-pulse delay-500"></div>
-      </div> */}
-
+    <div
+      className={cn(
+        'min-h-screen p-6 relative overflow-hidden',
+        getThemeClass(
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+          'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900'
+        )
+      )}
+    >
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-slate-800/80 to-slate-700/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 mb-8 border border-purple-500/30">
+        <div
+          className={cn(
+            'backdrop-blur-xl rounded-2xl shadow-2xl p-8 mb-8',
+            getThemeClass(
+              'bg-white/90 border border-blue-200',
+              'bg-gradient-to-r from-slate-800/80 to-slate-700/80 border border-purple-500/30'
+            )
+          )}
+        >
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl">
+            <div
+              className={cn(
+                'p-3 rounded-2xl',
+                getThemeClass(
+                  'bg-gradient-to-r from-blue-500 to-purple-600',
+                  'bg-gradient-to-r from-blue-500 to-purple-600'
+                )
+              )}
+            >
               <Brain className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+              <h1
+                className={cn(
+                  'text-4xl font-bold bg-clip-text text-transparent mb-2',
+                  getThemeClass(
+                    'bg-gradient-to-r from-blue-600 to-purple-600',
+                    'bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400'
+                  )
+                )}
+              >
                 AI Attendance Predictor
               </h1>
-              <p className="text-slate-300 text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-yellow-400" />
-                Dự đoán số người tham dự 
+              <p
+                className={cn(
+                  'text-lg flex items-center gap-2',
+                  getThemeClass('text-gray-600', 'text-slate-300')
+                )}
+              >
+                <Sparkles
+                  className={cn('w-5 h-5', getThemeClass('text-blue-500', 'text-yellow-400'))}
+                />
+                Dự đoán số người tham dự
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-6 text-sm text-slate-400">
+          <div
+            className={cn(
+              'flex items-center gap-6 text-sm',
+              getThemeClass('text-gray-500', 'text-slate-400')
+            )}
+          >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               Neural Network Online
@@ -168,7 +222,15 @@ const EventAttendancePredictor = () => {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8 border border-blue-500/30">
+        <div
+          className={cn(
+            'backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8',
+            getThemeClass(
+              'bg-white/80 border border-blue-200',
+              'bg-gradient-to-r from-slate-800/60 to-slate-700/60 border border-blue-500/30'
+            )
+          )}
+        >
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 flex-1">
               {/* Search Input */}
@@ -179,22 +241,29 @@ const EventAttendancePredictor = () => {
                     type="text"
                     placeholder="Tìm kiếm sự kiện..."
                     value={eventSearch}
-                    onChange={e => {
+                    onChange={(e) => {
                       const value = e.target.value;
                       setEventSearch(value);
                       // setSearchActiveIndex removed
                       // Chỉ auto-select nếu chưa chọn hoặc chọn event không còn trong filtered list
-                      const filtered = events.filter(ev =>
-                        typeof ev.eventName === 'string' &&
-                        ev.eventName.toLowerCase().includes(value.toLowerCase())
+                      const filtered = events.filter(
+                        (ev) =>
+                          typeof ev.eventName === 'string' &&
+                          ev.eventName.toLowerCase().includes(value.toLowerCase())
                       );
                       if (filtered.length === 0) {
                         setSelectedEvent('');
-                      } else if (!filtered.some(ev => ev.eventId === selectedEvent)) {
+                      } else if (!filtered.some((ev) => ev.eventId === selectedEvent)) {
                         setSelectedEvent(filtered[0].eventId);
                       }
                     }}
-                    className="pl-10 pr-8 py-3 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-cyan-500/30 focus:outline-none focus:border-cyan-400 placeholder:text-cyan-200 transition-all duration-300"
+                    className={cn(
+                      'pl-10 pr-8 py-3 w-full rounded-xl border-2 focus:outline-none transition-all duration-300',
+                      getThemeClass(
+                        'bg-white text-gray-900 border-blue-300 focus:border-blue-500 placeholder:text-gray-500',
+                        'bg-[#2d0036]/80 text-white border-cyan-500/30 focus:border-cyan-400 placeholder:text-cyan-200'
+                      )
+                    )}
                     autoComplete="off"
                   />
                   {eventSearch && (
@@ -220,17 +289,23 @@ const EventAttendancePredictor = () => {
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-200 w-5 h-5" />
                 <select
                   value={selectedEvent}
-                  onChange={e => {
-                    const event = events.find(ev => ev.eventId === e.target.value);
+                  onChange={(e) => {
+                    const event = events.find((ev) => ev.eventId === e.target.value);
                     setSelectedEvent(e.target.value);
                     setEventSearch(event ? event.eventName : '');
                   }}
                   className="pl-10 pr-8 py-3 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-cyan-500/30 focus:outline-none focus:border-cyan-400 appearance-none transition-all duration-300"
                   style={{ maxHeight: '13.5rem', overflowY: 'auto' }}
                 >
-                  <option value="" className="bg-[#2d0036] text-white">-- Chọn sự kiện --</option>
-                  {filteredEvents.map(event => (
-                    <option key={event.eventId} value={event.eventId} className="bg-[#2d0036] text-white">
+                  <option value="" className="bg-[#2d0036] text-white">
+                    -- Chọn sự kiện --
+                  </option>
+                  {filteredEvents.map((event) => (
+                    <option
+                      key={event.eventId}
+                      value={event.eventId}
+                      className="bg-[#2d0036] text-white"
+                    >
                       {event.eventName}
                     </option>
                   ))}
@@ -242,9 +317,11 @@ const EventAttendancePredictor = () => {
               onClick={handlePredict}
               disabled={!selectedEvent || isLoading}
               className={`flex items-center gap-3 px-8 py-3 rounded-xl font-semibold transition-all shadow-lg text-lg
-                ${selectedEvent && !isLoading
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 hover:scale-105 shadow-purple-500/25'
-                  : 'bg-gray-600 text-gray-300 cursor-not-allowed'}
+                ${
+                  selectedEvent && !isLoading
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 hover:scale-105 shadow-purple-500/25'
+                    : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                }
               `}
             >
               {isLoading ? (
@@ -270,11 +347,15 @@ const EventAttendancePredictor = () => {
                   <div className="flex items-center gap-4 mt-2 text-sm text-cyan-300">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {selectedEventData.startAt ? `Bắt đầu: ${new Date(selectedEventData.startAt).toLocaleString('vi-VN')}` : '--'}
+                      {selectedEventData.startAt
+                        ? `Bắt đầu: ${new Date(selectedEventData.startAt).toLocaleString('vi-VN')}`
+                        : '--'}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      {selectedEventData.endAt ? `Kết thúc: ${new Date(selectedEventData.endAt).toLocaleString('vi-VN')}` : '--'}
+                      {selectedEventData.endAt
+                        ? `Kết thúc: ${new Date(selectedEventData.endAt).toLocaleString('vi-VN')}`
+                        : '--'}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
@@ -301,7 +382,9 @@ const EventAttendancePredictor = () => {
                 </div>
               </div>
               <h3 className="text-3xl font-bold text-white mb-4">AI Neural Network Processing</h3>
-              <p className="text-slate-300 text-lg mb-6">Analyzing historical data, market trends, and behavioral patterns...</p>
+              <p className="text-slate-300 text-lg mb-6">
+                Analyzing historical data, market trends, and behavioral patterns...
+              </p>
               <div className="flex justify-center items-center gap-6 text-sm text-slate-400 mb-8">
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
@@ -358,11 +441,11 @@ const EventAttendancePredictor = () => {
               <div className="p-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-32 h-32 mx-auto mb-8 flex items-center justify-center">
                 <Brain className="w-16 h-16 text-white" />
               </div>
-              <h3 className="text-4xl font-bold text-white mb-6">
-                Ready for AI Analysis
-              </h3>
+              <h3 className="text-4xl font-bold text-white mb-6">Ready for AI Analysis</h3>
               <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-8">
-                Select an event above to unleash the power of artificial intelligence. Our advanced neural networks will analyze historical data, market trends, and behavioral patterns to provide precise attendance predictions.
+                Select an event above to unleash the power of artificial intelligence. Our advanced
+                neural networks will analyze historical data, market trends, and behavioral patterns
+                to provide precise attendance predictions.
               </p>
               <div className="flex justify-center items-center gap-6 text-slate-400">
                 <div className="flex items-center gap-2">

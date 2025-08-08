@@ -191,7 +191,7 @@ function App() {
       }
     );
     // EventService
-    connectEventHub('https://event.vezzy.site/notificationHub').then(() => {
+    connectEventHub('https://event.vezzy.site/notificationHub', finalToken).then(() => {
       console.log('Connected to EventService SignalR');
       onEvent('OnEventCreated', (data) => {
         console.log('OnEventCreated:', data);
@@ -240,21 +240,21 @@ function App() {
       });
     });
     // TicketService
-    connectTicketHub('https://ticket.vezzy.site/notificationHub').then(() => {
+    connectTicketHub('https://ticket.vezzy.site/notificationHub', finalToken).then(() => {
       console.log('Connected to TicketService SignalR');
       onTicket('TicketChanged', (data) => {
         console.log('TicketService:', data);
       });
     });
     // FeedbackService
-    connectFeedbackHub('https://feedback.vezzy.site/notificationHub').then(() => {
+    connectFeedbackHub('https://feedback.vezzy.site/notificationHub', finalToken).then(() => {
       console.log('Connected to FeedbackService SignalR');
       onFeedback('FeedbackChanged', (data) => {
         console.log('FeedbackService:', data);
       });
     });
     // IdentityService
-    connectIdentityHub('https://identity.vezzy.site/hubs/notifications').then(() => {
+    connectIdentityHub('https://identity.vezzy.site/hubs/notifications', finalToken).then(() => {
       console.log('Connected to IdentityService SignalR');
       onIdentity('OnUserCreated', (data) => {
         console.log('OnUserCreated:', data);
@@ -270,7 +270,7 @@ function App() {
       });
     });
     // AnalyticsService
-    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub').then(() => {
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', finalToken).then(() => {
       console.log('Connected to AnalyticsService SignalR');
       onAnalytics('OnEventManagerRealtimeOverview', (data) => {
         console.log('AnalyticsService: OnEventManagerRealtimeOverview', data);
@@ -826,7 +826,7 @@ function App() {
                   pauseOnHover
                   theme="colored"
                 />
-                <AuthModals />
+                <AuthModals open={false} onClose={() => {}} />
               </AuthProvider>
             </CategoryMappingProvider>
           </OnlineStatusProvider>

@@ -15,7 +15,7 @@ import {
 } from '@/services/notification.service';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { connectNotificationHub, onNotification } from '@/services/signalr.service';
+import { onNotification } from '@/services/signalr.service';
 import { format } from 'date-fns';
 import { getNotificationIcon } from '@/components/common/getNotificationIcon';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -202,10 +202,9 @@ export default function AllNotificationsPage() {
     const loadAndSubscribe = async () => {
       await loadNotifications();
 
-      // Connect to SignalR hub
+      // Setup SignalR listeners using global connections
       try {
-        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-        connectNotificationHub('https://notification.vezzy.site/hubs/notifications', token || undefined);
+        // Notification hub connection is managed globally in App.tsx
 
         // Subscribe to new notifications
         onNotification('ReceiveNotification', (newNotification: Notification) => {

@@ -9,7 +9,7 @@ import { CompletedEventList } from './CompletedEventList';
 import { FiCheckCircle, FiClock, FiX, FiSlash, FiCheckSquare } from 'react-icons/fi';
 import { getPendingEvents } from '@/services/Admin/event.service';
 import { cn } from '@/lib/utils';
-import { connectEventHub, onEvent } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 
 // import './EventTabs.css';
 
@@ -52,8 +52,7 @@ export default function EventListTabs() {
   };
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
-    // Lắng nghe realtime SignalR cho event
+    // Lắng nghe realtime SignalR cho event using global connections
     const reloadEvent = () => fetchPendingCount();
     onEvent('OnEventCreated', reloadEvent);
     onEvent('OnEventUpdated', reloadEvent);

@@ -20,9 +20,7 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
           ⚠️ Xác nhận hủy sự kiện
         </h2>
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-          <p className="text-red-800 font-medium">
-            Bạn có chắc chắn muốn hủy sự kiện này không?
-          </p>
+          <p className="text-red-800 font-medium">Bạn có chắc chắn muốn hủy sự kiện này không?</p>
           <p className="text-red-600 text-sm mt-1">
             ⚠️ Hành động này không thể hoàn tác và sẽ thông báo đến tất cả người tham gia.
           </p>
@@ -34,11 +32,22 @@ function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-red-500" />
-              <span>{event?.startAt ? new Date(event.startAt).toLocaleDateString('vi-VN') : '--/--/----'}</span>
+              <span>
+                {event?.startAt
+                  ? new Date(event.startAt).toLocaleDateString('vi-VN')
+                  : '--/--/----'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-red-500" />
-              <span>{event?.startAt ? new Date(event.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+              <span>
+                {event?.startAt
+                  ? new Date(event.startAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '--:--'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-red-500" />
@@ -89,13 +98,16 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { getMyApprovedEvents, cancelEvent } from '@/services/Event Manager/event.service';
 import { useNavigate } from 'react-router-dom';
-import { onEvent, connectEventHub } from '@/services/signalr.service';
+import { onEvent } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { cn } from '@/lib/utils';
 
 const EVENTS_PER_PAGE = 5;
 
 const ApprovedEventsManager = () => {
   const { t } = useTranslation();
+  const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -119,9 +131,8 @@ const ApprovedEventsManager = () => {
   };
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
     fetchEvents();
-    // Lắng nghe realtime SignalR
+    // Lắng nghe realtime SignalR với global connections
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
     onEvent('OnEventDeleted', reload);
@@ -139,7 +150,6 @@ const ApprovedEventsManager = () => {
   useEffect(() => {
     setPage(1);
   }, [events.length]);
-
 
   // Modal state for cancel event
   const [cancelModal, setCancelModal] = useState({ open: false, event: null, isConfirming: false });
@@ -187,16 +197,39 @@ const ApprovedEventsManager = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-        <span className="ml-3 text-pink-500">Đang tải sự kiện...</span>
+      <div
+        className={cn(
+          'flex justify-center items-center w-full min-h-screen',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
+        <div
+          className={cn(
+            'animate-spin rounded-full h-12 w-12 border-b-2',
+            getThemeClass('border-blue-500', 'border-pink-500')
+          )}
+        ></div>
+        <span className={cn('ml-3', getThemeClass('text-blue-600', 'text-pink-500'))}>
+          Đang tải sự kiện...
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#18122B] to-[#251749]">
+      <div
+        className={cn(
+          'w-full min-h-screen flex items-center justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-red-900 mb-2">Có lỗi xảy ra</h3>
@@ -215,7 +248,15 @@ const ApprovedEventsManager = () => {
 
   if (!events.length) {
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#18122B] to-[#251749]">
+      <div
+        className={cn(
+          'w-full min-h-screen flex items-center justify-center',
+          getThemeClass(
+            'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+            'bg-gradient-to-br from-[#18122B] to-[#251749]'
+          )
+        )}
+      >
         <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-green-900 mb-2">Không có sự kiện đã duyệt</h3>
@@ -233,13 +274,34 @@ const ApprovedEventsManager = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-[#18122B] to-[#251749] py-8 px-2">
+    <div
+      className={cn(
+        'w-full min-h-screen py-8 px-2',
+        getThemeClass(
+          'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100',
+          'bg-gradient-to-br from-[#18122B] to-[#251749]'
+        )
+      )}
+    >
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-green-400">{t('approvedEventsTitle')}</h1>
+          <h1
+            className={cn(
+              'text-2xl md:text-3xl font-bold',
+              getThemeClass('text-blue-600', 'text-green-400')
+            )}
+          >
+            {t('approvedEventsTitle')}
+          </h1>
           <button
             onClick={fetchEvents}
-            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-colors flex items-center font-semibold shadow"
+            className={cn(
+              'px-6 py-2 rounded-lg transition-colors flex items-center font-semibold shadow',
+              getThemeClass(
+                'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600',
+                'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600'
+              )
+            )}
           >
             <RefreshCw className="w-5 h-5 mr-2" />
             {t('refresh')}
@@ -248,29 +310,102 @@ const ApprovedEventsManager = () => {
 
         <div className="space-y-4">
           {pagedEvents.map((event) => (
-            <div key={event.eventId} className="bg-[#20143a] shadow-sm rounded-lg p-6 border-l-4 border-green-400">
+            <div
+              key={event.eventId}
+              className={cn(
+                'shadow-sm rounded-lg p-6 border-l-4',
+                getThemeClass(
+                  'bg-white border-blue-400',
+                  'bg-[#20143a] border-green-400'
+                )
+              )}
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-green-500">{event.eventName || t('noTitle')}</h3>
-                <div className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(event.isApproved)}`}>
+                <h3
+                  className={cn(
+                    'text-lg font-semibold',
+                    getThemeClass('text-blue-600', 'text-green-500')
+                  )}
+                >
+                  {event.eventName || t('noTitle')}
+                </h3>
+                <div
+                  className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(
+                    event.isApproved
+                  )}`}
+                >
                   {getStatusIcon(event.isApproved)}
                   <span className="ml-1 font-bold uppercase tracking-wide">
-                    {event.isApproved === 0 ? t('pending') : event.isApproved === 1 ? t('approved') : event.isApproved === 2 ? t('rejected') : t('unknown')}
+                    {event.isApproved === 0
+                      ? t('pending')
+                      : event.isApproved === 1
+                      ? t('approved')
+                      : event.isApproved === 2
+                      ? t('rejected')
+                      : t('unknown')}
                   </span>
                 </div>
               </div>
-              <p className="text-gray-300 mb-4">{event.eventDescription || t('noDescription')}</p>
+              <p
+                className={cn(
+                  'mb-4',
+                  getThemeClass('text-gray-700', 'text-gray-300')
+                )}
+              >
+                {event.eventDescription || t('noDescription')}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-400">{t('startDate')}</p>
-                  <p className="font-medium text-white">{formatDate(event.startAt)}</p>
+                  <p
+                    className={cn(
+                      'text-sm',
+                      getThemeClass('text-gray-600', 'text-gray-400')
+                    )}
+                  >
+                    {t('startDate')}
+                  </p>
+                  <p
+                    className={cn(
+                      'font-medium',
+                      getThemeClass('text-gray-900', 'text-white')
+                    )}
+                  >
+                    {formatDate(event.startAt)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">{t('endDate')}</p>
-                  <p className="font-medium text-white">{formatDate(event.endAt)}</p>
+                  <p
+                    className={cn(
+                      'text-sm',
+                      getThemeClass('text-gray-600', 'text-gray-400')
+                    )}
+                  >
+                    {t('endDate')}
+                  </p>
+                  <p
+                    className={cn(
+                      'font-medium',
+                      getThemeClass('text-gray-900', 'text-white')
+                    )}
+                  >
+                    {formatDate(event.endAt)}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">{t('status')}</p>
-                  <p className="font-medium text-white">
+                  <p
+                    className={cn(
+                      'text-sm',
+                      getThemeClass('text-gray-600', 'text-gray-400')
+                    )}
+                  >
+                    {t('status')}
+                  </p>
+                  <p
+                    className={cn(
+                      'font-medium',
+                      getThemeClass('text-gray-900', 'text-white')
+                    )}
+                  >
                     {event.isApproved === 0
                       ? t('pendingApproval')
                       : event.isApproved === 1
@@ -284,7 +419,13 @@ const ApprovedEventsManager = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => navigate(`/event-manager/edit/${event.eventId}`)}
-                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                  className={cn(
+                    'px-4 py-2 rounded-lg transition-colors',
+                    getThemeClass(
+                      'bg-blue-100 text-blue-800 hover:bg-blue-200',
+                      'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                    )
+                  )}
                 >
                   {t('edit')}
                 </button>
@@ -294,34 +435,51 @@ const ApprovedEventsManager = () => {
                 >
                   {t('cancelEvent')}
                 </button>
-      {/* Cancel Event Modal */}
-      <CancelEventConfirmation
-        event={cancelModal.event}
-        open={cancelModal.open}
-        onClose={() => setCancelModal({ open: false, event: null, isConfirming: false })}
-        onConfirm={handleConfirmCancel}
-        isConfirming={cancelModal.isConfirming}
-      />
+                {/* Cancel Event Modal */}
+                <CancelEventConfirmation
+                  event={cancelModal.event}
+                  open={cancelModal.open}
+                  onClose={() => setCancelModal({ open: false, event: null, isConfirming: false })}
+                  onConfirm={handleConfirmCancel}
+                  isConfirming={cancelModal.isConfirming}
+                />
               </div>
             </div>
           ))}
         </div>
 
         {/* PHÂN TRANG */}
-        <div className="flex justify-center items-center gap-4 mt-8">
+        <div className="flex justify-center items-center space-x-4 mt-8">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className={cn(
+              'px-4 py-2 rounded-lg transition-colors',
+              getThemeClass(
+                'bg-gray-200 text-gray-800 hover:bg-gray-300',
+                'bg-gray-700 text-white hover:bg-gray-800'
+              )
+            )}
             disabled={page === 1}
           >
             {t('prev')}
           </button>
-          <span className="text-green-200 font-bold">
+          <span
+            className={cn(
+              'font-bold',
+              getThemeClass('text-blue-600', 'text-green-200')
+            )}
+          >
             {t('page')} {page}/{totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            className={cn(
+              'px-4 py-2 rounded-lg transition-colors',
+              getThemeClass(
+                'bg-gray-200 text-gray-800 hover:bg-gray-300',
+                'bg-gray-700 text-white hover:bg-gray-800'
+              )
+            )}
             disabled={page === totalPages}
           >
             {t('next')}

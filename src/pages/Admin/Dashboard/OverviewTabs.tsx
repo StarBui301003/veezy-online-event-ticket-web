@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { PersonalNotificationList } from './PersonalNotificationList';
 import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { Skeleton } from '@/components/ui/skeleton';
 // import { PersonNotificationList } from './PersonNotificationList';
 
 const cardClass =
@@ -196,7 +197,7 @@ export const OverviewTabs = () => {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Listen for real-time analytics updates
     onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
@@ -322,51 +323,78 @@ export const OverviewTabs = () => {
       </div>
       {/* 5 card tổng quan */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full">
-        <div className={cardClass}>
-          <div className="text-gray-500 dark:text-gray-400 font-medium">Users</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            {data.totalUsers.toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Active: {data.activeUsers?.toLocaleString?.() ?? 0}
-          </div>
-        </div>
-        <div className={cardClass}>
-          <div className="text-gray-500 dark:text-gray-400 font-medium">Events</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            {data.totalEvents.toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Active: {data.activeEvents}
-          </div>
-        </div>
-        <div className={cardClass}>
-          <div className="text-gray-500 dark:text-gray-400 font-medium">News</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            {data.totalNews?.toLocaleString?.() ?? 0}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Active: {data.activeNews ?? 0}
-          </div>
-        </div>
-        <div className={cardClass}>
-          <div className="text-gray-500 dark:text-gray-400 font-medium">Tickets Sold</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            {data.totalTicketsSold?.toLocaleString?.() ?? 0}
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Total tickets: {data.totalTickets?.toLocaleString?.() ?? 0}
-          </div>
-        </div>
-        <div className={cardClass}>
-          <div className="text-gray-500 dark:text-gray-400 font-medium">Revenue</div>
-          <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            {data.totalRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
-          </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            Platform: {data.platformRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
-          </div>
-        </div>
+        {loading ? (
+          <>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-20 mb-2" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+            <div className={cardClass}>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={cardClass}>
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Users</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {data.totalUsers.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Active: {data.activeUsers?.toLocaleString?.() ?? 0}
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Events</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {data.totalEvents.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Active: {data.activeEvents}
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 dark:text-gray-400 font-medium">News</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {data.totalNews?.toLocaleString?.() ?? 0}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Active: {data.activeNews ?? 0}
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Tickets Sold</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {data.totalTicketsSold?.toLocaleString?.() ?? 0}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Total tickets: {data.totalTickets?.toLocaleString?.() ?? 0}
+              </div>
+            </div>
+            <div className={cardClass}>
+              <div className="text-gray-500 dark:text-gray-400 font-medium">Revenue</div>
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                {data.totalRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Platform: {data.platformRevenue?.toLocaleString?.('vi-VN') ?? 0}₫
+              </div>
+            </div>
+          </>
+        )}
       </div>
       {/* Metrics Panel + Admin Notification: Metrics ở trên, Notifications ở dưới, notifications w-full */}
       <div className="flex flex-col gap-8">

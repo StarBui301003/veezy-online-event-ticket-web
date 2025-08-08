@@ -1,7 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import {
-  connectNotificationHub,
   onNotification,
 } from '@/services/signalr.service';
 
@@ -16,7 +15,6 @@ export const GlobalNotificationManager: React.FC<GlobalNotificationManagerProps>
   userRole,
   isAuthenticated,
 }) => {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
   // Setup notification handlers
   const setupNotificationHandlers = useCallback(() => {
@@ -114,25 +112,15 @@ export const GlobalNotificationManager: React.FC<GlobalNotificationManagerProps>
 
   }, [isAuthenticated, userId, userRole]);
 
-  // Connect to notification hub
+  // Setup notification listeners using global connections
   useEffect(() => {
     if (!isAuthenticated || !userId) return;
 
-    const connectHubs = async () => {
-      try {
-        // Connect to main notification hub from NotificationService (port 5003)
-        await connectNotificationHub(token || undefined);
-        
-        // Setup handlers after connection is established
-        setupNotificationHandlers();
-        
-      } catch (error) {
-        console.error('❌ Failed to connect to notification hub:', error);
-      }
-    };
-
-    connectHubs();
-  }, [isAuthenticated, userId, token, setupNotificationHandlers]);
+    // Setup handlers using global SignalR connections from App.tsx
+    setupNotificationHandlers();
+    
+    console.log('✅ Notification handlers setup complete for user:', userId);
+  }, [isAuthenticated, userId, setupNotificationHandlers]);
 
   // This component doesn't render anything, it just manages notifications
   return null;

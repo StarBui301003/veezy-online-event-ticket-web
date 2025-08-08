@@ -174,7 +174,7 @@ export const Header = () => {
     setLoadingLogout(true);
     try {
       await LogoutAPI();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       toast.warning(t('logout_failed'));
     } finally {
@@ -220,7 +220,7 @@ export const Header = () => {
           {/* Center - Search bar */}
           <div
             className={cn(
-              'search-container flex w-full max-w-sm items-center min-w-70 border rounded-[46px] relative mx-auto',
+              'search-container flex w-full max-w-96 items-center min-w-60 border rounded-full relative',
               getThemeClass(
                 'border-blue-300 bg-white/90 backdrop-blur-sm shadow-sm',
                 'border-white/20 bg-white/10'
@@ -394,7 +394,7 @@ export const Header = () => {
             {/* Nút chuyển sang event manager chỉ hiện với role 2 */}
             {user?.role === 2 && (
               <Button
-                className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-lg shadow hover:scale-105 transition-transform duration-200 mr-2"
+                className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-full shadow hover:scale-105 transition-transform duration-200 my-2 ml-2"
                 onClick={() => navigate('/event-manager')}
               >
                 {t('eventManager')}
@@ -523,7 +523,13 @@ export const Header = () => {
                         '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
                       )
                     )}
-                    onClick={() => navigate('/profile')}
+                    onClick={() => {
+                      if (user?.role === 2) {
+                        navigate('/event-manager/profile');
+                      } else {
+                        navigate('/profile');
+                      }
+                    }}
                   >
                     <FiUser className="mr-2" />
                     {t('profile')}

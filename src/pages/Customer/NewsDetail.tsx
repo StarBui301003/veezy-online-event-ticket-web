@@ -13,7 +13,7 @@ import {
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 import ReportModal from '@/components/Customer/ReportModal';
-import { connectNewsHub } from '@/services/signalr.service';
+import { connectNewsHub, onNews } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { LoginModal } from '@/components/common/LoginModal';
@@ -83,7 +83,23 @@ const NewsDetail: React.FC = () => {
         setLoading(false);
       }
     };
-    if (newsId) fetchNews();
+    if (newsId)     fetchNews();
+    
+    // Setup realtime listeners for news updates
+    onNews('OnNewsUpdated', (data: any) => {
+      if (data.newsId === newsId || data.NewsId === newsId) {
+        console.log('News updated - refreshing details');
+        fetchNews();
+      }
+    });
+
+    onNews('OnNewsDeleted', (data: any) => {
+      if (data.newsId === newsId || data.NewsId === newsId) {
+        console.log('News deleted - redirecting');
+        toast.info('This news has been removed');
+        navigate('/news');
+      }
+    });
   }, [newsId, navigate]);
 
   useEffect(() => {

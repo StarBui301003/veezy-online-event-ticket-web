@@ -109,11 +109,11 @@ export async function deleteEventImage(imageUrl: string) {
   try {
     // Get just the filename from the URL
     const fileName = imageUrl.split('/').pop();
-    
+
     const response = await instance.delete(
       `/api/Event/delete-image?imageUrl=${encodeURIComponent(fileName)}`
     );
-    
+
     return response.data;
   } catch (error) {
     console.warn('Image deletion failed, but continuing:', {
@@ -121,7 +121,7 @@ export async function deleteEventImage(imageUrl: string) {
       status: error.response?.status,
       imageUrl
     });
-    
+
     // Return a resolved promise to prevent the error from propagating
     return { flag: false };
   }
@@ -412,7 +412,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     console.log('Creating order with payload:', finalPayload); // Debug log
 
     const response = await instance.post("/api/Order", finalPayload);
-    
+
     return response.data?.data || response.data;
   } catch (error) {
     console.error("Failed to create order", error);
@@ -442,25 +442,25 @@ export async function createOrderWithFace({ eventId, customerId, items, faceImag
   const formData = new FormData();
   formData.append('EventId', eventId);
   formData.append('CustomerId', customerId);
-  
+
   // Fix: Send each item separately instead of JSON.stringify
   items.forEach((item, index) => {
     formData.append(`Items[${index}].ticketId`, item.ticketId);
     formData.append(`Items[${index}].quantity`, item.quantity.toString());
   });
-  
+
   formData.append('FaceImage', faceImage);
-  
+
   if (faceEmbedding && Array.isArray(faceEmbedding)) {
     faceEmbedding.forEach((num, index) => {
       formData.append(`FaceEmbedding[${index}]`, String(num));
     });
   }
-  
+
   if (discountCode) {
     formData.append('DiscountCode', discountCode);
   }
-  
+
   const response = await instance.post('/api/Order/createOrderWithFace', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -681,18 +681,6 @@ export async function enableWithdrawalForCompletedEvents() {
 // === Event Manager Analytics APIs ===
 const ANALYTICS_PREFIX = "/api/analytics/eventManager";
 
-type DashboardParams = {
-  Period?: number;
-  GroupBy?: number;
-  IncludeMetrics?: string[];
-  IncludeRealtimeData?: boolean;
-  CustomStartDate?: string;
-  CustomEndDate?: string;
-  IncludeComparison?: boolean;
-  ComparisonPeriod?: number;
-  EventManagerId?: string;
-};
-
 type RevenueParams = {
   EventIds?: string[];
   CategoryIds?: string[];
@@ -719,37 +707,37 @@ type TicketStatsParams = {
 // Debug version của getEventManagerDashboard
 export async function getEventManagerDashboard(params: any = {}) {
   const query = new URLSearchParams();
-  
+
   console.log('Original params:', params);
-  
+
   // Thử cả hai cách: camelCase và PascalCase
   if (params.period !== undefined) query.append("Period", params.period.toString());
   if (params.Period !== undefined) query.append("Period", params.Period.toString());
-  
+
   if (params.groupBy !== undefined) query.append("GroupBy", params.groupBy.toString());
   if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
-  
+
   if (params.includeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.includeRealtimeData));
   if (params.IncludeRealtimeData !== undefined) query.append("IncludeRealtimeData", String(params.IncludeRealtimeData));
-  
+
   if (params.customStartDate) query.append("CustomStartDate", params.customStartDate);
   if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
-  
+
   if (params.customEndDate) query.append("CustomEndDate", params.customEndDate);
   if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
-  
+
   if (params.includeComparison !== undefined) query.append("IncludeComparison", String(params.includeComparison));
   if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
-  
+
   if (params.comparisonPeriod !== undefined) query.append("ComparisonPeriod", params.comparisonPeriod.toString());
   if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
-  
+
   if (params.eventManagerId) query.append("EventManagerId", params.eventManagerId);
   if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
 
   const url = `${ANALYTICS_PREFIX}/dashboard?${query.toString()}`;
   console.log('Final API URL:', url);
-  
+
   try {
     const response = await instance.get(url);
     console.log('API Response status:', response.status);
@@ -768,7 +756,7 @@ export async function getEventManagerDashboard(params: any = {}) {
 // Thống kê doanh thu Event Manager
 export async function getEventManagerRevenue(params: RevenueParams = {}) {
   const query = new URLSearchParams();
-  
+
   if (params.EventIds) params.EventIds.forEach(id => query.append("EventIds", id));
   if (params.CategoryIds) params.CategoryIds.forEach(id => query.append("CategoryIds", id));
   if (params.PaymentStatus !== undefined) query.append("PaymentStatus", params.PaymentStatus.toString());
@@ -779,7 +767,7 @@ export async function getEventManagerRevenue(params: RevenueParams = {}) {
   if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
   if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
   if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/revenue?${query.toString()}`);
   return response.data;
 }
@@ -787,7 +775,7 @@ export async function getEventManagerRevenue(params: RevenueParams = {}) {
 // Thống kê vé Event Manager
 export async function getEventManagerTicketStats(params: TicketStatsParams = {}) {
   const query = new URLSearchParams();
-  
+
   if (params.Period !== undefined) query.append("Period", params.Period.toString());
   if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
   if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
@@ -795,7 +783,7 @@ export async function getEventManagerTicketStats(params: TicketStatsParams = {})
   if (params.IncludeComparison !== undefined) query.append("IncludeComparison", String(params.IncludeComparison));
   if (params.ComparisonPeriod !== undefined) query.append("ComparisonPeriod", params.ComparisonPeriod.toString());
   if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/tickets/stats?${query.toString()}`);
   return response.data;
 }
@@ -804,7 +792,7 @@ export async function getEventManagerTicketStats(params: TicketStatsParams = {})
 export async function getUpcomingEvents(eventManagerId?: string) {
   const query = new URLSearchParams();
   if (eventManagerId) query.append("EventManagerId", eventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/events/upcoming?${query.toString()}`);
   return response.data;
 }
@@ -813,7 +801,7 @@ export async function getUpcomingEvents(eventManagerId?: string) {
 export async function getRealtimeOverview(eventManagerId?: string) {
   const query = new URLSearchParams();
   if (eventManagerId) query.append("EventManagerId", eventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/realtime/overview?${query.toString()}`);
   return response.data;
 }
@@ -824,11 +812,11 @@ export async function comparePerformance(currentPeriod: number, comparisonPeriod
     currentPeriod,
     comparisonPeriod
   };
-  
+
   if (eventManagerId) {
     payload.eventManagerId = eventManagerId;
   }
-  
+
   const response = await instance.post(`${ANALYTICS_PREFIX}/performance/compare`, payload);
   return response.data;
 }
@@ -850,13 +838,13 @@ export async function getCategoryStats(params: {
   EventManagerId?: string;
 } = {}) {
   const query = new URLSearchParams();
-  
+
   if (params.Period !== undefined) query.append("Period", params.Period.toString());
   if (params.GroupBy !== undefined) query.append("GroupBy", params.GroupBy.toString());
   if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
   if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
   if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/categories/stats?${query.toString()}`);
   return response.data;
 }
@@ -871,14 +859,14 @@ export async function exportDashboardData(params: {
   EventManagerId?: string;
 } = {}) {
   const query = new URLSearchParams();
-  
+
   if (params.Period !== undefined) query.append("Period", params.Period.toString());
   if (params.CustomStartDate) query.append("CustomStartDate", params.CustomStartDate);
   if (params.CustomEndDate) query.append("CustomEndDate", params.CustomEndDate);
   if (params.Format) query.append("Format", params.Format);
   if (params.IncludeCharts !== undefined) query.append("IncludeCharts", String(params.IncludeCharts));
   if (params.EventManagerId) query.append("EventManagerId", params.EventManagerId);
-  
+
   const response = await instance.get(`${ANALYTICS_PREFIX}/export?${query.toString()}`, {
     responseType: 'blob'
   });
@@ -1013,7 +1001,7 @@ export async function getHomeEvents() {
     console.log('Fetching home events...');
     const response = await instance.get('/api/Event/home');
     console.log('Home events API response:', response);
-    
+
     // Handle different possible response structures
     if (Array.isArray(response.data)) {
       console.log('Returning direct array from response.data');
@@ -1028,7 +1016,7 @@ export async function getHomeEvents() {
       console.log('Returning items from response.data.data.items');
       return response.data.data.items;
     }
-    
+
     console.warn('Unexpected API response structure:', response.data);
     return [];
   } catch (error) {

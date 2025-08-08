@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePickerRegister } from '@/components/ui/date-picker-register';
@@ -22,7 +24,7 @@ export const Register = () => {
   // Restore from sessionStorage if available
   const [date, setDate] = useState<Date | undefined>(() => {
     const saved = sessionStorage.getItem('register_date');
-    return saved ? new Date(saved) : undefined;
+    return saved ? new Date(saved) : undefined; // Don't set current date as default
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -177,11 +179,11 @@ export const Register = () => {
               if (parts.length === 4 && parts[1] === 'REDIRECT_TO_VERIFY') {
                 const email = parts[2];
                 const minutesLeft = parseInt(parts[3], 10);
-                
+
                 // Store the email and minutes left for the verification page
                 sessionStorage.setItem('registerEmail', email);
                 sessionStorage.setItem('verificationCountdown', minutesLeft.toString());
-                
+
                 // Clear form data from sessionStorage since we're redirecting
                 sessionStorage.removeItem('register_username');
                 sessionStorage.removeItem('register_fullName');
@@ -208,7 +210,6 @@ export const Register = () => {
 
       // Check for unverified email case
       let hasUnverifiedEmailError = false;
-      let unverifiedEmailMessage = '';
 
       if (error && typeof error === 'object') {
         if ('response' in error && typeof (error as any).response?.data?.message === 'string') {
@@ -222,7 +223,6 @@ export const Register = () => {
             backendMessage.includes('Please check your inbox or wait')
           ) {
             hasUnverifiedEmailError = true;
-            unverifiedEmailMessage = backendMessage;
           }
         }
       }
@@ -358,7 +358,6 @@ export const Register = () => {
 
       // Check for unverified email case (same as normal registration)
       let hasUnverifiedEmailError = false;
-      let unverifiedEmailMessage = '';
 
       if (err && typeof err === 'object') {
         if ('response' in err && typeof (err as any).response?.data?.message === 'string') {
@@ -372,7 +371,6 @@ export const Register = () => {
             backendMessage.includes('Please check your inbox or wait')
           ) {
             hasUnverifiedEmailError = true;
-            unverifiedEmailMessage = backendMessage;
           }
         }
       }

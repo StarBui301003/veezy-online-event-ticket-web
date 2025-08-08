@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { getAdminsWithFilter, UserFilterParams } from '@/services/Admin/user.service';
-import { connectIdentityHub, onIdentity } from '@/services/signalr.service';
+import { onIdentity } from '@/services/signalr.service';
 import type { UserAccountResponse } from '@/types/Admin/user';
 import {
   Table,
@@ -117,10 +117,8 @@ export const AdminList = () => {
     }
   };
 
-  // Connect to IdentityHub for real-time updates
+  // Listen for real-time admin user updates using global connections
   useEffect(() => {
-          connectIdentityHub('https://identity.vezzy.site/hubs/notifications');
-
     // Listen for real-time admin user updates
     onIdentity('AdminCreated', (data: any) => {
       console.log('👤 Admin created:', data);

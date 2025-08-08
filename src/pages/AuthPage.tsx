@@ -6,7 +6,6 @@ declare global {
   }
 }
 
-
 const AuthPage: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -17,7 +16,7 @@ const AuthPage: React.FC = () => {
       >
         Open Login Modal
       </button>
-      <AuthModals />
+      <AuthModals open={false} onClose={() => {}} />
     </div>
   );
 };

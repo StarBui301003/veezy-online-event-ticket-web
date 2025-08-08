@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Loader2, MapPin, Frown } from 'lucide-react';
+import { Calendar, MapPin, Frown } from 'lucide-react';
 
 import FilterComponent, { FilterOptions } from '@/components/FilterComponent';
 // FIX: Import Event và PaginatedEventsResponse từ service

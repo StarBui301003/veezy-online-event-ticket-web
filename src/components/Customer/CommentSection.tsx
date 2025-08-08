@@ -12,7 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { onComment } from '@/services/signalr.service';
 import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -120,7 +120,7 @@ export default function CommentSection({ eventId, setReportModal }: { eventId: s
   useEffect(() => {
     if (eventId) {
       fetchComments();
-      connectCommentHub('https://event.vezzy.site/commentHub');
+      // Comment hub connection is managed globally in App.tsx (Event Hub handles comments)
       // Lắng nghe realtime SignalR cho comment
       const reloadComment = (data: any) => {
         if (data?.eventId === eventId || data === eventId) {

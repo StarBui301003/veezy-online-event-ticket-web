@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Circle } from 'lucide-react';
-import { useOnlineStatus } from '@/contexts/OnlineStatusContext';
+import identityService from '@/services/identity.service';
 
 interface OnlineStatusIndicatorProps {
   userId?: string;
@@ -15,9 +15,9 @@ const OnlineStatusIndicator: React.FC<OnlineStatusIndicatorProps> = ({
   size = 'md',
   className = ''
 }) => {
-  const { isUserOnline, getUserLastSeen, refreshUserStatus } = useOnlineStatus();
   const [isOnline, setIsOnline] = useState(false);
   const [lastSeen, setLastSeen] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   const sizeClasses = {
     sm: 'w-2 h-2',
@@ -31,53 +31,64 @@ const OnlineStatusIndicator: React.FC<OnlineStatusIndicatorProps> = ({
     lg: 'text-base'
   };
 
-  useEffect(() => {
-    if (!userId) return;
-
-    // Get status from context
-    const online = isUserOnline(userId);
-    const lastSeenDate = getUserLastSeen(userId);
-    
-    console.log(`🔍 OnlineStatusIndicator for user ${userId}: online=${online}, lastSeen=${lastSeenDate}`);
-    console.log(`🔍 OnlineStatusIndicator context check - userId: ${userId}, found in context: ${!!online || !!lastSeenDate}`);
-    
-    setIsOnline(online);
-    setLastSeen(lastSeenDate || '');
-
-    // Refresh user status from server - with error handling
-    const refreshStatus = async () => {
-      try {
-        await refreshUserStatus(userId);
-        // Get updated status after refresh
-        const updatedOnline = isUserOnline(userId);
-        const updatedLastSeen = getUserLastSeen(userId);
-        console.log(`🔄 After refresh - user ${userId}: online=${updatedOnline}, lastSeen=${updatedLastSeen}`);
-      } catch (error) {
-        console.warn('Failed to refresh user status from server:', error);
-        // Continue with context data
+  // ✅ Load user status từ IdentityService (supports both online and offline users)
+  const loadUserStatus = async (targetUserId: string) => {
+    try {
+      console.log(`[OnlineStatusIndicator] Loading status for user ${targetUserId} from IdentityService...`);
+      
+      // Get all users with their online status (this includes both online and offline users)
+      const allUsers = await identityService.getAllUsersWithStatus();
+      
+      // Find user by accountId (primary identifier) or userId
+      let user = allUsers.find(u => u.accountId === targetUserId || u.userId === targetUserId);
+      
+      // If not found by accountId/userId, try to find by other potential ID fields for compatibility
+      if (!user) {
+        user = allUsers.find(u => 
+          u.username === targetUserId ||
+          u.email === targetUserId
+        );
       }
-    };
-    
-    refreshStatus();
+      
+      if (user) {
+        console.log(`[OnlineStatusIndicator] Found user ${targetUserId} in users list:`, user);
+        setIsOnline(user.isOnline);
+        setLastSeen(user.lastActiveAt);
+      } else {
+        console.log(`[OnlineStatusIndicator] User ${targetUserId} not found in users list, setting offline`);
+        setIsOnline(false);
+        setLastSeen('');
+      }
+    } catch (error) {
+      console.error(`[OnlineStatusIndicator] Error loading status for user ${targetUserId}:`, error);
+      setIsOnline(false);
+      setLastSeen('');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Set up polling every 60 seconds for this specific user
-    const interval = setInterval(() => {
-      refreshStatus();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, [userId, isUserOnline, getUserLastSeen, refreshUserStatus]);
-
-  // Update local state when context changes
   useEffect(() => {
-    if (!userId) return;
-    
-    const online = isUserOnline(userId);
-    const lastSeenDate = getUserLastSeen(userId);
-    
-    setIsOnline(online);
-    setLastSeen(lastSeenDate || '');
-  }, [userId, isUserOnline, getUserLastSeen]);
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    console.log(`[OnlineStatusIndicator] Starting status check for user ${userId}`);
+    setLoading(true);
+    loadUserStatus(userId);
+
+    // Set up polling every 30 seconds for this specific user
+    const interval = setInterval(() => {
+      console.log(`[OnlineStatusIndicator] Polling status for user ${userId}`);
+      loadUserStatus(userId);
+    }, 30000);
+
+    return () => {
+      console.log(`[OnlineStatusIndicator] Cleanup for user ${userId}`);
+      clearInterval(interval);
+    };
+  }, [userId]);
 
   const formatLastSeen = (lastSeenDate: string): string => {
     if (!lastSeenDate) return '';
@@ -106,21 +117,28 @@ const OnlineStatusIndicator: React.FC<OnlineStatusIndicatorProps> = ({
       <div className="relative">
         <Circle 
           className={`${sizeClasses[size]} ${
-            isOnline 
+            loading 
+              ? 'fill-gray-300 text-gray-300 animate-pulse'
+              : isOnline 
               ? 'fill-green-500 text-green-500' 
               : 'fill-gray-400 text-gray-400'
           }`}
         />
-        {isOnline && (
+        {isOnline && !loading && (
           <div className={`absolute inset-0 ${sizeClasses[size]} bg-green-500 rounded-full animate-ping opacity-75`} />
         )}
       </div>
       
       {showText && (
         <span className={`${textSizeClasses[size]} ${
-          isOnline ? 'text-green-600' : 'text-gray-500'
+          loading
+            ? 'text-gray-400'
+            : isOnline ? 'text-green-600' : 'text-gray-500'
         }`}>
-          {isOnline ? 'Online' : lastSeen ? formatLastSeen(lastSeen) : 'Offline'}
+          {loading 
+            ? 'Loading...' 
+            : isOnline ? 'Online' : lastSeen ? formatLastSeen(lastSeen) : 'Offline'
+          }
         </span>
       )}
     </div>

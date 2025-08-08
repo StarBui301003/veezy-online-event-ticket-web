@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
