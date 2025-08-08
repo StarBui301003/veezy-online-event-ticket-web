@@ -11,11 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { onNotification } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { FieldErrors, validateDiscountCodeForm, getFieldError as getValidationError } from '@/utils/validation';
-import DatePicker from 'react-datepicker';
+import { FieldErrors, validateDiscountCodeForm  } from '@/utils/validation';
 import 'react-datepicker/dist/react-datepicker.css';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
 
 interface Event {
   eventId: string;
