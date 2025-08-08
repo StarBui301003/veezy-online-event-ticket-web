@@ -21,7 +21,7 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
   if (!hubUrl) {
     return Promise.reject(new Error('The "url" argument is required for connectHub'));
   }
-  
+
   // Check if connection already exists and is connected
   if (connections[hubType]) {
     const currentState = connections[hubType]?.state;
@@ -38,22 +38,22 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
           reject(new Error('Connection lost during wait'));
           return;
         }
-        
+
         const onConnected = () => {
           connection.off('onconnect', onConnected);
           connection.off('onclose', onError);
           resolve(undefined);
         };
-        
+
         const onError = (error?: Error) => {
           connection.off('onconnect', onConnected);
           connection.off('onclose', onError);
           reject(error || new Error('Connection failed'));
         };
-        
+
         connection.on('onconnect', onConnected);
         connection.on('onclose', onError);
-        
+
         // Check if already connected (race condition)
         if (connection.state === 'Connected') {
           onConnected();
@@ -65,13 +65,13 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
     connections[hubType]?.stop();
     connections[hubType] = null;
   }
-  
+
   console.log(`[SignalR] Creating new ${hubType} hub connection...`);
-  
+
   // For ChatHub, use query string for token (required by backend configuration)
   let finalUrl = hubUrl;
   let connectionOptions: any = undefined;
-  
+
   if (accessToken) {
     if (hubType === 'chat' || hubType === 'notification') {
       // ChatHub and NotificationHub require token in query string (configured in backend)
@@ -86,17 +86,17 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
   } else {
     console.log(`[SignalR] No access token provided for ${hubType} hub`);
   }
-  
+
   const connection = new HubConnectionBuilder()
     .withUrl(finalUrl, connectionOptions)
     .configureLogging(LogLevel.Information)
     .withAutomaticReconnect()
     .build();
-    
+
   // Add debug logging for all incoming messages (for chat and notification hubs)
   if (hubType === 'chat' || hubType === 'notification') {
     const originalOnMethod = connection.on.bind(connection);
-    connection.on = function(methodName: string, callback: (...args: any[]) => void) {
+    connection.on = function (methodName: string, callback: (...args: any[]) => void) {
       console.log(`[SignalR DEBUG] Registering handler for method: ${methodName} on ${hubType} hub`);
       const wrappedCallback = (...args: any[]) => {
         console.log(`[SignalR DEBUG] Received ${methodName} event on ${hubType} hub with args:`, args);
@@ -105,9 +105,9 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
       return originalOnMethod(methodName, wrappedCallback);
     };
   }
-    
+
   connections[hubType] = connection;
-  
+
   return connection.start().then(() => {
     console.log(`[SignalR] ${hubType} hub connected successfully`);
   }).catch((error) => {
@@ -139,12 +139,12 @@ export const leaveChatRoom = async (roomId: string) => {
   if (!chatConnection) {
     throw new Error('ChatHub not initialized');
   }
-  
+
   if (chatConnection.state !== 'Connected') {
     console.warn(`[SignalR] Cannot leave room, connection state: ${chatConnection.state}`);
     return Promise.resolve(); // Don't throw error for leave operations
   }
-  
+
   return chatConnection.invoke('LeaveRoom', roomId);
 };
 export const joinChatRoom = async (roomId: string) => {
@@ -152,7 +152,7 @@ export const joinChatRoom = async (roomId: string) => {
   if (!chatConnection) {
     throw new Error('ChatHub not initialized');
   }
-  
+
   // Wait for connection to be ready if it's still connecting
   if (chatConnection.state === 'Connecting') {
     console.log('[SignalR] Chat connection is connecting, waiting...');
@@ -160,7 +160,7 @@ export const joinChatRoom = async (roomId: string) => {
       const timeout = setTimeout(() => {
         reject(new Error('Connection timeout'));
       }, 10000); // 10 second timeout
-      
+
       const checkConnection = () => {
         if (chatConnection.state === 'Connected') {
           clearTimeout(timeout);
@@ -172,15 +172,15 @@ export const joinChatRoom = async (roomId: string) => {
           setTimeout(checkConnection, 100);
         }
       };
-      
+
       checkConnection();
     });
   }
-  
+
   if (chatConnection.state !== 'Connected') {
     throw new Error(`ChatHub not in Connected state (current: ${chatConnection.state})`);
   }
-  
+
   console.log('[SignalR] Invoking JoinRoom for roomId:', roomId);
   return chatConnection.invoke('JoinRoom', roomId);
 };
@@ -191,11 +191,11 @@ export const switchChatRoomMode = async (roomId: string, mode: 'AI' | 'Human') =
   if (!chatConnection) {
     throw new Error('ChatHub not initialized');
   }
-  
+
   if (chatConnection.state !== 'Connected') {
     throw new Error(`ChatHub not in Connected state (current: ${chatConnection.state})`);
   }
-  
+
   console.log('[SignalR] Invoking SwitchRoomMode for roomId:', roomId, 'mode:', mode);
   return chatConnection.invoke('SwitchRoomMode', roomId, mode);
 };
@@ -219,11 +219,11 @@ export const joinAdminGroup = async () => {
   if (!notificationConnection) {
     throw new Error('NotificationHub not initialized');
   }
-  
+
   if (notificationConnection.state !== 'Connected') {
     throw new Error(`NotificationHub not connected (current: ${notificationConnection.state})`);
   }
-  
+
   console.log('[SignalR] Invoking JoinAdminGroup');
   return notificationConnection.invoke('JoinAdminGroup');
 };
@@ -251,6 +251,7 @@ export const disconnectNewsHub = () => disconnectHub('news');
 
 export const connectCommentHub = (url: string, token?: string) => connectHub('comment', url, token);
 export const onComment = (event: string, cb: (...args: any[]) => void) => onHubEvent('comment', event, cb);
+export const offComment = (event: string, cb: (...args: any[]) => void) => offHubEvent('comment', event, cb);
 export const disconnectCommentHub = () => disconnectHub('comment');
 
 export const connectAnalyticsHub = (url: string, token?: string) => connectHub('analytics', url, token);

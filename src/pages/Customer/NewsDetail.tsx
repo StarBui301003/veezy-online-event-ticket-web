@@ -15,7 +15,7 @@ import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.se
 import ReportModal from '@/components/Customer/ReportModal';
 
 import { connectNewsHub, onNews, offNews } from '@/services/signalr.service';
-import { News } from '@/types/event';
+import { News } from '@/services/signalr.service';
 
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { LoginModal } from '@/components/common/LoginModal';
@@ -64,9 +64,10 @@ const NewsDetail: React.FC = () => {
     };
   }, []);
 
-  const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
-    || process.env.REACT_APP_NEWS_HUB_URL
-    || '/newsHub';
+  const NEWS_HUB_URL =
+    ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
+    process.env.REACT_APP_NEWS_HUB_URL ||
+    '/newsHub';
 
   useEffect(() => {
     setLoading(true);
