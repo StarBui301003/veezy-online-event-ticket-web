@@ -394,7 +394,7 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
     try {
       // Send message via API (SignalR will handle the real-time update)
-      const response = await chatService.sendMessage({
+      await chatService.sendMessage({
         roomId: chatRoom.roomId,
         content: messageContent,
         type: 0, // Text message

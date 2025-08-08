@@ -54,12 +54,12 @@ export const GlobalNotificationManager: React.FC<GlobalNotificationManagerProps>
     });
 
     // User activity notifications
-    onNotification('UserOnlineStatusChanged', (userData: any) => {
+  onNotification('UserOnlineStatusChanged', () => {
       // Chỉ thông báo cho người dùng quan tâm (friends, followed users, etc.)
     });
 
     // Ticket/Order notifications from TicketService
-    onNotification('TicketStatusChanged', (ticketData: any) => {
+  onNotification('TicketStatusChanged', () => {
       toast({
         title: 'Cập nhật vé',
         description: `Vé của bạn đã thay đổi trạng thái`,

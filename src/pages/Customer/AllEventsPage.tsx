@@ -20,8 +20,8 @@ import {
 type ViewMode = 'grid' | 'list';
 const PAGE_SIZE = 12;
 
-// SignalR Event Hub URL
-const SIGNALR_EVENT_HUB_URL = 'https://event.vezzy.site/eventHub';
+// SignalR Event Hub URL (per PORT-MAPPING-FINAL: Event service domain + notificationHub)
+const SIGNALR_EVENT_HUB_URL = 'https://event.vezzy.site/notificationHub';
 
 // ... (Các component con như formatDate, getImageUrl, EventCardSkeleton, NoResults giữ nguyên) ...
 const formatDate = (dateString?: string | Date): string => {
