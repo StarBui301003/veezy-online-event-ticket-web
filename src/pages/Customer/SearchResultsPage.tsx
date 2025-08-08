@@ -42,9 +42,10 @@ interface SearchResult {
   attendees?: number;
 }
 
-// const EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
-//   || (process.env as any)?.REACT_APP_EVENT_HUB_URL
-//   || '/eventHub';
+const EVENT_HUB_URL =
+  ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string) ||
+  (process.env as any)?.REACT_APP_EVENT_HUB_URL ||
+  'https://event.vezzy.site/notificationHub';
 
 export const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
