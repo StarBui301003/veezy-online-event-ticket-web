@@ -246,6 +246,7 @@ export const disconnectIdentityHub = () => disconnectHub('identity');
 
 export const connectNewsHub = (url: string, token?: string) => connectHub('news', url, token);
 export const onNews = (event: string, cb: (...args: any[]) => void) => onHubEvent('news', event, cb);
+export const offNews = (event: string, cb: (...args: any[]) => void) => offHubEvent('news', event, cb);
 export const disconnectNewsHub = () => disconnectHub('news');
 
 export const connectCommentHub = (url: string, token?: string) => connectHub('comment', url, token);

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { connectCommentHub, onComment } from '@/services/signalr.service';
+import { connectCommentHub, onComment, offComment } from '@/services/signalr.service';
 import {
   Table,
   TableHeader,
@@ -77,12 +77,20 @@ export const CommentList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectCommentHub('https://event.vezzy.site/commentHub');
+    const COMMENT_HUB_URL = ((import.meta as any)?.env?.VITE_COMMENT_HUB_URL as string)
+      || (process.env as any)?.REACT_APP_COMMENT_HUB_URL
+      || '/commentHub';
+    connectCommentHub(COMMENT_HUB_URL);
 
     const reload = () => reloadList();
     onComment('OnCommentCreated', reload);
     onComment('OnCommentUpdated', reload);
     onComment('OnCommentDeleted', reload);
+    return () => {
+      offComment('OnCommentCreated', reload);
+      offComment('OnCommentUpdated', reload);
+      offComment('OnCommentDeleted', reload);
+    };
   }, []);
 
   useEffect(() => {

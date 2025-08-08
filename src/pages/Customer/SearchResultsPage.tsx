@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { searchEventsAPI } from '@/services/search.service';
 import { getAllCategories } from '@/services/Event Manager/event.service';
@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { format, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 
 interface SearchResult {
   id: string;
@@ -35,6 +36,10 @@ interface SearchResult {
   rating?: number;
   attendees?: number;
 }
+
+const EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
+  || (process.env as any)?.REACT_APP_EVENT_HUB_URL
+  || '/eventHub';
 
 export const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
@@ -62,9 +67,21 @@ export const SearchResultsPage = () => {
   const [locationInput, setLocationInput] = useState('');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
+  const connectionRef = useRef<HubConnection | null>(null);
+  const joinedEventIdsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    const fetchSearchResults = async () => {
+  const mapEventToSearchResult = useCallback((event: any): SearchResult => ({
+    id: String(event.id),
+    name: event.name,
+    description: event.description || '',
+    type: 'event',
+    imageUrl: event.coverImageUrl || '',
+    date: event.startAt,
+    location: event.location,
+    price: event.isFree ? 0 : undefined,
+  }), []);
+
+  const fetchSearchResults = useCallback(async () => {
       if (!query.trim()) {
         setResults([]);
         setLoading(false);
@@ -86,17 +103,7 @@ export const SearchResultsPage = () => {
         });
 
         // Map API response to SearchResult type
-        const mappedResults = events.map((event) => ({
-          id: event.id,
-          name: event.name,
-          description: event.description || '',
-          type: 'event',
-          imageUrl: event.coverImageUrl || '',
-          date: event.startAt,
-          location: event.location,
-          isFree: event.isFree,
-          price: event.isFree ? 0 : undefined,
-        }));
+        const mappedResults = events.map(mapEventToSearchResult);
 
         setResults(mappedResults);
       } catch (err: any) {
@@ -106,10 +113,11 @@ export const SearchResultsPage = () => {
       } finally {
         setLoading(false);
       }
-    };
+  }, [query, mapEventToSearchResult]);
 
+  useEffect(() => {
     fetchSearchResults();
-  }, [query]);
+  }, [fetchSearchResults]);
 
   // Fetch categories from API
   useEffect(() => {
@@ -143,7 +151,7 @@ export const SearchResultsPage = () => {
     : provinces.slice(0, 8);
 
   // Apply filters and sorting
-  const filteredAndSortedResults = () => {
+  const filteredResults = useMemo(() => {
     const filtered = results.filter((event) => {
       const eventDate = new Date(event.date);
       const today = startOfDay(new Date());
@@ -210,9 +218,116 @@ export const SearchResultsPage = () => {
     });
 
     return filtered;
-  };
+  }, [results, filters, sortBy]);
 
-  const filteredResults = filteredAndSortedResults();
+  // Setup SignalR connection and realtime updates
+  useEffect(() => {
+    const setupSignalR = async () => {
+      try {
+        const connection = new HubConnectionBuilder()
+          .withUrl(EVENT_HUB_URL)
+          .configureLogging(LogLevel.Warning)
+          .withAutomaticReconnect()
+          .build();
+
+        // Event created: refetch to see if it matches current query/filters
+        connection.on('OnEventCreated', async () => {
+          await fetchSearchResults();
+        });
+
+        // Event updated: merge into results; if it stops matching, filteredResults will hide it
+        connection.on('OnEventUpdated', (eventData: any) => {
+          const updated = mapEventToSearchResult(eventData);
+          setResults((prev) => {
+            const exists = prev.some((e) => e.id === updated.id);
+            return exists ? prev.map((e) => (e.id === updated.id ? { ...e, ...updated } : e)) : prev;
+          });
+        });
+
+        // Event deleted: remove from results
+        connection.on('OnEventDeleted', (eventId: string) => {
+          setResults((prev) => prev.filter((e) => e.id !== String(eventId)));
+        });
+
+        // Status changed: safest is refetch, since it may affect sorting/visibility
+        connection.on('OnEventStatusChanged', async () => {
+          await fetchSearchResults();
+        });
+
+        // Re-join groups on reconnect
+        connection.onreconnected(async () => {
+          await joinGroupsForVisibleResults();
+          await fetchSearchResults();
+        });
+
+        await connection.start();
+        connectionRef.current = connection;
+        await joinGroupsForVisibleResults();
+      } catch (err) {
+        console.error('SignalR connection error (SearchResultsPage):', err);
+      }
+    };
+
+    const joinGroupsForVisibleResults = async () => {
+      const connection = connectionRef.current;
+      if (!connection || connection.state !== HubConnectionState.Connected) return;
+      const currentIds = new Set<string>(filteredResults.map((e) => String(e.id)));
+      // Leave obsolete groups
+      for (const joinedId of Array.from(joinedEventIdsRef.current)) {
+        if (!currentIds.has(joinedId)) {
+          try {
+            await connection.invoke('LeaveEventGroup', joinedId);
+          } catch {}
+          joinedEventIdsRef.current.delete(joinedId);
+        }
+      }
+      // Join new groups
+      for (const id of currentIds) {
+        if (!joinedEventIdsRef.current.has(id)) {
+          try {
+            await connection.invoke('JoinEventGroup', id);
+            joinedEventIdsRef.current.add(id);
+          } catch {}
+        }
+      }
+    };
+
+    setupSignalR();
+    return () => {
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+        joinedEventIdsRef.current.clear();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep group membership in sync with currently visible results
+  useEffect(() => {
+    const syncGroups = async () => {
+      const connection = connectionRef.current;
+      if (!connection || connection.state !== HubConnectionState.Connected) return;
+      const currentIds = new Set<string>(filteredResults.map((e) => String(e.id)));
+      for (const joinedId of Array.from(joinedEventIdsRef.current)) {
+        if (!currentIds.has(joinedId)) {
+          try {
+            await connection.invoke('LeaveEventGroup', joinedId);
+          } catch {}
+          joinedEventIdsRef.current.delete(joinedId);
+        }
+      }
+      for (const id of currentIds) {
+        if (!joinedEventIdsRef.current.has(id)) {
+          try {
+            await connection.invoke('JoinEventGroup', id);
+            joinedEventIdsRef.current.add(id);
+          } catch {}
+        }
+      }
+    };
+    syncGroups();
+  }, [filteredResults]);
 
   const clearFilters = () => {
     setFilters({
@@ -447,7 +562,7 @@ export const SearchResultsPage = () => {
                     value={filters.date}
                     onChange={(e) => setFilters({ ...filters, date: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'
@@ -475,7 +590,7 @@ export const SearchResultsPage = () => {
                     value={filters.category}
                     onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'
@@ -514,7 +629,7 @@ export const SearchResultsPage = () => {
                     onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                     placeholder={t('selectLocation')}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900 placeholder-gray-500',
                         'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400'
@@ -598,7 +713,7 @@ export const SearchResultsPage = () => {
                     value={filters.priceRange}
                     onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
                     className={cn(
-                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 w-full border-2',
+                      'w-full rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-blue-500 border-2',
                       getThemeClass(
                         'bg-gray-50 border-gray-500 text-gray-900',
                         'bg-gray-700/50 border-gray-600 text-white'

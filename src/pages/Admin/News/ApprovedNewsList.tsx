@@ -26,7 +26,7 @@ import {
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getAllApprovedNews } from '@/services/Admin/news.service';
 import { hideNews, showNews } from '@/services/Admin/news.service';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { connectNewsHub, onNews, offNews } from '@/services/signalr.service';
 import type { News, NewsFilterParams } from '@/types/Admin/news';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import ApprovedNewsDetailModal from './ApprovedNewsDetailModal';
@@ -111,7 +111,10 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
+      || (process.env as any)?.REACT_APP_NEWS_HUB_URL
+      || '/newsHub';
+    connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
     };
@@ -122,6 +125,15 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     onNews('OnNewsRejected', reload);
     onNews('OnNewsHidden', reload);
     onNews('OnNewsUnhidden', reload);
+    return () => {
+      offNews('OnNewsCreated', reload);
+      offNews('OnNewsUpdated', reload);
+      offNews('OnNewsDeleted', reload);
+      offNews('OnNewsApproved', reload);
+      offNews('OnNewsRejected', reload);
+      offNews('OnNewsHidden', reload);
+      offNews('OnNewsUnhidden', reload);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

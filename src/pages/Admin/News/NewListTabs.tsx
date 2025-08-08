@@ -8,7 +8,7 @@ import { FaUser } from 'react-icons/fa';
 import { FiCheckCircle, FiX } from 'react-icons/fi';
 import { RejectedNewsList } from './RejectedNewsList';
 import { ApprovedNewsList } from './ApprovedNewsList';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { connectNewsHub, onNews, offNews } from '@/services/signalr.service';
 
 export function NewsListTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,7 +34,10 @@ export function NewsListTabs() {
   };
 
   useEffect(() => {
-          connectNewsHub('https://event.vezzy.site/newsHub');
+    const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
+      || (process.env as any)?.REACT_APP_NEWS_HUB_URL
+      || '/newsHub';
+    connectNewsHub(NEWS_HUB_URL);
     // Lắng nghe realtime SignalR cho news
     const reloadNews = () => fetchPendingCount();
     onNews('OnNewsCreated', reloadNews);
@@ -47,6 +50,15 @@ export function NewsListTabs() {
 
     // Initial fetch pending count
     fetchPendingCount();
+    return () => {
+      offNews('OnNewsCreated', reloadNews);
+      offNews('OnNewsUpdated', reloadNews);
+      offNews('OnNewsDeleted', reloadNews);
+      offNews('OnNewsApproved', reloadNews);
+      offNews('OnNewsRejected', reloadNews);
+      offNews('OnNewsHidden', reloadNews);
+      offNews('OnNewsUnhidden', reloadNews);
+    };
   }, []);
 
   // Khi đổi tab, update query param
