@@ -21,7 +21,12 @@ import { useTranslation } from 'react-i18next';
 import { format, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState,
+  LogLevel,
+} from '@microsoft/signalr';
 
 interface SearchResult {
   id: string;
@@ -37,9 +42,9 @@ interface SearchResult {
   attendees?: number;
 }
 
-const EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
-  || (process.env as any)?.REACT_APP_EVENT_HUB_URL
-  || '/eventHub';
+// const EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
+//   || (process.env as any)?.REACT_APP_EVENT_HUB_URL
+//   || '/eventHub';
 
 export const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
@@ -70,49 +75,52 @@ export const SearchResultsPage = () => {
   const connectionRef = useRef<HubConnection | null>(null);
   const joinedEventIdsRef = useRef<Set<string>>(new Set());
 
-  const mapEventToSearchResult = useCallback((event: any): SearchResult => ({
-    id: String(event.id),
-    name: event.name,
-    description: event.description || '',
-    type: 'event',
-    imageUrl: event.coverImageUrl || '',
-    date: event.startAt,
-    location: event.location,
-    price: event.isFree ? 0 : undefined,
-  }), []);
+  const mapEventToSearchResult = useCallback(
+    (event: any): SearchResult => ({
+      id: String(event.id),
+      name: event.name,
+      description: event.description || '',
+      type: 'event',
+      imageUrl: event.coverImageUrl || '',
+      date: event.startAt,
+      location: event.location,
+      price: event.isFree ? 0 : undefined,
+    }),
+    []
+  );
 
   const fetchSearchResults = useCallback(async () => {
-      if (!query.trim()) {
-        setResults([]);
-        setLoading(false);
-        return;
-      }
+    if (!query.trim()) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const { events } = await searchEventsAPI({
-          searchTerm: query,
-          dateRange: 'all',
-          location: '',
-          sortBy: 'relevance',
-          sortOrder: 'desc',
-          page: 1,
-          pageSize: 50, // Increase page size to get more results
-        });
+    try {
+      const { events } = await searchEventsAPI({
+        searchTerm: query,
+        dateRange: 'all',
+        location: '',
+        sortBy: 'relevance',
+        sortOrder: 'desc',
+        page: 1,
+        pageSize: 50, // Increase page size to get more results
+      });
 
-        // Map API response to SearchResult type
-        const mappedResults = events.map(mapEventToSearchResult);
+      // Map API response to SearchResult type
+      const mappedResults = events.map(mapEventToSearchResult);
 
-        setResults(mappedResults);
-      } catch (err: any) {
-        console.error('Search failed:', err);
-        setError(err.message || 'Có lỗi xảy ra khi tìm kiếm');
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
+      setResults(mappedResults);
+    } catch (err: any) {
+      console.error('Search failed:', err);
+      setError(err.message || 'Có lỗi xảy ra khi tìm kiếm');
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
   }, [query, mapEventToSearchResult]);
 
   useEffect(() => {
@@ -240,7 +248,9 @@ export const SearchResultsPage = () => {
           const updated = mapEventToSearchResult(eventData);
           setResults((prev) => {
             const exists = prev.some((e) => e.id === updated.id);
-            return exists ? prev.map((e) => (e.id === updated.id ? { ...e, ...updated } : e)) : prev;
+            return exists
+              ? prev.map((e) => (e.id === updated.id ? { ...e, ...updated } : e))
+              : prev;
           });
         });
 

@@ -10,10 +10,18 @@ import { searchEventsAPI, Event } from '@/services/search.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { NO_IMAGE } from '@/assets/img';
-import { HubConnectionBuilder, LogLevel, HubConnection, HubConnectionState } from '@microsoft/signalr';
+import {
+  HubConnectionBuilder,
+  LogLevel,
+  HubConnection,
+  HubConnectionState,
+} from '@microsoft/signalr';
 
 type ViewMode = 'grid' | 'list';
 const PAGE_SIZE = 12;
+
+// SignalR Event Hub URL
+const SIGNALR_EVENT_HUB_URL = 'https://event.vezzy.site/eventHub';
 
 // ... (Các component con như formatDate, getImageUrl, EventCardSkeleton, NoResults giữ nguyên) ...
 const formatDate = (dateString?: string | Date): string => {
@@ -31,28 +39,29 @@ const formatDate = (dateString?: string | Date): string => {
     return 'Ngày đang cập nhật';
   }
 };
+
 const getImageUrl = (imageUrl?: string): string => imageUrl || NO_IMAGE;
+
 const EventCardSkeleton = ({ viewMode }: { viewMode: ViewMode }) => (
   <div
     className={`animate-pulse ${
       viewMode === 'list' ? 'flex flex-col md:flex-row' : 'flex flex-col h-full'
     } rounded-xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700`}
   >
-    {' '}
     <div
       className={`${
-        viewMode === 'list' ? 'md:w-1/3 h-48 md:h-auto' : 'aspect-video'
+        viewMode === 'list' ? 'md:w-1/3 h-48 md:h-auto' : 'h-48'
       } bg-gray-300 dark:bg-gray-700`}
-    ></div>{' '}
+    ></div>
     <div className="p-4 flex-1 space-y-3">
-      {' '}
-      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>{' '}
-      <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-4/5"></div>{' '}
-      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>{' '}
-      <div className="h-9 bg-gray-300 dark:bg-gray-700 rounded mt-4"></div>{' '}
-    </div>{' '}
+      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+      <div className="h-5 bg-gray-300 dark:bg-gray-700 rounded w-4/5"></div>
+      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
+      <div className="h-9 bg-gray-300 dark:bg-gray-700 rounded mt-4"></div>
+    </div>
   </div>
 );
+
 const NoResults = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
@@ -74,9 +83,9 @@ const NoResults = () => {
   );
 };
 
-const SIGNALR_EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
-  || process.env.REACT_APP_EVENT_HUB_URL
-  || '/eventHub';
+// const SIGNALR_EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
+//   || process.env.REACT_APP_EVENT_HUB_URL
+//   || '/eventHub';
 
 const AllEventsPage = () => {
   const { t } = useTranslation();
@@ -89,7 +98,11 @@ const AllEventsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [filters, setFilters] = useState<FilterOptions>({
-    searchTerm: '', dateRange: 'all', location: '', sortBy: 'date', sortOrder: 'desc',
+    searchTerm: '',
+    dateRange: 'all',
+    location: '',
+    sortBy: 'date',
+    sortOrder: 'desc',
   });
 
   // SignalR connection ref
@@ -136,7 +149,9 @@ const AllEventsPage = () => {
         if (!currentIds.has(joinedId)) {
           try {
             await connection.invoke('LeaveEventGroup', joinedId);
-          } catch {}
+          } catch (error) {
+            console.warn('Failed to leave event group:', error);
+          }
           joinedEventIdsRef.current.delete(joinedId);
         }
       }
@@ -146,7 +161,9 @@ const AllEventsPage = () => {
           try {
             await connection.invoke('JoinEventGroup', id);
             joinedEventIdsRef.current.add(id);
-          } catch {}
+          } catch (error) {
+            console.warn('Failed to join event group:', error);
+          }
         }
       }
     };
@@ -161,36 +178,46 @@ const AllEventsPage = () => {
         connection.on('OnEventCreated', (eventData: any) => {
           setEvents((prev) => {
             // Avoid duplicate
-            if (prev.some(e => e.id === eventData.id)) return prev;
+            if (prev.some((e) => e.id === eventData.id)) return prev;
             return [eventData, ...prev];
           });
         });
         connection.on('OnEventUpdated', (eventData: any) => {
-          setEvents((prev) => prev.map(e => e.id === eventData.id ? { ...e, ...eventData } : e));
+          setEvents((prev) =>
+            prev.map((e) => (e.id === eventData.id ? { ...e, ...eventData } : e))
+          );
         });
         connection.on('OnEventDeleted', (eventId: string) => {
-          setEvents((prev) => prev.filter(e => e.id !== eventId));
+          setEvents((prev) => prev.filter((e) => e.id !== eventId));
         });
-        connection.on('OnTicketPurchased', (_ticketData: any) => {
+        connection.on('OnTicketPurchased', (ticketData: any) => {
           // Optionally update event ticket info if needed
+          console.log('Ticket purchased:', ticketData);
         });
-        connection.on('OnTicketCancelled', (_ticketId: string) => {
+        connection.on('OnTicketCancelled', (ticketId: string) => {
           // Optionally update event ticket info if needed
+          console.log('Ticket cancelled:', ticketId);
         });
-        connection.on('OnTicketStatusChanged', (_data: any) => {
+        connection.on('OnTicketStatusChanged', (data: any) => {
           // Optionally update event ticket status if needed
+          console.log('Ticket status changed:', data);
         });
-        connection.on('OnEventCapacityChanged', (_remainingCapacity: number) => {
+        connection.on('OnEventCapacityChanged', (remainingCapacity: number) => {
           // Optionally update event capacity if needed
+          console.log('Event capacity changed:', remainingCapacity);
         });
         connection.on('OnEventStatusChanged', (data: any) => {
-          setEvents((prev) => prev.map(e => e.id === data.eventId ? { ...e, status: data.status } : e));
+          setEvents((prev) =>
+            prev.map((e) => (e.id === data.eventId ? { ...e, status: data.status } : e))
+          );
         });
-        connection.on('OnParticipantJoined', (_participantData: any) => {
+        connection.on('OnParticipantJoined', (participantData: any) => {
           // Optionally update event participant info if needed
+          console.log('Participant joined:', participantData);
         });
-        connection.on('OnParticipantLeft', (_participantId: string) => {
+        connection.on('OnParticipantLeft', (participantId: string) => {
           // Optionally update event participant info if needed
+          console.log('Participant left:', participantId);
         });
         // Re-join event groups after reconnect
         connection.onreconnected(async () => {
@@ -225,7 +252,9 @@ const AllEventsPage = () => {
         if (!currentIds.has(joinedId)) {
           try {
             await connection.invoke('LeaveEventGroup', joinedId);
-          } catch {}
+          } catch (error) {
+            console.warn('Failed to leave event group:', error);
+          }
           joinedEventIdsRef.current.delete(joinedId);
         }
       }
@@ -235,7 +264,9 @@ const AllEventsPage = () => {
           try {
             await connection.invoke('JoinEventGroup', id);
             joinedEventIdsRef.current.add(id);
-          } catch {}
+          } catch (error) {
+            console.warn('Failed to join event group:', error);
+          }
         }
       }
     };
@@ -286,22 +317,22 @@ const AllEventsPage = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-            <FilterComponent
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                locations={locations}
-                contentType="event"
-                resultsCount={{ events: events.length }}
-            />
+          <FilterComponent
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            locations={locations}
+            contentType="event"
+            resultsCount={{ events: events.length }}
+          />
         </div>
 
         {/* Conditional Rendering */}
         {loading ? (
-            <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
-                {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-                    <EventCardSkeleton key={i} viewMode={'grid'} />
-                ))}
-            </div>
+          <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              <EventCardSkeleton key={i} viewMode={'grid'} />
+            ))}
+          </div>
         ) : error ? (
           <div className="text-center py-16 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <p>{t('allEvents.errorLoadingEvents')}</p>
@@ -313,12 +344,12 @@ const AllEventsPage = () => {
             </button>
           </div>
         ) : events.length > 0 ? (
-            <>
-                <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
-                    {events.map((event) => (
-                        <EventCard key={event.id} event={event} viewMode={'grid'} />
-                    ))}
-                </div>
+          <>
+            <div className={`grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
+              {events.map((event) => (
+                <EventCard key={event.id} event={event} viewMode={'grid'} />
+              ))}
+            </div>
 
             {totalPages > 1 && (
               <Pagination
@@ -363,7 +394,7 @@ const EventCard = React.memo(({ event, viewMode }: { event: Event; viewMode: Vie
   );
 
   const cardClasses = cn(
-    'flex flex-col rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer',
+    'flex flex-col rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer h-full',
     getThemeClass('bg-white border border-gray-100', 'bg-gray-800 border-gray-700'),
     viewMode === 'grid' ? 'h-full' : 'md:flex-row'
   );
@@ -373,14 +404,14 @@ const EventCard = React.memo(({ event, viewMode }: { event: Event; viewMode: Vie
     <div className={cardClasses} onClick={handleCardClick}>
       <div
         className={`relative ${
-          viewMode === 'grid' ? 'aspect-video' : 'md:w-1/3 h-48 md:h-auto flex-shrink-0'
-        }`}
+          viewMode === 'grid' ? 'h-48' : 'md:w-1/3 h-48 md:h-auto flex-shrink-0'
+        } overflow-hidden`}
       >
         {/* FIX: Dùng event.coverImageUrl đã được chuẩn hóa */}
         <img
           src={getImageUrl(event.coverImageUrl)}
           alt={event.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
           loading="lazy"
           onError={(e) => (e.currentTarget.src = NO_IMAGE)}
         />
@@ -454,14 +485,13 @@ const Pagination = ({
   }, [currentPage, totalPages]);
   return (
     <nav className="mt-12 flex justify-center items-center gap-2">
-      {' '}
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className="px-3 py-2 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700"
       >
         &lsaquo;
-      </button>{' '}
+      </button>
       {pages.map((page, index) =>
         typeof page === 'number' ? (
           <button
@@ -480,14 +510,14 @@ const Pagination = ({
             ...
           </span>
         )
-      )}{' '}
+      )}
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className="px-3 py-2 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700"
       >
         &rsaquo;
-      </button>{' '}
+      </button>
     </nav>
   );
 };
