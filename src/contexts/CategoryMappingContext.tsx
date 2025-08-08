@@ -39,7 +39,6 @@ export const CategoryMappingProvider: React.FC<{ children: React.ReactNode }> = 
   const convertCategoryNamesToIds = useCallback(
     (categoryNames: string[]): string[] => {
       if (!isInitialized) {
-        console.warn('Category mapping not initialized yet. Call initializeMapping() first.');
         return [];
       }
       return getCategoryIdsFromNames(categoryNames);
@@ -50,7 +49,6 @@ export const CategoryMappingProvider: React.FC<{ children: React.ReactNode }> = 
   const getCategoryId = useCallback(
     (categoryName: string): string | undefined => {
       if (!isInitialized) {
-        console.warn('Category mapping not initialized yet. Call initializeMapping() first.');
         return undefined;
       }
       return getCategoryIdByName(categoryName);

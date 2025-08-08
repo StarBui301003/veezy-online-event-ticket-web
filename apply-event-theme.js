@@ -84,26 +84,22 @@ const changes = [
 
 // Hàm áp dụng thay đổi cho một file
 function applyChangesToFile(filePath) {
-    try {
-        let content = fs.readFileSync(filePath, 'utf8');
-        let changed = false;
+    let content = fs.readFileSync(filePath, 'utf8');
+    let changed = false;
 
-        changes.forEach(change => {
-            if (content.includes(change.search)) {
-                content = content.replace(change.search, change.replace);
-                changed = true;
-            }
-        });
-
-        if (changed) {
-            fs.writeFileSync(filePath, content, 'utf8');
-            console.log(`✅ Updated: ${filePath}`);
-        } else {
-            console.log(`⏭️  No changes needed: ${filePath}`);
+    changes.forEach(change => {
+        if (content.includes(change.search)) {
+            content = content.replace(change.search, change.replace);
+            changed = true;
         }
-    } catch (error) {
-        console.error(`❌ Error processing ${filePath}:`, error.message);
+    });
+
+    if (changed) {
+        fs.writeFileSync(filePath, content, 'utf8');
+    } else {
+
     }
+
 }
 
 // Áp dụng cho tất cả các file
@@ -112,9 +108,5 @@ eventFiles.forEach(file => {
     const filePath = path.join(eventDir, file);
     if (fs.existsSync(filePath)) {
         applyChangesToFile(filePath);
-    } else {
-        console.log(`❌ File not found: ${filePath}`);
     }
 });
-
-console.log('\n🎉 Theme classes applied to all Event files!'); 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ExternalLink, Check, Bell, CheckCheck } from 'lucide-react';
 import { getNotificationIcon } from '../common/getNotificationIcon';
 import type { Notification } from '@/hooks/useNotifications';
@@ -29,7 +30,6 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
       await markAllAsRead(userId);
       await refreshNotifications();
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
       await refreshNotifications();
     }
   };
@@ -46,7 +46,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
           onViewAll();
         }
       } catch (error) {
-        console.error('Error handling notification click:', error);
+        /* empty */
       }
     }
   };

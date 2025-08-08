@@ -155,7 +155,6 @@ export default function CommentSection({
         if (!userId && accountId) userId = accountId;
       }
       // Log for debugging
-      console.log('Comment payload:', { eventId, content: newComment.trim(), userId, accountId });
       const response = await instance.post('/api/Comment', {
         eventId,
         content: newComment.trim(),

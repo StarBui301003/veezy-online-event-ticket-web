@@ -20,14 +20,10 @@ class IdentityService {
    */
   async getAllUsersWithStatus(): Promise<OnlineUserAccount[]> {
     try {
-      console.log('[IdentityService] Fetching all users with status from IdentityService...');
-      
       // Try to get all users first (using the correct endpoint)
       try {
         const allUsersResponse = await api.get(`${this.baseURL}/Account/customers?page=1&pageSize=1000`);
         const allUsersData = allUsersResponse.data?.data?.items || allUsersResponse.data?.items || [];
-        
-        console.log('[IdentityService] Got all users from /customers endpoint:', allUsersData.length);
         
         if (Array.isArray(allUsersData) && allUsersData.length > 0) {
           // Get online users to merge status
@@ -53,18 +49,17 @@ class IdentityService {
             };
           });
           
-          console.log('[IdentityService] Merged users with status:', usersWithStatus.length);
           return usersWithStatus;
         }
       } catch (error) {
-        console.log('[IdentityService] Failed to get all users from /customers endpoint, falling back to online users only');
+        // Failed to get all users from /customers endpoint, falling back to online users only
       }
       
       // Fallback: just return online users if we can't get all users
       return await this.getOnlineUsers();
       
     } catch (error: any) {
-      console.error('[IdentityService] Error fetching all users with status:', error);
+      // Error fetching all users with status
       return [];
     }
   }
@@ -74,17 +69,11 @@ class IdentityService {
    */
   async getOnlineUsers(): Promise<OnlineUserAccount[]> {
     try {
-      console.log('[IdentityService] Fetching online users from IdentityService...');
       const response = await api.get(`${this.baseURL}/Account/online-users`);
-      
-      console.log('[IdentityService] Online users response:', response.data);
       
       // API returns { flag, code, data } structure, so we need response.data.data
       const responseData = response.data?.data || response.data || [];
       const users = Array.isArray(responseData) ? responseData : [];
-      
-      console.log('[IdentityService] Parsed users array:', users);
-      console.log('[IdentityService] Users count:', users.length);
       
       return users.map((user: any) => ({
         accountId: user.accountId || user.AccountId || user.id,
@@ -98,10 +87,7 @@ class IdentityService {
         userId: user.userId || user.UserId || user.accountId || user.AccountId || user.id
       }));
     } catch (error: any) {
-      console.error('[IdentityService] Error fetching online users:', error);
-      if (error.response) {
-        console.error('[IdentityService] Error response:', error.response.data);
-      }
+      // Error fetching online users
       return [];
     }
   }
@@ -112,7 +98,6 @@ class IdentityService {
    */
   async getUserById(accountId: string): Promise<OnlineUserAccount | null> {
     try {
-      console.log(`[IdentityService] Looking up user ${accountId} in all users list...`);
       const allUsers = await this.getAllUsersWithStatus();
       
       // Find user by accountId or userId (primary identifiers)
@@ -126,10 +111,9 @@ class IdentityService {
         );
       }
       
-      console.log(`[IdentityService] User lookup result:`, user || 'Not found');
       return user || null;
     } catch (error: any) {
-      console.error(`[IdentityService] Error looking up user ${accountId}:`, error);
+      // Error looking up user
       return null;
     }
   }
@@ -139,16 +123,13 @@ class IdentityService {
    */
   async getUserOnlineStatus(accountId: string): Promise<boolean> {
     try {
-      console.log(`[IdentityService] Checking online status for ${accountId}...`);
       const response = await api.get(`${this.baseURL}/Account/user/${accountId}/online-status`);
-      
-      console.log('[IdentityService] Online status response:', response.data);
       
       // API returns { flag, code, data } structure
       const responseData = response.data?.data || response.data;
       return responseData?.isOnline || false;
     } catch (error: any) {
-      console.error(`[IdentityService] Error checking online status for ${accountId}:`, error);
+      // Error checking online status
       return false;
     }
   }

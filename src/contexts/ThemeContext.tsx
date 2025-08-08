@@ -25,7 +25,7 @@ const getInitialTheme = (): 'light' | 'dark' => {
       }
     }
   } catch (error) {
-    console.error('Failed to load theme from localStorage:', error);
+    // Failed to load theme from localStorage
   }
 
   // Default to light theme
@@ -56,7 +56,7 @@ const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
 
     localStorage.setItem('user_config', JSON.stringify(userConfig));
   } catch (error) {
-    console.error('Failed to save theme to localStorage:', error);
+    // Failed to save theme to localStorage
   }
 };
 

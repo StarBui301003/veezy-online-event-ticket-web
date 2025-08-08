@@ -59,7 +59,6 @@ export function NavUser() {
 
     const handleAvatarUpdate = (event: CustomEvent) => {
       if (event.detail?.avatarUrl !== undefined) {
-        console.log('NavUser - Avatar Updated:', event.detail.avatarUrl); // Debug log
         setUser((prev) => (prev ? { ...prev, avatar: event.detail.avatarUrl } : null));
         setAvatarLoaded(false);
       }
@@ -142,11 +141,8 @@ export function NavUser() {
                       src={user.avatar}
                       alt={user.name}
                       className="w-full h-full object-cover"
-                      onLoad={() => {
-                        console.log('NavUser - Avatar loaded successfully:', user.avatar);
-                      }}
+                      onLoad={() => {}}
                       onError={(e) => {
-                        console.log('NavUser - Avatar load error:', user.avatar);
                         // Nếu avatar load lỗi, ẩn img để hiển thị fallback
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
@@ -183,11 +179,8 @@ export function NavUser() {
                       src={user.avatar}
                       alt={user.name}
                       className="w-full h-full object-cover"
-                      onLoad={() => {
-                        console.log('NavUser Dropdown - Avatar loaded successfully:', user.avatar);
-                      }}
+                      onLoad={() => {}}
                       onError={(e) => {
-                        console.log('NavUser Dropdown - Avatar load error:', user.avatar);
                         // Nếu avatar load lỗi, ẩn img để hiển thị fallback
                         e.currentTarget.style.display = 'none';
                         e.currentTarget.nextElementSibling?.classList.remove('hidden');

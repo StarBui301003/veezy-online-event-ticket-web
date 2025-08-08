@@ -37,9 +37,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
   // ✅ Method để load tất cả online users từ IdentityService
   const loadAllOnlineUsers = async () => {
     try {
-      console.log('[OnlineStatusContext] Loading all online users from IdentityService...');
       const users = await identityService.getOnlineUsers();
-      console.log('[OnlineStatusContext] Loaded users:', users.length);
 
       const newAllUsers = new Map<string, OnlineUser>();
       users.forEach((user) => {
@@ -56,37 +54,33 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       });
 
       setAllUsers(newAllUsers);
-      console.log('[OnlineStatusContext] Updated allUsers map with', newAllUsers.size, 'users');
     } catch (error) {
-      console.error('[OnlineStatusContext] Error loading online users:', error);
+      // Error loading online users
     }
   };
 
   // ✅ Method để refresh tất cả users
   const refreshAllUsers = async () => {
-    console.log('[OnlineStatusContext] Refreshing all users...');
     await loadAllOnlineUsers();
   };
 
   useEffect(() => {
     // Connect to Identity Hub for online status events
     const initializeConnection = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          await connectIdentityHub('https://identity.vezzy.site/hubs/notifications', token);
-          console.log('✅ Connected to Identity Hub for online status');
+              try {
+          const token = localStorage.getItem('access_token');
+          if (token) {
+            await connectIdentityHub('https://identity.vezzy.site/hubs/notifications', token);
+          }
+        } catch (error) {
+          // Failed to connect to Identity Hub
         }
-      } catch (error) {
-        console.warn('Failed to connect to Identity Hub:', error);
-      }
     };
 
     initializeConnection();
 
     // Listen to SignalR events for real-time online status updates
     const handleUserOnline = (accountId: string) => {
-      console.log('🟢 User online event received:', accountId);
       setOnlineUsers((prev) => {
         const newMap = new Map(prev);
         const existingUser = newMap.get(accountId);
@@ -101,7 +95,6 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
     };
 
     const handleUserOffline = (accountId: string) => {
-      console.log('🔴 User offline event received:', accountId);
       setOnlineUsers((prev) => {
         const newMap = new Map(prev);
         const existingUser = newMap.get(accountId);
@@ -128,7 +121,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
           currentUserId = accObj.userId;
         }
       } catch (error) {
-        console.warn('Failed to parse account info:', error);
+        // Failed to parse account info
       }
 
       if (currentUserId) {
@@ -161,17 +154,8 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
             isOnline,
             lastActiveAt,
           });
-          console.log('➕ Added NEW user to context from event:', userId, 'isOnline:', isOnline);
         } else {
           // For existing users, prefer real-time SignalR status over static data
-          console.log(
-            '🔄 User already exists in context:',
-            userId,
-            'existing:',
-            existingUser.isOnline,
-            'new:',
-            isOnline
-          );
           // Don't override if existing user has more recent activity
           const existingTime = new Date(existingUser.lastActiveAt).getTime();
           const newTime = new Date(lastActiveAt).getTime();
@@ -183,9 +167,6 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
               isOnline,
               lastActiveAt,
             });
-            console.log('🔄 Updated user context with newer data:', userId, 'isOnline:', isOnline);
-          } else {
-            console.log('⏸️ Skipped updating user context - existing data is newer:', userId);
           }
         }
 
@@ -283,24 +264,19 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
               }
             );
             setOnlineUsers(userMap);
-            console.log(`✅ Loaded ${data.data.length} online users from API`);
           }
         }
       } catch {
         // Ignore API errors - we'll rely on SignalR events for real-time status
-        console.debug('Online users API not available, using SignalR only');
       }
     } catch (error) {
-      console.error('Failed to load online users:', error);
+      // Failed to load online users
     }
   };
 
   const isUserOnline = (userId: string): boolean => {
     const user = onlineUsers.get(userId);
     const online = user?.isOnline || false;
-    console.log(`🔍 isUserOnline(${userId}): ${online}, user data:`, user);
-    console.log(`🔍 Context has user IDs: [${Array.from(onlineUsers.keys()).join(', ')}]`);
-    console.log(`🔍 All users in onlineUsers Map:`, Array.from(onlineUsers.entries()));
     return online;
   };
 
@@ -314,7 +290,6 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
       // Backend OnlineStatusService không có public API endpoint cho individual user check
       // Thay vào đó, dựa vào SignalR events và middleware để track status
       // Chỉ cần update local state từ SignalR events
-      console.debug(`User status refresh for ${userId} handled by SignalR events`);
 
       // Nếu cần thiết, có thể call Account API để trigger middleware update
       const token = localStorage.getItem('access_token');
@@ -331,7 +306,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
         }
       }
     } catch (error) {
-      console.warn('Failed to refresh user status:', error);
+      // Failed to refresh user status
       // Don't throw error, just continue with existing state
     }
   };

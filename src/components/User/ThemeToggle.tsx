@@ -39,7 +39,6 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
 
       const userId = getUserId();
       if (!userId) {
-        console.warn('No userId found, theme changed locally only');
         // Update theme locally if no userId
         setTheme(newTheme);
         return;
@@ -65,11 +64,10 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         // Show success toast using translation
         toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
       } else {
-        console.error('Failed to get user config');
         toast.error(t('themeUpdateFailed'));
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      console.error('Error updating theme:', error);
       toast.error(t('themeUpdateFailed'));
     } finally {
       setIsLoading(false);

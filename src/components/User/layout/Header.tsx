@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import NotificationDropdown from '@/components/common/NotificationDropdown';
 import { CiSearch } from 'react-icons/ci';
@@ -85,11 +86,9 @@ export const Header = () => {
         // Show success toast using translation
         toast.success(t('languageChangedSuccessfully'));
       } else {
-        console.error('Failed to get user config');
         toast.error(t('languageChangeFailed'));
       }
     } catch (error) {
-      console.error('Error updating language:', error);
       toast.error(t('languageChangeFailed'));
     }
   };

@@ -109,174 +109,150 @@ function App() {
     const token = localStorage.getItem('token');
     const accessToken = localStorage.getItem('access_token');
 
-    console.log('Debug localStorage:');
-    console.log('- account:', account ? 'exists' : 'null');
-    console.log('- token:', token ? token.substring(0, 50) + '...' : 'null');
-    console.log('- access_token:', accessToken ? accessToken.substring(0, 50) + '...' : 'null');
-
     if (account) {
       try {
-        const accountData = JSON.parse(account);
-        console.log('Current user role:', accountData.role);
-        console.log('Is admin?', accountData.role === 0 || accountData.role === '0');
-      } catch (error) {
-        console.error('Failed to parse account data:', error);
+        JSON.parse(account);
+      } catch {
+        // Failed to parse account data
       }
     }
 
     // NotificationService - use access_token instead of token
     const finalToken = accessToken || token;
-    console.log(
-      'Token for NotificationHub:',
-      finalToken ? finalToken.substring(0, 50) + '...' : 'No token'
-    );
 
     if (finalToken) {
       // Debug: Decode token to see claims
       try {
-        const payload = JSON.parse(atob(finalToken.split('.')[1]));
-        console.log('Token payload claims:', payload);
-      } catch (error) {
-        console.error('Failed to decode token:', error);
+        JSON.parse(atob(finalToken.split('.')[1]));
+      } catch {
+        // Failed to decode token
       }
     }
 
     connectNotificationHub('https://notification.vezzy.site/hubs/notifications', finalToken).then(
       async () => {
-        console.log('Connected to NotificationService SignalR');
-
         // Check if user is admin and join admin group
         const account = localStorage.getItem('account');
         if (account) {
           try {
             const accountData = JSON.parse(account);
             if (accountData.role === 0 || accountData.role === '0') {
-              console.log('User is admin, trying to join admin group explicitly...');
               // Try explicit join as backup (SharedPref.NotificationHub should auto-join in OnConnectedAsync)
               try {
                 await joinAdminGroup();
-                console.log('✅ Successfully joined admin group explicitly');
-              } catch (error) {
-                console.log(
-                  '⚠️ Failed to join admin group explicitly (may already be joined via auto-join):',
-                  error
-                );
+              } catch {
+                // Failed to join admin group explicitly (may already be joined via auto-join)
               }
             }
-          } catch (error) {
-            console.error('Failed to parse account data:', error);
+          } catch {
+            // Failed to parse account data
           }
         }
 
-        onNotification('ReceiveNotification', (data) => {
-          console.log('NotificationService:', data);
+        onNotification('ReceiveNotification', () => {
+          // NotificationService data received
         });
 
         // Listen for admin notifications
-        onNotification('ReceiveAdminNotification', (data) => {
-          console.log('AdminNotificationService - ReceiveAdminNotification:', data);
+        onNotification('ReceiveAdminNotification', () => {
+          // AdminNotificationService - ReceiveAdminNotification data received
         });
 
-        onNotification('AdminNotificationRead', (data) => {
-          console.log('AdminNotificationService - AdminNotificationRead:', data);
+        onNotification('AdminNotificationRead', () => {
+          // AdminNotificationService - AdminNotificationRead data received
         });
 
         onNotification('AdminAllNotificationsRead', () => {
-          console.log('AdminNotificationService - AdminAllNotificationsRead');
+          // AdminNotificationService - AdminAllNotificationsRead
         });
 
-        onNotification('AdminNotificationDeleted', (data) => {
-          console.log('AdminNotificationService - AdminNotificationDeleted:', data);
+        onNotification('AdminNotificationDeleted', () => {
+          // AdminNotificationService - AdminNotificationDeleted data received
         });
       }
     );
     // EventService
     connectEventHub('https://event.vezzy.site/notificationHub', finalToken).then(() => {
-      console.log('Connected to EventService SignalR');
-      onEvent('OnEventCreated', (data) => {
-        console.log('OnEventCreated:', data);
+      onEvent('OnEventCreated', () => {
+        // OnEventCreated event received
       });
-      onEvent('OnNewsUnhidden', (data) => {
-        console.log('OnNewsUnhidden:', data);
+      onEvent('OnNewsUnhidden', () => {
+        // OnNewsUnhidden event received
       });
-      onEvent('OnEventUpdated', (data) => {
-        console.log('OnEventUpdated:', data);
+      onEvent('OnEventUpdated', () => {
+        // OnEventUpdated event received
       });
-      onEvent('OnEventDeleted', (data) => {
-        console.log('OnEventDeleted:', data);
+      onEvent('OnEventDeleted', () => {
+        // OnEventDeleted event received
       });
-      onEvent('OnEventApproved', (data) => {
-        console.log('OnEventApproved:', data);
+      onEvent('OnEventApproved', () => {
+        // OnEventApproved event received
       });
-      onEvent('OnEventCancelled', (data) => {
-        console.log('OnEventCancelled:', data);
+      onEvent('OnEventCancelled', () => {
+        // OnEventCancelled event received
       });
-      onEvent('OnEventHidden', (data) => {
-        console.log('OnEventHidden:', data);
+      onEvent('OnEventHidden', () => {
+        // OnEventHidden event received
       });
-      onEvent('OnEventShown', (data) => {
-        console.log('OnEventShown:', data);
+      onEvent('OnEventShown', () => {
+        // OnEventShown event received
       });
-      onEvent('OnManagerAdded', (data) => {
-        console.log('OnManagerAdded:', data);
+      onEvent('OnManagerAdded', () => {
+        // OnManagerAdded event received
       });
-      onEvent('OnCollaboratorAdded', (data) => {
-        console.log('OnCollaboratorAdded:', data);
+      onEvent('OnCollaboratorAdded', () => {
+        // OnCollaboratorAdded event received
       });
-      onEvent('OnManagerRemoved', (data) => {
-        console.log('OnManagerRemoved:', data);
+      onEvent('OnManagerRemoved', () => {
+        // OnManagerRemoved event received
       });
-      onEvent('OnCollaboratorRemoved', (data) => {
-        console.log('OnCollaboratorRemoved:', data);
+      onEvent('OnCollaboratorRemoved', () => {
+        // OnCollaboratorRemoved event received
       });
-      onEvent('OnTicketSoldIncremented', (data) => {
-        console.log('OnTicketSoldIncremented:', data);
+      onEvent('OnTicketSoldIncremented', () => {
+        // OnTicketSoldIncremented event received
       });
-      onEvent('OnTicketSoldDecremented', (data) => {
-        console.log('OnTicketSoldDecremented:', data);
+      onEvent('OnTicketSoldDecremented', () => {
+        // OnTicketSoldDecremented event received
       });
-      onEvent('OnEventNotificationSent', (data) => {
-        console.log('OnEventNotificationSent:', data);
+      onEvent('OnEventNotificationSent', () => {
+        // OnEventNotificationSent event received
       });
     });
     // TicketService
     connectTicketHub('https://ticket.vezzy.site/notificationHub', finalToken).then(() => {
-      console.log('Connected to TicketService SignalR');
-      onTicket('TicketChanged', (data) => {
-        console.log('TicketService:', data);
+      onTicket('TicketChanged', () => {
+        // TicketService data received
       });
     });
     // FeedbackService
     connectFeedbackHub('https://feedback.vezzy.site/notificationHub', finalToken).then(() => {
-      console.log('Connected to FeedbackService SignalR');
-      onFeedback('FeedbackChanged', (data) => {
-        console.log('FeedbackService:', data);
+      onFeedback('FeedbackChanged', () => {
+        // FeedbackService data received
       });
     });
     // IdentityService
     connectIdentityHub('https://identity.vezzy.site/hubs/notifications', finalToken).then(() => {
-      console.log('Connected to IdentityService SignalR');
-      onIdentity('OnUserCreated', (data) => {
-        console.log('OnUserCreated:', data);
+      onIdentity('OnUserCreated', () => {
+        // OnUserCreated event received
       });
-      onIdentity('OnUserUpdated', (data) => {
-        console.log('OnUserUpdated:', data);
+      onIdentity('OnUserUpdated', () => {
+        // OnUserUpdated event received
       });
-      onIdentity('OnUserDeleted', (data) => {
-        console.log('OnUserDeleted:', data);
+      onIdentity('OnUserDeleted', () => {
+        // OnUserDeleted event received
       });
-      onIdentity('OnUserRoleChanged', (data) => {
-        console.log('OnUserRoleChanged:', data);
+      onIdentity('OnUserRoleChanged', () => {
+        // OnUserRoleChanged event received
       });
     });
     // AnalyticsService
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub', finalToken).then(() => {
-      console.log('Connected to AnalyticsService SignalR');
-      onAnalytics('OnEventManagerRealtimeOverview', (data) => {
-        console.log('AnalyticsService: OnEventManagerRealtimeOverview', data);
+      onAnalytics('OnEventManagerRealtimeOverview', () => {
+        // AnalyticsService: OnEventManagerRealtimeOverview data received
       });
-      onAnalytics('OnEventManagerPerformanceComparison', (data) => {
-        console.log('AnalyticsService: OnEventManagerPerformanceComparison', data);
+      onAnalytics('OnEventManagerPerformanceComparison', () => {
+        // AnalyticsService: OnEventManagerPerformanceComparison data received
       });
     });
     // Cleanup

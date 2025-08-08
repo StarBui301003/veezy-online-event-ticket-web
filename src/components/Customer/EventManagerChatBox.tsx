@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,20 +89,18 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
   // Get current user
   const getCurrentUser = useCallback(() => {
-    console.log('🔍 Getting current user from localStorage...');
-
     // Try 'user' first
     let userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        console.log('✅ Found user in localStorage:', user);
+
         return {
           id: user.id || user.userId || user.accountId,
           displayName: user.displayName || user.fullName || user.username,
         };
       } catch (e) {
-        console.error('❌ Error parsing user from localStorage:', e);
+        /* empty */
       }
     }
 
@@ -110,17 +109,15 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
     if (userStr) {
       try {
         const account = JSON.parse(userStr);
-        console.log('✅ Found account in localStorage:', account);
         return {
           id: account.id || account.userId || account.accountId,
           displayName: account.displayName || account.fullName || account.username,
         };
       } catch (e) {
-        console.error('❌ Error parsing account from localStorage:', e);
+        /* empty */
       }
     }
 
-    console.error('❌ No user found in localStorage');
     return null;
   }, []);
 
@@ -177,38 +174,27 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
   // Initialize chat room
   const initializeChatRoom = useCallback(async () => {
-    console.log('🚀 Initializing chat room...');
-    console.log('Current user:', currentUser);
-    console.log('Event ID:', eventId);
-
     if (!currentUser || !eventId) {
-      console.error('❌ Missing current user or event ID');
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('📞 Calling createUserEventManagerRoom API...');
 
       // Create or get existing chat room with event managers
       const room = await chatService.createUserEventManagerRoom(eventId);
-      console.log('✅ Room created/retrieved:', room);
       setChatRoom(room);
       chatRoomRef.current = room;
 
       // Get messages for the room
-      console.log('📨 Fetching room messages...');
       const messagesResponse = await chatService.getRoomMessages(room.roomId);
-      console.log('📨 Messages response:', messagesResponse);
       const roomMessages = Array.isArray(messagesResponse)
         ? messagesResponse
         : (messagesResponse as any).items || [];
       const transformedMessages = roomMessages.map(transformMessage);
-      console.log('🔄 Transformed messages:', transformedMessages);
       setMessages(transformedMessages);
 
       // Get participants
-      console.log('👥 Setting up participants:', room.participants);
       setOnlineParticipants(
         room.participants.map((p) => ({
           userId: p.userId,
@@ -232,25 +218,18 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
               },
             })
           );
-          console.log('➕ Added participant to OnlineStatusContext:', participant.userId);
         }
       });
 
       // Connect to chat room using global SignalR connections
-      console.log('🔌 Using global SignalR connection...');
       // Chat hub connection is managed globally in App.tsx
-      console.log('✅ SignalR connection available');
       setIsConnected(true);
 
-      console.log('🏠 Joining chat room:', room.roomId);
       await joinChatRoom(room.roomId);
-      console.log('✅ Joined chat room successfully');
 
       toast.success(`Đã kết nối với nhóm quản lý sự kiện ${eventName}`);
       scrollToBottom();
     } catch (error: any) {
-      console.error('❌ Error initializing chat room:', error);
-      console.error('❌ Error details:', error.response?.data || error.message);
       toast.error('Không thể kết nối với nhóm quản lý sự kiện');
     } finally {
       setIsLoading(false);
@@ -261,12 +240,8 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
   useEffect(() => {
     if (!isConnected || !chatRoom) return;
 
-    console.log('🎧 Setting up SignalR listeners for room:', chatRoom.roomId);
-
     // Listen for new messages
     const handleReceiveMessage = (messageDto: any) => {
-      console.log('📩 Received SignalR message:', messageDto);
-
       if (messageDto.RoomId === chatRoom.roomId || messageDto.roomId === chatRoom.roomId) {
         const message: ChatMessage = {
           messageId: messageDto.Id || messageDto.id,
@@ -289,11 +264,9 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === message.messageId);
           if (exists) {
-            console.log('⚠️ Message already exists, skipping:', message.messageId);
             return prev;
           }
 
-          console.log('✅ Adding new message:', message.messageId);
           const transformedMessage = transformMessage(message);
           return [...prev, transformedMessage];
         });
@@ -322,8 +295,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
     // Handle message updates
     const handleMessageUpdated = (messageDto: any) => {
-      console.log('📝 Message updated:', messageDto);
-
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === (messageDto.Id || messageDto.id)
@@ -337,8 +308,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
     // Handle message deletions
     const handleMessageDeleted = (messageDto: any) => {
-      console.log('🗑️ Message deleted:', messageDto);
-
       setMessages((prev) => prev.filter((msg) => msg.id !== (messageDto.Id || messageDto.id)));
 
       toast.info('Tin nhắn đã được xóa');
@@ -352,7 +321,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
     onChat('MessageDeleted', handleMessageDeleted);
 
     return () => {
-      console.log('🧹 Cleaning up SignalR listeners');
       // Cleanup will be handled by SignalR service
     };
   }, [chatRoom?.roomId, isConnected]); // Only depend on roomId and connection status
@@ -400,16 +368,7 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
           '[data-event-manager-chat-toggle]'
         ) as HTMLElement;
 
-        console.log('🔍 Click outside check:', {
-          target: target,
-          modal: modal,
-          toggleButton: toggleButton,
-          modalContains: modal?.contains(target),
-          toggleContains: toggleButton?.contains(target),
-        });
-
         if (modal && !modal.contains(target) && toggleButton && !toggleButton.contains(target)) {
-          console.log('✅ Closing chat - click outside detected');
           closeChat();
         }
       }
@@ -430,7 +389,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
     const messageContent = newMessage.trim();
 
-    console.log('📤 Sending message:', messageContent);
     setNewMessage('');
     setIsSending(true);
 
@@ -443,11 +401,9 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
         replyToMessageId: replyingTo?.id,
       });
 
-      console.log('✅ Message sent successfully:', response);
       setReplyingTo(null);
       scrollToBottom();
     } catch (error: any) {
-      console.error('❌ Error sending message:', error);
       toast.error('Không thể gửi tin nhắn');
       setNewMessage(messageContent); // Restore message
     } finally {
@@ -502,7 +458,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
       setEditingContent('');
       toast.success('Tin nhắn đã được cập nhật');
     } catch (error: any) {
-      console.error('❌ Error updating message:', error);
       toast.error('Không thể cập nhật tin nhắn');
     }
   }, [editingMessage, editingContent, chatRoom]);
@@ -532,7 +487,6 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
 
         toast.success('Tin nhắn đã được xóa');
       } catch (error: any) {
-        console.error('❌ Error deleting message:', error);
         toast.error('Không thể xóa tin nhắn');
       }
     },

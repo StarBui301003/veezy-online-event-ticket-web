@@ -120,7 +120,6 @@ class UserActivityService {
       }
     } catch (error) {
       // Ignore errors để không spam console với lỗi API
-      console.debug('User activity update skipped (normal behavior)');
     }
   }
 

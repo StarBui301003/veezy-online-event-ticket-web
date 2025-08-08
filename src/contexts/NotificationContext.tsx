@@ -30,13 +30,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   // Add new notification to the list
   const addNotification = useCallback((notification: Notification) => {
-    console.log('[NotificationContext] Adding new notification:', notification);
-
     setNotifications((prev) => {
       // Check if notification already exists to avoid duplicates
       const exists = prev.some((n) => n.notificationId === notification.notificationId);
       if (exists) {
-        console.log('[NotificationContext] Notification already exists, skipping');
         return prev;
       }
 
@@ -82,8 +79,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       setNotifications(items);
       const unreadItems = items.filter((n: Notification) => !n.isRead);
       setUnreadCount(unreadItems.length);
-    } catch (error) {
-      console.error('[NotificationContext] Failed to refresh notifications:', error);
+    } catch {
+      // Failed to refresh notifications
     }
   }, [userId, userRole]);
 
@@ -106,7 +103,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Cleanup handled by SignalR service in App.tsx
     return () => {
-      console.log('[NotificationContext] Cleaning up for user:', userId);
+      // Cleanup for user
     };
   }, [userId, refreshNotifications, addNotification]);
 

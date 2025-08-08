@@ -102,11 +102,9 @@ export default function ProfileEventManager() {
   const loadUserConfig = async (userId: string) => {
     try {
       const response = await getUserConfigAPI(userId);
-      console.log('User config loaded:', response);
 
       if (response.data) {
         const configData = response.data;
-        console.log('Config data from API:', configData);
 
         const newConfig = {
           language: configData.language || 0,
@@ -125,11 +123,9 @@ export default function ProfileEventManager() {
         if (theme !== themeMode) {
           setTheme(themeMode);
         }
-
-        console.log('Updated userConfig:', newConfig);
       }
     } catch (error) {
-      console.error('Failed to load user config:', error);
+      // Failed to load user config
       // Keep default values if API fails
     }
   };
@@ -138,9 +134,8 @@ export default function ProfileEventManager() {
   const saveUserConfigToLocalStorage = (config: any) => {
     try {
       localStorage.setItem('user_config', JSON.stringify(config));
-      console.log('User config saved to localStorage:', config);
     } catch (error) {
-      console.error('Failed to save user config to localStorage:', error);
+      // Failed to save user config to localStorage
     }
   };
 
@@ -155,7 +150,7 @@ export default function ProfileEventManager() {
           loadUserConfig(userId);
         }
       } catch (error) {
-        console.error('Failed to parse account data:', error);
+        // Failed to parse account data
       }
     }
   }, []);
@@ -350,12 +345,7 @@ export default function ProfileEventManager() {
 
   // User config handlers
   const handleLanguageChange = async (language: string) => {
-    console.log('ProfileEventManager - handleLanguageChange called with:', language);
-    console.log('ProfileEventManager - account:', account);
-    console.log('ProfileEventManager - account.userId:', account?.userId);
-
     if (!account?.userId) {
-      console.error('ProfileEventManager - No account or userId found');
       toast.error('Account not loaded yet');
       return;
     }
@@ -371,21 +361,13 @@ export default function ProfileEventManager() {
       const languageNumber = parseInt(language);
       const languageCode = languageNumber === 0 ? 'en' : 'vi';
 
-      console.log('ProfileEventManager - languageNumber:', languageNumber);
-      console.log('ProfileEventManager - languageCode:', languageCode);
-
       // Update language in i18n
       await i18n.changeLanguage(languageCode);
-      console.log('ProfileEventManager - i18n language updated');
 
       // Update user config - only send the language field
-      console.log('ProfileEventManager - calling updateUserConfigAPI with:', {
-        language: languageNumber,
-      });
       await updateUserConfigAPI(account.userId, {
         language: languageNumber,
       });
-      console.log('ProfileEventManager - API call successful');
 
       // Update local state
       const newConfig = {
@@ -393,15 +375,12 @@ export default function ProfileEventManager() {
         language: languageNumber,
       };
       setUserConfig(newConfig);
-      console.log('ProfileEventManager - local state updated');
 
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
-      console.log('ProfileEventManager - localStorage updated');
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
-      console.error('ProfileEventManager - Failed to update language:', error);
       toast.error(t('languageChangeFailed'));
     } finally {
       setIsLanguageLoading(false);
@@ -409,7 +388,6 @@ export default function ProfileEventManager() {
   };
 
   const handleEmailNotificationsChange = async (checked: boolean) => {
-    console.log('Switch clicked! New value:', checked);
     try {
       // Update user config - only send the receiveEmail field
       await updateUserConfigAPI(account.userId, {
@@ -426,10 +404,8 @@ export default function ProfileEventManager() {
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
 
-      console.log('Email notifications updated successfully:', checked);
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
     } catch (error) {
-      console.error('Failed to update email notifications:', error);
       toast.error(t('emailNotificationsUpdateFailed'));
     }
   };
@@ -464,10 +440,8 @@ export default function ProfileEventManager() {
       // Save to localStorage
       saveUserConfigToLocalStorage(newConfig);
 
-      console.log('Theme updated successfully:', themeNumber);
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
     } catch (error) {
-      console.error('Failed to update theme:', error);
       toast.error(t('themeUpdateFailed'));
     } finally {
       setIsThemeLoading(false);
@@ -576,7 +550,7 @@ export default function ProfileEventManager() {
           }
         }
       } catch (error) {
-        console.error('Failed to update user config:', error);
+        // Failed to update user config
       }
 
       // Dispatch event để cập nhật layout ngay lập tức
@@ -1305,8 +1279,6 @@ export default function ProfileEventManager() {
                   // Refetch face auth status after successful update
                   await refetchFaceAuth();
                 } catch (e: unknown) {
-                  console.error('Face update error:', e);
-
                   let msg = t('Face update failed!');
                   if ((e as any)?.response?.data?.message) {
                     const m = (e as any).response.data.message;

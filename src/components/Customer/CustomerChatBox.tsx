@@ -517,14 +517,12 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
     };
 
     const currentUser = getCurrentUser();
-    
-    console.log('🔧 [CustomerChatBox] Current user:', currentUser);
-    console.log('🔧 [CustomerChatBox] Admin messages count:', adminMessages.length);
-    
+
     // Helper function to check if message is from current user
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isMessageFromCurrentUser = (msg: any) => {
       if (!currentUser) return false;
-      
+
       // Try multiple possible ID matches (same logic as useCustomerChat)
       const possibleMatches = [
         msg.senderId === currentUser.userId,
@@ -532,30 +530,16 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
         msg.senderId === currentUser.id,
         // Also check by username as backup
         msg.senderName === currentUser.username,
-        msg.senderName === currentUser.fullName
+        msg.senderName === currentUser.fullName,
       ];
-      
-      console.log('🔧 [CustomerChatBox] Checking message ownership:', {
-        msgSenderId: msg.senderId,
-        msgSenderName: msg.senderName,
-        currentUserIds: {
-          userId: currentUser.userId,
-          accountId: currentUser.accountId,
-          id: currentUser.id,
-          username: currentUser.username,
-          fullName: currentUser.fullName
-        },
-        matches: possibleMatches,
-        result: possibleMatches.some(match => match)
-      });
-      
-      return possibleMatches.some(match => match);
+
+      return possibleMatches.some((match) => match);
     };
-    
+
     // Convert admin messages to unified format
-    const convertedAdminMessages: UnifiedMessage[] = adminMessages.map(msg => {
+    const convertedAdminMessages: UnifiedMessage[] = adminMessages.map((msg) => {
       const isFromCurrentUser = isMessageFromCurrentUser(msg);
-      
+
       return {
         id: msg.messageId,
         roomId: msg.roomId || '',
@@ -577,40 +561,46 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
         readByUserIds: [],
         mentionedUserIds: [],
         replyToMessageId: msg.replyToMessageId,
-        replyToMessage: msg.replyToMessage ? {
-          id: msg.replyToMessage.messageId,
-          roomId: msg.roomId || '',
-          senderUserId: msg.replyToMessage.senderId,
-          senderUserName: msg.replyToMessage.senderName,
-          content: msg.replyToMessage.content,
-          type: 0,
-          createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
-          updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
-          isUser: isMessageFromCurrentUser(msg.replyToMessage),
-          isAI: msg.replyToMessage.senderId === 'system-ai-bot',
-          isError: false,
-          isStreaming: false,
-          isDeleted: false,
-          senderName: msg.replyToMessage.senderName,
-          sources: [],
-          attachments: [],
-          readByUserIds: [],
-          mentionedUserIds: []
-        } : undefined
+        replyToMessage: msg.replyToMessage
+          ? {
+              id: msg.replyToMessage.messageId,
+              roomId: msg.roomId || '',
+              senderUserId: msg.replyToMessage.senderId,
+              senderUserName: msg.replyToMessage.senderName,
+              content: msg.replyToMessage.content,
+              type: 0,
+              createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              isUser: isMessageFromCurrentUser(msg.replyToMessage),
+              isAI: msg.replyToMessage.senderId === 'system-ai-bot',
+              isError: false,
+              isStreaming: false,
+              isDeleted: false,
+              senderName: msg.replyToMessage.senderName,
+              sources: [],
+              attachments: [],
+              readByUserIds: [],
+              mentionedUserIds: [],
+            }
+          : undefined,
       };
     });
-    
+
     // Merge local AI messages with converted admin messages
     const allMessages = [...messages, ...convertedAdminMessages];
-    
+
     // Remove duplicates based on content and timestamp (in case AI message appears in both)
     const uniqueMessages = allMessages.filter((msg, index, arr) => {
-      return index === arr.findIndex(m => 
-        m.content === msg.content && 
-        Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 1000
+      return (
+        index ===
+        arr.findIndex(
+          (m) =>
+            m.content === msg.content &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 1000
+        )
       );
     });
-    
+
     // Sort by timestamp to maintain chronological order
     return uniqueMessages.sort((a, b) => {
       const timeA = new Date(a.createdAt || 0).getTime();
@@ -982,9 +972,6 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                           disabled={isSwitchingMode}
                           onClick={async () => {
                             if (!roomId) {
-                              console.error(
-                                '[CustomerChatBox] Room ID is null - cannot switch to human support'
-                              );
                               alert('Chat room not ready. Please try again in a moment.');
                               return;
                             }
@@ -1013,10 +1000,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                                 } else if (typeof result.mode === 'number') {
                                   normalizedMode = result.mode === 1 ? 'human' : 'ai';
                                 }
-                                console.log(
-                                  '[CustomerChatBox] Immediately updating mode to:',
-                                  normalizedMode
-                                );
+
                                 setLocalModeOverride(normalizedMode);
                               } else {
                                 // Fallback: assume switch to human mode was successful
@@ -1026,10 +1010,7 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
                               setIsSwitchingMode(false);
                             } catch (err: unknown) {
                               const errorMessage = err instanceof Error ? err.message : String(err);
-                              console.error(
-                                '[CustomerChatBox] Failed to switch to human support:',
-                                err
-                              );
+
                               alert('Failed to switch to human support: ' + errorMessage);
                               setIsSwitchingMode(false);
                               // Note: No need to revert UI - let SignalR handle mode updates

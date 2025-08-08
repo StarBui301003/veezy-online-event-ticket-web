@@ -35,19 +35,15 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
 
   useEffect(() => {
     if (!eventManagerId) {
-      console.error('No eventManagerId provided to EventManagerInfoFollow');
       return;
     }
     setLoading(true);
-    console.log('Fetching user info for ID:', eventManagerId);
 
     getUserByIdAPI(eventManagerId)
       .then((userInfo) => {
-        console.log('Fetched user info:', userInfo);
         setInfo(userInfo);
       })
-      .catch((error) => {
-        console.error('Error fetching user info:', error);
+      .catch(() => {
         setInfo(null);
       })
       .finally(() => setLoading(false));
@@ -55,18 +51,14 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
 
   useEffect(() => {
     if (!info?.accountId) {
-      console.log('No accountId available for follow check');
       return;
     }
-    console.log('Checking follow status for accountId:', info.accountId);
 
     checkFollowEventManager(info.accountId)
       .then((res) => {
-        console.log('Follow status:', res);
         setIsFollowing(!!res);
       })
-      .catch((error) => {
-        console.error('Error checking follow status:', error);
+      .catch(() => {
         setIsFollowing(false);
       });
   }, [info?.accountId]);
@@ -98,8 +90,8 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
         await followEventManager(info.accountId);
         setIsFollowing(true);
       }
-    } catch (error) {
-      console.error('Error handling follow:', error);
+    } catch {
+      /* empty */
     } finally {
       setFollowLoading(false);
     }
@@ -107,7 +99,6 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
 
   const handleNavigateToProfile = () => {
     if (!info) {
-      console.error('User info is not available');
       return;
     }
 
@@ -115,12 +106,9 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
     const userId = info.userId || info.accountId || eventManagerId;
 
     if (!userId) {
-      console.error('No valid user ID available for navigation');
-      console.log('Available user info:', info);
       return;
     }
 
-    console.log('Navigating to profile with ID:', userId);
     navigate(`/event-manager/${userId}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -321,8 +309,9 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             try {
               await followEventManager(info.accountId);
               setIsFollowing(true);
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
-              console.error('Error handling follow after login:', error);
+              // empty
             } finally {
               setFollowLoading(false);
             }

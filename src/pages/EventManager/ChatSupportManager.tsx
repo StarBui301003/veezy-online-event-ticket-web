@@ -115,10 +115,6 @@ const ChatSupportManager: React.FC = () => {
     setIsLoadingRooms(true);
     try {
       const rooms = await chatService.getEventChatRooms(eventId);
-      console.log('Fetched chat rooms:', rooms);
-      if (rooms.length > 0) {
-        console.log('First room structure:', JSON.stringify(rooms[0], null, 2));
-      }
 
       // Transform rooms to handle backend field names
       const transformedRooms = Array.isArray(rooms)
@@ -155,7 +151,6 @@ const ChatSupportManager: React.FC = () => {
 
       setChatRooms(transformedRooms);
     } catch (error) {
-      console.error('Error loading chat rooms:', error);
       toast.error('Unable to load chat room list');
       setChatRooms([]);
     } finally {
@@ -168,10 +163,6 @@ const ChatSupportManager: React.FC = () => {
     setIsLoadingMessages(true);
     try {
       const messages = await chatService.getRoomMessages(roomId);
-      console.log('Fetched messages:', messages);
-      if (messages.length > 0) {
-        console.log('First message structure:', JSON.stringify(messages[0], null, 2));
-      }
 
       // Transform messages to handle backend field names (no AI bot handling needed for customer-event manager chat)
       const transformedMessages = Array.isArray(messages)
@@ -194,7 +185,6 @@ const ChatSupportManager: React.FC = () => {
 
       setMessages(transformedMessages);
     } catch (error) {
-      console.error('Error fetching messages:', error);
       toast.error('Unable to load messages');
       setMessages([]);
     } finally {
@@ -250,15 +240,7 @@ const ChatSupportManager: React.FC = () => {
           onHubEvent('chat', 'ReceiveMessage', async (messageDto) => {
             if (!isMounted) return;
 
-            console.log('📩 Received SignalR message:', messageDto);
-            console.log('📩 Message DTO structure:', {
-              id: messageDto.Id,
-              roomId: messageDto.RoomId,
-              senderUserId: messageDto.SenderUserId,
-              senderUserName: messageDto.SenderUserName,
-              content: messageDto.Content,
-              createdAt: messageDto.CreatedAt,
-            });
+
 
             // Transform backend DTO to frontend interface (no AI bot handling for customer-event manager chat)
             const senderId = messageDto.SenderUserId || messageDto.senderUserId;
@@ -281,7 +263,7 @@ const ChatSupportManager: React.FC = () => {
               replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage,
             };
 
-            console.log('🔄 Transformed message:', message);
+
 
             // Add message to current room if it belongs to the active room
             if (message.roomId === selectedRoom.roomId) {
@@ -301,7 +283,6 @@ const ChatSupportManager: React.FC = () => {
 
           // Listen for message deleted
           onHubEvent('chat', 'MessageDeleted', (data: { messageId: string; deletedBy: string }) => {
-            console.log('🗑️ Message deleted:', data);
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.messageId === data.messageId
@@ -313,7 +294,6 @@ const ChatSupportManager: React.FC = () => {
 
           // Listen for message updated
           onHubEvent('chat', 'MessageUpdated', (updatedMessageDto: any) => {
-            console.log('✏️ Message updated:', updatedMessageDto);
             const senderId = updatedMessageDto.SenderUserId || updatedMessageDto.senderUserId;
             const senderName =
               updatedMessageDto.SenderUserName ||

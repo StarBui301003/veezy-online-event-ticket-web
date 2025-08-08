@@ -10,7 +10,9 @@ interface FaceCaptureProps {
 
 const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel }) => {
   const { t } = useTranslation();
-  const [captureStep, setCaptureStep] = useState<'permission' | 'capture' | 'processing' | 'success' | 'error'>('permission');
+  const [captureStep, setCaptureStep] = useState<
+    'permission' | 'capture' | 'processing' | 'success' | 'error'
+  >('permission');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [countdown, setCountdown] = useState(0);
@@ -27,13 +29,13 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
   // Hàm tạo lại stream mới nếu video bị đen nhiều lần
   const recreateStream = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: 'user',
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
-        audio: false 
+        audio: false,
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -87,13 +89,13 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
 
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: 'user',
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
-        audio: false 
+        audio: false,
       });
       setStream(mediaStream);
       setCaptureStep('capture');
@@ -112,8 +114,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
 
   const stopCamera = () => {
     if (stream) {
-      console.warn('[stopCamera] Called! Stopping stream:', stream.id);
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
   };
@@ -121,14 +122,9 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
   // Log khi stream bị inactive (bị dừng)
   useEffect(() => {
     if (!stream) return;
-    const handleInactive = () => {
-      console.error('[MediaStream] Stream became inactive!', stream.id, stream);
-    };
+    const handleInactive = () => {};
     stream.addEventListener('inactive', handleInactive);
     // Nếu đã inactive thì log luôn
-    if (!stream.active) {
-      console.error('[MediaStream] Stream is already inactive!', stream.id, stream);
-    }
     return () => {
       stream.removeEventListener('inactive', handleInactive);
     };
@@ -142,22 +138,26 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       ctx?.drawImage(video, 0, 0);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          setCapturedImage(URL.createObjectURL(blob));
-          setCapturedImageBlob(blob); // Lưu lại blob ảnh
-          setCaptureStep('processing');
-          // Simulate AI processing
-          setTimeout(() => {
-            setCaptureStep('success');
-            setSuccessId(`FV-2025-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
-            // KHÔNG gọi onCapture ở đây nữa!
-          }, 2000);
-        } else {
-          onError?.('Không thể lấy ảnh từ camera.');
-          setCaptureStep('error');
-        }
-      }, 'image/jpeg', 0.95);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            setCapturedImage(URL.createObjectURL(blob));
+            setCapturedImageBlob(blob); // Lưu lại blob ảnh
+            setCaptureStep('processing');
+            // Simulate AI processing
+            setTimeout(() => {
+              setCaptureStep('success');
+              setSuccessId(`FV-2025-${Math.random().toString(36).substr(2, 9).toUpperCase()}`);
+              // KHÔNG gọi onCapture ở đây nữa!
+            }, 2000);
+          } else {
+            onError?.('Không thể lấy ảnh từ camera.');
+            setCaptureStep('error');
+          }
+        },
+        'image/jpeg',
+        0.95
+      );
     }
   };
 
@@ -165,7 +165,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
     if (!faceDetected) return;
     setCountdown(3);
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           capturePhoto();
@@ -205,9 +205,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
       </div>
       <div>
         <h2 className="text-3xl font-bold text-white mb-4">{t('faceVerification')}</h2>
-        <p className="text-gray-300 text-lg max-w-md mx-auto">
-          {t('faceVerificationDescription')}
-        </p>
+        <p className="text-gray-300 text-lg max-w-md mx-auto">{t('faceVerificationDescription')}</p>
       </div>
       <div className="bg-gray-800/50 rounded-2xl p-6 max-w-md mx-auto mt-2">
         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
@@ -233,7 +231,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
           </li>
         </ul>
       </div>
-      <button 
+      <button
         onClick={startCamera}
         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-3 mx-auto"
       >
@@ -247,9 +245,9 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
     <div className="text-center space-y-8">
       <div className="relative">
         {capturedImage && (
-          <img 
-            src={capturedImage} 
-            alt="Captured face" 
+          <img
+            src={capturedImage}
+            alt="Captured face"
             className="w-80 h-80 object-cover rounded-3xl mx-auto border-4 border-blue-400"
           />
         )}
@@ -269,7 +267,10 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
             <span>85%</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse" style={{width: '85%'}}></div>
+            <div
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse"
+              style={{ width: '85%' }}
+            ></div>
           </div>
         </div>
         <div className="space-y-2 text-gray-300">
@@ -294,13 +295,13 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
     <div className="text-center space-y-8">
       <div className="relative">
         {capturedImage && (
-          <img 
-            src={capturedImage} 
-            alt="Verified face" 
+          <img
+            src={capturedImage}
+            alt="Verified face"
             className="w-80 h-80 object-cover rounded-3xl mx-auto border-4 border-green-400"
           />
         )}
-        
+
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-3xl"></div>
       </div>
       <div className="space-y-4">
@@ -308,15 +309,15 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
           <Check className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-white">{t('verificationSuccess')}</h2>
-        <p className="text-gray-300 text-lg max-w-md mx-auto">
-          {t('faceVerified')}
-        </p>
+        <p className="text-gray-300 text-lg max-w-md mx-auto">{t('faceVerified')}</p>
         <div className="bg-green-900/20 border border-green-500/30 rounded-2xl p-4 max-w-md mx-auto">
           <div className="flex items-center gap-3">
             <User className="w-6 h-6 text-green-400" />
             <div className="text-left">
               <p className="text-white font-semibold">{t('identityVerified')}</p>
-              <p className="text-green-400 text-sm">{t('identityId')}: #{successId}</p>
+              <p className="text-green-400 text-sm">
+                {t('identityId')}: #{successId}
+              </p>
             </div>
           </div>
         </div>
@@ -338,7 +339,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
           >
             {t('confirm')}
           </button>
-          <button 
+          <button
             onClick={resetCapture}
             className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3"
           >
@@ -359,9 +360,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
       </div>
       <div>
         <h2 className="text-3xl font-bold text-white mb-4">{t('cannotAccessCamera')}</h2>
-        <p className="text-gray-300 text-lg max-w-md mx-auto">
-          {t('pleaseAllowCameraAccess')}
-        </p>
+        <p className="text-gray-300 text-lg max-w-md mx-auto">{t('pleaseAllowCameraAccess')}</p>
       </div>
       <div className="bg-red-900/20 border border-red-500/30 rounded-2xl p-4 max-w-md mx-auto">
         <h3 className="text-red-400 font-semibold mb-2">{t('fixCamera')}</h3>
@@ -371,7 +370,7 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
           <li>• {t('refreshPageAndTryAgain')}</li>
         </ul>
       </div>
-      <button 
+      <button
         onClick={resetCapture}
         className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105"
       >
@@ -421,11 +420,13 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
             <div className="absolute inset-0 z-10 pointer-events-none">
               {/* Border và hiệu ứng, KHÔNG có overlay che video */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className={`relative w-64 h-80 rounded-3xl border-4 transition-all duration-300 ${
-                  faceDetected 
-                    ? 'border-green-400 shadow-lg shadow-green-400/50' 
-                    : 'border-blue-400 shadow-lg shadow-blue-400/50'
-                }`}>
+                <div
+                  className={`relative w-64 h-80 rounded-3xl border-4 transition-all duration-300 ${
+                    faceDetected
+                      ? 'border-green-400 shadow-lg shadow-green-400/50'
+                      : 'border-blue-400 shadow-lg shadow-blue-400/50'
+                  }`}
+                >
                   {/* Corner indicators */}
                   <div className="absolute -top-2 -left-2 w-6 h-6 border-l-4 border-t-4 border-white rounded-tl-lg"></div>
                   <div className="absolute -top-2 -right-2 w-6 h-6 border-r-4 border-t-4 border-white rounded-tr-lg"></div>
@@ -437,17 +438,21 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
                   )}
                   {/* Center dot */}
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className={`w-3 h-3 rounded-full ${
-                      faceDetected ? 'bg-green-400' : 'bg-blue-400'
-                    } animate-ping`}></div>
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        faceDetected ? 'bg-green-400' : 'bg-blue-400'
+                      } animate-ping`}
+                    ></div>
                   </div>
                 </div>
               </div>
               {/* Status indicators */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  faceDetected ? 'bg-green-400' : 'bg-blue-400'
-                } animate-pulse`}></div>
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    faceDetected ? 'bg-green-400' : 'bg-blue-400'
+                  } animate-pulse`}
+                ></div>
                 <span className="text-white text-sm font-medium">
                   {faceDetected ? t('faceDetected') : t('detectingFace')}
                 </span>
@@ -467,19 +472,19 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
         {/* Nút điều khiển chỉ hiện ở step capture */}
         {captureStep === 'capture' && (
           <div className="flex gap-4 justify-center">
-            <button 
+            <button
               onClick={startCountdown}
               disabled={!faceDetected || countdown > 0}
               className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
-                faceDetected 
-                  ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white transform hover:scale-105' 
+                faceDetected
+                  ? 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white transform hover:scale-105'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
               <Scan className="w-6 h-6" />
               {t('capturePhoto')}
             </button>
-            <button 
+            <button
               onClick={resetCapture}
               className="bg-gray-700 hover:bg-gray-600 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3"
             >
@@ -493,4 +498,4 @@ const FaceCapture: React.FC<FaceCaptureProps> = ({ onCapture, onError, onCancel 
   );
 };
 
-export default FaceCapture; 
+export default FaceCapture;

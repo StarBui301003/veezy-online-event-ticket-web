@@ -25,7 +25,7 @@ const loadInitialTheme = () => {
       }
     }
   } catch (error) {
-    console.error('Failed to load initial theme:', error);
+    // Failed to load initial theme
   }
 };
 

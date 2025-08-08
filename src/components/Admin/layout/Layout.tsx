@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import {
   Breadcrumb,
@@ -68,7 +69,6 @@ export function AdminLayout() {
 
       const userId = getUserId();
       if (!userId) {
-        console.warn('No userId found, language changed locally only');
         return;
       }
 
@@ -89,11 +89,9 @@ export function AdminLayout() {
         // Show success toast using translation
         toast.success(t('languageChangedSuccessfully'));
       } else {
-        console.error('Failed to get user config');
         toast.error(t('languageChangeFailed'));
       }
     } catch (error) {
-      console.error('Error updating language:', error);
       toast.error(t('languageChangeFailed'));
     }
   };
@@ -112,9 +110,7 @@ export function AdminLayout() {
             }
           }
         }
-      } catch (error) {
-        console.error('Failed to load language from localStorage:', error);
-      }
+      } catch (error) {}
     };
 
     loadLanguageFromStorage();
