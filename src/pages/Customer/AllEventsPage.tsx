@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Calendar, MapPin, Frown } from 'lucide-react';
@@ -10,6 +10,7 @@ import { searchEventsAPI, Event } from '@/services/search.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { NO_IMAGE } from '@/assets/img';
+import { HubConnectionBuilder, LogLevel, HubConnection, HubConnectionState } from '@microsoft/signalr';
 
 type ViewMode = 'grid' | 'list';
 const PAGE_SIZE = 12;
@@ -73,6 +74,10 @@ const NoResults = () => {
   );
 };
 
+const SIGNALR_EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
+  || process.env.REACT_APP_EVENT_HUB_URL
+  || '/eventHub';
+
 const AllEventsPage = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
@@ -92,6 +97,11 @@ const AllEventsPage = () => {
     sortOrder: 'desc',
   });
 
+  // SignalR connection ref
+  const connectionRef = useRef<HubConnection | null>(null);
+  const joinedEventIdsRef = useRef<Set<string>>(new Set());
+
+  // Load events from API
   useEffect(() => {
     const loadEvents = async () => {
       setLoading(true);
@@ -102,14 +112,9 @@ const AllEventsPage = () => {
           page: currentPage,
           pageSize: PAGE_SIZE,
         });
-
         setEvents(events);
-
-        // Calculate total pages, ensure at least 1 page
         const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
         setTotalPages(calculatedTotalPages);
-
-        // Reset to first page if current page exceeds total pages
         if (currentPage > calculatedTotalPages) {
           setCurrentPage(1);
         }
@@ -122,9 +127,125 @@ const AllEventsPage = () => {
         setLoading(false);
       }
     };
-
     loadEvents();
   }, [filters, currentPage]);
+
+  // Setup SignalR connection and listeners (mount once)
+  useEffect(() => {
+    const joinGroupsForCurrentEvents = async () => {
+      const connection = connectionRef.current;
+      if (!connection) return;
+      const currentIds = new Set<string>(events.map((e) => String(e.id)));
+      // Leave groups that are no longer needed
+      for (const joinedId of joinedEventIdsRef.current) {
+        if (!currentIds.has(joinedId)) {
+          try {
+            await connection.invoke('LeaveEventGroup', joinedId);
+          } catch {}
+          joinedEventIdsRef.current.delete(joinedId);
+        }
+      }
+      // Join new groups
+      for (const id of currentIds) {
+        if (!joinedEventIdsRef.current.has(id)) {
+          try {
+            await connection.invoke('JoinEventGroup', id);
+            joinedEventIdsRef.current.add(id);
+          } catch {}
+        }
+      }
+    };
+    const setupSignalR = async () => {
+      try {
+        const connection = new HubConnectionBuilder()
+          .withUrl(SIGNALR_EVENT_HUB_URL)
+          .configureLogging(LogLevel.Warning)
+          .withAutomaticReconnect()
+          .build();
+
+        connection.on('OnEventCreated', (eventData: any) => {
+          setEvents((prev) => {
+            // Avoid duplicate
+            if (prev.some(e => e.id === eventData.id)) return prev;
+            return [eventData, ...prev];
+          });
+        });
+        connection.on('OnEventUpdated', (eventData: any) => {
+          setEvents((prev) => prev.map(e => e.id === eventData.id ? { ...e, ...eventData } : e));
+        });
+        connection.on('OnEventDeleted', (eventId: string) => {
+          setEvents((prev) => prev.filter(e => e.id !== eventId));
+        });
+        connection.on('OnTicketPurchased', (_ticketData: any) => {
+          // Optionally update event ticket info if needed
+        });
+        connection.on('OnTicketCancelled', (_ticketId: string) => {
+          // Optionally update event ticket info if needed
+        });
+        connection.on('OnTicketStatusChanged', (_data: any) => {
+          // Optionally update event ticket status if needed
+        });
+        connection.on('OnEventCapacityChanged', (_remainingCapacity: number) => {
+          // Optionally update event capacity if needed
+        });
+        connection.on('OnEventStatusChanged', (data: any) => {
+          setEvents((prev) => prev.map(e => e.id === data.eventId ? { ...e, status: data.status } : e));
+        });
+        connection.on('OnParticipantJoined', (_participantData: any) => {
+          // Optionally update event participant info if needed
+        });
+        connection.on('OnParticipantLeft', (_participantId: string) => {
+          // Optionally update event participant info if needed
+        });
+        // Re-join event groups after reconnect
+        connection.onreconnected(async () => {
+          await joinGroupsForCurrentEvents();
+        });
+
+        await connection.start();
+        connectionRef.current = connection;
+        await joinGroupsForCurrentEvents();
+      } catch (err) {
+        console.error('SignalR connection error:', err);
+      }
+    };
+    setupSignalR();
+    return () => {
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+        joinedEventIdsRef.current.clear();
+      }
+    };
+  }, []);
+
+  // Join/leave event groups when the displayed event list changes
+  useEffect(() => {
+    const applyGroupMembership = async () => {
+      const connection = connectionRef.current;
+      if (!connection || connection.state !== HubConnectionState.Connected) return;
+      const currentIds = new Set<string>(events.map((e) => String(e.id)));
+      // Leave groups not in current list
+      for (const joinedId of Array.from(joinedEventIdsRef.current)) {
+        if (!currentIds.has(joinedId)) {
+          try {
+            await connection.invoke('LeaveEventGroup', joinedId);
+          } catch {}
+          joinedEventIdsRef.current.delete(joinedId);
+        }
+      }
+      // Join new groups in current list
+      for (const id of currentIds) {
+        if (!joinedEventIdsRef.current.has(id)) {
+          try {
+            await connection.invoke('JoinEventGroup', id);
+            joinedEventIdsRef.current.add(id);
+          } catch {}
+        }
+      }
+    };
+    applyGroupMembership();
+  }, [events]);
 
   const handleFilterChange = useCallback((newFilters: FilterOptions) => {
     setFilters(newFilters);

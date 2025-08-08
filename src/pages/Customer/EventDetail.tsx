@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ReportModal from '@/components/Customer/ReportModal';
 import FaceCapture from '@/components/common/FaceCapture';
-import { connectCommentHub, onComment, onEvent } from '@/services/signalr.service';
+import { connectCommentHub, onComment, offComment, onEvent } from '@/services/signalr.service';
 import EventManagerInfoFollow from '@/components/Customer/EventManagerInfoFollow';
 import { followEvent, unfollowEvent, checkFollowEventByList } from '@/services/follow.service';
 import { useTranslation } from 'react-i18next';
@@ -316,11 +316,19 @@ const EventDetail = () => {
   }, [eventId, isLoggedIn]);
 
   useEffect(() => {
-    connectCommentHub('https://event.vezzy.site/commentHub');
+    const COMMENT_HUB_URL = ((import.meta as any)?.env?.VITE_COMMENT_HUB_URL as string)
+      || (process.env as any)?.REACT_APP_COMMENT_HUB_URL
+      || '/commentHub';
+    connectCommentHub(COMMENT_HUB_URL);
     const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
     onComment('OnCommentUpdated', reloadComment);
     onComment('OnCommentDeleted', reloadComment);
+    return () => {
+      offComment('OnCommentCreated', reloadComment);
+      offComment('OnCommentUpdated', reloadComment);
+      offComment('OnCommentDeleted', reloadComment);
+    };
   }, []);
 
   // Realtime events for event updates - simplified

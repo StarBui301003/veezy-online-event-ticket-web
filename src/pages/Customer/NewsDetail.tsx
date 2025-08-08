@@ -13,7 +13,7 @@ import {
 import { toast } from 'react-toastify';
 import { getNewsDetail, getAllNewsHome } from '@/services/Event Manager/event.service';
 import ReportModal from '@/components/Customer/ReportModal';
-import { connectNewsHub, onNews } from '@/services/signalr.service';
+import { connectNewsHub, onNews, offNews } from '@/services/signalr.service';
 import { News } from '@/types/event';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { LoginModal } from '@/components/common/LoginModal';
@@ -62,9 +62,13 @@ const NewsDetail: React.FC = () => {
     };
   }, []);
 
+  const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
+    || process.env.REACT_APP_NEWS_HUB_URL
+    || '/newsHub';
+
   useEffect(() => {
     setLoading(true);
-    connectNewsHub('https://event.vezzy.site/newsHub');
+    connectNewsHub(NEWS_HUB_URL);
     const fetchNews = async () => {
       try {
         const res = await getNewsDetail(newsId || '');
@@ -88,22 +92,24 @@ const NewsDetail: React.FC = () => {
     if (newsId) fetchNews();
 
     // Setup realtime listeners for news updates
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onNews('OnNewsUpdated', (data: { newsId?: string; NewsId?: string }) => {
-      if (data.newsId === newsId || data.NewsId === newsId) {
-        console.log('News updated - refreshing details');
+    const handleUpdated = (data: { newsId?: string; NewsId?: string }) => {
+      if (data?.newsId === newsId || data?.NewsId === newsId) {
         fetchNews();
       }
-    });
-
-    onNews('OnNewsDeleted', (data: { newsId?: string; NewsId?: string }) => {
-      if (data.newsId === newsId || data.NewsId === newsId) {
-        console.log('News deleted - redirecting');
+    };
+    const handleDeleted = (data: { newsId?: string; NewsId?: string }) => {
+      if (data?.newsId === newsId || data?.NewsId === newsId) {
         toast.info('This news has been removed');
         navigate('/news');
       }
-    });
-  }, [newsId, navigate]);
+    };
+    onNews('OnNewsUpdated', handleUpdated);
+    onNews('OnNewsDeleted', handleDeleted);
+    return () => {
+      offNews('OnNewsUpdated', handleUpdated);
+      offNews('OnNewsDeleted', handleDeleted);
+    };
+  }, [newsId, navigate, NEWS_HUB_URL]);
 
   useEffect(() => {
     return () => setReportModal(null);
