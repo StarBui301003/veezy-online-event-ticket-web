@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { StageBackground } from '@/components/StageBackground';
 import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
-import { News } from '@/types/event';
 
 const PAGE_SIZE = 12;
 const BG_GRADIENTS = [
