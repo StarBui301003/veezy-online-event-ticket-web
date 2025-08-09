@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getUserConfig, updateUserConfig } from '@/services/userConfig.service';
 
 interface ThemeContextType {
   theme: 'light' | 'dark';
@@ -68,7 +69,7 @@ const applyTheme = (newTheme: 'light' | 'dark') => {
   }
 };
 
-// Helper function to save theme to localStorage
+// Helper function to save theme to localStorage AND database
 const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
   try {
     const currentUserId = getCurrentUserId();
@@ -84,13 +85,35 @@ const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
       theme: newTheme === 'dark' ? 1 : 0,
     };
 
+    // Save to localStorage
     localStorage.setItem('user_config', JSON.stringify(updatedConfig));
+
+    // Also save to database via API (fire and forget)
+    (async () => {
+      try {
+        // Get current user config from API first
+        const res = await getUserConfig(currentUserId);
+        if (res?.data) {
+          const newConfig = {
+            ...res.data,
+            userId: currentUserId,
+            theme: newTheme === 'dark' ? 1 : 0,
+          };
+
+          // Update user config via API
+          await updateUserConfig(currentUserId, newConfig);
+        }
+      } catch (error) {
+        console.error('Failed to save theme to database:', error);
+        // Don't show error toast here as it might be too intrusive
+      }
+    })();
   } catch (error) {
     // Failed to save theme to localStorage
   }
 };
 
-// Helper function to load theme from user config
+// Helper function to load theme from user config (localStorage)
 const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' => {
   try {
     const userConfigStr = localStorage.getItem('user_config');
@@ -102,6 +125,19 @@ const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' => {
     }
   } catch (error) {
     // Failed to load theme from user config
+  }
+  return 'light'; // Default to light theme
+};
+
+// Helper function to load theme from database (API)
+const loadThemeFromDatabase = async (userId: string): Promise<'light' | 'dark'> => {
+  try {
+    const res = await getUserConfig(userId);
+    if (res?.data && res.data.theme !== undefined) {
+      return res.data.theme === 1 ? 'dark' : 'light';
+    }
+  } catch (error) {
+    console.error('Failed to load theme from database:', error);
   }
   return 'light'; // Default to light theme
 };
@@ -206,14 +242,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   // Separate effect to handle immediate theme loading on login
   useEffect(() => {
-    const handleImmediateLogin = () => {
+    const handleImmediateLogin = async () => {
       const currentUserId = getCurrentUserId();
       if (currentUserId) {
-        // Load theme immediately without delay
-        const userTheme = loadThemeFromUserConfig(currentUserId);
+        // Try to load theme from database first (most up-to-date)
+        const userTheme = await loadThemeFromDatabase(currentUserId);
         if (userTheme !== theme) {
           setThemeState(userTheme);
         }
+
+        // Also update localStorage with the theme from database
+        try {
+          const res = await getUserConfig(currentUserId);
+          if (res?.data) {
+            const userConfig = {
+              ...res.data,
+              userId: currentUserId,
+            };
+            localStorage.setItem('user_config', JSON.stringify(userConfig));
+          }
+        } catch (error) {
+          console.error('Failed to update localStorage with database config:', error);
+        }
+
         // Update lastUserId to prevent duplicate processing
         if (currentUserId !== lastUserId) {
           setLastUserId(currentUserId);
