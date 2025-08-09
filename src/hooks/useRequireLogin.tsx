@@ -50,11 +50,11 @@ export function useRequireLogin() {
           if (hasThemeClass) {
             resolve(true);
           } else {
-            setTimeout(checkThemeApplied, 50);
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
           }
         };
 
-        setTimeout(checkThemeApplied, 100);
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
       });
 
       // Now navigate with theme already applied

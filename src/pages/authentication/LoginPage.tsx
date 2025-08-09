@@ -201,12 +201,12 @@ export const LoginPage = () => {
             resolve(true);
           } else {
             // Wait a bit more for theme to apply
-            setTimeout(checkThemeApplied, 50);
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
           }
         };
 
         // Start checking after a short delay to allow theme context to process
-        setTimeout(checkThemeApplied, 100);
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
       });
 
       // Now navigate with theme already applied
@@ -317,12 +317,12 @@ export const LoginPage = () => {
             resolve(true);
           } else {
             // Wait a bit more for theme to apply
-            setTimeout(checkThemeApplied, 50);
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
           }
         };
 
         // Start checking after a short delay to allow theme context to process
-        setTimeout(checkThemeApplied, 100);
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
       });
 
       // Now navigate with theme already applied

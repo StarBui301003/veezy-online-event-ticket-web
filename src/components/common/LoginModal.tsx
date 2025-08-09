@@ -135,11 +135,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           if (hasThemeClass) {
             resolve(true);
           } else {
-            setTimeout(checkThemeApplied, 50);
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
           }
         };
 
-        setTimeout(checkThemeApplied, 100);
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
       });
 
       // Gọi login() từ AuthContext nếu có
@@ -247,11 +247,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           if (hasThemeClass) {
             resolve(true);
           } else {
-            setTimeout(checkThemeApplied, 50);
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
           }
         };
 
-        setTimeout(checkThemeApplied, 100);
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
       });
 
       if (rememberMe) {
