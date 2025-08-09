@@ -200,7 +200,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
 
     // Listen for custom account update events
-    const handleAccountUpdated = (e: CustomEvent) => {
+    const handleAccountUpdated = (_: CustomEvent) => {
       setTimeout(checkUserAndResetTheme, 100);
     };
 

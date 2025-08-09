@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  ReactNode,
-} from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { setAccountAndUpdateTheme, removeAccountAndUpdateTheme } from '@/utils/account-utils';
 
 interface AuthContextType {

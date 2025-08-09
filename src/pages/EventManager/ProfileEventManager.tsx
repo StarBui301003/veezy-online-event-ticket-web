@@ -46,7 +46,6 @@ import GeneralSettings from '@/components/EventManager/GeneralSettings';
 import {
   setAccountAndUpdateTheme,
   updateUserConfigAndTriggerUpdate,
-  updateServiceUserConfigAndTriggerUpdate,
   getCurrentUserId,
 } from '@/utils/account-utils';
 

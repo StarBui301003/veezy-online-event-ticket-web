@@ -23,7 +23,6 @@ import { Switch } from '@/components/ui/switch';
 
 interface Props {
   report: Report;
-  reporterName: string;
   onClose: () => void;
   targetTypeMap?: Record<number, string>;
   showNote?: boolean;
