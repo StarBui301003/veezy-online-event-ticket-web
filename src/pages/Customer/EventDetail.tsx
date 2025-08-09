@@ -316,9 +316,7 @@ const EventDetail = () => {
   }, [eventId, isLoggedIn]);
 
   useEffect(() => {
-    const COMMENT_HUB_URL = ((import.meta as any)?.env?.VITE_COMMENT_HUB_URL as string)
-      || (process.env as any)?.REACT_APP_COMMENT_HUB_URL
-      || 'https://event.vezzy.site/notificationHub';
+    const COMMENT_HUB_URL = 'https://event.vezzy.site/notificationHub';
     connectCommentHub(COMMENT_HUB_URL);
     const reloadComment = () => {};
     onComment('OnCommentCreated', reloadComment);
