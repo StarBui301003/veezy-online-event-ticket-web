@@ -64,10 +64,7 @@ const NewsDetail: React.FC = () => {
     };
   }, []);
 
-  const NEWS_HUB_URL =
-    ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
-    process.env.REACT_APP_NEWS_HUB_URL ||
-    'https://event.vezzy.site/notificationHub';
+  const NEWS_HUB_URL = 'https://event.vezzy.site/notificationHub';
 
   useEffect(() => {
     setLoading(true);
