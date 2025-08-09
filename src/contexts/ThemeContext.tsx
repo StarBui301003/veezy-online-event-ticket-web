@@ -159,9 +159,44 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     return () => clearTimeout(timer);
   }, [theme]); // Add theme as dependency
 
+  // Check and load theme immediately when component mounts
+  useEffect(() => {
+    const currentUserId = getCurrentUserId();
+    if (currentUserId) {
+      // First load from localStorage to avoid flashing, then update from database
+      const initialTheme = getInitialTheme();
+      if (initialTheme !== theme) {
+        setThemeState(initialTheme);
+      }
+
+      // Then load from database (most up-to-date)
+      (async () => {
+        try {
+          const userTheme = await loadThemeFromDatabase(currentUserId);
+          if (userTheme !== theme) {
+            setThemeState(userTheme);
+          }
+
+          // Also update localStorage with the latest config from database
+          const res = await getUserConfig(currentUserId);
+          if (res?.data) {
+            const userConfig = {
+              ...res.data,
+              userId: currentUserId,
+            };
+            localStorage.setItem('user_config', JSON.stringify(userConfig));
+          }
+        } catch (error) {
+          console.error('Failed to load theme from database on mount:', error);
+          // localStorage already loaded above, so no need to fallback
+        }
+      })();
+    }
+  }, []); // Empty dependency array - only run once on mount
+
   // Check for user changes and reset theme if needed
   useEffect(() => {
-    const checkUserAndResetTheme = () => {
+    const checkUserAndResetTheme = async () => {
       const currentUserId = getCurrentUserId();
 
       // If user changed, reset theme
@@ -169,10 +204,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setLastUserId(currentUserId);
 
         if (currentUserId) {
-          // New user logged in, load their theme immediately
-          const userTheme = loadThemeFromUserConfig(currentUserId);
-          if (userTheme !== theme) {
-            setThemeState(userTheme);
+          // New user logged in, load their theme from database immediately
+          try {
+            const userTheme = await loadThemeFromDatabase(currentUserId);
+            if (userTheme !== theme) {
+              setThemeState(userTheme);
+            }
+
+            // Also update localStorage with the latest config from database
+            const res = await getUserConfig(currentUserId);
+            if (res?.data) {
+              const userConfig = {
+                ...res.data,
+                userId: currentUserId,
+              };
+              localStorage.setItem('user_config', JSON.stringify(userConfig));
+            }
+          } catch (error) {
+            console.error('Failed to load theme from database:', error);
+            // Fallback to localStorage if database fails
+            const userTheme = loadThemeFromUserConfig(currentUserId);
+            if (userTheme !== theme) {
+              setThemeState(userTheme);
+            }
           }
         } else {
           // User logged out, reset to light theme
@@ -189,38 +243,37 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Listen for account changes (login/logout)
     const handleAccountChange = () => {
-      setTimeout(checkUserAndResetTheme, 100); // Small delay to ensure localStorage is updated
+      checkUserAndResetTheme(); // Remove delay, check immediately
     };
 
     // Listen for storage changes (when localStorage is updated from other tabs)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'account' || e.key === 'user_config') {
-        setTimeout(checkUserAndResetTheme, 100);
+        checkUserAndResetTheme(); // Remove delay, check immediately
       }
     };
 
     // Listen for custom account update events
     const handleAccountUpdated = (_: CustomEvent) => {
-      setTimeout(checkUserAndResetTheme, 100);
+      checkUserAndResetTheme(); // Remove delay, check immediately
     };
 
     // Listen for user config changes
     const handleUserConfigChange = () => {
-      setTimeout(() => {
-        const currentUserId = getCurrentUserId();
-        if (currentUserId === lastUserId) {
-          // Same user, check if theme changed in config
-          const userTheme = loadThemeFromUserConfig(currentUserId);
-          if (userTheme !== theme) {
-            setThemeState(userTheme);
-          }
+      const currentUserId = getCurrentUserId();
+      if (currentUserId === lastUserId) {
+        // Same user, check if theme changed in config
+        const userTheme = loadThemeFromUserConfig(currentUserId);
+        if (userTheme !== theme) {
+          console.log('Theme changed in userConfig, updating from:', theme, 'to:', userTheme);
+          setThemeState(userTheme);
         }
-      }, 100);
+      }
     };
 
     // Listen for login events specifically
     const handleLogin = () => {
-      setTimeout(checkUserAndResetTheme, 100);
+      checkUserAndResetTheme(); // Remove delay, check immediately
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -240,58 +293,54 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     };
   }, [theme, lastUserId]);
 
-  // Separate effect to handle immediate theme loading on login
-  useEffect(() => {
-    const handleImmediateLogin = async () => {
-      const currentUserId = getCurrentUserId();
-      if (currentUserId) {
-        // Try to load theme from database first (most up-to-date)
-        const userTheme = await loadThemeFromDatabase(currentUserId);
-        if (userTheme !== theme) {
-          setThemeState(userTheme);
-        }
-
-        // Also update localStorage with the theme from database
-        try {
-          const res = await getUserConfig(currentUserId);
-          if (res?.data) {
-            const userConfig = {
-              ...res.data,
-              userId: currentUserId,
-            };
-            localStorage.setItem('user_config', JSON.stringify(userConfig));
-          }
-        } catch (error) {
-          console.error('Failed to update localStorage with database config:', error);
-        }
-
-        // Update lastUserId to prevent duplicate processing
-        if (currentUserId !== lastUserId) {
-          setLastUserId(currentUserId);
-        }
-      }
-    };
-
-    window.addEventListener('login', handleImmediateLogin);
-    return () => {
-      window.removeEventListener('login', handleImmediateLogin);
-    };
-  }, [theme, lastUserId]);
-
   // Function to reset theme for new user (called from layout)
-  const resetThemeForNewUser = () => {
+  const resetThemeForNewUser = async () => {
     const currentUserId = getCurrentUserId();
+    console.log(
+      'resetThemeForNewUser called, currentUserId:',
+      currentUserId,
+      'lastUserId:',
+      lastUserId
+    );
 
     if (!currentUserId) {
+      console.log('No current user, resetting to light theme');
       setThemeState('light');
       localStorage.removeItem('user_config');
       setLastUserId(null);
       return;
     }
 
-    // Load theme from user config
-    const userTheme = loadThemeFromUserConfig(currentUserId);
-    setThemeState(userTheme);
+    // Load theme from database first, then fallback to localStorage
+    try {
+      const userTheme = await loadThemeFromDatabase(currentUserId);
+      console.log('Theme loaded from database:', userTheme, 'current theme:', theme);
+      if (userTheme !== theme) {
+        console.log('Updating theme from database:', theme, '->', userTheme);
+        setThemeState(userTheme);
+      }
+
+      // Also update localStorage with the latest config from database
+      const res = await getUserConfig(currentUserId);
+      if (res?.data) {
+        const userConfig = {
+          ...res.data,
+          userId: currentUserId,
+        };
+        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        console.log('Updated localStorage with userConfig:', userConfig);
+      }
+    } catch (error) {
+      console.error('Failed to load theme from database in resetThemeForNewUser:', error);
+      // Fallback to localStorage if database fails
+      const userTheme = loadThemeFromUserConfig(currentUserId);
+      console.log('Fallback to localStorage theme:', userTheme, 'current theme:', theme);
+      if (userTheme !== theme) {
+        console.log('Updating theme from localStorage:', theme, '->', userTheme);
+        setThemeState(userTheme);
+      }
+    }
+
     setLastUserId(currentUserId);
   };
 

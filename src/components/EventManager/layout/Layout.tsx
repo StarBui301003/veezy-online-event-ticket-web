@@ -143,7 +143,25 @@ export function EventManagerLayout() {
   // This is still needed as a fallback for cases where login event might not fire
   useEffect(() => {
     resetThemeForNewUser();
-  }, [resetThemeForNewUser]);
+  }, []); // Remove resetThemeForNewUser from dependencies to avoid infinite loop
+
+  // Check and update theme when user changes (login/logout)
+  useEffect(() => {
+    const checkUserAndUpdateTheme = () => {
+      resetThemeForNewUser();
+    };
+
+    // Listen for user changes
+    window.addEventListener('authChanged', checkUserAndUpdateTheme);
+    window.addEventListener('user-updated', checkUserAndUpdateTheme);
+    window.addEventListener('login', checkUserAndUpdateTheme);
+
+    return () => {
+      window.removeEventListener('authChanged', checkUserAndUpdateTheme);
+      window.removeEventListener('user-updated', checkUserAndUpdateTheme);
+      window.removeEventListener('login', checkUserAndUpdateTheme);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   // Helper: update language in user config
   const handleChangeLanguage = async (lang: 'vi' | 'en') => {

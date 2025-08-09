@@ -41,7 +41,25 @@ export function Layout() {
     // Check and reset theme when user layout mounts
     // This is still needed as a fallback for cases where login event might not fire
     resetThemeForNewUser();
-  }, [resetThemeForNewUser]);
+  }, []); // Remove resetThemeForNewUser from dependencies to avoid infinite loop
+
+  // Check and update theme when user changes (login/logout)
+  useEffect(() => {
+    const checkUserAndUpdateTheme = () => {
+      resetThemeForNewUser();
+    };
+
+    // Listen for user changes
+    window.addEventListener('authChanged', checkUserAndUpdateTheme);
+    window.addEventListener('user-updated', checkUserAndUpdateTheme);
+    window.addEventListener('login', checkUserAndUpdateTheme);
+
+    return () => {
+      window.removeEventListener('authChanged', checkUserAndUpdateTheme);
+      window.removeEventListener('user-updated', checkUserAndUpdateTheme);
+      window.removeEventListener('login', checkUserAndUpdateTheme);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   return (
     <>

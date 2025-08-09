@@ -104,6 +104,7 @@ export default function ProfileEventManager() {
           theme: configData.theme || 0,
           receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
           receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+          userId: userId, // Thêm userId để updateUserConfigAndTriggerUpdate hoạt động đúng
         };
 
         setUserConfig(newConfig);
@@ -358,6 +359,7 @@ export default function ProfileEventManager() {
       const newConfig = {
         ...userConfig,
         language: languageNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
@@ -383,6 +385,7 @@ export default function ProfileEventManager() {
       const newConfig = {
         ...userConfig,
         receiveEmail: checked,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
@@ -395,7 +398,7 @@ export default function ProfileEventManager() {
     }
   };
 
-  const handleThemeChange = async (theme: string) => {
+  const handleThemeChange = async (themeValue: string) => {
     // Prevent multiple rapid clicks
     if (isThemeLoading) {
       return;
@@ -404,7 +407,7 @@ export default function ProfileEventManager() {
     setIsThemeLoading(true);
 
     try {
-      const themeNumber = parseInt(theme);
+      const themeNumber = parseInt(themeValue);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
       // Update user config via API first
@@ -419,6 +422,7 @@ export default function ProfileEventManager() {
       const newConfig = {
         ...userConfig,
         theme: themeNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
