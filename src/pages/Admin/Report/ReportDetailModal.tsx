@@ -23,7 +23,7 @@ import { Switch } from '@/components/ui/switch';
 
 interface Props {
   report: Report;
-  reporterName?: string;
+  reporterName: string;
   onClose: () => void;
   targetTypeMap?: Record<number, string>;
   showNote?: boolean;
@@ -32,7 +32,6 @@ interface Props {
 
 const ReportDetailModal = ({
   report,
-  reporterName,
   onClose,
   targetTypeMap,
   showNote = false,
@@ -364,7 +363,7 @@ const ReportDetailModal = ({
                 {t('reporter')}
               </label>
               <input
-                value={reporterName || report.reporterId}
+                value={report.reporterName}
                 readOnly
                 className="bg-gray-200 dark:bg-gray-700 border dark:border-gray-600 rounded px-2 py-1 w-full mb-1 text-gray-600 dark:text-gray-300"
               />
