@@ -68,8 +68,8 @@ export function connectHub(hubType: keyof typeof connections, hubUrl: string, ac
   let connectionOptions: any = undefined;
 
   if (accessToken) {
-    if (hubType === 'chat' || hubType === 'notification') {
-      // ChatHub and NotificationHub require token in query string (configured in backend)
+    if (hubType === 'chat') {
+      // ChatHub requires token in query string (configured in backend)
       const separator = hubUrl.includes('?') ? '&' : '?';
       finalUrl = `${hubUrl}${separator}access_token=${encodeURIComponent(accessToken)}`;
     } else {
