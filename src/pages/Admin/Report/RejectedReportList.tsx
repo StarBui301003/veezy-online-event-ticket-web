@@ -93,7 +93,7 @@ export const RejectedReportList = ({
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectFeedbackHub('https://feedback.vezzy.site/feedbackHub');
+          connectFeedbackHub('https://feedback.vezzy.site/notificationHub');
 
     const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);

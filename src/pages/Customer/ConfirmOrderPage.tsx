@@ -222,7 +222,7 @@ const ConfirmOrderPage = () => {
         setWaitingPayment(false);
         navigate("/payment-success");
       }
-      if (event.data?.type === "PAYMENT_FAILED") {
+      if (event.data?.type === "PAYMENT_FAILED" || event.data?.type === "PAYMENT_ERROR") {
         setWaitingPayment(false);
         navigate("/payment-failed");
       }

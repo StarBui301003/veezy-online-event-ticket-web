@@ -67,7 +67,7 @@ export default function AnalyticsOverview() {
           }
         });
 
-        onTicket('OnTicketSoldIncremented', (data) => {
+        onEvent('OnTicketSoldIncremented', (data) => {
           console.log('Ticket sold - analytics update:', data);
           setAnalyticsData(prev => {
             if (!prev) return prev;
@@ -79,7 +79,7 @@ export default function AnalyticsOverview() {
           });
         });
 
-        onTicket('OrderCreated', (data) => {
+        onTicket('OnOrderCreated', (data) => {
           console.log('Order created - analytics update:', data);
           setAnalyticsData(prev => {
             if (!prev) return prev;
