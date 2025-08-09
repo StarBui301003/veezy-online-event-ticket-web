@@ -107,7 +107,7 @@ export const CompletedEventList = ({
   // Fetch all categories for filter
   useEffect(() => {
     (async () => {
-      const res = await getCompletedEventsWithFilter({ page: 1, pageSize: 100 });
+      const res = await getCompletedEventsWithFilter({ page: 1, pageSize: 50 });
       const categoryNames = Array.from(
         new Set(res.data.items.flatMap((event) => event.categoryName || []))
       );

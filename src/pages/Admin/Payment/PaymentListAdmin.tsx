@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { getPaymentsAdmin, PaymentFilterParams } from '@/services/Admin/order.service';
 import type { AdminPayment, AdminPaymentListResponse } from '@/types/Admin/order';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
-
 import {
   Table,
   TableHeader,
@@ -31,7 +30,7 @@ import GenerateTicketModal from './GenerateTicketModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTicketAlt } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { connectNotificationHub, onNotification } from '@/services/signalr.service';
+import { connectPaymentHub, onPayment } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
@@ -87,21 +86,18 @@ const PaymentListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    // Payment events are sent via NotificationHub from TicketService
-    connectNotificationHub('https://ticket.vezzy.site/notificationHub', token);
+    connectPaymentHub('http://localhost:5005/paymentHub', token);
     const reload = () => {
       fetchData();
     };
-    onNotification('OnPaymentCreated', reload);
-    onNotification('OnPaymentVerified', reload);
-    onNotification('OnPaymentListFetched', reload);
+    onPayment('OnPaymentCreated', reload);
+    onPayment('OnPaymentStatusChanged', reload);
+    onPayment('OnPaymentSuccess', reload);
+    onPayment('OnPaymentFailed', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = useCallback(() => {
-    // Prevent unnecessary API calls
-    if (loading) return;
-
     setLoading(true);
 
     // Separate pagination parameters from filter parameters
@@ -118,6 +114,21 @@ const PaymentListAdmin = () => {
       SortDescending: sortDescending,
     };
 
+    // Debug: Log amount range values
+    console.log('🔍 Amount Range Debug:', {
+      amountRange,
+      maxAmount,
+      minAmount: filterParams.MinAmount,
+      maxAmountFilter: filterParams.MaxAmount,
+    });
+
+    // Debug: Log search parameters
+    console.log('🔍 Payment Search Parameters:', {
+      pagination: paginationParams,
+      filters: filterParams,
+      paymentSearch: paymentSearch,
+    });
+
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 
@@ -125,15 +136,20 @@ const PaymentListAdmin = () => {
       .then(async (res) => {
         if (res && res.success && res.data) {
           setData(res);
-          // Calculate max amount from data only if needed
-          if (res.data.items.length > 0) {
-            const maxAmountInData = Math.max(
-              ...res.data.items.map((item) => parseFloat(item.amount || '0'))
-            );
-            if (maxAmountInData !== maxAmount) {
-              setMaxAmount(maxAmountInData);
-            }
-          }
+          // Calculate max amount from data
+          const maxAmountInData =
+            res.data.items.length > 0
+              ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
+              : 1000000;
+          setMaxAmount(maxAmountInData);
+          console.log(
+            '🔍 Max Amount calculated:',
+            maxAmountInData,
+            'Items count:',
+            res.data.items.length,
+            'All amounts:',
+            res.data.items.map((item) => item.amount)
+          );
         } else {
           setData(null);
         }
@@ -142,28 +158,12 @@ const PaymentListAdmin = () => {
         setData(null);
       })
       .finally(() => {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 500);
       });
-  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending, loading]);
+  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
 
-  // Initial data fetch
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi (trừ lần đầu)
-  useEffect(() => {
-    // Skip initial render
-    if (
-      filters.Page === 1 &&
-      filters.PageSize === 5 &&
-      !paymentSearch &&
-      sortBy === 'paidAt' &&
-      sortDescending === true
-    )
-      return;
-
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, paymentSearch]);
@@ -175,21 +175,14 @@ const PaymentListAdmin = () => {
     }
   }, [maxAmount]);
 
-  // Handle amountRange changes with optimized logic
+  // Handle amountRange changes separately
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Use setTimeout to avoid multiple rapid calls during slider drag
-    const timeoutId = setTimeout(() => {
-      // Only fetch if not already loading
-      if (!loading) {
-        fetchData();
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [amountRange, loading]);
+    // Always fetch when amountRange changes (including when dragged to 0)
+    fetchData();
+  }, [amountRange]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {

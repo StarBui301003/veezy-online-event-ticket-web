@@ -101,7 +101,7 @@ export const PendingEventList = ({
         // Initialize category mapping first
         await initializeMapping();
 
-        const res = await getPendingEventsWithFilter({ page: 1, pageSize: 100 });
+        const res = await getPendingEventsWithFilter({ page: 1, pageSize: 50 });
         const categoryNames = Array.from(
           new Set(res.data.items.flatMap((event) => event.categoryName || []))
         );

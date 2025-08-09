@@ -55,7 +55,7 @@ export const AnalyzeCommentModal = ({ open, onClose }: Props) => {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    getApprovedEvents({ page: 1, pageSize: 100 })
+    getApprovedEvents({ page: 1, pageSize: 5 })
       .then((res) => {
         setEvents(res.data.items || []);
       })

@@ -12,6 +12,8 @@ import {
   getApprovedEventsWithFilter,
   EventFilterParams,
   cancelEvent,
+  hideEvent,
+  showEvent,
 } from '@/services/Admin/event.service';
 import type { PaginatedEventResponse } from '@/types/Admin/event';
 import { ApprovedEvent } from '@/types/Admin/event';
@@ -30,6 +32,7 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
+import { Switch } from '@/components/ui/switch';
 
 import ApprovedEventDetailModal from '@/pages/Admin/Event/ApprovedEventDetailModal';
 import SuggestQuantityModal from '@/pages/Admin/Event/SuggestQuantityModal';
@@ -108,7 +111,7 @@ export const ApprovedEventList = ({
   // Fetch all categories for filter
   useEffect(() => {
     (async () => {
-      const res = await getApprovedEventsWithFilter({ page: 1, pageSize: 100 });
+      const res = await getApprovedEventsWithFilter({ page: 1, pageSize: 5 });
       const categoryNames = Array.from(
         new Set(res.data.items.flatMap((event) => event.categoryName || []))
       );
@@ -264,6 +267,22 @@ export const ApprovedEventList = ({
       } catch {
         toast.error('Failed to cancel event');
       }
+    }
+  };
+
+  // Toggle status handler (giống ApprovedNewsList)
+  const handleToggleStatus = async (event: ApprovedEvent) => {
+    try {
+      if (event.isActive) {
+        await hideEvent(event.eventId);
+        toast.success('Event hidden successfully!');
+      } else {
+        await showEvent(event.eventId);
+        toast.success('Event shown successfully!');
+      }
+      fetchData();
+    } catch {
+      toast.error('Failed to update status!');
     }
   };
 
@@ -509,6 +528,7 @@ export const ApprovedEventList = ({
                   </div>
                 </TableHead>
 
+                <TableHead className="text-center text-gray-900">Status</TableHead>
                 <TableHead className="text-center text-gray-900">Details</TableHead>
               </TableRow>
             </TableHeader>
@@ -520,7 +540,7 @@ export const ApprovedEventList = ({
                     className={`${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
                   >
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center py-4 text-gray-500 dark:text-gray-400"
                     >
                       No approved events found.
@@ -536,7 +556,7 @@ export const ApprovedEventList = ({
                         key={`empty-${idx}`}
                         className={`h-[56.8px] ${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
                       >
-                        <TableCell colSpan={9} className="border-0"></TableCell>
+                        <TableCell colSpan={10} className="border-0"></TableCell>
                       </TableRow>
                     )
                   )}
@@ -591,6 +611,19 @@ export const ApprovedEventList = ({
                         {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Unknown'}
                       </TableCell>
 
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={event.isActive}
+                          onCheckedChange={() => handleToggleStatus(event)}
+                          disabled={loading}
+                          className={
+                            event.isActive
+                              ? '!bg-green-500 !border-green-500'
+                              : '!bg-red-400 !border-red-400'
+                          }
+                        />
+                      </TableCell>
+
                       <TableCell className="text-center flex gap-2 justify-center text-gray-900 dark:text-white">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
@@ -617,7 +650,7 @@ export const ApprovedEventList = ({
                         key={`empty-${idx}`}
                         className={`h-[56.8px] ${getEventListTableRowClass()} ${getEventListTableCellBorderClass()}`}
                       >
-                        <TableCell colSpan={9} className="border-0"></TableCell>
+                        <TableCell colSpan={10} className="border-0"></TableCell>
                       </TableRow>
                     )
                   )}
@@ -630,7 +663,7 @@ export const ApprovedEventList = ({
               <TableRow
                 className={`${getEventListTableRowClass()} ${getEventListTableCellBorderClass()} hover:bg-transparent`}
               >
-                <TableCell colSpan={9} className="border-0">
+                <TableCell colSpan={10} className="border-0">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-2 py-2">
                     <div className="flex-1 flex justify-center">
                       <Pagination>
