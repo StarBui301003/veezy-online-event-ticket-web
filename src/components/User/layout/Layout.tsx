@@ -7,12 +7,13 @@ import { CustomerChatBox } from '@/components/Customer';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export function Layout() {
-  const { resetThemeForNewUser } = useTheme();
+  const { resetThemeForNewUser, theme, setTheme } = useTheme();
 
   useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
     const accessToken = localStorage.getItem('access_token');
+    
     if (accStr && accessToken) {
       try {
         const accObj = JSON.parse(accStr);
@@ -60,6 +61,53 @@ export function Layout() {
       window.removeEventListener('login', checkUserAndUpdateTheme);
     };
   }, []); // Empty dependency array - only run once on mount
+
+  // Handle theme changes for guest users
+  useEffect(() => {
+    const handleThemeChange = () => {
+      // Nếu là guest user (chưa đăng nhập), lưu theme vào localStorage
+      const accStr = localStorage.getItem('account');
+      const accessToken = localStorage.getItem('access_token');
+      
+      if (!accStr || !accessToken) {
+        // Guest user - save theme to localStorage
+        if (theme) {
+          localStorage.setItem('guest_theme', theme);
+          console.log('🎨 Guest theme saved to localStorage:', theme);
+        }
+      }
+    };
+
+    // Lắng nghe sự kiện thay đổi theme
+    window.addEventListener('themeChanged', handleThemeChange);
+    
+    // Lắng nghe sự kiện từ ThemeContext
+    const handleThemeUpdate = () => {
+      handleThemeChange();
+    };
+    
+    window.addEventListener('userConfigUpdated', handleThemeUpdate);
+
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeUpdate);
+      window.removeEventListener('userConfigUpdated', handleThemeUpdate);
+    };
+  }, [theme]);
+
+  // Load guest theme when component mounts (for returning guests)
+  useEffect(() => {
+    const accStr = localStorage.getItem('account');
+    const accessToken = localStorage.getItem('access_token');
+    
+    // Chỉ áp dụng guest theme nếu chưa đăng nhập
+    if (!accStr || !accessToken) {
+      const guestTheme = localStorage.getItem('guest_theme');
+      if (guestTheme && (guestTheme === 'light' || guestTheme === 'dark') && guestTheme !== theme) {
+        console.log('🎨 Loading guest theme from localStorage:', guestTheme);
+        setTheme(guestTheme as 'light' | 'dark');
+      }
+    }
+  }, []); // Chỉ chạy 1 lần khi mount
 
   return (
     <>

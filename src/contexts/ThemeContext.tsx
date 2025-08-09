@@ -35,24 +35,36 @@ const getInitialTheme = (): 'light' | 'dark' => {
   if (typeof window === 'undefined') return 'light';
 
   try {
-    const userConfigStr = localStorage.getItem('user_config');
-    if (userConfigStr) {
-      const userConfig = JSON.parse(userConfigStr);
-      // Check if userConfig belongs to current user
-      const currentUserId = getCurrentUserId();
-      if (
-        userConfig.userId &&
-        userConfig.userId === currentUserId &&
-        userConfig.theme !== undefined
-      ) {
-        return userConfig.theme === 1 ? 'dark' : 'light';
+    const currentUserId = getCurrentUserId();
+
+    if (currentUserId) {
+      // Logged in user - try to load from user_config
+      const userConfigStr = localStorage.getItem('user_config');
+      if (userConfigStr) {
+        const userConfig = JSON.parse(userConfigStr);
+        if (
+          userConfig.userId &&
+          userConfig.userId === currentUserId &&
+          userConfig.theme !== undefined
+        ) {
+          return userConfig.theme === 1 ? 'dark' : 'light';
+        }
+      }
+    } else {
+      // Guest user - try to load from guest_userconfig
+      const guestConfigStr = localStorage.getItem('guest_userconfig');
+      if (guestConfigStr) {
+        const guestConfig = JSON.parse(guestConfigStr);
+        if (guestConfig.theme !== undefined) {
+          return guestConfig.theme === 1 ? 'dark' : 'light';
+        }
       }
     }
   } catch (error) {
     // Failed to load theme from localStorage
   }
 
-  // Default to light theme if no valid user config
+  // Default to light theme if no valid config
   return 'light';
 };
 
@@ -73,43 +85,56 @@ const applyTheme = (newTheme: 'light' | 'dark') => {
 const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
   try {
     const currentUserId = getCurrentUserId();
-    if (!currentUserId) return; // Don't save if no user logged in
 
-    const userConfigStr = localStorage.getItem('user_config');
-    const userConfig = userConfigStr ? JSON.parse(userConfigStr) : {};
+    if (currentUserId) {
+      // Logged in user - save to both localStorage and database
+      const userConfigStr = localStorage.getItem('user_config');
+      const userConfig = userConfigStr ? JSON.parse(userConfigStr) : {};
 
-    // Update userConfig with current user ID and theme
-    const updatedConfig = {
-      ...userConfig,
-      userId: currentUserId,
-      theme: newTheme === 'dark' ? 1 : 0,
-    };
+      // Update userConfig with current user ID and theme
+      const updatedConfig = {
+        ...userConfig,
+        userId: currentUserId,
+        theme: newTheme === 'dark' ? 1 : 0,
+      };
 
-    // Save to localStorage
-    localStorage.setItem('user_config', JSON.stringify(updatedConfig));
+      // Save to localStorage
+      localStorage.setItem('user_config', JSON.stringify(updatedConfig));
 
-    // Also save to database via API (fire and forget)
-    (async () => {
-      try {
-        // Get current user config from API first
-        const res = await getUserConfig(currentUserId);
-        if (res?.data) {
-          const newConfig = {
-            ...res.data,
-            userId: currentUserId,
-            theme: newTheme === 'dark' ? 1 : 0,
-          };
+      // Also save to database via API (fire and forget)
+      (async () => {
+        try {
+          // Get current user config from API first
+          const res = await getUserConfig(currentUserId);
+          if (res?.data) {
+            const newConfig = {
+              ...res.data,
+              userId: currentUserId,
+              theme: newTheme === 'dark' ? 1 : 0,
+            };
 
-          // Update user config via API
-          await updateUserConfig(currentUserId, newConfig);
+            // Update user config via API
+            await updateUserConfig(currentUserId, newConfig);
+          }
+        } catch (error) {
+          console.error('Failed to save theme to database:', error);
+          // Don't show error toast here as it might be too intrusive
         }
-      } catch (error) {
-        console.error('Failed to save theme to database:', error);
-        // Don't show error toast here as it might be too intrusive
-      }
-    })();
+      })();
+
+      // Remove guest config if it exists (user is now logged in)
+      localStorage.removeItem('guest_userconfig');
+    } else {
+      // Guest user - save to guest_userconfig
+      const guestConfig = {
+        theme: newTheme === 'dark' ? 1 : 0,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem('guest_userconfig', JSON.stringify(guestConfig));
+      console.log('🎨 Guest theme saved to localStorage:', newTheme);
+    }
   } catch (error) {
-    // Failed to save theme to localStorage
+    console.error('Failed to save theme:', error);
   }
 };
 
@@ -304,12 +329,38 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     );
 
     if (!currentUserId) {
-      console.log('No current user, resetting to light theme');
+      console.log('No current user, checking if guest theme exists');
+
+      // Check if guest theme exists before resetting
+      const guestConfigStr = localStorage.getItem('guest_userconfig');
+      if (guestConfigStr) {
+        try {
+          const guestConfig = JSON.parse(guestConfigStr);
+          if (guestConfig.theme !== undefined) {
+            console.log(
+              '🎨 Guest theme found, applying:',
+              guestConfig.theme === 1 ? 'dark' : 'light'
+            );
+            setThemeState(guestConfig.theme === 1 ? 'dark' : 'light');
+            setLastUserId(null);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to parse guest config:', error);
+        }
+      }
+
+      // No guest theme, reset to light
+      console.log('No guest theme found, resetting to light theme');
       setThemeState('light');
       localStorage.removeItem('user_config');
+      localStorage.removeItem('guest_userconfig');
       setLastUserId(null);
       return;
     }
+
+    // User is logged in, remove guest config if it exists
+    localStorage.removeItem('guest_userconfig');
 
     // Load theme from database first, then fallback to localStorage
     try {

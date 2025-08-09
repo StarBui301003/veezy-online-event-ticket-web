@@ -129,7 +129,9 @@ export function AdminLayout() {
             }
           }
         }
-      } catch (error) {}
+      } catch (error) {
+        //36
+      }
     };
 
     loadLanguageFromStorage();
