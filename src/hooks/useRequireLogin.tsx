@@ -39,27 +39,50 @@ export function useRequireLogin() {
       // Trigger login event for theme update
       window.dispatchEvent(new Event('login'));
     }
-    // Điều hướng theo role
-    const accStr = localStorage.getItem('account');
-    let role = null;
-    if (accStr) {
-      try {
-        const accObj = JSON.parse(accStr);
-        role = accObj.role;
-      } catch {
-        /* empty */
+
+    // NEW: Wait for theme to be applied before navigation
+    const waitForThemeAndNavigate = async () => {
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            setTimeout(checkThemeApplied, 50);
+          }
+        };
+
+        setTimeout(checkThemeApplied, 100);
+      });
+
+      // Now navigate with theme already applied
+      const accStr = localStorage.getItem('account');
+      let role = null;
+      if (accStr) {
+        try {
+          const accObj = JSON.parse(accStr);
+          role = accObj.role;
+        } catch {
+          /* empty */
+        }
       }
-    }
-    // Đảm bảo modal đóng xong mới chuyển trang tuyệt đối cho admin
-    if (role === 0) {
-      setTimeout(() => {
-        window.location.replace('/admin');
-      }, 0);
-    } else if (role === 2) {
-      navigate('/', { replace: true }); // Event manager về home customer
-    } else {
-      navigate(location.pathname + location.search);
-    }
+
+      // Đảm bảo modal đóng xong mới chuyển trang tuyệt đối cho admin
+      if (role === 0) {
+        setTimeout(() => {
+          window.location.replace('/admin');
+        }, 0);
+      } else if (role === 2) {
+        navigate('/', { replace: true }); // Event manager về home customer
+      } else {
+        navigate(location.pathname + location.search);
+      }
+    };
+
+    // Execute theme loading and navigation
+    waitForThemeAndNavigate();
   }
 
   return {

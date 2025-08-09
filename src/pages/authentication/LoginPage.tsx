@@ -185,7 +185,31 @@ export const LoginPage = () => {
         localStorage.removeItem('remembered_username');
       }
 
-      // Thông báo và điều hướng theo role
+      // Dispatch events for theme update
+      window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before navigation
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          // Check if theme classes are applied to document
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            // Wait a bit more for theme to apply
+            setTimeout(checkThemeApplied, 50);
+          }
+        };
+
+        // Start checking after a short delay to allow theme context to process
+        setTimeout(checkThemeApplied, 100);
+      });
+
+      // Now navigate with theme already applied
       let welcomeMsg = `Welcome ${accountUsername}!`;
       let redirectPath = '/';
       if (role === 0) {
@@ -195,9 +219,6 @@ export const LoginPage = () => {
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
         redirectPath = '/'; // Chuyển về home customer
       }
-      window.dispatchEvent(new Event('authChanged'));
-      // Trigger login event for theme update
-      window.dispatchEvent(new Event('login'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -284,6 +305,27 @@ export const LoginPage = () => {
       window.dispatchEvent(new Event('authChanged'));
       // Trigger login event for theme update
       window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before navigation
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          // Check if theme classes are applied to document
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            // Wait a bit more for theme to apply
+            setTimeout(checkThemeApplied, 50);
+          }
+        };
+
+        // Start checking after a short delay to allow theme context to process
+        setTimeout(checkThemeApplied, 100);
+      });
+
+      // Now navigate with theme already applied
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {

@@ -125,6 +125,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       window.dispatchEvent(new Event('authChanged'));
       // Trigger login event for theme update
       window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before closing modal
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            setTimeout(checkThemeApplied, 50);
+          }
+        };
+
+        setTimeout(checkThemeApplied, 100);
+      });
+
       // Gọi login() từ AuthContext nếu có
       if (ctx && typeof ctx.login === 'function') {
         ctx.login();
@@ -221,6 +238,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       // Trigger login event for theme update
       window.dispatchEvent(new Event('login'));
 
+      // NEW: Wait for theme to be applied before closing modal
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            setTimeout(checkThemeApplied, 50);
+          }
+        };
+
+        setTimeout(checkThemeApplied, 100);
+      });
+
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
@@ -236,7 +269,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
       toast.success(welcomeMsg, { position: 'top-right' });
 
-      // Close modal and trigger success callback
+      // Close modal and trigger success callback after theme is applied
       onClose();
       onLoginSuccess();
     } catch (error: unknown) {
