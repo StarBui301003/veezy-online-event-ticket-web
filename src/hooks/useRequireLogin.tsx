@@ -36,6 +36,8 @@ export function useRequireLogin() {
     if (typeof login === 'function') {
       login(); // Update global login state
       window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
     }
     // Điều hướng theo role
     const accStr = localStorage.getItem('account');
@@ -44,7 +46,9 @@ export function useRequireLogin() {
       try {
         const accObj = JSON.parse(accStr);
         role = accObj.role;
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
     }
     // Đảm bảo modal đóng xong mới chuyển trang tuyệt đối cho admin
     if (role === 0) {

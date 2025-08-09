@@ -76,6 +76,23 @@ instance.interceptors.response.use(
 
     // Xử lý lỗi 401 (Unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Danh sách endpoint không cần refresh token
+      const skipRefreshEndpoints = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+
+      const shouldSkipRefresh = skipRefreshEndpoints.some(endpoint =>
+        originalRequest.url?.includes(endpoint)
+      );
+
+      if (shouldSkipRefresh) {
+        return Promise.reject(error);
+      }
+
+      // Kiểm tra nếu user chưa đăng nhập (không có access token)
+      const accessToken = window.localStorage.getItem('access_token');
+      if (!accessToken) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       // Lấy refresh token từ cookie
@@ -110,16 +127,18 @@ instance.interceptors.response.use(
 
 
 
-          // Lấy accessToken từ response.data.data.accessToken hoặc response.data.accessToken
-          const tokenData = response.data?.data || response.data;
+          // Lấy accessToken từ response.data.data.accessToken (ApiResponse wrapper)
+          if (!response.data || typeof response.data !== 'object') {
+            throw new Error('Invalid response format from refresh token API');
+          }
+
+          const tokenData = response.data?.data;
           if (!tokenData || !tokenData.accessToken) {
             throw new Error('No access token in refresh response');
           }
 
           const newAccessToken = tokenData.accessToken;
           window.localStorage.setItem('access_token', newAccessToken);
-
-
 
           onRefreshed(newAccessToken);
 
@@ -140,7 +159,6 @@ instance.interceptors.response.use(
           return instance(originalRequest);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-
           // Fallback to fetch if axios fails
           try {
             const fetchResponse = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
@@ -154,12 +172,27 @@ instance.interceptors.response.use(
             });
 
             if (!fetchResponse.ok) {
-              throw new Error(`Fetch failed with status: ${fetchResponse.status}`);
+              // Xử lý các status code cụ thể
+              if (fetchResponse.status === 401 || fetchResponse.status === 403) {
+                // Refresh token bị từ chối hoặc hết hạn
+                throw new Error('REFRESH_TOKEN_EXPIRED');
+              } else if (fetchResponse.status >= 500) {
+                // Server error, có thể thử lại
+                throw new Error(`Server error: ${fetchResponse.status}`);
+              } else {
+                throw new Error(`Fetch failed with status: ${fetchResponse.status}`);
+              }
             }
 
             const fetchData = await fetchResponse.json();
 
-            const tokenData = fetchData?.data || fetchData;
+            // Kiểm tra cấu trúc response
+            if (!fetchData || typeof fetchData !== 'object') {
+              throw new Error('Invalid fetch response format from refresh token API');
+            }
+
+            // Lấy accessToken từ fetchData.data (ApiResponse wrapper)
+            const tokenData = fetchData?.data;
             if (!tokenData || !tokenData.accessToken) {
               throw new Error('No access token in fetch refresh response');
             }
@@ -182,34 +215,60 @@ instance.interceptors.response.use(
             }
 
             return instance(originalRequest);
-          } catch {
-            throw err; // Throw original error
+          } catch (fetchErr) {
+            // Nếu cả axios và fetch đều thất bại, xử lý lỗi
+            console.error('Both axios and fetch refresh token failed:', { axiosErr: err, fetchErr });
+
+            // Kiểm tra nếu là network error, không xóa token ngay
+            if (err.code === 'ERR_NETWORK' || err.message === 'Network Error' ||
+              fetchErr.message?.includes('Network Error')) {
+              return Promise.reject(error);
+            }
+
+            // Kiểm tra nếu refresh token hết hạn
+            if (fetchErr.message === 'REFRESH_TOKEN_EXPIRED' ||
+              err.response?.status === 401 || err.response?.status === 403) {
+              // Refresh token hết hạn, xóa sạch dữ liệu và redirect
+              window.localStorage.clear();
+              document.cookie = 'refresh_token=; Max-Age=0; path=/;';
+
+              refreshSubscribers = [];
+              onRefreshed('');
+
+              if (!toast.isActive(ERROR_TOAST_ID)) {
+                toast.error('Your session has expired. Please log in again.', {
+                  toastId: ERROR_TOAST_ID,
+                });
+              }
+
+              // Để cho toast hiển thị trước khi redirect
+              setTimeout(() => {
+                window.location.href = '/login';
+              }, 200);
+
+              return Promise.reject(err);
+            }
+
+            // Xóa sạch token và refresh token nếu lỗi refresh khác
+            window.localStorage.clear();
+            document.cookie = 'refresh_token=; Max-Age=0; path=/;';
+
+            refreshSubscribers = [];
+            onRefreshed('');
+
+            if (!toast.isActive(ERROR_TOAST_ID)) {
+              toast.error('Authentication failed. Please log in again.', {
+                toastId: ERROR_TOAST_ID,
+              });
+            }
+
+            // Để cho toast hiển thị trước khi redirect
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 200);
+
+            return Promise.reject(err);
           }
-
-          // Kiểm tra nếu là network error, không xóa token ngay
-          if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-            return Promise.reject(error);
-          }
-
-          // Xóa sạch token và refresh token nếu lỗi refresh
-          window.localStorage.clear();
-          document.cookie = 'refresh_token=; Max-Age=0; path=/;';
-
-          refreshSubscribers = [];
-          onRefreshed('');
-
-          if (!toast.isActive(ERROR_TOAST_ID)) {
-            toast.error('Your session has expired. Please log in again.', {
-              toastId: ERROR_TOAST_ID,
-            });
-          }
-
-          // Để cho toast hiển thị trước khi redirect
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 200);
-
-          return Promise.reject(err);
         } finally {
           isRefreshing = false;
         }

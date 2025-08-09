@@ -1,9 +1,15 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
+import { setAccountAndUpdateTheme, removeAccountAndUpdateTheme } from '@/utils/account-utils';
 
 interface AuthContextType {
   isLoggedIn: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any | null;
   login: () => void;
   logout: () => void;
@@ -15,7 +21,6 @@ export const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
 });
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -83,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const accObj = JSON.parse(accStr);
         if (!accObj.userId || accObj.userId !== customerId) {
           accObj.userId = customerId;
-          localStorage.setItem('account', JSON.stringify(accObj));
+          setAccountAndUpdateTheme(accObj);
           setUser(accObj);
         }
       } catch {}
@@ -92,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(() => {
     localStorage.removeItem('access_token');
-    localStorage.removeItem('account');
+    removeAccountAndUpdateTheme();
     setIsLoggedIn(false);
     setUser(null);
   }, []);

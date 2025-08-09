@@ -11,16 +11,26 @@ const loadInitialTheme = () => {
     const userConfigStr = localStorage.getItem('user_config');
     if (userConfigStr) {
       const userConfig = JSON.parse(userConfigStr);
-      if (userConfig.theme !== undefined) {
-        const themeMode = userConfig.theme === 1 ? 'dark' : 'light';
-        const root = document.documentElement;
+      // Check if userConfig belongs to current user
+      const accStr = localStorage.getItem('account');
+      if (accStr) {
+        try {
+          const acc = JSON.parse(accStr);
+          const currentUserId = acc.userId || acc.accountId;
+          if (userConfig.userId === currentUserId && userConfig.theme !== undefined) {
+            const themeMode = userConfig.theme === 1 ? 'dark' : 'light';
+            const root = document.documentElement;
 
-        if (themeMode === 'dark') {
-          root.classList.add('dark');
-          root.classList.remove('light');
-        } else {
-          root.classList.add('light');
-          root.classList.remove('dark');
+            if (themeMode === 'dark') {
+              root.classList.add('dark');
+              root.classList.remove('light');
+            } else {
+              root.classList.add('light');
+              root.classList.remove('dark');
+            }
+          }
+        } catch (error) {
+          // Failed to parse account, use light theme
         }
       }
     }

@@ -43,18 +43,12 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import GeneralSettings from '@/components/EventManager/GeneralSettings';
-
-// Helper: get userId from localStorage
-const getUserId = () => {
-  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  if (!accStr) return null;
-  try {
-    const acc = JSON.parse(accStr);
-    return acc.userId || acc.accountId || null;
-  } catch {
-    return null;
-  }
-};
+import {
+  setAccountAndUpdateTheme,
+  updateUserConfigAndTriggerUpdate,
+  updateServiceUserConfigAndTriggerUpdate,
+  getCurrentUserId,
+} from '@/utils/account-utils';
 
 const TABS = [
   { key: 'profile', label: 'Thông tin cá nhân' },
@@ -115,8 +109,8 @@ export default function ProfileEventManager() {
 
         setUserConfig(newConfig);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        // Save to localStorage with userId
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Sync theme with ThemeContext
         const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
@@ -127,15 +121,6 @@ export default function ProfileEventManager() {
     } catch (error) {
       // Failed to load user config
       // Keep default values if API fails
-    }
-  };
-
-  // Save user config to localStorage
-  const saveUserConfigToLocalStorage = (config: any) => {
-    try {
-      localStorage.setItem('user_config', JSON.stringify(config));
-    } catch (error) {
-      // Failed to save user config to localStorage
     }
   };
 
@@ -199,13 +184,14 @@ export default function ProfileEventManager() {
   useEffect(() => {
     const loadUserConfig = async () => {
       try {
-        const userId = getUserId();
+        const userId = getCurrentUserId();
         if (!userId) return;
 
         const res = await getUserConfig(userId);
         if (res?.data) {
-          // Save to localStorage for other components to use
-          localStorage.setItem('user_config', JSON.stringify(res.data));
+          const newConfig = { ...res.data };
+          await updateUserConfig(userId, newConfig);
+          updateUserConfigAndTriggerUpdate(newConfig);
         }
       } catch (error) {
         console.error('Failed to load user config:', error);
@@ -377,7 +363,7 @@ export default function ProfileEventManager() {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -402,7 +388,7 @@ export default function ProfileEventManager() {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
     } catch (error) {
@@ -438,7 +424,7 @@ export default function ProfileEventManager() {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
     } catch (error) {
@@ -480,7 +466,7 @@ export default function ProfileEventManager() {
         if (accStr) {
           const acc = JSON.parse(accStr);
           acc.avatar = avatarUrl;
-          localStorage.setItem('account', JSON.stringify(acc));
+          setAccountAndUpdateTheme(acc);
         }
 
         // Dispatch avatar-updated event ngay lập tức sau khi upload thành công
@@ -518,7 +504,7 @@ export default function ProfileEventManager() {
         };
         // Xóa avatarUrl field để chỉ sử dụng avatar
         delete newAccount.avatarUrl;
-        localStorage.setItem('account', JSON.stringify(newAccount));
+        setAccountAndUpdateTheme(newAccount);
       }
       // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload
       const finalAvatarUrl = updatedUser?.avatarUrl || avatarUrl;
@@ -540,13 +526,13 @@ export default function ProfileEventManager() {
 
       // Update user config
       try {
-        const userId = getUserId();
+        const userId = getCurrentUserId();
         if (userId) {
           const res = await getUserConfig(userId);
           if (res?.data) {
             const newConfig = { ...res.data };
             await updateUserConfig(userId, newConfig);
-            localStorage.setItem('user_config', JSON.stringify(newConfig));
+            updateUserConfigAndTriggerUpdate(newConfig);
           }
         }
       } catch (error) {

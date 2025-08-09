@@ -33,6 +33,7 @@ import {
   validateDateOfBirth,
 } from '@/utils/validation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 const ProfilePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,7 +180,7 @@ const ProfilePage = () => {
         setUserConfig(newConfig);
 
         // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Sync theme with ThemeContext
         const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
@@ -192,16 +193,6 @@ const ProfilePage = () => {
     } catch (error) {
       console.error('Failed to load user config:', error);
       // Keep default values if API fails
-    }
-  };
-
-  // Save user config to localStorage
-  const saveUserConfigToLocalStorage = (config: any) => {
-    try {
-      localStorage.setItem('user_config', JSON.stringify(config));
-      console.log('User config saved to localStorage:', config);
-    } catch (error) {
-      console.error('Failed to save user config to localStorage:', error);
     }
   };
 
@@ -246,7 +237,7 @@ const ProfilePage = () => {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -273,7 +264,7 @@ const ProfilePage = () => {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Email notifications updated successfully:', checked);
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
@@ -311,7 +302,7 @@ const ProfilePage = () => {
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Theme updated successfully:', themeNumber);
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
@@ -417,7 +408,7 @@ const ProfilePage = () => {
         gender: Number(form.gender),
       };
 
-      localStorage.setItem('account', JSON.stringify(newAccount));
+      setAccountAndUpdateTheme(newAccount);
 
       // Update state
       setAccount({ ...form, avatar: finalAvatarUrl });
@@ -835,11 +826,11 @@ const ProfilePage = () => {
                   await refetchFaceAuth();
                 } catch (e: any) {
                   console.error('Face update error:', e);
-                  
+
                   let msg = t('updateFaceFailed');
                   if (e?.response?.data?.message) {
                     const m = e.response.data.message;
-                    
+
                     // Check for all possible face authentication errors
                     if (
                       m.includes('This face is already registered to another account') ||

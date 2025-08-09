@@ -102,6 +102,8 @@ const OrderListAdmin = () => {
   }, []);
 
   const fetchData = useCallback(() => {
+    if (loading) return; // Prevent multiple simultaneous calls
+
     setLoading(true);
 
     // Separate pagination parameters from filter parameters
@@ -119,21 +121,6 @@ const OrderListAdmin = () => {
       SortDescending: sortDescending,
     };
 
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Order Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      orderSearch: orderSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 
@@ -147,14 +134,6 @@ const OrderListAdmin = () => {
               ? Math.max(...res.data.items.map((item) => item.totalAmount))
               : 1000000;
           setMaxAmount(maxAmountInData);
-          console.log(
-            '🔍 Max Amount calculated:',
-            maxAmountInData,
-            'Items count:',
-            res.data.items.length,
-            'All amounts:',
-            res.data.items.map((item) => item.totalAmount)
-          );
         } else {
           setData(null);
         }
@@ -163,12 +142,39 @@ const OrderListAdmin = () => {
         setData(null);
       })
       .finally(() => {
-        setTimeout(() => setLoading(false), 500);
+        setLoading(false);
       });
-  }, [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending, selectedEventId]);
+  }, [
+    orderSearch,
+    filters,
+    amountRange,
+    maxAmount,
+    sortBy,
+    sortDescending,
+    selectedEventId,
+    loading,
+  ]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch, selectedEventId] đổi
+  // Initial data fetch - chỉ gọi 1 lần khi component mount
   useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Main useEffect for filters, sorting, search, and event changes
+  useEffect(() => {
+    // Skip initial render if default values are present
+    if (
+      filters.Page === 1 &&
+      filters.PageSize === 5 &&
+      sortBy === 'createdAt' &&
+      sortDescending === true &&
+      orderSearch === '' &&
+      selectedEventId === ''
+    ) {
+      return;
+    }
+
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, orderSearch, selectedEventId]);
@@ -180,21 +186,20 @@ const OrderListAdmin = () => {
     }
   }, [maxAmount]);
 
-  // Handle amountRange changes separately
+  // Handle amountRange changes with debouncing
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Always fetch when amountRange changes (including when dragged to 0)
-    fetchData();
-  }, [amountRange]);
+    // Debounce amount range changes to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
+      if (!loading) {
+        fetchData();
+      }
+    }, 300);
 
-  // Handle event filter changes
-  useEffect(() => {
-    if (selectedEventId !== '') {
-      fetchData();
-    }
-  }, [selectedEventId, fetchData]);
+    return () => clearTimeout(timeoutId);
+  }, [amountRange, loading, fetchData]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {

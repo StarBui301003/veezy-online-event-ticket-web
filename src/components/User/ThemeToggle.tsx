@@ -3,18 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import { useTheme } from '@/contexts/ThemeContext';
-
-// Helper: get userId from localStorage
-const getUserId = () => {
-  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  if (!accStr) return null;
-  try {
-    const acc = JSON.parse(accStr);
-    return acc.userId || acc.accountId || null;
-  } catch {
-    return null;
-  }
-};
+import { getCurrentUserId } from '@/utils/account-utils';
+import { updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 interface ThemeToggleProps {
   className?: string;
@@ -37,7 +27,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
       const newTheme = theme === 'light' ? 'dark' : 'light';
       const themeNumber = newTheme === 'dark' ? 1 : 0;
 
-      const userId = getUserId();
+      const userId = getCurrentUserId();
       if (!userId) {
         // Update theme locally if no userId
         setTheme(newTheme);
@@ -49,6 +39,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
       if (res?.data) {
         const newConfig = {
           ...res.data,
+          userId: userId, // Ensure userId is included
           theme: themeNumber,
         };
 
@@ -58,8 +49,8 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
         // Only update UI after successful API call
         setTheme(newTheme);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        // Save to localStorage with userId and trigger update event
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Show success toast using translation
         toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));

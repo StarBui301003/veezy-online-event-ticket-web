@@ -29,6 +29,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/autoplay';
 import { getHomeEvents } from '@/services/Event Manager/event.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 interface EventData {
   eventId: string;
@@ -162,7 +163,7 @@ export const LoginPage = () => {
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
@@ -176,7 +177,7 @@ export const LoginPage = () => {
         userId,
         username: accountUsername,
       };
-      localStorage.setItem('account', JSON.stringify(minimalAccount));
+      setAccountAndUpdateTheme(minimalAccount);
 
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
@@ -195,6 +196,8 @@ export const LoginPage = () => {
         redirectPath = '/'; // Chuyển về home customer
       }
       window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -246,7 +249,7 @@ export const LoginPage = () => {
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
@@ -260,7 +263,7 @@ export const LoginPage = () => {
         userId,
         username: accountUsername,
       };
-      localStorage.setItem('account', JSON.stringify(minimalAccount));
+      setAccountAndUpdateTheme(minimalAccount);
 
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
@@ -279,6 +282,8 @@ export const LoginPage = () => {
         redirectPath = '/'; // Chuyển về home customer
       }
       window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -384,9 +389,7 @@ export const LoginPage = () => {
                 {t('welcomeHeading')}
               </h1>
 
-              <p className="text-white/70 text-lg mb-8 leading-relaxed">
-                {t('welcomeSubtext')}
-              </p>
+              <p className="text-white/70 text-lg mb-8 leading-relaxed">{t('welcomeSubtext')}</p>
             </div>
 
             {/* Decorative Elements */}

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { getPaymentsAdmin, PaymentFilterParams } from '@/services/Admin/order.service';
 import type { AdminPayment, AdminPaymentListResponse } from '@/types/Admin/order';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+
 import {
   Table,
   TableHeader,
@@ -98,6 +99,9 @@ const PaymentListAdmin = () => {
   }, []);
 
   const fetchData = useCallback(() => {
+    // Prevent unnecessary API calls
+    if (loading) return;
+
     setLoading(true);
 
     // Separate pagination parameters from filter parameters
@@ -114,21 +118,6 @@ const PaymentListAdmin = () => {
       SortDescending: sortDescending,
     };
 
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Payment Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      paymentSearch: paymentSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 
@@ -136,20 +125,15 @@ const PaymentListAdmin = () => {
       .then(async (res) => {
         if (res && res.success && res.data) {
           setData(res);
-          // Calculate max amount from data
-          const maxAmountInData =
-            res.data.items.length > 0
-              ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
-              : 1000000;
-          setMaxAmount(maxAmountInData);
-          console.log(
-            '🔍 Max Amount calculated:',
-            maxAmountInData,
-            'Items count:',
-            res.data.items.length,
-            'All amounts:',
-            res.data.items.map((item) => item.amount)
-          );
+          // Calculate max amount from data only if needed
+          if (res.data.items.length > 0) {
+            const maxAmountInData = Math.max(
+              ...res.data.items.map((item) => parseFloat(item.amount || '0'))
+            );
+            if (maxAmountInData !== maxAmount) {
+              setMaxAmount(maxAmountInData);
+            }
+          }
         } else {
           setData(null);
         }
@@ -158,12 +142,28 @@ const PaymentListAdmin = () => {
         setData(null);
       })
       .finally(() => {
-        setTimeout(() => setLoading(false), 500);
+        setLoading(false);
       });
-  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
+  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending, loading]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
+  // Initial data fetch
   useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi (trừ lần đầu)
+  useEffect(() => {
+    // Skip initial render
+    if (
+      filters.Page === 1 &&
+      filters.PageSize === 5 &&
+      !paymentSearch &&
+      sortBy === 'paidAt' &&
+      sortDescending === true
+    )
+      return;
+
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, paymentSearch]);
@@ -175,14 +175,21 @@ const PaymentListAdmin = () => {
     }
   }, [maxAmount]);
 
-  // Handle amountRange changes separately
+  // Handle amountRange changes with optimized logic
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Always fetch when amountRange changes (including when dragged to 0)
-    fetchData();
-  }, [amountRange]);
+    // Use setTimeout to avoid multiple rapid calls during slider drag
+    const timeoutId = setTimeout(() => {
+      // Only fetch if not already loading
+      if (!loading) {
+        fetchData();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [amountRange, loading]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {

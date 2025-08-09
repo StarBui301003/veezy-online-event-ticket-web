@@ -4,8 +4,11 @@ import { Footer } from '@/components/User/layout/Footer';
 import { useEffect } from 'react';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import { CustomerChatBox } from '@/components/Customer';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export function Layout() {
+  const { resetThemeForNewUser } = useTheme();
+
   useEffect(() => {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
@@ -34,7 +37,11 @@ export function Layout() {
         localStorage.removeItem('account');
       }
     }
-  }, []);
+
+    // Check and reset theme when user layout mounts
+    // This is still needed as a fallback for cases where login event might not fire
+    resetThemeForNewUser();
+  }, [resetThemeForNewUser]);
 
   return (
     <>
