@@ -737,10 +737,38 @@ class ChatService {
   async getEventChatRooms(eventId: string): Promise<ChatRoom[]> {
     try {
       const response = await axios.get(`/api/ChatRoom/event/${eventId}`);
-      return response.data.map((room: any) => this.transformChatRoom(room));
+      // Support multiple response shapes: direct array, { data: [...] }, { items: [...] }, ApiResponse wrapper
+      const raw = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+        ? response.data.data
+        : Array.isArray(response.data?.items)
+        ? response.data.items
+        : Array.isArray(response.data?.data?.items)
+        ? response.data.data.items
+        : [];
+
+      // Use robust transformer that tolerates varying backend field names
+      return raw.map((room: any) => this.transformBackendRoomToFrontend(room));
     } catch (error) {
       console.error('Error fetching event chat rooms:', error);
-      throw error;
+      // Fallback: if backend validation or environment causes failure, try global EM rooms
+      try {
+        const fallbackResp = await axios.get(`/api/ChatRoom/event/event-manager-global`);
+        const raw = Array.isArray(fallbackResp.data)
+          ? fallbackResp.data
+          : Array.isArray(fallbackResp.data?.data)
+          ? fallbackResp.data.data
+          : Array.isArray(fallbackResp.data?.items)
+          ? fallbackResp.data.items
+          : Array.isArray(fallbackResp.data?.data?.items)
+          ? fallbackResp.data.data.items
+          : [];
+        return raw.map((room: any) => this.transformBackendRoomToFrontend(room));
+      } catch (fallbackErr) {
+        console.error('Fallback load of event-manager-global rooms also failed:', fallbackErr);
+        throw error;
+      }
     }
   }
 

@@ -352,7 +352,8 @@ class OnlineStatusTester {
 window.OnlineStatusTester = OnlineStatusTester;
 
 // Auto-run basic tests in development
-if (process.env.NODE_ENV === 'development') {
+if ((typeof import !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ||
+    (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development')) {
   console.log('🧪 Online Status Tester loaded. Run tests with:');
   console.log('   const tester = new OnlineStatusTester();');
   console.log('   tester.runAllTests();');
