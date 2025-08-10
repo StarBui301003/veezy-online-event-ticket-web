@@ -44,7 +44,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { t } from 'i18next';
-import { setAccountAndUpdateTheme } from '@/utils/account-utils';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 const TABS = [
   { key: 'info', label: t('profileCustomer.personalInformation') },
