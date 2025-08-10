@@ -1,5 +1,6 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { setAccountAndUpdateTheme, removeAccountAndUpdateTheme } from '@/utils/account-utils';
+import { safeLogout } from '@/utils/auth';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -89,8 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('access_token');
-    removeAccountAndUpdateTheme();
+    safeLogout();
     setIsLoggedIn(false);
     setUser(null);
   }, []);
@@ -100,4 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

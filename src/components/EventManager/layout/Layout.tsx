@@ -33,6 +33,8 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 import { getCurrentUserId } from '@/utils/account-utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { safeLogout } from '@/utils/auth';
 
 // Custom scrollbar styles - will be updated dynamically based on theme
 const getScrollbarStyles = (isDark: boolean) => `
@@ -233,17 +235,7 @@ export function EventManagerLayout() {
   }, [i18nInstance]);
 
   const handleLogout = () => {
-    // Xóa tất cả localStorage
-    localStorage.clear();
-    sessionStorage.clear();
-    document.cookie.split(';').forEach(function (c) {
-      document.cookie = c
-        .replace(/^ +/, '')
-        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-    });
-    // Dispatch sự kiện để các tab khác cập nhật trạng thái đăng nhập
-    window.dispatchEvent(new Event('authChanged'));
-    // Chuyển hướng về trang login
+    safeLogout();
     navigate('/login');
   };
 

@@ -150,6 +150,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
+        // Chỉ xóa remembered_username khi user explicitly uncheck rememberMe
+        // Không xóa trong trường hợp bình thường để giữ username
         localStorage.removeItem('remembered_username');
       }
 
@@ -257,6 +259,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
+        // Chỉ xóa remembered_username khi user explicitly uncheck rememberMe
+        // Không xóa trong trường hợp bình thường để giữ username
         localStorage.removeItem('remembered_username');
       }
 

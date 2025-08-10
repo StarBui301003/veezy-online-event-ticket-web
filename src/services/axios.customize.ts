@@ -42,21 +42,35 @@ export function registerGlobalSpinner(fn: (show: boolean) => void) {
 }
 
 const onRefreshed = (token: string) => {
-  refreshSubscribers.forEach((callback) => callback(token));
+  // ✅ Chỉ xử lý khi có token hợp lệ
+  if (token && token.length > 10) {
+    console.log('🔄 Processing', refreshSubscribers.length, 'queued requests with new token');
+    refreshSubscribers.forEach((callback) => callback(token));
+  } else {
+    console.warn('⚠️ onRefreshed called with invalid token, clearing queue without processing');
+  }
   refreshSubscribers = [];
 };
 
 const addRefreshSubscriber = (callback: (token: string) => void) => {
   refreshSubscribers.push(callback);
+  console.log('📥 Added request to refresh queue, current size:', refreshSubscribers.length);
 };
 
 // Hàm helper để clear auth data và redirect
 const clearAuthDataAndRedirect = () => {
-  window.localStorage.clear();
+  console.log('🚨 Clearing auth data and redirecting to login');
+
+  // ❌ Không dùng localStorage.clear() nữa vì sẽ xóa luôn account
+  localStorage.removeItem('access_token');
   document.cookie = 'refresh_token=; Max-Age=0; path=/;';
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';
+
+  // ✅ Clear subscriber queue mà không gọi onRefreshed với token rỗng
   refreshSubscribers = [];
-  onRefreshed('');
+
+  // ❌ KHÔNG gọi onRefreshed('') nữa vì sẽ gây lỗi
+  // onRefreshed(''); // Đã comment out
 
   if (!toast.isActive('global-error-toast')) {
     toast.error('Your session has expired. Please log in again.', {
@@ -104,9 +118,7 @@ instance.interceptors.response.use(
     if (setSpinner) setSpinner(false);
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
-    // Xử lý lỗi 401 (Unauthorized)
     if (error.response?.status === 401) {
-      // Danh sách endpoint không cần refresh token
       const skipRefreshEndpoints = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
 
       const shouldSkipRefresh = skipRefreshEndpoints.some(endpoint =>
@@ -117,32 +129,28 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // Kiểm tra nếu user chưa đăng nhập (không có access token)
-      const accessToken = window.localStorage.getItem('access_token');
+      const accessToken = localStorage.getItem('access_token');
       if (!accessToken) {
         return Promise.reject(error);
       }
 
-      // Lấy refresh token từ cookie
       const refreshToken = getRefreshToken();
-
-      // Nếu không có refresh token thì reject luôn
       if (!refreshToken) {
         clearAuthDataAndRedirect();
         return Promise.reject(error);
       }
 
-      // Kiểm tra nếu request đã được retry để tránh infinite loop
       if (originalRequest._retry) {
-        console.warn('Request already retried, clearing auth data to prevent infinite loop');
-        clearAuthDataAndRedirect();
+        // ❌ KHÔNG clear ngay, chỉ reject để tránh infinite loop
+        console.log('⚠️ Request already retried, rejecting to prevent infinite loop');
         return Promise.reject(error);
       }
 
-      // Nếu đang refresh token, thêm request vào queue
       if (isRefreshing) {
+        console.log('📋 Token refresh in progress, adding request to queue for:', originalRequest.url);
         return new Promise((resolve) => {
           addRefreshSubscriber((token: string) => {
+            console.log('📤 Processing queued request with new token for:', originalRequest.url);
             if (originalRequest.headers) {
               if (typeof originalRequest.headers.set === 'function') {
                 originalRequest.headers.set('Authorization', `Bearer ${token}`);
@@ -155,8 +163,8 @@ instance.interceptors.response.use(
         });
       }
 
-      // Bắt đầu refresh token
       isRefreshing = true;
+      console.log('🔄 Starting token refresh process for:', originalRequest.url);
 
       try {
         const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
@@ -170,63 +178,52 @@ instance.interceptors.response.use(
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-
-          // Parse error response để lấy thông tin chi tiết
-          let errorMessage = `Refresh token failed: ${response.status}`;
-          try {
-            const errorData = JSON.parse(errorText);
-            if (errorData.message) {
-              errorMessage += ` - ${errorData.message}`;
-            }
-            if (errorData.code) {
-              errorMessage += ` (Code: ${errorData.code})`;
-            }
-          } catch {
-            errorMessage += ` - ${errorText}`;
-          }
-
-          throw new Error(errorMessage);
+          throw new Error(`Refresh token failed: ${response.status}`);
         }
 
         const data = await response.json();
-
-        // Kiểm tra cấu trúc response
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid response format from refresh token endpoint');
+        if (!data?.flag || !data.data?.accessToken) {
+          throw new Error(`Refresh token failed: ${data.message || 'Unknown error'}`);
         }
 
-        if (!data.flag) {
-          throw new Error(`Refresh token failed: ${data.message || 'Unknown error'} (Code: ${data.code || 'N/A'})`);
-        }
+        const newAccessToken = data.data.accessToken;
+        const newRefreshToken = data.data.refreshToken;
+        const newAccount = data.data.account; // ✅ Lấy account từ response
 
-        const tokenData = data?.data;
-
-        if (!tokenData || !tokenData.accessToken) {
-          throw new Error('No access token in refresh response');
-        }
-
-        const newAccessToken = tokenData.accessToken;
-        const newRefreshToken = tokenData.refreshToken;
-
-        // Validate token mới
+        // ✅ Validate token mới trước khi xử lý
         if (!newAccessToken || newAccessToken.length < 10) {
           throw new Error('Invalid access token received from refresh endpoint');
         }
 
-        // Lưu token mới
-        window.localStorage.setItem('access_token', newAccessToken);
+        console.log('🔑 New access token received, length:', newAccessToken.length);
+        console.log('👤 New account data received:', newAccount ? 'Yes' : 'No');
+
+        // ✅ Lưu lại CẢ token VÀ account
+        localStorage.setItem('access_token', newAccessToken);
         if (newRefreshToken) {
           document.cookie = `refresh_token=${newRefreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
         }
 
-        // Thông báo cho tất cả request đang chờ
+        // ✅ Lưu lại account để ProtectedRoute không bị redirect
+        if (newAccount) {
+          localStorage.setItem('account', JSON.stringify(newAccount));
+          console.log('💾 Account data saved back to localStorage');
+        } else {
+          console.warn('⚠️ No account data in refresh response, account may be missing');
+        }
+
+        // ✅ Reset refreshing flag TRƯỚC KHI xử lý requests
+        isRefreshing = false;
+
+        console.log('📢 Notifying', refreshSubscribers.length, 'queued requests with new token');
         onRefreshed(newAccessToken);
 
-        // Đánh dấu request đã retry để tránh infinite loop
+        // ✅ Log sau khi xử lý subscriber queue
+        console.log('✅ Subscriber queue processed, retrying original request');
+
+        // ✅ Đánh dấu request này đã retry để tránh infinite loop
         originalRequest._retry = true;
 
-        // Retry request gốc với token mới
         if (originalRequest.headers) {
           if (typeof originalRequest.headers.set === 'function') {
             originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
@@ -235,16 +232,23 @@ instance.interceptors.response.use(
           }
         }
 
+        console.log('✅ Token refresh successful, retrying original request');
         return instance(originalRequest);
 
-      } catch (error) {
-
-        // Nếu refresh token thất bại, clear data và redirect
-        clearAuthDataAndRedirect();
-        return Promise.reject(error);
-
-      } finally {
+      } catch (err) {
+        // ❌ Chỉ clear data khi refresh thất bại
+        console.error('❌ Refresh token failed:', err);
         isRefreshing = false;
+
+        // ✅ Chỉ clear khi thực sự cần thiết
+        if (err instanceof Error && err.message.includes('Invalid refresh token')) {
+          clearAuthDataAndRedirect();
+        } else {
+          // ✅ Nếu lỗi network hoặc server, chỉ reject để retry sau
+          console.warn('⚠️ Refresh failed due to network/server error, not clearing auth data');
+        }
+
+        return Promise.reject(err);
       }
     }
 

@@ -65,27 +65,90 @@ const ProfilePage = () => {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    setLoading(true);
+    const loadInitialData = async () => {
+      setLoading(true);
 
-    // Get userId from localStorage
-    const accStr = localStorage.getItem('account');
-    console.log('ProfilePage - localStorage account:', accStr);
+      // Get userId from localStorage
+      const accStr = localStorage.getItem('account');
+      console.log('ProfilePage - localStorage account:', accStr);
 
-    if (accStr) {
-      const accountData = JSON.parse(accStr);
-      const userId = accountData.userId;
+      if (accStr) {
+        try {
+          const accountData = JSON.parse(accStr);
+          const userId = accountData.userId;
 
-      // Load user info from API
-      loadUserInfo(userId);
+          console.log('ProfilePage - Loading initial data for userId:', userId);
 
-      // Load user config from API
-      loadUserConfig(userId);
-    } else {
-      setLoading(false);
-    }
+          // Load all data simultaneously using Promise.all to avoid multiple refresh token calls
+          const [userInfoResponse, userConfigResponse] = await Promise.all([
+            getUserInfoAPI(userId),
+            getUserConfigAPI(userId),
+          ]);
 
-    // Note: Identity and FaceRecognition realtime updates not available
-    // No IdentityHub or FaceRecognitionHub implemented yet
+          // Process user info
+          if (userInfoResponse.data) {
+            const userData = userInfoResponse.data;
+            setAccount(userData);
+            setForm({
+              ...userData,
+            });
+            setPreviewUrl(userData.avatar || userData.avatarUrl || '');
+          }
+
+          // Process user config
+          if (userConfigResponse.data) {
+            const configData = userConfigResponse.data;
+            console.log('Config data from API:', configData);
+            console.log('receiveEmail from API:', configData.receiveEmail);
+
+            const newConfig = {
+              language: configData.language || 0,
+              theme: configData.theme || 0,
+              receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
+              receiveNotify:
+                configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+              userId: userId,
+            };
+
+            setUserConfig(newConfig);
+
+            // Save to localStorage
+            updateUserConfigAndTriggerUpdate(newConfig);
+
+            // Sync theme with ThemeContext
+            const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
+            if (theme !== themeMode) {
+              setTheme(themeMode);
+            }
+
+            console.log('Updated userConfig.receiveEmail:', configData.receiveEmail);
+          }
+
+          console.log('ProfilePage - Initial data loaded successfully');
+        } catch (error) {
+          console.error('ProfilePage - Failed to load initial data:', error);
+          // Fallback to localStorage if API fails
+          const accStr = localStorage.getItem('account');
+          if (accStr) {
+            const accountData = JSON.parse(accStr);
+            setAccount(accountData);
+            setForm({
+              ...accountData,
+            });
+            setPreviewUrl(accountData.avatar || accountData.avatarUrl || '');
+          }
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+
+      // Note: Identity and FaceRecognition realtime updates not available
+      // No IdentityHub or FaceRecognitionHub implemented yet
+    };
+
+    loadInitialData();
   }, []); // Removed refetchFaceAuth from dependencies to prevent infinite loop
 
   // Listen for language changes from header
@@ -127,75 +190,6 @@ const ProfilePage = () => {
     // Initial sync
     handleThemeChange();
   }, [theme]);
-
-  // Load user info from API
-  const loadUserInfo = async (userId: string) => {
-    try {
-      const response = await getUserInfoAPI(userId);
-      console.log('User info loaded:', response);
-
-      if (response.data) {
-        const userData = response.data;
-        setAccount(userData);
-        setForm({
-          ...userData,
-        });
-        setPreviewUrl(userData.avatar || userData.avatarUrl || '');
-      }
-    } catch (error) {
-      console.error('Failed to load user info:', error);
-      // Fallback to localStorage if API fails
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        const accountData = JSON.parse(accStr);
-        setAccount(accountData);
-        setForm({
-          ...accountData,
-        });
-        setPreviewUrl(accountData.avatar || accountData.avatarUrl || '');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load user config from API
-  const loadUserConfig = async (userId: string) => {
-    try {
-      const response = await getUserConfigAPI(userId);
-      console.log('User config loaded:', response);
-
-      if (response.data) {
-        const configData = response.data;
-        console.log('Config data from API:', configData);
-        console.log('receiveEmail from API:', configData.receiveEmail);
-
-        const newConfig = {
-          language: configData.language || 0,
-          theme: configData.theme || 0,
-          receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
-          receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
-          userId: userId, // Thêm userId để updateUserConfigAndTriggerUpdate hoạt động đúng
-        };
-
-        setUserConfig(newConfig);
-
-        // Save to localStorage
-        updateUserConfigAndTriggerUpdate(newConfig);
-
-        // Sync theme with ThemeContext
-        const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
-        if (theme !== themeMode) {
-          setTheme(themeMode);
-        }
-
-        console.log('Updated userConfig.receiveEmail:', configData.receiveEmail);
-      }
-    } catch (error) {
-      console.error('Failed to load user config:', error);
-      // Keep default values if API fails
-    }
-  };
 
   // Load face auth status on mount
   useEffect(() => {
