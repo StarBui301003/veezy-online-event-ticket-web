@@ -1,6 +1,6 @@
+import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatService, ChatMessage, ChatRoom } from '@/services/chat.service';
-import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom, connections } from '@/services/signalr.service';
 import { toast } from 'react-toastify';
 
 interface UseChatOptions {

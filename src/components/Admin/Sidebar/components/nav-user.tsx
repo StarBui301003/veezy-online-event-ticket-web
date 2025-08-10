@@ -23,6 +23,7 @@ import {
 import { LogoutAPI } from '@/services/auth.service';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { safeLogout } from '@/utils/auth';
 
 export function NavUser() {
   const { isMobile } = useSidebar();
@@ -108,12 +109,10 @@ export function NavUser() {
     setLoadingLogout(true);
     try {
       await LogoutAPI();
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('customerId');
-      localStorage.removeItem('account');
-      localStorage.removeItem('user_config');
-      localStorage.removeItem('admin-event-tab');
-      document.cookie = 'refresh_token=; Max-Age=0; path=/;';
+
+      // Sử dụng safeLogout để xóa auth data và giữ remembered_username
+      safeLogout();
+
       toast.success('Logged out successfully!');
       setTimeout(() => {
         window.location.href = '/login';

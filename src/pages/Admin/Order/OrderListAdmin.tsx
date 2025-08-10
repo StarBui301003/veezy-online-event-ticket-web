@@ -30,7 +30,7 @@ import OrderDetailModal from './OrderDetailModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { connectNotificationHub, onNotification } from '@/services/signalr.service';
+import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
@@ -89,15 +89,18 @@ const OrderListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    // Orders events are sent via NotificationHub from TicketService
-    connectNotificationHub('https://ticket.vezzy.site/notificationHub', token);
+    // TicketService emits order-related events on its NotificationHub (/notificationHub)
+    connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
     const reload = () => {
       fetchData();
     };
-    onNotification('OnOrderCreated', reload);
-    onNotification('OnOrderStatusUpdated', reload);
-    onNotification('OnOrderDeleted', reload);
-    onNotification('OnOrderPaidFree', reload);
+    onTicket('OnOrderCreated', reload);
+    onTicket('OnOrderStatusChanged', reload);
+    onTicket('OnOrderPaid', reload);
+    onTicket('OnOrderCancelled', reload);
+    onTicket('OnOrderRefunded', reload);
+    onTicket('OnOrderExpired', reload);
+    onTicket('OnOrderFailed', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

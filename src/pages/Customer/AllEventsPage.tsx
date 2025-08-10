@@ -20,7 +20,7 @@ import {
 type ViewMode = 'grid' | 'list';
 const PAGE_SIZE = 12;
 
-// SignalR Event Hub URL
+// SignalR Event Hub URL (per PORT-MAPPING-FINAL: Event service domain + eventHub)
 const SIGNALR_EVENT_HUB_URL = 'https://event.vezzy.site/eventHub';
 
 // ... (Các component con như formatDate, getImageUrl, EventCardSkeleton, NoResults giữ nguyên) ...
@@ -82,10 +82,6 @@ const NoResults = () => {
     </div>
   );
 };
-
-// const SIGNALR_EVENT_HUB_URL = ((import.meta as any)?.env?.VITE_EVENT_HUB_URL as string)
-//   || process.env.REACT_APP_EVENT_HUB_URL
-//   || '/eventHub';
 
 const AllEventsPage = () => {
   const { t } = useTranslation();

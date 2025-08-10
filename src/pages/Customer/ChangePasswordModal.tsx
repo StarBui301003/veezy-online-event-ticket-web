@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { safeLogout } from '@/utils/auth';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -105,13 +106,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
 
         // Wait 3 seconds then logout and redirect to login
         setTimeout(() => {
-          // Clear localStorage
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('account');
-          localStorage.removeItem('user_config');
-
-          // Redirect to login page
+          safeLogout();
           navigate('/login');
         }, 3000);
       } else {

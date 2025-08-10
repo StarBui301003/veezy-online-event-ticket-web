@@ -1,9 +1,9 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { setAccountAndUpdateTheme } from '@/utils/account-utils';
+import { safeLogout } from '@/utils/auth';
 
 interface AuthContextType {
   isLoggedIn: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   user: any | null;
   login: () => void;
   logout: () => void;
@@ -15,7 +15,6 @@ export const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
 });
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -83,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const accObj = JSON.parse(accStr);
         if (!accObj.userId || accObj.userId !== customerId) {
           accObj.userId = customerId;
-          localStorage.setItem('account', JSON.stringify(accObj));
+          setAccountAndUpdateTheme(accObj);
           setUser(accObj);
         }
       } catch {}
@@ -91,8 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('account');
+    safeLogout();
     setIsLoggedIn(false);
     setUser(null);
   }, []);
@@ -102,4 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

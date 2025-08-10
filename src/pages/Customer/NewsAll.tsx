@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { StageBackground } from '@/components/StageBackground';
 import { toast } from 'react-toastify';
 import instance from '@/services/axios.customize';
+import { onEvent } from '@/services/signalr.service';
 
 const PAGE_SIZE = 12;
 const BG_GRADIENTS = [
@@ -112,6 +113,20 @@ const NewsAll: React.FC = () => {
   // Load news when filters or page changes
   useEffect(() => {
     reloadNews(filters, currentPage);
+  }, [filters, currentPage]);
+
+  // Realtime: auto-reload when news events occur from backend via EventHub
+  useEffect(() => {
+    const reload = () => reloadNews(filters, currentPage);
+    onEvent('OnNewsCreated', reload);
+    onEvent('OnNewsUpdated', reload);
+    onEvent('OnNewsDeleted', reload);
+    onEvent('OnNewsApproved', reload);
+    onEvent('OnNewsUnhidden', reload);
+    return () => {
+      // No explicit offEvent exported; global connection handles listeners lifecycle.
+      // If needed, use offHubEvent from signalr.service in the future.
+    };
   }, [filters, currentPage]);
 
   // Handle filter changes

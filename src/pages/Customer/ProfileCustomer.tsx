@@ -44,6 +44,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { t } from 'i18next';
+import { setAccountAndUpdateTheme } from '@/utils/account-utils';
 
 const TABS = [
   { key: 'info', label: t('profileCustomer.personalInformation') },
@@ -95,31 +96,17 @@ const ProfileCustomer = () => {
           theme: configData.theme || 0,
           receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
           receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+          userId: userId, // Thêm userId để updateUserConfigAndTriggerUpdate hoạt động đúng
         };
 
         setUserConfig(newConfig);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
-
-        // Sync theme with ThemeContext
-        const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
-        if (theme !== themeMode) {
-          setTheme(themeMode);
-        }
+        // Save to localStorage with userId
+        updateUserConfigAndTriggerUpdate(newConfig);
       }
     } catch (error) {
       console.error('Failed to load user config:', error);
       // Keep default values if API fails
-    }
-  };
-
-  // Save user config to localStorage
-  const saveUserConfigToLocalStorage = (config: any) => {
-    try {
-      localStorage.setItem('user_config', JSON.stringify(config));
-    } catch (error) {
-      console.error('Failed to save user config to localStorage:', error);
     }
   };
 
@@ -209,11 +196,7 @@ const ProfileCustomer = () => {
     if (accountObj?.userId) {
       const setupRealtimeUpdates = async () => {
         try {
-          const {
-            onTicket,
-            onNotification,
-            onEvent,
-          } = await import('@/services/signalr.service');
+          const { onTicket, onNotification, onEvent } = await import('@/services/signalr.service');
 
           // Listen for ticket and order related events
           onTicket('OrderCreated', (data: any) => {
@@ -416,7 +399,7 @@ const ProfileCustomer = () => {
             acc.avatar = user.avatarUrl; // Lưu avatarUrl vào avatar field
             // Xóa avatarUrl field để chỉ sử dụng avatar
             delete acc.avatarUrl;
-            localStorage.setItem('account', JSON.stringify(acc));
+            setAccountAndUpdateTheme(acc);
           } catch (error) {
             console.error('Error updating localStorage:', error);
           }
@@ -528,11 +511,12 @@ const ProfileCustomer = () => {
       const newConfig = {
         ...userConfig,
         language: languageNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -554,11 +538,12 @@ const ProfileCustomer = () => {
       const newConfig = {
         ...userConfig,
         receiveEmail: checked,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
     } catch (error) {
@@ -567,7 +552,7 @@ const ProfileCustomer = () => {
     }
   };
 
-  const handleThemeChange = async (theme: string) => {
+  const handleThemeChange = async (themeValue: string) => {
     // Prevent multiple rapid clicks
     if (isThemeLoading) {
       return;
@@ -576,7 +561,7 @@ const ProfileCustomer = () => {
     setIsThemeLoading(true);
 
     try {
-      const themeNumber = parseInt(theme);
+      const themeNumber = parseInt(themeValue);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
       // Update user config via API first
@@ -591,11 +576,12 @@ const ProfileCustomer = () => {
       const newConfig = {
         ...userConfig,
         theme: themeNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
     } catch (error) {
@@ -636,7 +622,7 @@ const ProfileCustomer = () => {
         if (accStr) {
           const acc = JSON.parse(accStr);
           acc.avatar = avatarUrl;
-          localStorage.setItem('account', JSON.stringify(acc));
+          setAccountAndUpdateTheme(acc);
         }
 
         // Dispatch avatar-updated event ngay lập tức sau khi upload thành công
@@ -675,7 +661,7 @@ const ProfileCustomer = () => {
         };
         // Xóa avatarUrl field để chỉ sử dụng avatar
         delete newAccount.avatarUrl;
-        localStorage.setItem('account', JSON.stringify(newAccount));
+        setAccountAndUpdateTheme(newAccount);
       }
 
       // Sử dụng avatarUrl từ updatedUser nếu có, nếu không thì dùng từ upload

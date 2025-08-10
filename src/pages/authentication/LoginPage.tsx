@@ -29,6 +29,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/autoplay';
 import { getHomeEvents } from '@/services/Event Manager/event.service';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 interface EventData {
   eventId: string;
@@ -162,7 +163,7 @@ export const LoginPage = () => {
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
@@ -176,7 +177,7 @@ export const LoginPage = () => {
         userId,
         username: accountUsername,
       };
-      localStorage.setItem('account', JSON.stringify(minimalAccount));
+      setAccountAndUpdateTheme(minimalAccount);
 
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
@@ -184,7 +185,31 @@ export const LoginPage = () => {
         localStorage.removeItem('remembered_username');
       }
 
-      // Thông báo và điều hướng theo role
+      // Dispatch events for theme update
+      window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before navigation
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          // Check if theme classes are applied to document
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            // Wait a bit more for theme to apply
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+          }
+        };
+
+        // Start checking after a short delay to allow theme context to process
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+      });
+
+      // Now navigate with theme already applied
       let welcomeMsg = `Welcome ${accountUsername}!`;
       let redirectPath = '/';
       if (role === 0) {
@@ -194,7 +219,6 @@ export const LoginPage = () => {
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
         redirectPath = '/'; // Chuyển về home customer
       }
-      window.dispatchEvent(new Event('authChanged'));
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -246,7 +270,7 @@ export const LoginPage = () => {
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
@@ -260,7 +284,7 @@ export const LoginPage = () => {
         userId,
         username: accountUsername,
       };
-      localStorage.setItem('account', JSON.stringify(minimalAccount));
+      setAccountAndUpdateTheme(minimalAccount);
 
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
@@ -279,6 +303,29 @@ export const LoginPage = () => {
         redirectPath = '/'; // Chuyển về home customer
       }
       window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before navigation
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          // Check if theme classes are applied to document
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            // Wait a bit more for theme to apply
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+          }
+        };
+
+        // Start checking after a short delay to allow theme context to process
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+      });
+
+      // Now navigate with theme already applied
       toast.success(welcomeMsg, { position: 'top-right' });
       navigate(redirectPath, { replace: true });
     } catch (error: unknown) {
@@ -384,9 +431,7 @@ export const LoginPage = () => {
                 {t('welcomeHeading')}
               </h1>
 
-              <p className="text-white/70 text-lg mb-8 leading-relaxed">
-                {t('welcomeSubtext')}
-              </p>
+              <p className="text-white/70 text-lg mb-8 leading-relaxed">{t('welcomeSubtext')}</p>
             </div>
 
             {/* Decorative Elements */}

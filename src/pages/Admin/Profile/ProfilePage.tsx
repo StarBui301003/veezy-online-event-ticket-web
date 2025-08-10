@@ -33,6 +33,7 @@ import {
   validateDateOfBirth,
 } from '@/utils/validation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 const ProfilePage = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,28 +64,97 @@ const ProfilePage = () => {
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
   const { theme, setTheme } = useTheme();
 
+  // Debug logging for face auth status
+  console.log('[ProfilePage] useFaceAuthStatus hook result:', {
+    hasFaceAuth,
+    refetch: refetchFaceAuth,
+  });
+
   useEffect(() => {
-    setLoading(true);
+    const loadInitialData = async () => {
+      setLoading(true);
 
-    // Get userId from localStorage
-    const accStr = localStorage.getItem('account');
-    console.log('ProfilePage - localStorage account:', accStr);
+      // Get userId from localStorage
+      const accStr = localStorage.getItem('account');
+      console.log('ProfilePage - localStorage account:', accStr);
 
-    if (accStr) {
-      const accountData = JSON.parse(accStr);
-      const userId = accountData.userId;
+      if (accStr) {
+        try {
+          const accountData = JSON.parse(accStr);
+          const userId = accountData.userId;
 
-      // Load user info from API
-      loadUserInfo(userId);
+          console.log('ProfilePage - Loading initial data for userId:', userId);
 
-      // Load user config from API
-      loadUserConfig(userId);
-    } else {
-      setLoading(false);
-    }
+          // Load all data simultaneously using Promise.all to avoid multiple refresh token calls
+          const [userInfoResponse, userConfigResponse] = await Promise.all([
+            getUserInfoAPI(userId),
+            getUserConfigAPI(userId),
+          ]);
 
-    // Note: Identity and FaceRecognition realtime updates not available
-    // No IdentityHub or FaceRecognitionHub implemented yet
+          // Process user info
+          if (userInfoResponse.data) {
+            const userData = userInfoResponse.data;
+            setAccount(userData);
+            setForm({
+              ...userData,
+            });
+            setPreviewUrl(userData.avatar || userData.avatarUrl || '');
+          }
+
+          // Process user config
+          if (userConfigResponse.data) {
+            const configData = userConfigResponse.data;
+            console.log('Config data from API:', configData);
+            console.log('receiveEmail from API:', configData.receiveEmail);
+
+            const newConfig = {
+              language: configData.language || 0,
+              theme: configData.theme || 0,
+              receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
+              receiveNotify:
+                configData.receiveNotify !== undefined ? configData.receiveNotify : false,
+              userId: userId,
+            };
+
+            setUserConfig(newConfig);
+
+            // Save to localStorage
+            updateUserConfigAndTriggerUpdate(newConfig);
+
+            // Sync theme with ThemeContext
+            const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
+            if (theme !== themeMode) {
+              setTheme(themeMode);
+            }
+
+            console.log('Updated userConfig.receiveEmail:', configData.receiveEmail);
+          }
+
+          console.log('ProfilePage - Initial data loaded successfully');
+        } catch (error) {
+          console.error('ProfilePage - Failed to load initial data:', error);
+          // Fallback to localStorage if API fails
+          const accStr = localStorage.getItem('account');
+          if (accStr) {
+            const accountData = JSON.parse(accStr);
+            setAccount(accountData);
+            setForm({
+              ...accountData,
+            });
+            setPreviewUrl(accountData.avatar || accountData.avatarUrl || '');
+          }
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+
+      // Note: Identity and FaceRecognition realtime updates not available
+      // No IdentityHub or FaceRecognitionHub implemented yet
+    };
+
+    loadInitialData();
   }, []); // Removed refetchFaceAuth from dependencies to prevent infinite loop
 
   // Listen for language changes from header
@@ -127,89 +197,6 @@ const ProfilePage = () => {
     handleThemeChange();
   }, [theme]);
 
-  // Load user info from API
-  const loadUserInfo = async (userId: string) => {
-    try {
-      const response = await getUserInfoAPI(userId);
-      console.log('User info loaded:', response);
-
-      if (response.data) {
-        const userData = response.data;
-        setAccount(userData);
-        setForm({
-          ...userData,
-        });
-        setPreviewUrl(userData.avatar || userData.avatarUrl || '');
-      }
-    } catch (error) {
-      console.error('Failed to load user info:', error);
-      // Fallback to localStorage if API fails
-      const accStr = localStorage.getItem('account');
-      if (accStr) {
-        const accountData = JSON.parse(accStr);
-        setAccount(accountData);
-        setForm({
-          ...accountData,
-        });
-        setPreviewUrl(accountData.avatar || accountData.avatarUrl || '');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load user config from API
-  const loadUserConfig = async (userId: string) => {
-    try {
-      const response = await getUserConfigAPI(userId);
-      console.log('User config loaded:', response);
-
-      if (response.data) {
-        const configData = response.data;
-        console.log('Config data from API:', configData);
-        console.log('receiveEmail from API:', configData.receiveEmail);
-
-        const newConfig = {
-          language: configData.language || 0,
-          theme: configData.theme || 0,
-          receiveEmail: configData.receiveEmail !== undefined ? configData.receiveEmail : false,
-          receiveNotify: configData.receiveNotify !== undefined ? configData.receiveNotify : false,
-        };
-
-        setUserConfig(newConfig);
-
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
-
-        // Sync theme with ThemeContext
-        const themeMode = newConfig.theme === 1 ? 'dark' : 'light';
-        if (theme !== themeMode) {
-          setTheme(themeMode);
-        }
-
-        console.log('Updated userConfig.receiveEmail:', configData.receiveEmail);
-      }
-    } catch (error) {
-      console.error('Failed to load user config:', error);
-      // Keep default values if API fails
-    }
-  };
-
-  // Save user config to localStorage
-  const saveUserConfigToLocalStorage = (config: any) => {
-    try {
-      localStorage.setItem('user_config', JSON.stringify(config));
-      console.log('User config saved to localStorage:', config);
-    } catch (error) {
-      console.error('Failed to save user config to localStorage:', error);
-    }
-  };
-
-  // Load face auth status on mount
-  useEffect(() => {
-    refetchFaceAuth();
-  }, []);
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev: any) => ({
@@ -242,11 +229,12 @@ const ProfilePage = () => {
       const newConfig = {
         ...userConfig,
         language: languageNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -269,11 +257,12 @@ const ProfilePage = () => {
       const newConfig = {
         ...userConfig,
         receiveEmail: checked,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Email notifications updated successfully:', checked);
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
@@ -283,7 +272,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleThemeChange = async (theme: string) => {
+  const handleThemeChange = async (themeValue: string) => {
     // Prevent multiple rapid clicks
     if (isThemeLoading) {
       return;
@@ -292,7 +281,7 @@ const ProfilePage = () => {
     setIsThemeLoading(true);
 
     try {
-      const themeNumber = parseInt(theme);
+      const themeNumber = parseInt(themeValue);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
       // Update user config via API first
@@ -307,11 +296,12 @@ const ProfilePage = () => {
       const newConfig = {
         ...userConfig,
         theme: themeNumber,
+        userId: account.userId, // Thêm userId
       };
       setUserConfig(newConfig);
 
       // Save to localStorage
-      saveUserConfigToLocalStorage(newConfig);
+      updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Theme updated successfully:', themeNumber);
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
@@ -417,7 +407,7 @@ const ProfilePage = () => {
         gender: Number(form.gender),
       };
 
-      localStorage.setItem('account', JSON.stringify(newAccount));
+      setAccountAndUpdateTheme(newAccount);
 
       // Update state
       setAccount({ ...form, avatar: finalAvatarUrl });
@@ -835,11 +825,11 @@ const ProfilePage = () => {
                   await refetchFaceAuth();
                 } catch (e: any) {
                   console.error('Face update error:', e);
-                  
+
                   let msg = t('updateFaceFailed');
                   if (e?.response?.data?.message) {
                     const m = e.response.data.message;
-                    
+
                     // Check for all possible face authentication errors
                     if (
                       m.includes('This face is already registered to another account') ||

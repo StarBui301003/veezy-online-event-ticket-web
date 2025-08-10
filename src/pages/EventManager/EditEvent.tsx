@@ -429,7 +429,8 @@ export default function EditEvent() {
       const newContents = [...contents];
       newContents[index].imageUrl = url;
       setContents(newContents);
-    } catch {
+    } catch (error) {
+      console.error('Error uploading content image:', error);
     } finally {
       setUploadingContentImage((prev) => ({ ...prev, [index]: false }));
     }
@@ -622,9 +623,7 @@ export default function EditEvent() {
     control: (provided, state) => ({
       ...provided,
       backgroundColor: theme === 'dark' ? '#27272a' : '#ffffff',
-      borderColor: state.isFocused
-        ? '#a21caf'
-        : '#3f3f46',
+      borderColor: state.isFocused ? '#a21caf' : '#3f3f46',
       color: theme === 'dark' ? '#ffffff' : '#374151',
       borderRadius: 12,
       minHeight: 48,
@@ -690,10 +689,7 @@ export default function EditEvent() {
             <div
               className={cn(
                 'animate-spin h-12 w-12 border-4 border-t-transparent rounded-full mx-auto mb-4',
-                getThemeClass(
-                  'border-blue-500',
-                  'border-purple-500'
-                )
+                getThemeClass('border-blue-500', 'border-purple-500')
               )}
             />
           </div>
@@ -999,10 +995,7 @@ export default function EditEvent() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2 mb-8',
-              getThemeClass(
-                'bg-white/95 border-blue-200',
-                'bg-[#2d0036]/80 border-pink-500/30'
-              )
+              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
             )}
           >
             <h3 className="text-xl font-semibold text-purple-300 mb-4 flex items-center">
@@ -1096,10 +1089,7 @@ export default function EditEvent() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2',
-              getThemeClass(
-                'bg-white/95 border-blue-200',
-                'bg-[#2d0036]/80 border-pink-500/30'
-              )
+              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
             )}
           >
             <div className="flex items-center justify-between mb-6">
@@ -1168,10 +1158,7 @@ export default function EditEvent() {
                   key={index}
                   className={cn(
                     'relative p-6 rounded-xl shadow-lg border-2',
-                    getThemeClass(
-                      'bg-white border-blue-200',
-                      'bg-[#2d0036]/80 border-pink-500/30'
-                    )
+                    getThemeClass('bg-white border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
                   )}
                 >
                   {/* Content Header */}

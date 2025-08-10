@@ -78,7 +78,7 @@ export const CommentList = () => {
 
   useEffect(() => {
     const COMMENT_HUB_URL = ((import.meta as any)?.env?.VITE_COMMENT_HUB_URL as string)
-      || (process.env as any)?.REACT_APP_COMMENT_HUB_URL
+      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_COMMENT_HUB_URL : undefined)
       || '/commentHub';
     connectCommentHub(COMMENT_HUB_URL);
 

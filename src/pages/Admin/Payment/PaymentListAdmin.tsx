@@ -30,7 +30,7 @@ import GenerateTicketModal from './GenerateTicketModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTicketAlt } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { connectNotificationHub, onNotification } from '@/services/signalr.service';
+import { connectPaymentHub, onPayment } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
@@ -86,14 +86,14 @@ const PaymentListAdmin = () => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    // Payment events are sent via NotificationHub from TicketService
-    connectNotificationHub('https://ticket.vezzy.site/notificationHub', token);
+    connectPaymentHub('http://localhost:5005/paymentHub', token);
     const reload = () => {
       fetchData();
     };
-    onNotification('OnPaymentCreated', reload);
-    onNotification('OnPaymentVerified', reload);
-    onNotification('OnPaymentListFetched', reload);
+    onPayment('OnPaymentCreated', reload);
+    onPayment('OnPaymentStatusChanged', reload);
+    onPayment('OnPaymentSuccess', reload);
+    onPayment('OnPaymentFailed', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -30,6 +30,10 @@ import ThemeToggle from '@/components/Admin/ThemeToggle';
 import { CustomerChatBox } from '@/components/Customer';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/contexts/ThemeContext';
+import { updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
+import { getCurrentUserId } from '@/utils/account-utils';
+import { safeLogout } from '@/utils/auth';
 
 // Custom scrollbar styles - will be updated dynamically based on theme
 const getScrollbarStyles = (isDark: boolean) => `
@@ -106,18 +110,6 @@ const getScrollbarStyles = (isDark: boolean) => `
   }
 `;
 
-// Helper: get userId from localStorage
-const getUserId = () => {
-  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  if (!accStr) return null;
-  try {
-    const acc = JSON.parse(accStr);
-    return acc.userId || acc.accountId || null;
-  } catch {
-    return null;
-  }
-};
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -127,9 +119,14 @@ import {
 import { Globe } from 'lucide-react';
 
 export function EventManagerLayout() {
+  const { t } = useTranslation();
+  const { theme, resetThemeForNewUser } = useTheme();
+  const { getThemeClass } = useThemeClasses();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
+  const [i18nInstance] = useState(i18n);
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({
@@ -139,12 +136,33 @@ export function EventManagerLayout() {
     content: false,
     chatSupport: false,
   });
-  const [loading, setLoading] = useState(false);
-  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { t, i18n: i18nInstance } = useTranslation();
+  // Check and reset theme when EventManager layout mounts
+  // This is still needed as a fallback for cases where login event might not fire
+  useEffect(() => {
+    resetThemeForNewUser();
+  }, []); // Remove resetThemeForNewUser from dependencies to avoid infinite loop
+
+  // Check and update theme when user changes (login/logout)
+  useEffect(() => {
+    const checkUserAndUpdateTheme = () => {
+      resetThemeForNewUser();
+    };
+
+    // Listen for user changes
+    window.addEventListener('authChanged', checkUserAndUpdateTheme);
+    window.addEventListener('user-updated', checkUserAndUpdateTheme);
+    window.addEventListener('login', checkUserAndUpdateTheme);
+
+    return () => {
+      window.removeEventListener('authChanged', checkUserAndUpdateTheme);
+      window.removeEventListener('user-updated', checkUserAndUpdateTheme);
+      window.removeEventListener('login', checkUserAndUpdateTheme);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   // Helper: update language in user config
   const handleChangeLanguage = async (lang: 'vi' | 'en') => {
@@ -159,7 +177,7 @@ export function EventManagerLayout() {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
 
-      const userId = getUserId();
+      const userId = getCurrentUserId();
       if (!userId) {
         console.warn('No userId found, language changed locally only');
         return;
@@ -176,8 +194,8 @@ export function EventManagerLayout() {
         // Update user config via API
         await updateUserConfig(userId, newConfig);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        // Save to localStorage with proper event triggering
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Show success toast using translation
         toast.success(t('languageChangedSuccessfully'));
@@ -216,17 +234,7 @@ export function EventManagerLayout() {
   }, [i18nInstance]);
 
   const handleLogout = () => {
-    // Xóa tất cả localStorage
-    localStorage.clear();
-    sessionStorage.clear();
-    document.cookie.split(';').forEach(function (c) {
-      document.cookie = c
-        .replace(/^ +/, '')
-        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-    });
-    // Dispatch sự kiện để các tab khác cập nhật trạng thái đăng nhập
-    window.dispatchEvent(new Event('authChanged'));
-    // Chuyển hướng về trang login
+    safeLogout();
     navigate('/login');
   };
 
@@ -341,8 +349,6 @@ export function EventManagerLayout() {
       )}
     </button>
   );
-
-  const { getThemeClass, theme } = useThemeClasses();
 
   return (
     <>

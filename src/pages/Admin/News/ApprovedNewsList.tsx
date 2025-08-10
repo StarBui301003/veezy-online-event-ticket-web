@@ -112,7 +112,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
-      || (process.env as any)?.REACT_APP_NEWS_HUB_URL
+      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL : undefined)
       || '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {

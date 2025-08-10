@@ -23,6 +23,7 @@ import { chatService } from '@/services/chat.service';
 import { useCustomerChat } from '@/hooks/use-customer-chat';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { getCurrentAccount } from '@/utils/account-utils';
 
 // Chuẩn hóa message theo ChatMessageDto từ backend
 interface UnifiedMessage {
@@ -60,7 +61,7 @@ interface UnifiedCustomerChatProps {
   className?: string;
 }
 
-export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className = '' }) => {
+const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className = '' }) => {
   const { getThemeClass } = useThemeClasses();
 
   // State management
@@ -1165,4 +1166,51 @@ export const CustomerChatBox: React.FC<UnifiedCustomerChatProps> = ({ className 
   );
 };
 
-export default CustomerChatBox;
+// Wrapper component with authentication and role checking
+const AuthenticatedCustomerChatBox: React.FC<UnifiedCustomerChatProps> = (props) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Check authentication and role on mount and when auth changes
+  const checkVisibility = useCallback(() => {
+    const isAuthenticated = !!localStorage.getItem('access_token');
+    const currentAccount = getCurrentAccount();
+    
+    // Only show chatbox for logged in users with Customer (role 1) or Event Manager (role 2) roles
+    const shouldShow = isAuthenticated && currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    setIsVisible(shouldShow);
+  }, []);
+
+  useEffect(() => {
+    // Initial check
+    checkVisibility();
+
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      checkVisibility();
+    };
+
+    window.addEventListener('authChanged', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('login', handleAuthChange);
+    window.addEventListener('logout', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('authChanged', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('login', handleAuthChange);
+      window.removeEventListener('logout', handleAuthChange);
+    };
+  }, [checkVisibility]);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return <CustomerChatBoxInternal {...props} />;
+};
+
+// Export the wrapper as the default export
+export default AuthenticatedCustomerChatBox;
+
+// Also export the wrapper as a named export for consistency
+export { AuthenticatedCustomerChatBox as CustomerChatBox };

@@ -20,17 +20,11 @@ import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import { toast } from 'react-toastify';
 import ThemeToggle from '@/components/Admin/ThemeToggle';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
-// Helper: get userId from localStorage
-const getUserId = () => {
-  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  if (!accStr) return null;
-  try {
-    const acc = JSON.parse(accStr);
-    return acc.userId || acc.accountId || null;
-  } catch {
-    return null;
-  }
-};
+import { useTheme } from '@/contexts/ThemeContext';
+import { updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
+import { getCurrentUserId } from '@/utils/account-utils';
+
+// Custom scrollbar styles - will be updated dynamically based on theme
 
 import {
   DropdownMenu,
@@ -58,8 +52,33 @@ const useGlobalLoading = () => {
 export function AdminLayout() {
   const { t, i18n: i18nInstance } = useTranslation();
   const { getThemeClass } = useThemeClasses();
+  const { resetThemeForNewUser } = useTheme();
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter(Boolean);
+
+  // Check and reset theme when admin layout mounts
+  // This is still needed as a fallback for cases where login event might not fire
+  useEffect(() => {
+    resetThemeForNewUser();
+  }, []); // Remove resetThemeForNewUser from dependencies to avoid infinite loop
+
+  // Check and update theme when user changes (login/logout)
+  useEffect(() => {
+    const checkUserAndUpdateTheme = () => {
+      resetThemeForNewUser();
+    };
+
+    // Listen for user changes
+    window.addEventListener('authChanged', checkUserAndUpdateTheme);
+    window.addEventListener('user-updated', checkUserAndUpdateTheme);
+    window.addEventListener('login', checkUserAndUpdateTheme);
+
+    return () => {
+      window.removeEventListener('authChanged', checkUserAndUpdateTheme);
+      window.removeEventListener('user-updated', checkUserAndUpdateTheme);
+      window.removeEventListener('login', checkUserAndUpdateTheme);
+    };
+  }, []); // Empty dependency array - only run once on mount
 
   // Helper: update language in user config
   const handleChangeLanguage = async (lang: 'vi' | 'en') => {
@@ -67,7 +86,7 @@ export function AdminLayout() {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
 
-      const userId = getUserId();
+      const userId = getCurrentUserId();
       if (!userId) {
         return;
       }
@@ -83,8 +102,8 @@ export function AdminLayout() {
         // Update user config via API
         await updateUserConfig(userId, newConfig);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        // Save to localStorage with proper event triggering
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Show success toast using translation
         toast.success(t('languageChangedSuccessfully'));
@@ -110,7 +129,9 @@ export function AdminLayout() {
             }
           }
         }
-      } catch (error) {}
+      } catch (error) {
+        //36
+      }
     };
 
     loadLanguageFromStorage();

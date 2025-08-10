@@ -22,55 +22,45 @@ export interface FundFilterParams {
 
 // Lấy danh sách chờ duyệt
 export async function getPendingWithdrawals(params: FundFilterParams): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
-    console.log('🚀 API Call - getPendingWithdrawals:', params);
     const res = await instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/pending-withdrawals-details', {
         params,
         paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     });
-    console.log('📥 API Response - getPendingWithdrawals:', res.data);
     return res;
 }
 
 // Lấy danh sách đang xử lý
 export async function getProcessingWithdrawals(params: FundFilterParams): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
-    console.log('🚀 API Call - getProcessingWithdrawals:', params);
     const res = await instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/processing-withdrawals-details', {
         params,
         paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     });
-    console.log('📥 API Response - getProcessingWithdrawals:', res.data);
     return res;
 }
 
 // Lấy danh sách đã xác nhận thanh toán
 export async function getSuccessfulWithdrawals(params: FundFilterParams): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
-    console.log('🚀 API Call - getSuccessfulWithdrawals:', params);
     const res = await instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/successful-withdrawals-details', {
         params,
         paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     });
-    console.log('📥 API Response - getSuccessfulWithdrawals:', res.data);
     return res;
 }
 
 export async function getRejectedWithdrawals(params: FundFilterParams): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
-    console.log('🚀 API Call - getRejectedWithdrawals:', params);
     const res = await instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/rejected-withdrawals-details', {
         params,
         paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     });
-    console.log('📥 API Response - getRejectedWithdrawals:', res.data);
     return res;
 }
 
 // Lấy tất cả yêu cầu rút tiền (bao gồm bị từ chối)
 export async function getAllWithdrawalRequests(params: FundFilterParams): Promise<AxiosResponse<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>> {
-    console.log('🚀 API Call - getAllWithdrawalRequests:', params);
     const res = await instance.get<ApiResponse<PaginatedResponseDto<WithdrawalRequestDto>>>('/api/Fund/all-withdrawal-requests-details', {
         params,
         paramsSerializer: (params) => qs.stringify(params, { arrayFormat: 'repeat' })
     });
-    console.log('📥 API Response - getAllWithdrawalRequests:', res.data);
     return res;
 }
 

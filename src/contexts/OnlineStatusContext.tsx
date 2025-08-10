@@ -285,7 +285,7 @@ export const OnlineStatusProvider: React.FC<OnlineStatusProviderProps> = ({ chil
     return user?.lastActiveAt || null;
   };
 
-  const refreshUserStatus = async (userId: string): Promise<void> => {
+  const refreshUserStatus = async (): Promise<void> => {
     try {
       // Backend OnlineStatusService không có public API endpoint cho individual user check
       // Thay vào đó, dựa vào SignalR events và middleware để track status

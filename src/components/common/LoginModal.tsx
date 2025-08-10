@@ -18,6 +18,7 @@ import {
 import FaceCapture from '@/components/common/FaceCapture';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '@/contexts/AuthContext';
+import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 
 interface LoginModalProps {
   open: boolean;
@@ -26,11 +27,11 @@ interface LoginModalProps {
   onRegisterRedirect?: () => void;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ 
-  open, 
-  onClose, 
+export const LoginModal: React.FC<LoginModalProps> = ({
+  open,
+  onClose,
   onLoginSuccess,
-  onRegisterRedirect 
+  onRegisterRedirect,
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -98,31 +99,49 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
-        // Always set role to 1 for customer accounts
-        let finalRole = typeof role === 'number' ? role : 1;
-        // If role is not admin (0) or event manager (2), force to customer (1)
-        if (finalRole !== 0 && finalRole !== 2) {
-          finalRole = 1;
-        }
-        const minimalAccount = {
-          accountId,
-          avatar,
-          email,
-          gender,
-          phone,
-          role: finalRole,
-          userId,
-          username: accountUsername,
+      // Always set role to 1 for customer accounts
+      let finalRole = typeof role === 'number' ? role : 1;
+      // If role is not admin (0) or event manager (2), force to customer (1)
+      if (finalRole !== 0 && finalRole !== 2) {
+        finalRole = 1;
+      }
+      const minimalAccount = {
+        accountId,
+        avatar,
+        email,
+        gender,
+        phone,
+        role: finalRole,
+        userId,
+        username: accountUsername,
+      };
+      setAccountAndUpdateTheme(minimalAccount);
+
+      // Force AuthContext to update user state immediately
+      window.dispatchEvent(new Event('authChanged'));
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before closing modal
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+          }
         };
-        localStorage.setItem('account', JSON.stringify(minimalAccount));
-        localStorage.setItem('role', String(finalRole));
-        
-        // Force AuthContext to update user state immediately
-        window.dispatchEvent(new Event('authChanged'));
+
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+      });
+
       // Gọi login() từ AuthContext nếu có
       if (ctx && typeof ctx.login === 'function') {
         ctx.login();
@@ -131,6 +150,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
+        // Chỉ xóa remembered_username khi user explicitly uncheck rememberMe
+        // Không xóa trong trường hợp bình thường để giữ username
         localStorage.removeItem('remembered_username');
       }
 
@@ -142,7 +163,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
       }
       toast.success(welcomeMsg, { position: 'top-right' });
-      
+
       // Close modal and trigger success callback
       onClose();
       onLoginSuccess();
@@ -195,7 +216,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       } = apiResult.data.account;
 
       if (userConfig !== undefined) {
-        localStorage.setItem('user_config', JSON.stringify(userConfig));
+        updateUserConfigAndTriggerUpdate(userConfig);
       } else {
         localStorage.removeItem('user_config');
       }
@@ -209,16 +230,37 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         userId,
         username: accountUsername,
       };
-      localStorage.setItem('account', JSON.stringify(minimalAccount));
+      setAccountAndUpdateTheme(minimalAccount);
 
       // Gọi login() từ AuthContext nếu có
       if (ctx && typeof ctx.login === 'function') {
         ctx.login();
       }
 
+      // Trigger login event for theme update
+      window.dispatchEvent(new Event('login'));
+
+      // NEW: Wait for theme to be applied before closing modal
+      await new Promise((resolve) => {
+        const checkThemeApplied = () => {
+          const root = document.documentElement;
+          const hasThemeClass = root.classList.contains('light') || root.classList.contains('dark');
+
+          if (hasThemeClass) {
+            resolve(true);
+          } else {
+            setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+          }
+        };
+
+        setTimeout(checkThemeApplied, 1000); // Updated to 1 second delay
+      });
+
       if (rememberMe) {
         localStorage.setItem('remembered_username', username);
       } else {
+        // Chỉ xóa remembered_username khi user explicitly uncheck rememberMe
+        // Không xóa trong trường hợp bình thường để giữ username
         localStorage.removeItem('remembered_username');
       }
 
@@ -230,8 +272,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         welcomeMsg = `Welcome event manager ${accountUsername}!`;
       }
       toast.success(welcomeMsg, { position: 'top-right' });
-      
-      // Close modal and trigger success callback
+
+      // Close modal and trigger success callback after theme is applied
       onClose();
       onLoginSuccess();
     } catch (error: unknown) {
@@ -275,12 +317,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   return (
     <>
       {/* Modal Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       >
         {/* Modal Content */}
-        <div 
+        <div
           className="relative bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 text-white"
           onClick={(e) => e.stopPropagation()}
         >
@@ -428,7 +470,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* Register Link */}
             <div className="text-center pt-4">
               <span className="text-white/70">Don't have an account? </span>
-              <button 
+              <button
                 onClick={handleRegisterClick}
                 className="text-blue-300 hover:text-blue-200 font-semibold transition-colors"
               >

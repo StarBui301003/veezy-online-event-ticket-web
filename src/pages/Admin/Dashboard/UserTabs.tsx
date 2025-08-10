@@ -329,7 +329,7 @@ export default function UserTabs() {
           )}
           {demographics && demographics.averageAge && (
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Avg. Age: {demographics.averageAge}
+              Avg. Age: {Math.round(demographics.averageAge)}
             </div>
           )}
         </div>

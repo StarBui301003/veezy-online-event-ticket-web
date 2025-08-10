@@ -31,18 +31,7 @@ import { updateUserConfig, getUserConfig } from '@/services/userConfig.service';
 import ThemeToggle from '@/components/User/ThemeToggle';
 import { toast } from 'react-toastify';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
-
-// Helper: get userId from localStorage
-const getUserId = () => {
-  const accStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
-  if (!accStr) return null;
-  try {
-    const acc = JSON.parse(accStr);
-    return acc.userId || acc.accountId || null;
-  } catch {
-    return null;
-  }
-};
+import { updateUserConfigAndTriggerUpdate, getCurrentUserId } from '@/utils/account-utils';
 
 export const Header = () => {
   const { t, i18n: i18nInstance } = useTranslation();
@@ -63,7 +52,7 @@ export const Header = () => {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
 
-      const userId = getUserId();
+      const userId = getCurrentUserId();
       if (!userId) {
         console.warn('No userId found, language changed locally only');
         return;
@@ -80,8 +69,8 @@ export const Header = () => {
         // Update user config via API
         await updateUserConfig(userId, newConfig);
 
-        // Save to localStorage
-        localStorage.setItem('user_config', JSON.stringify(newConfig));
+        // Save to localStorage with proper event triggering
+        updateUserConfigAndTriggerUpdate(newConfig);
 
         // Show success toast using translation
         toast.success(t('languageChangedSuccessfully'));
