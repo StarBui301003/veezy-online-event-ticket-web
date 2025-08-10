@@ -16,6 +16,7 @@ const instance: AxiosInstance = axios.create({
 // Biến toàn cục để xử lý refresh token
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
+let lastRefreshTime = 0;
 
 // Biến spinner để điều khiển hiển thị loading toàn cục
 let setSpinner: ((show: boolean) => void) | null = null;
@@ -49,13 +50,108 @@ const isAccessTokenExpired = (token: string): boolean => {
     // Decode JWT token để check expiration
     const payload = JSON.parse(atob(token.split('.')[1]));
     const currentTime = Math.floor(Date.now() / 1000);
-
-
     return currentTime >= payload.exp;
   } catch {
     return true; // Nếu không decode được, coi như expired
   }
 };
+
+// Hàm tự động refresh token sau 160 phút
+const shouldAutoRefresh = (): boolean => {
+  const currentTime = Date.now();
+  const timeSinceLastRefresh = currentTime - lastRefreshTime;
+  const REFRESH_INTERVAL = 170 * 60 * 1000; // 170 phút = 170 * 60 * 1000 ms
+
+  return timeSinceLastRefresh >= REFRESH_INTERVAL;
+};
+
+// Hàm gọi API refresh token
+const callRefreshTokenAPI = async (): Promise<boolean> => {
+  try {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      return false;
+    }
+
+    const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = await response.json();
+    if (!data?.flag || !data.data?.accessToken) {
+      return false;
+    }
+
+    const newAccessToken = data.data.accessToken;
+    const newRefreshToken = data.data.refreshToken;
+    const newAccount = data.data.account;
+
+    // Lưu token mới
+    localStorage.setItem('access_token', newAccessToken);
+    if (newRefreshToken) {
+      document.cookie = `refresh_token=${newRefreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
+    }
+
+    // Lưu account mới
+    if (newAccount) {
+      const essentialAccountData = {
+        accountId: newAccount.accountId,
+        userId: newAccount.userId,
+        username: newAccount.username,
+        email: newAccount.email,
+        role: newAccount.role,
+        avatar: newAccount.avatar
+      };
+      localStorage.setItem('account', JSON.stringify(essentialAccountData));
+    }
+
+    // Lưu user config mới
+    if (data.data.userConfig) {
+      const userConfig = data.data.userConfig;
+      const essentialUserConfig = {
+        language: userConfig.language,
+        theme: userConfig.theme,
+        receiveEmail: userConfig.receiveEmail,
+        receiveNotify: userConfig.receiveNotify,
+        userId: userConfig.userId
+      };
+      localStorage.setItem('user_config', JSON.stringify(essentialUserConfig));
+    }
+
+    // Cập nhật thời gian refresh cuối cùng
+    lastRefreshTime = Date.now();
+
+    console.log('🔄 Token refreshed automatically after 160 minutes');
+    return true;
+  } catch (error) {
+    console.error('❌ Auto refresh token failed:', error);
+    return false;
+  }
+};
+
+// Khởi tạo auto refresh timer
+const initAutoRefresh = () => {
+  // Kiểm tra mỗi phút
+  setInterval(async () => {
+    const token = localStorage.getItem('access_token');
+    if (token && shouldAutoRefresh()) {
+      await callRefreshTokenAPI();
+    }
+  }, 60 * 1000); // Check every minute
+};
+
+// Khởi tạo auto refresh khi module được load
+initAutoRefresh();
 
 export function registerGlobalSpinner(fn: (show: boolean) => void) {
   setSpinner = fn;
@@ -96,9 +192,6 @@ const clearAuthDataAndRedirect = () => {
   // ✅ Clear subscriber queue mà không gọi onRefreshed với token rỗng
   refreshSubscribers = [];
 
-  // ❌ KHÔNG gọi onRefreshed('') nữa vì sẽ gây lỗi
-  // onRefreshed(''); // Đã comment out
-
   if (!toast.isActive('global-error-toast')) {
     toast.error('Your session has expired. Please log in again.', {
       toastId: 'global-error-toast',
@@ -122,7 +215,6 @@ instance.interceptors.request.use(
       if (token && config.headers) {
         // ✅ Kiểm tra token có hết hạn không trước khi sử dụng
         if (isAccessTokenExpired(token)) {
-
           // Không set header, để response interceptor xử lý
         } else {
           if (typeof config.headers.set === 'function') {
@@ -167,13 +259,6 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // ✅ Kiểm tra access token có hết hạn không
-      if (isAccessTokenExpired(accessToken)) {
-        // Access token expired, proceeding with refresh
-      } else {
-        // Access token not expired but got 401, may be invalid
-      }
-
       const refreshToken = getRefreshToken();
       if (!refreshToken) {
         clearAuthDataAndRedirect();
@@ -207,10 +292,6 @@ instance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // ✅ Thêm timeout cho refresh token request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
-
         const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
           method: 'POST',
           headers: {
@@ -219,10 +300,7 @@ instance.interceptors.response.use(
           },
           credentials: 'include',
           body: JSON.stringify({ refreshToken }),
-          signal: controller.signal
         });
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`Refresh token failed: ${response.status}`);
@@ -235,27 +313,16 @@ instance.interceptors.response.use(
 
         const newAccessToken = data.data.accessToken;
         const newRefreshToken = data.data.refreshToken;
-        const newAccount = data.data.account; // ✅ Lấy account từ response
+        const newAccount = data.data.account;
 
-        // ✅ Validate token mới trước khi xử lý
-        if (!newAccessToken || newAccessToken.length < 10) {
-          throw new Error('Invalid access token received from refresh endpoint');
-        }
-
-        // ✅ Kiểm tra token mới có hết hạn không
-        if (isAccessTokenExpired(newAccessToken)) {
-          throw new Error('New access token is already expired');
-        }
-
-        // ✅ Lưu lại CẢ token VÀ account
+        // Lưu token mới
         localStorage.setItem('access_token', newAccessToken);
         if (newRefreshToken) {
           document.cookie = `refresh_token=${newRefreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
         }
 
-        // ✅ Lưu lại account với chỉ các field cần thiết cho ProtectedRoute
+        // Lưu account mới
         if (newAccount) {
-          // Chỉ lưu các field cần thiết cho authentication và routing
           const essentialAccountData = {
             accountId: newAccount.accountId,
             userId: newAccount.userId,
@@ -265,14 +332,11 @@ instance.interceptors.response.use(
             avatar: newAccount.avatar
           };
           localStorage.setItem('account', JSON.stringify(essentialAccountData));
-        } else {
-          // No account data in response
         }
 
-        // ✅ Lưu lại user-config với chỉ các field cần thiết
+        // Lưu user config mới
         if (data.data.userConfig) {
           const userConfig = data.data.userConfig;
-          // Chỉ lưu các field cần thiết cho user preferences
           const essentialUserConfig = {
             language: userConfig.language,
             theme: userConfig.theme,
@@ -281,9 +345,10 @@ instance.interceptors.response.use(
             userId: userConfig.userId
           };
           localStorage.setItem('user_config', JSON.stringify(essentialUserConfig));
-        } else {
-          // No user config in response
         }
+
+        // Cập nhật thời gian refresh cuối cùng
+        lastRefreshTime = Date.now();
 
         // ✅ Xử lý subscriber queue TRƯỚC KHI reset flag
         onRefreshed(newAccessToken);
@@ -303,19 +368,13 @@ instance.interceptors.response.use(
 
       } catch (err) {
         // ❌ Chỉ clear data khi refresh thất bại
-
-        // ✅ Chỉ clear khi thực sự cần thiết
         if (err instanceof Error && (
           err.message.includes('Invalid refresh token') ||
           err.message.includes('Refresh token failed') ||
-          err.message.includes('New access token is already expired') ||
-          err.message.includes('AbortError') // Timeout
+          err.message.includes('New access token is already expired')
         )) {
           clearAuthDataAndRedirect();
-        } else {
-          // ✅ Nếu lỗi network hoặc server, chỉ reject để retry sau
         }
-
         return Promise.reject(err);
       } finally {
         // ✅ Đảm bảo flag luôn được reset trong mọi trường hợp
