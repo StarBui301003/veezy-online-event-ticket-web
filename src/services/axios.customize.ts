@@ -27,13 +27,33 @@ const getRefreshToken = (): string | null => {
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'refresh_token') {
-        return value;
+        // ✅ Validate GUID format (32-36 characters, alphanumeric + hyphens)
+        if (value && /^[0-9a-fA-F-]{32,36}$/.test(value)) {
+          return value;
+        } else {
+          // Clear invalid token
+          document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';
+          return null;
+        }
       }
     }
     return null;
-  } catch (error) {
-    console.warn('Failed to parse cookies:', error);
+  } catch {
     return null;
+  }
+};
+
+// ✅ Hàm mới: Kiểm tra access token có hết hạn không
+const isAccessTokenExpired = (token: string): boolean => {
+  try {
+    // Decode JWT token để check expiration
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const currentTime = Math.floor(Date.now() / 1000);
+
+
+    return currentTime >= payload.exp;
+  } catch {
+    return true; // Nếu không decode được, coi như expired
   }
 };
 
@@ -42,28 +62,35 @@ export function registerGlobalSpinner(fn: (show: boolean) => void) {
 }
 
 const onRefreshed = (token: string) => {
-  // ✅ Chỉ xử lý khi có token hợp lệ
-  if (token && token.length > 10) {
-    console.log('🔄 Processing', refreshSubscribers.length, 'queued requests with new token');
-    refreshSubscribers.forEach((callback) => callback(token));
+  // ✅ Chỉ xử lý khi có token hợp lệ và chưa hết hạn
+  if (token && token.length > 10 && !isAccessTokenExpired(token)) {
+    // ✅ Copy queue trước khi clear để tránh race condition
+    const subscribers = [...refreshSubscribers];
+    refreshSubscribers = [];
+    subscribers.forEach((callback) => {
+      try {
+        callback(token);
+      } catch {
+        // Silent error handling
+      }
+    });
   } else {
-    console.warn('⚠️ onRefreshed called with invalid token, clearing queue without processing');
+    refreshSubscribers = [];
+    // ✅ Nếu token mới cũng expired, clear auth data
+    if (token && isAccessTokenExpired(token)) {
+      clearAuthDataAndRedirect();
+    }
   }
-  refreshSubscribers = [];
 };
 
 const addRefreshSubscriber = (callback: (token: string) => void) => {
   refreshSubscribers.push(callback);
-  console.log('📥 Added request to refresh queue, current size:', refreshSubscribers.length);
 };
 
 // Hàm helper để clear auth data và redirect
 const clearAuthDataAndRedirect = () => {
-  console.log('🚨 Clearing auth data and redirecting to login');
-
   // ❌ Không dùng localStorage.clear() nữa vì sẽ xóa luôn account
   localStorage.removeItem('access_token');
-  document.cookie = 'refresh_token=; Max-Age=0; path=/;';
   document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';
 
   // ✅ Clear subscriber queue mà không gọi onRefreshed với token rỗng
@@ -93,10 +120,16 @@ instance.interceptors.request.use(
     if (!isRefreshTokenRequest) {
       const token = window.localStorage.getItem('access_token');
       if (token && config.headers) {
-        if (typeof config.headers.set === 'function') {
-          config.headers.set('Authorization', `Bearer ${token}`);
+        // ✅ Kiểm tra token có hết hạn không trước khi sử dụng
+        if (isAccessTokenExpired(token)) {
+
+          // Không set header, để response interceptor xử lý
         } else {
-          config.headers['Authorization'] = `Bearer ${token}`;
+          if (typeof config.headers.set === 'function') {
+            config.headers.set('Authorization', `Bearer ${token}`);
+          } else {
+            config.headers['Authorization'] = `Bearer ${token}`;
+          }
         }
       }
     }
@@ -134,6 +167,13 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // ✅ Kiểm tra access token có hết hạn không
+      if (isAccessTokenExpired(accessToken)) {
+        // Access token expired, proceeding with refresh
+      } else {
+        // Access token not expired but got 401, may be invalid
+      }
+
       const refreshToken = getRefreshToken();
       if (!refreshToken) {
         clearAuthDataAndRedirect();
@@ -142,15 +182,14 @@ instance.interceptors.response.use(
 
       if (originalRequest._retry) {
         // ❌ KHÔNG clear ngay, chỉ reject để tránh infinite loop
-        console.log('⚠️ Request already retried, rejecting to prevent infinite loop');
         return Promise.reject(error);
       }
 
       if (isRefreshing) {
-        console.log('📋 Token refresh in progress, adding request to queue for:', originalRequest.url);
+        // ✅ TẤT CẢ request đều được thêm vào hàng đợi
+        // Tránh tình trạng nhiều request cùng gọi refresh token
         return new Promise((resolve) => {
           addRefreshSubscriber((token: string) => {
-            console.log('📤 Processing queued request with new token for:', originalRequest.url);
             if (originalRequest.headers) {
               if (typeof originalRequest.headers.set === 'function') {
                 originalRequest.headers.set('Authorization', `Bearer ${token}`);
@@ -163,10 +202,15 @@ instance.interceptors.response.use(
         });
       }
 
+      // ✅ Chỉ request đầu tiên mới set flag và thực hiện refresh
+      // Các request khác sẽ được thêm vào hàng đợi ở trên
       isRefreshing = true;
-      console.log('🔄 Starting token refresh process for:', originalRequest.url);
 
       try {
+        // ✅ Thêm timeout cho refresh token request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+
         const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
           method: 'POST',
           headers: {
@@ -174,8 +218,11 @@ instance.interceptors.response.use(
             'Accept': 'application/json'
           },
           credentials: 'include',
-          body: JSON.stringify({ refreshToken })
+          body: JSON.stringify({ refreshToken }),
+          signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`Refresh token failed: ${response.status}`);
@@ -195,8 +242,10 @@ instance.interceptors.response.use(
           throw new Error('Invalid access token received from refresh endpoint');
         }
 
-        console.log('🔑 New access token received, length:', newAccessToken.length);
-        console.log('👤 New account data received:', newAccount ? 'Yes' : 'No');
+        // ✅ Kiểm tra token mới có hết hạn không
+        if (isAccessTokenExpired(newAccessToken)) {
+          throw new Error('New access token is already expired');
+        }
 
         // ✅ Lưu lại CẢ token VÀ account
         localStorage.setItem('access_token', newAccessToken);
@@ -204,22 +253,40 @@ instance.interceptors.response.use(
           document.cookie = `refresh_token=${newRefreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
         }
 
-        // ✅ Lưu lại account để ProtectedRoute không bị redirect
+        // ✅ Lưu lại account với chỉ các field cần thiết cho ProtectedRoute
         if (newAccount) {
-          localStorage.setItem('account', JSON.stringify(newAccount));
-          console.log('💾 Account data saved back to localStorage');
+          // Chỉ lưu các field cần thiết cho authentication và routing
+          const essentialAccountData = {
+            accountId: newAccount.accountId,
+            userId: newAccount.userId,
+            username: newAccount.username,
+            email: newAccount.email,
+            role: newAccount.role,
+            avatar: newAccount.avatar
+          };
+          localStorage.setItem('account', JSON.stringify(essentialAccountData));
         } else {
-          console.warn('⚠️ No account data in refresh response, account may be missing');
+          // No account data in response
         }
 
-        // ✅ Reset refreshing flag TRƯỚC KHI xử lý requests
-        isRefreshing = false;
+        // ✅ Lưu lại user-config với chỉ các field cần thiết
+        if (data.data.userConfig) {
+          const userConfig = data.data.userConfig;
+          // Chỉ lưu các field cần thiết cho user preferences
+          const essentialUserConfig = {
+            language: userConfig.language,
+            theme: userConfig.theme,
+            receiveEmail: userConfig.receiveEmail,
+            receiveNotify: userConfig.receiveNotify,
+            userId: userConfig.userId
+          };
+          localStorage.setItem('user_config', JSON.stringify(essentialUserConfig));
+        } else {
+          // No user config in response
+        }
 
-        console.log('📢 Notifying', refreshSubscribers.length, 'queued requests with new token');
+        // ✅ Xử lý subscriber queue TRƯỚC KHI reset flag
         onRefreshed(newAccessToken);
-
-        // ✅ Log sau khi xử lý subscriber queue
-        console.log('✅ Subscriber queue processed, retrying original request');
 
         // ✅ Đánh dấu request này đã retry để tránh infinite loop
         originalRequest._retry = true;
@@ -232,23 +299,27 @@ instance.interceptors.response.use(
           }
         }
 
-        console.log('✅ Token refresh successful, retrying original request');
         return instance(originalRequest);
 
       } catch (err) {
         // ❌ Chỉ clear data khi refresh thất bại
-        console.error('❌ Refresh token failed:', err);
-        isRefreshing = false;
 
         // ✅ Chỉ clear khi thực sự cần thiết
-        if (err instanceof Error && err.message.includes('Invalid refresh token')) {
+        if (err instanceof Error && (
+          err.message.includes('Invalid refresh token') ||
+          err.message.includes('Refresh token failed') ||
+          err.message.includes('New access token is already expired') ||
+          err.message.includes('AbortError') // Timeout
+        )) {
           clearAuthDataAndRedirect();
         } else {
           // ✅ Nếu lỗi network hoặc server, chỉ reject để retry sau
-          console.warn('⚠️ Refresh failed due to network/server error, not clearing auth data');
         }
 
         return Promise.reject(err);
+      } finally {
+        // ✅ Đảm bảo flag luôn được reset trong mọi trường hợp
+        isRefreshing = false;
       }
     }
 
