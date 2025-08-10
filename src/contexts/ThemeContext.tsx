@@ -24,7 +24,7 @@ const getCurrentUserId = (): string | null => {
       const acc = JSON.parse(accStr);
       return acc.userId || acc.accountId || null;
     }
-  } catch (error) {
+  } catch {
     // Failed to parse account
   }
   return null;
@@ -60,7 +60,7 @@ const getInitialTheme = (): 'light' | 'dark' => {
         }
       }
     }
-  } catch (error) {
+  } catch {
     // Failed to load theme from localStorage
   }
 
@@ -148,7 +148,7 @@ const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' => {
         return userConfig.theme === 1 ? 'dark' : 'light';
       }
     }
-  } catch (error) {
+  } catch {
     // Failed to load theme from user config
   }
   return 'light'; // Default to light theme
@@ -161,8 +161,8 @@ const loadThemeFromDatabase = async (userId: string): Promise<'light' | 'dark'> 
     if (res?.data && res.data.theme !== undefined) {
       return res.data.theme === 1 ? 'dark' : 'light';
     }
-  } catch (error) {
-    console.error('Failed to load theme from database:', error);
+  } catch {
+    console.error('Failed to load theme from database');
   }
   return 'light'; // Default to light theme
 };
@@ -171,6 +171,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Initialize theme immediately from localStorage to prevent flashing
   const [theme, setThemeState] = useState<'light' | 'dark'>(getInitialTheme);
   const [lastUserId, setLastUserId] = useState<string | null>(getCurrentUserId());
+  const [isProcessingTheme, setIsProcessingTheme] = useState(false); // Add flag to prevent multiple simultaneous calls
 
   // Apply theme immediately on mount and when theme changes
   useEffect(() => {
@@ -211,8 +212,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             };
             localStorage.setItem('user_config', JSON.stringify(userConfig));
           }
-        } catch (error) {
-          console.error('Failed to load theme from database on mount:', error);
+        } catch {
+          console.error('Failed to load theme from database on mount');
           // localStorage already loaded above, so no need to fallback
         }
       })();
@@ -222,43 +223,54 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Check for user changes and reset theme if needed
   useEffect(() => {
     const checkUserAndResetTheme = async () => {
+      // Prevent multiple simultaneous calls
+      if (isProcessingTheme) {
+        return;
+      }
+
       const currentUserId = getCurrentUserId();
 
       // If user changed, reset theme
       if (currentUserId !== lastUserId) {
-        setLastUserId(currentUserId);
+        setIsProcessingTheme(true);
+        try {
+          setLastUserId(currentUserId);
 
-        if (currentUserId) {
-          // New user logged in, load their theme from database immediately
-          try {
-            const userTheme = await loadThemeFromDatabase(currentUserId);
-            if (userTheme !== theme) {
-              setThemeState(userTheme);
-            }
+          if (currentUserId) {
+            // New user logged in, load their theme from database immediately
+            try {
+              const userTheme = await loadThemeFromDatabase(currentUserId);
+              // Only update if theme is actually different to prevent unnecessary re-renders
+              if (userTheme !== theme) {
+                setThemeState(userTheme);
+              }
 
-            // Also update localStorage with the latest config from database
-            const res = await getUserConfig(currentUserId);
-            if (res?.data) {
-              const userConfig = {
-                ...res.data,
-                userId: currentUserId,
-              };
-              localStorage.setItem('user_config', JSON.stringify(userConfig));
+              // Also update localStorage with the latest config from database
+              const res = await getUserConfig(currentUserId);
+              if (res?.data) {
+                const userConfig = {
+                  ...res.data,
+                  userId: currentUserId,
+                };
+                localStorage.setItem('user_config', JSON.stringify(userConfig));
+              }
+            } catch {
+              console.error('Failed to load theme from database');
+              // Fallback to localStorage if database fails
+              const userTheme = loadThemeFromUserConfig(currentUserId);
+              if (userTheme !== theme) {
+                setThemeState(userTheme);
+              }
             }
-          } catch (error) {
-            console.error('Failed to load theme from database:', error);
-            // Fallback to localStorage if database fails
-            const userTheme = loadThemeFromUserConfig(currentUserId);
-            if (userTheme !== theme) {
-              setThemeState(userTheme);
+          } else {
+            // User logged out, reset to light theme
+            if (theme !== 'light') {
+              setThemeState('light');
             }
+            localStorage.removeItem('user_config');
           }
-        } else {
-          // User logged out, reset to light theme
-          if (theme !== 'light') {
-            setThemeState('light');
-          }
-          localStorage.removeItem('user_config');
+        } finally {
+          setIsProcessingTheme(false);
         }
       }
     };
@@ -266,21 +278,33 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     // Check immediately
     checkUserAndResetTheme();
 
+    // Debounced event handlers to prevent excessive calls
+    let timeoutId: NodeJS.Timeout;
+
+    const debouncedCheck = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (!isProcessingTheme) {
+          checkUserAndResetTheme();
+        }
+      }, 100); // 100ms debounce
+    };
+
     // Listen for account changes (login/logout)
     const handleAccountChange = () => {
-      checkUserAndResetTheme(); // Remove delay, check immediately
+      debouncedCheck();
     };
 
     // Listen for storage changes (when localStorage is updated from other tabs)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'account' || e.key === 'user_config') {
-        checkUserAndResetTheme(); // Remove delay, check immediately
+        debouncedCheck();
       }
     };
 
     // Listen for custom account update events
-    const handleAccountUpdated = (_: CustomEvent) => {
-      checkUserAndResetTheme(); // Remove delay, check immediately
+    const handleAccountUpdated = () => {
+      debouncedCheck();
     };
 
     // Listen for user config changes
@@ -298,25 +322,26 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     // Listen for login events specifically
     const handleLogin = () => {
-      checkUserAndResetTheme(); // Remove delay, check immediately
+      debouncedCheck();
     };
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('authChanged', handleAccountChange);
     window.addEventListener('user-updated', handleAccountChange);
-    window.addEventListener('accountUpdated', handleAccountUpdated as EventListener);
+    window.addEventListener('accountUpdated', handleAccountUpdated);
     window.addEventListener('userConfigUpdated', handleUserConfigChange);
     window.addEventListener('login', handleLogin);
 
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('authChanged', handleAccountChange);
       window.removeEventListener('user-updated', handleAccountChange);
-      window.removeEventListener('accountUpdated', handleAccountUpdated as EventListener);
+      window.removeEventListener('accountUpdated', handleAccountUpdated);
       window.removeEventListener('userConfigUpdated', handleUserConfigChange);
       window.removeEventListener('login', handleLogin);
     };
-  }, [theme, lastUserId]);
+  }, [lastUserId, isProcessingTheme]); // Add isProcessingTheme to dependencies
 
   // Function to reset theme for new user (called from layout)
   const resetThemeForNewUser = async () => {

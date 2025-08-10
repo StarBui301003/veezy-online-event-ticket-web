@@ -64,6 +64,12 @@ const ProfilePage = () => {
   const { hasFaceAuth, refetch: refetchFaceAuth } = useFaceAuthStatus();
   const { theme, setTheme } = useTheme();
 
+  // Debug logging for face auth status
+  console.log('[ProfilePage] useFaceAuthStatus hook result:', {
+    hasFaceAuth,
+    refetch: refetchFaceAuth,
+  });
+
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
@@ -190,11 +196,6 @@ const ProfilePage = () => {
     // Initial sync
     handleThemeChange();
   }, [theme]);
-
-  // Load face auth status on mount
-  useEffect(() => {
-    refetchFaceAuth();
-  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
