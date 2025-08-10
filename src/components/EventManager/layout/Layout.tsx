@@ -33,7 +33,6 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
 import { getCurrentUserId } from '@/utils/account-utils';
-import { useAuth } from '@/contexts/AuthContext';
 import { safeLogout } from '@/utils/auth';
 
 // Custom scrollbar styles - will be updated dynamically based on theme

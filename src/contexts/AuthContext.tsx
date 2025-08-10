@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { setAccountAndUpdateTheme, removeAccountAndUpdateTheme } from '@/utils/account-utils';
+import { setAccountAndUpdateTheme } from '@/utils/account-utils';
 import { safeLogout } from '@/utils/auth';
 
 interface AuthContextType {
