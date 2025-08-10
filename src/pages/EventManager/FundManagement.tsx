@@ -285,18 +285,22 @@ export default function FundManagement() {
     }
 
     setIsSubmitting(true);
-    try {
-      // Show loading state
-      const loadingToast = toast.loading(t('processingWithdrawal'), {
-        position: 'top-center',
-        autoClose: false,
-        closeOnClick: false,
-        pauseOnHover: false,
-        draggable: false,
-        closeButton: false,
-      });
+    const loadingToast = toast.loading(t('processingWithdrawal'), {
+      position: 'top-center',
+      autoClose: false,
+      closeOnClick: false,
+      pauseOnHover: false,
+      draggable: false,
+      closeButton: false,
+    });
 
-      await requestWithdrawal(selectedEvent.eventId, amount);
+    try {
+      const response = await requestWithdrawal(selectedEvent.eventId, amount);
+      
+      // Check if the response indicates withdrawal is not enabled
+      if (response?.data === false) {
+        throw new Error('Withdrawal is not enabled for this event');
+      }
 
       // Update loading toast to success
       toast.update(loadingToast, {
@@ -311,24 +315,20 @@ export default function FundManagement() {
       setWithdrawalAmount('');
       setWithdrawalNotes('');
       fetchFundData(selectedEvent.eventId);
-    } catch (error: unknown) {
+    } catch (error: any) {
       // Dismiss loading toast if it exists
-      toast.dismiss();
+      toast.dismiss(loadingToast);
 
       setShowWithdrawalModal(false); // Close modal on error
-      if (
-        error &&
-        typeof error === 'object' &&
-        'response' in error &&
-        error.response &&
-        typeof error.response === 'object' &&
-        'data' in error.response &&
-        error.response.data &&
-        typeof error.response.data === 'object' &&
-        'message' in error.response.data &&
-        error.response.data.message === 'Withdrawal is not enabled for this event'
-      ) {
+      
+      if (error?.response?.data?.message === 'Withdrawal is not enabled for this event' || 
+          error?.message === 'Withdrawal is not enabled for this event') {
         setWithdrawalError(t('withdrawalNotEnabled'));
+        // Show error toast
+        toast.error(t('withdrawalNotEnabled'), {
+          position: 'top-center',
+          autoClose: 5000,
+        });
       } else {
         toast.error(t('errorSendingWithdrawalRequest'), {
           position: 'top-center',
@@ -674,8 +674,8 @@ export default function FundManagement() {
                 {t('withdrawalRequest')}
               </h2>
               {withdrawalError && (
-                <div className="mb-4 p-3 bg-red-500/20 border border-red-400 rounded-lg text-red-200 text-sm">
-                  {withdrawalError}
+                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700">
+                  <p className="text-red-700 dark:text-red-300 text-sm">{withdrawalError}</p>
                 </div>
               )}
               <Button
@@ -934,6 +934,11 @@ export default function FundManagement() {
                 {t('withdrawalRequest')}
               </h3>
               <div className="space-y-4">
+                {withdrawalError && (
+                  <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700">
+                    <p className="text-red-700 dark:text-red-300 text-sm">{withdrawalError}</p>
+                  </div>
+                )}
                 <div>
                   <label
                     className={cn(

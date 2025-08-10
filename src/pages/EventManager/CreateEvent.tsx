@@ -124,12 +124,13 @@ const validateField = (name: string, value: any, formData?: any): string => {
       break;
 
     case 'eventLocation':
-      if (value && value.length > 200) return 'Địa điểm không được quá 200 ký tự';
+      if (!value || value.trim() === '') return 'Địa điểm là bắt buộc';
+      if (value.length > 200) return 'Địa điểm không được quá 200 ký tự';
       break;
 
     case 'startAt':
       if (!value) return 'Thời gian bắt đầu là bắt buộc';
-      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
+      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thởi điểm hiện tại';
       break;
 
     case 'endAt':
@@ -227,20 +228,15 @@ export default function CreateEventForm() {
 
   useEffect(() => {
     if (quill) {
-      const isDark = theme === 'dark';
-      const themeClass = isDark ? 'dark' : 'light';
-      document.body.classList.remove('light', 'dark');
-      document.body.classList.add(themeClass);
-
       quill.on('text-change', () => {
-        const description = cleanHtml(quill.root.innerHTML);
+        const content = quill.root.innerHTML;
         setFormData((prev) => ({
           ...prev,
-          eventDescription: description,
+          eventDescription: cleanHtml(content),
         }));
       });
     }
-  }, [quill, theme]);
+  }, [quill]);
 
   // Validation helpers
   const validateSingleField = (name: string, value: any) => {
@@ -362,6 +358,15 @@ export default function CreateEventForm() {
       ...prev,
       categoryIds: selected.map((option) => option.value),
     }));
+
+    // Clear category error when categories are selected
+    if (errors.categoryIds) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.categoryIds;
+        return newErrors;
+      });
+    }
   };
 
   const handleContentChange =
@@ -797,7 +802,7 @@ export default function CreateEventForm() {
               </div>
             </FormField>
 
-            <FormField label={t('location')} error={errors.eventLocation}>
+            <FormField label={t('location')} error={errors.eventLocation} required>
               <InputField
                 type="text"
                 name="eventLocation"
@@ -849,7 +854,10 @@ export default function CreateEventForm() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2 mb-8',
-              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+              getThemeClass(
+                'bg-white/95 border-blue-200',
+                'bg-[#2d0036]/80 border-pink-500/30'
+              )
             )}
           >
             <h3 className="text-xl font-semibold text-purple-600 mb-4 flex items-center">

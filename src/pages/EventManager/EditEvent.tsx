@@ -8,7 +8,7 @@ function toInputDate(dateString: string): string {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   getEventById,
@@ -54,7 +54,7 @@ const validateField = (name: string, value: any, formData?: any): string => {
 
     case 'startAt':
       if (!value) return 'Thời gian bắt đầu là bắt buộc';
-      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
+      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thợi điểm hiện tại';
       break;
 
     case 'endAt':
@@ -199,7 +199,88 @@ export default function EditEvent() {
   const [contents, setContents] = useState<EnhancedContent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const { quill, quillRef } = useQuill();
+  // Initialize Quill editor
+  const { quill, quillRef } = useQuill({
+    theme: 'snow',
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote', 'code-block'],
+        [{ 'header': 1 }, { 'header': 2 }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'direction': 'rtl' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['clean'],
+        ['link', 'image', 'video']
+      ]
+    },
+    placeholder: 'Nhập mô tả sự kiện...'
+  });
+
+  // Track if content has been set to prevent unnecessary updates
+  const contentSetRef = useRef(false);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+
+  // Initialize editor content
+  useEffect(() => {
+    if (quill && formData.eventDescription && !contentSetRef.current) {
+      quill.root.innerHTML = formData.eventDescription;
+      contentSetRef.current = true;
+      setIsEditorReady(true);
+    }
+  }, [quill, formData.eventDescription]);
+
+  // Handle editor content changes with debounce
+  useEffect(() => {
+    if (!quill || !isEditorReady) return;
+
+    const debouncedUpdate = debounce((content: string) => {
+      setFormData(prev => ({
+        ...prev,
+        eventDescription: cleanHtml(content)
+      }));
+    }, 300);
+
+    const handleTextChange = () => {
+      const content = quill.root.innerHTML;
+      debouncedUpdate(content);
+    };
+
+    quill.on('text-change', handleTextChange);
+
+    return () => {
+      quill.off('text-change', handleTextChange);
+      debouncedUpdate.cancel();
+    };
+  }, [quill, isEditorReady]);
+
+  // Simple debounce function
+  function debounce<T extends (...args: any[]) => void>(
+    func: T,
+    wait: number
+  ): T & { cancel: () => void } {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    const debounced = ((...args: any[]) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    }) as T;
+    
+    (debounced as any).cancel = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    };
+    
+    return debounced as T & { cancel: () => void };
+  }
 
   const fetchCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -272,28 +353,6 @@ export default function EditEvent() {
     onEvent('OnCategoryDeleted', fetchCategories);
   }, [eventId, fetchCategories]);
 
-  useEffect(() => {
-    if (quill) {
-      const isDark = theme === 'dark';
-      const themeClass = isDark ? 'dark' : 'light';
-      document.body.classList.remove('light', 'dark');
-      document.body.classList.add(themeClass);
-
-      // Set initial content when quill is ready and we have description data
-      if (formData.eventDescription) {
-        quill.root.innerHTML = formData.eventDescription;
-      }
-
-      quill.on('text-change', () => {
-        const description = cleanHtml(quill.root.innerHTML);
-        setFormData((prev) => ({
-          ...prev,
-          eventDescription: description,
-        }));
-      });
-    }
-  }, [quill, theme, formData.eventDescription]);
-
   // Validation helpers
 
   // File upload handlers
@@ -348,8 +407,8 @@ export default function EditEvent() {
     // Try to delete from server in the background
     try {
       await deleteEventImage(oldImageUrl);
-    } catch (error) {
-      console.warn('Background image deletion failed:', error);
+    } catch {
+      console.warn('Background image deletion failed');
       // Don't revert or show error - the image is already removed from UI
     }
   };
@@ -662,7 +721,7 @@ export default function EditEvent() {
         .light .ql-toolbar {
           background: #f8fafc !important;
           border-radius: 0.75rem 0.75rem 0 0 !important;
-          border-color: #3b82f6 !important;
+          border-color: #3f3f46 !important;
         }
         .light .ql-toolbar button {
           color: #374151 !important;
@@ -680,7 +739,7 @@ export default function EditEvent() {
           background: #ffffff !important;
           color: #374151 !important;
           border-radius: 0 0 0.75rem 0.75rem !important;
-          border-color: #3b82f6 !important;
+          border-color: #3f3f46 !important;
           min-height: 200px !important;
         }
         .light .ql-editor {
@@ -693,12 +752,12 @@ export default function EditEvent() {
         }
         .light .ql-picker-label {
           color: #374151 !important;
-          border: 1px solid #3b82f6 !important;
+          border: 1px solid #3f3f46 !important;
           background: #ffffff !important;
         }
         .light .ql-picker-options {
           background: #ffffff !important;
-          border: 1px solid #3b82f6 !important;
+          border: 1px solid #3f3f46 !important;
           color: #374151 !important;
         }
         .light .ql-picker-item {

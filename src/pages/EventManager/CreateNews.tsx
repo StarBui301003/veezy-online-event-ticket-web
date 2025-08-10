@@ -7,12 +7,10 @@ import { toast } from 'react-toastify';
 import { useQuill } from 'react-quilljs';
 import 'quill/dist/quill.snow.css';
 import { useTranslation } from 'react-i18next';
-import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
 const CreateNews: React.FC = () => {
   const { t } = useTranslation();
-  const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -29,9 +27,116 @@ const CreateNews: React.FC = () => {
     status: true,
   });
 
-  // State cho nội dung rich text
-  const [newsContent, setNewsContent] = useState('');
-  const { quill, quillRef } = useQuill();
+  // State for rich text editor
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const { quill, quillRef } = useQuill({
+    theme: 'snow',
+    modules: {
+      toolbar: [
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote', 'code-block'],
+        [{ 'header': 1 }, { 'header': 2 }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'direction': 'rtl' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['clean'],
+        ['link', 'image', 'video']
+      ]
+    },
+    placeholder: t('enterNewsContent') || 'Enter news content...'
+  });
+
+  // Track if content has been set to prevent unnecessary updates
+  const contentSetRef = React.useRef(false);
+
+  // Initialize editor content
+  useEffect(() => {
+    if (quill && newsPayload.newsContent && !contentSetRef.current) {
+      quill.root.innerHTML = newsPayload.newsContent;
+      contentSetRef.current = true;
+      setIsEditorReady(true);
+    }
+  }, [quill, newsPayload.newsContent]);
+
+  // Handle editor content changes with debounce
+  useEffect(() => {
+    if (!quill || !isEditorReady) return;
+
+    const debouncedUpdate = debounce((content: string) => {
+      setNewsPayload(prev => ({
+        ...prev,
+        newsContent: content
+      }));
+    }, 300);
+
+    const handleTextChange = () => {
+      const content = quill.root.innerHTML;
+      debouncedUpdate(content);
+    };
+
+    quill.on('text-change', handleTextChange);
+
+    // Cleanup
+    return () => {
+      quill.off('text-change', handleTextChange);
+      debouncedUpdate.cancel();
+    };
+  }, [quill, isEditorReady]);
+
+  // Simple debounce function
+  function debounce<T extends (...args: any[]) => void>(
+    func: T,
+    wait: number
+  ): T & { cancel: () => void } {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    const debounced = ((...args: any[]) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    }) as T;
+    
+    (debounced as any).cancel = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    };
+    
+    return debounced as T & { cancel: () => void };
+  }
+
+  // Handle theme changes
+  useEffect(() => {
+    if (!quill) return;
+
+    const isDark = document.body.classList.contains('dark');
+    
+    // Update editor container styles
+    const editorContainer = quill.container.firstChild as HTMLElement;
+    if (editorContainer) {
+      editorContainer.style.minHeight = '300px';
+      editorContainer.style.color = isDark ? '#fff' : '#374151';
+      editorContainer.style.border = 'none';
+      editorContainer.style.borderRadius = '0.5rem';
+    }
+
+    // Update toolbar styles
+    const toolbar = quill.getModule('toolbar') as { container: HTMLElement };
+    if (toolbar?.container) {
+      const toolbarElement = toolbar.container as HTMLElement;
+      toolbarElement.style.border = 'none';
+      toolbarElement.style.borderBottom = isDark ? '1px solid rgba(236, 72, 153, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)';
+      toolbarElement.style.borderRadius = '0.5rem 0.5rem 0 0';
+      toolbarElement.style.backgroundColor = isDark ? '#1a0022' : '#f8fafc';
+      toolbarElement.style.padding = '0.5rem';
+    }
+  }, [quill]);
 
   useEffect(() => {
     const accountStr = localStorage.getItem('account');
@@ -60,96 +165,6 @@ const CreateNews: React.FC = () => {
     // Note: News realtime updates not available in current backend
     // No NewsHub implemented yet
   }, [navigate, t]);
-
-  useEffect(() => {
-    if (quill) {
-      quill.clipboard.dangerouslyPasteHTML(newsContent || '');
-      quill.on('text-change', () => {
-        setNewsContent(quill.root.innerHTML);
-      });
-
-      // Add theme class to body for CSS targeting
-      const isDark = document.body.classList.contains('dark');
-      const themeClass = isDark ? 'dark' : 'light';
-      
-      // Remove existing theme classes and add current one
-      document.body.classList.remove('light', 'dark');
-      document.body.classList.add(themeClass);
-
-      // Set editor container styles
-      const editorContainer = quill.container.firstChild as HTMLElement;
-      if (editorContainer) {
-        editorContainer.style.minHeight = '300px';
-        editorContainer.style.color = getThemeClass('#374151', '#fff');
-        editorContainer.style.border = 'none';
-        editorContainer.style.borderRadius = '0.5rem';
-      }
-
-      // Set toolbar styles
-      const toolbar = quill.getModule('toolbar') as { container: HTMLElement };
-      if (toolbar && toolbar.container) {
-        const toolbarElement = toolbar.container as HTMLElement;
-        toolbarElement.style.border = 'none';
-        toolbarElement.style.borderBottom = getThemeClass(
-          '1px solid rgba(59, 130, 246, 0.3)',
-          '1px solid rgba(236, 72, 153, 0.3)'
-        );
-        toolbarElement.style.borderRadius = '0.5rem 0.5rem 0 0';
-        toolbarElement.style.backgroundColor = getThemeClass('#f8fafc', '#1a0022');
-        toolbarElement.style.padding = '0.5rem';
-
-        // Style all buttons in the toolbar
-        const buttons = toolbarElement.querySelectorAll('button');
-        buttons.forEach((button) => {
-          button.style.color = getThemeClass('#374151', '#ffffff');
-          button.style.opacity = '0.8';
-          button.style.transition = 'opacity 0.2s';
-          button.style.borderRadius = '0.25rem';
-          button.style.padding = '0.25rem 0.5rem';
-          button.style.margin = '0 0.125rem';
-
-          button.addEventListener('mouseenter', () => {
-            button.style.opacity = '1';
-            button.style.backgroundColor = getThemeClass(
-              'rgba(59, 130, 246, 0.2)',
-              'rgba(236, 72, 153, 0.2)'
-            );
-          });
-
-          button.addEventListener('mouseleave', () => {
-            button.style.opacity = '0.8';
-            button.style.backgroundColor = 'transparent';
-          });
-        });
-
-        // Style dropdowns and other elements
-        const dropdowns = toolbarElement.querySelectorAll('select');
-        dropdowns.forEach((dropdown) => {
-          if (isDark) {
-            dropdown.style.color = '#fff';
-            dropdown.style.backgroundColor = '#27272a';
-            dropdown.style.border = '1px solid #a21caf';
-          } else {
-            dropdown.style.color = '#374151';
-            dropdown.style.backgroundColor = '#fff';
-            dropdown.style.border = '1px solid #d1d5db';
-          }
-        });
-
-        // Style spans and other text elements
-        const textElements = toolbarElement.querySelectorAll('span');
-        textElements.forEach((element) => {
-          element.style.color = getThemeClass('#374151', '#ffffff');
-        });
-      }
-    }
-  }, [quill, getThemeClass]);
-
-  useEffect(() => {
-    if (quill && newsContent !== quill.root.innerHTML) {
-      quill.clipboard.dangerouslyPasteHTML(newsContent || '');
-    }
-  }, [newsContent, quill]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -198,7 +213,7 @@ const CreateNews: React.FC = () => {
       return;
     }
 
-    if (!newsContent || newsContent === '<p><br></p>') {
+    if (!newsPayload.newsContent || newsPayload.newsContent === '<p><br></p>') {
       toast.error(t('createNews.contentRequired'));
       return;
     }
@@ -213,7 +228,7 @@ const CreateNews: React.FC = () => {
     try {
       const payload = {
         ...newsPayload,
-        newsContent,
+        newsContent: newsPayload.newsContent,
         eventId: eventId,
         authorId: newsPayload.authorId,
       };
@@ -233,30 +248,27 @@ const CreateNews: React.FC = () => {
     <div
       className={cn(
         'min-h-screen py-12 px-4 sm:px-6 lg:px-8',
-        getThemeClass(
-          'bg-gradient-to-br from-blue-50 to-indigo-100',
-          'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]'
-        )
+        document.body.classList.contains('dark')
+          ? 'bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e]'
+          : 'bg-gradient-to-br from-blue-50 to-indigo-100'
       )}
     >
       <div className="max-w-5xl mx-auto">
         <div
           className={cn(
             'rounded-3xl shadow-2xl border-2 overflow-hidden',
-            getThemeClass(
-              'bg-white/90 backdrop-blur-sm border-blue-200',
-              'bg-gradient-to-br from-[#2d0036]/90 via-[#3a0ca3]/90 to-[#ff008e]/90 border-pink-500/30'
-            )
+            document.body.classList.contains('dark')
+              ? 'bg-[#1a0022]/90 backdrop-blur-sm border-pink-500/30'
+              : 'bg-white/90 backdrop-blur-sm border-blue-200'
           )}
         >
           {/* Header */}
           <div
             className={cn(
               'p-6 border-b',
-              getThemeClass(
-                'bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20 border-blue-200',
-                'bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20 border-pink-500/30'
-              )
+              document.body.classList.contains('dark')
+                ? 'bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20 border-pink-500/30'
+                : 'bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20 border-blue-200'
             )}
           >
             <div className="flex items-center justify-between">
@@ -264,16 +276,15 @@ const CreateNews: React.FC = () => {
                 <h1
                   className={cn(
                     'text-3xl font-extrabold',
-                    getThemeClass(
-                      'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent',
-                      'bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent'
-                    )
+                    document.body.classList.contains('dark')
+                      ? 'bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent'
                   )}
                 >
                   {t('createNews.title')}
                 </h1>
                 <p
-                  className={cn('mt-1 text-sm', getThemeClass('text-gray-600', 'text-pink-200/80'))}
+                  className={cn('mt-1 text-sm', document.body.classList.contains('dark') ? 'text-pink-200/80' : 'text-gray-600')}
                 >
                   {t('createNews.subtitle')}
                 </p>
@@ -282,10 +293,9 @@ const CreateNews: React.FC = () => {
                 onClick={() => navigate('/event-manager/news')}
                 className={cn(
                   'px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 flex items-center gap-2',
-                  getThemeClass(
-                    'text-blue-700 hover:text-blue-900 bg-blue-100/50 hover:bg-blue-200/50 border-blue-300',
-                    'text-pink-200 hover:text-white bg-pink-900/30 hover:bg-pink-800/50 border-pink-500/30'
-                  )
+                  document.body.classList.contains('dark')
+                    ? 'text-pink-200 hover:text-white bg-pink-900/30 hover:bg-pink-800/50 border-pink-500/30'
+                    : 'text-blue-700 hover:text-blue-900 bg-blue-100/50 hover:bg-blue-200/50 border-blue-300'
                 )}
               >
                 <svg
@@ -311,10 +321,9 @@ const CreateNews: React.FC = () => {
           <div
             className={cn(
               'p-6',
-              getThemeClass(
-                'bg-white',
-                'bg-gradient-to-br from-[#2d0036]/90 via-[#3a0ca3]/90 to-[#ff008e]/90'
-              )
+              document.body.classList.contains('dark')
+                ? 'bg-[#1a0022]/90'
+                : 'bg-white'
             )}
           >
             <form onSubmit={handleSubmit}>
@@ -324,7 +333,7 @@ const CreateNews: React.FC = () => {
                   <label
                     className={cn(
                       'block text-sm font-medium mb-2',
-                      getThemeClass('text-gray-700', 'text-pink-300')
+                      document.body.classList.contains('dark') ? 'text-pink-300' : 'text-gray-700'
                     )}
                   >
                     {t('createNews.newsImage')}
@@ -334,14 +343,13 @@ const CreateNews: React.FC = () => {
                     {...getRootProps()}
                     className={cn(
                       'border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 min-h-[200px] flex flex-col items-center justify-center',
-                      getThemeClass(
-                        isDragActive
-                          ? 'border-blue-400 bg-blue-500/10'
-                          : 'border-blue-300 hover:border-blue-400 hover:bg-blue-500/10',
-                        isDragActive
+                      document.body.classList.contains('dark')
+                        ? isDragActive
                           ? 'border-yellow-400 bg-yellow-500/10'
                           : 'border-pink-500/30 hover:border-pink-400 hover:bg-pink-500/10'
-                      )
+                        : isDragActive
+                          ? 'border-blue-400 bg-blue-500/10'
+                          : 'border-blue-300 hover:border-blue-400 hover:bg-blue-500/10'
                     )}
                   >
                     <input {...getInputProps()} />
@@ -350,10 +358,10 @@ const CreateNews: React.FC = () => {
                         <div
                           className={cn(
                             'animate-spin rounded-full h-10 w-10 border-b-2 mx-auto',
-                            getThemeClass('border-blue-400', 'border-pink-400')
+                            document.body.classList.contains('dark') ? 'border-pink-400' : 'border-blue-400'
                           )}
                         ></div>
-                        <p className={cn('', getThemeClass('text-blue-600', 'text-pink-300'))}>
+                        <p className={cn('', document.body.classList.contains('dark') ? 'text-pink-300' : 'text-blue-600')}>
                           {t('createNews.updating')}...
                         </p>
                       </div>
@@ -368,7 +376,7 @@ const CreateNews: React.FC = () => {
                           <span
                             className={cn(
                               'text-sm text-white px-3 py-1 rounded-lg',
-                              getThemeClass('bg-blue-600/80', 'bg-pink-600/80')
+                              document.body.classList.contains('dark') ? 'bg-pink-600/80' : 'bg-blue-600/80'
                             )}
                           >
                             {t('editNews.changeImage')}
@@ -380,13 +388,13 @@ const CreateNews: React.FC = () => {
                         <div
                           className={cn(
                             'mx-auto flex h-12 w-12 items-center justify-center rounded-full mb-2',
-                            getThemeClass('bg-blue-500/10', 'bg-pink-500/10')
+                            document.body.classList.contains('dark') ? 'bg-pink-500/10' : 'bg-blue-500/10'
                           )}
                         >
                           <svg
                             className={cn(
                               'h-6 w-6',
-                              getThemeClass('text-blue-400', 'text-pink-400')
+                              document.body.classList.contains('dark') ? 'text-pink-400' : 'text-blue-400'
                             )}
                             fill="none"
                             viewBox="0 0 24 24"
@@ -401,12 +409,12 @@ const CreateNews: React.FC = () => {
                           </svg>
                         </div>
                         <p
-                          className={cn('text-sm', getThemeClass('text-gray-600', 'text-pink-300'))}
+                          className={cn('text-sm', document.body.classList.contains('dark') ? 'text-pink-300' : 'text-gray-600')}
                         >
                           <span
                             className={cn(
                               'font-medium',
-                              getThemeClass('text-blue-600', 'text-pink-200')
+                              document.body.classList.contains('dark') ? 'text-pink-200' : 'text-blue-600'
                             )}
                           >
                             {t('createNews.clickToUpload')}
@@ -415,7 +423,7 @@ const CreateNews: React.FC = () => {
                         <p
                           className={cn(
                             'text-xs mt-1',
-                            getThemeClass('text-gray-500', 'text-pink-400/80')
+                            document.body.classList.contains('dark') ? 'text-pink-400/80' : 'text-gray-500'
                           )}
                         >
                           {t('createNews.orDragAndDrop')}
@@ -423,7 +431,7 @@ const CreateNews: React.FC = () => {
                         <p
                           className={cn(
                             'text-xs mt-1',
-                            getThemeClass('text-gray-400', 'text-pink-400/60')
+                            document.body.classList.contains('dark') ? 'text-pink-400/60' : 'text-gray-400'
                           )}
                         >
                           {t('createNews.imageFormatHint')}
@@ -440,7 +448,7 @@ const CreateNews: React.FC = () => {
                       htmlFor="newsTitle"
                       className={cn(
                         'block text-sm font-medium mb-2',
-                        getThemeClass('text-gray-700', 'text-pink-300')
+                        document.body.classList.contains('dark') ? 'text-pink-300' : 'text-gray-700'
                       )}
                     >
                       {t('createNews.newsTitle')}
@@ -454,10 +462,9 @@ const CreateNews: React.FC = () => {
                       onChange={handleChange}
                       className={cn(
                         'w-full px-4 py-3 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200',
-                        getThemeClass(
-                          'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400/60 focus:ring-blue-500',
-                          'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 focus:ring-pink-500'
-                        )
+                        document.body.classList.contains('dark')
+                          ? 'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 focus:ring-pink-500'
+                          : 'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400/60 focus:ring-blue-500'
                       )}
                       placeholder={t('createNews.newsTitlePlaceholder')}
                       required
@@ -470,7 +477,7 @@ const CreateNews: React.FC = () => {
                       htmlFor="newsDescription"
                       className={cn(
                         'block text-sm font-medium mb-2',
-                        getThemeClass('text-gray-700', 'text-pink-300')
+                        document.body.classList.contains('dark') ? 'text-pink-300' : 'text-gray-700'
                       )}
                     >
                       {t('createNews.shortDescription')}
@@ -484,10 +491,9 @@ const CreateNews: React.FC = () => {
                       rows={3}
                       className={cn(
                         'w-full p-4 rounded-xl focus:ring-2 focus:border-transparent transition-all duration-200 resize-none',
-                        getThemeClass(
-                          'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400/60 focus:ring-blue-500',
-                          'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 focus:ring-pink-500'
-                        )
+                        document.body.classList.contains('dark')
+                          ? 'bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 focus:ring-pink-500'
+                          : 'bg-white border-2 border-blue-300 text-gray-900 placeholder-blue-400/60 focus:ring-blue-500'
                       )}
                       placeholder={t('createNews.shortDescriptionPlaceholder')}
                       required
@@ -501,7 +507,7 @@ const CreateNews: React.FC = () => {
                 <label
                   className={cn(
                     'block text-sm font-medium mb-2',
-                    getThemeClass('text-gray-700', 'text-pink-300')
+                    document.body.classList.contains('dark') ? 'text-pink-300' : 'text-gray-700'
                   )}
                 >
                   {t('createNews.newsContent')}
@@ -510,12 +516,14 @@ const CreateNews: React.FC = () => {
                 <div
                   className={cn(
                     'rounded-xl overflow-hidden border-2',
-                    getThemeClass('bg-white border-blue-300', 'border-pink-500/30 bg-[#1a0022]')
+                    document.body.classList.contains('dark')
+                      ? 'border-pink-500/30 bg-[#1a0022]'
+                      : 'bg-white border-blue-300'
                   )}
                 >
                   <div className="h-[300px] overflow-auto" ref={quillRef} />
                 </div>
-                {!newsContent && (
+                {!newsPayload.newsContent && (
                   <p className="mt-1 text-xs text-red-400">{t('createNews.contentRequired')}</p>
                 )}
               </div>
@@ -525,10 +533,9 @@ const CreateNews: React.FC = () => {
                 <div
                   className={cn(
                     'rounded-xl p-6',
-                    getThemeClass(
-                      'bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20',
-                      'bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20'
-                    )
+                    document.body.classList.contains('dark')
+                      ? 'bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20'
+                      : 'bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-purple-600/20'
                   )}
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -555,7 +562,7 @@ const CreateNews: React.FC = () => {
                         htmlFor="status"
                         className={cn(
                           'text-sm font-medium',
-                          getThemeClass('text-gray-700', 'text-pink-200')
+                          document.body.classList.contains('dark') ? 'text-pink-200' : 'text-gray-700'
                         )}
                       >
                         {newsPayload.status
@@ -570,10 +577,9 @@ const CreateNews: React.FC = () => {
                         onClick={() => navigate('/event-manager/news')}
                         className={cn(
                           'px-6 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:shadow-md',
-                          getThemeClass(
-                            'text-gray-700 hover:text-gray-900 bg-gray-100/50 hover:bg-gray-200/60 border-gray-300 hover:shadow-gray-500/20',
-                            'text-pink-100 hover:text-white bg-pink-900/40 hover:bg-pink-800/60 border-pink-500/40 hover:shadow-pink-500/20'
-                          )
+                          document.body.classList.contains('dark')
+                            ? 'text-pink-100 hover:text-white bg-pink-900/40 hover:bg-pink-800/60 border-pink-500/40 hover:shadow-pink-500/20'
+                            : 'text-gray-700 hover:text-gray-900 bg-gray-100/50 hover:bg-gray-200/60 border-gray-300 hover:shadow-gray-500/20'
                         )}
                       >
                         <svg
@@ -597,10 +603,9 @@ const CreateNews: React.FC = () => {
                         disabled={loading}
                         className={cn(
                           'px-6 py-2.5 text-sm font-medium text-white rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-70 disabled:cursor-not-allowed',
-                          getThemeClass(
-                            'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-blue-500/30',
-                            'bg-gradient-to-r from-pink-600 to-yellow-500 hover:from-pink-700 hover:to-yellow-600 hover:shadow-pink-500/30'
-                          )
+                          document.body.classList.contains('dark')
+                            ? 'bg-gradient-to-r from-pink-600 to-yellow-500 hover:from-pink-700 hover:to-yellow-600 hover:shadow-pink-500/30'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-blue-500/30'
                         )}
                       >
                         {loading ? (

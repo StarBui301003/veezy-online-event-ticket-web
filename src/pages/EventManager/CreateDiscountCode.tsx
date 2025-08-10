@@ -127,44 +127,104 @@ export default function CreateDiscountCode() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
-    const errors = validateDiscountCodeForm({
-      ...formData,
-      eventId: eventId || ''
-    });
+    // Reset previous errors
+    setFieldErrors({});
     
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      // Scroll to first error
-      const firstError = Object.keys(errors)[0];
-      document.getElementById(firstError)?.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-
     try {
+      // Validate form data
+      const errors = validateDiscountCodeForm({
+        ...formData,
+        eventId: eventId || ''
+      });
+      
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        // Scroll to first error
+        const firstError = Object.keys(errors)[0];
+        document.getElementById(firstError)?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'center'
+        });
+        return;
+      }
+
       setLoading(true);
-      const response = await instance.post('/api/DiscountCode/create-discount-code', formData);
+      
+      // Prepare the request data
+      const requestData = {
+        ...formData,
+        eventId: eventId || '',
+        // Ensure numeric values are properly converted
+        value: Number(formData.value),
+        minimum: Number(formData.minimum),
+        maximum: Number(formData.maximum),
+        maxUsage: Number(formData.maxUsage)
+      };
+
+      const response = await instance.post('/api/DiscountCode/create-discount-code', requestData);
       
       if (response.data.success) {
-        toast.success('Đang tạo mã giảm giá...');
+        toast.success('Đang tạo mã giảm giá...', {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
         // Wait for signalR confirmation
       } else {
         throw new Error(response.data.message || 'Failed to create discount code');
       }
     } catch (error) {
       console.error('Error creating discount code:', error);
-      let errorMessage = 'Có lỗi xảy ra khi tạo mã giảm giá';
       
-      if (error instanceof AxiosError && error.response?.data) {
-        const backendError = error.response.data;
-        if (backendError.fieldErrors) {
-          setFieldErrors(backendError.fieldErrors);
+      if (error instanceof AxiosError) {
+        // Handle backend validation errors
+        if (error.response?.status === 400 && error.response.data?.fieldErrors) {
+          const backendErrors = error.response.data.fieldErrors;
+          const formattedErrors: FieldErrors = {};
+          
+          // Map backend field names to frontend field names
+          Object.keys(backendErrors).forEach(key => {
+            const frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
+            formattedErrors[frontendKey] = backendErrors[key];
+          });
+          
+          setFieldErrors(formattedErrors);
+          
+          // Scroll to first error
+          const firstError = Object.keys(formattedErrors)[0];
+          if (firstError) {
+            setTimeout(() => {
+              document.getElementById(firstError)?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+            }, 100);
+          }
+          
           return;
         }
-        errorMessage = backendError.message || errorMessage;
+        
+        // Handle other API errors
+        const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi tạo mã giảm giá';
+        toast.error(errorMessage, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+      } else {
+        // Handle non-API errors
+        toast.error('Có lỗi xảy ra khi tạo mã giảm giá. Vui lòng thử lại sau.', {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
       }
-      
-      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

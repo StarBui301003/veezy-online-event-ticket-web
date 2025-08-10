@@ -66,22 +66,52 @@ export default function CreateTicket() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Chặn double submit
+    if (loading) return; // Prevent double submit
+    
+    // Reset states
     setLoading(true);
     setError(null);
     setSuccess(null);
     setShowBankError(false);
 
-    // Validate
-    if (!form.name.trim()) return setError(t('ticketNameEmpty'));
-    if (!form.price || form.price < 0) return setError(t('ticketPriceInvalid'));
-    if (!form.quantity || form.quantity < 1) return setError(t('ticketQuantityInvalid'));
-    if (!form.saleStartTime || !form.saleEndTime) return setError(t('ticketSaleTimeInvalid'));
-    if (form.saleStartTime >= form.saleEndTime) return setError(t('ticketSaleEndTimeInvalid'));
-    if (!eventId) return setError(t('eventNotFound'));
-    if (!form.description.trim()) return setError(t('ticketDescriptionEmpty'));
-
     try {
+      // Validate
+      if (!form.name.trim()) {
+        setError(t('ticketNameEmpty'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (!form.price || form.price < 0) {
+        setError(t('ticketPriceInvalid'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (!form.quantity || form.quantity < 1) {
+        setError(t('ticketQuantityInvalid'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (!form.saleStartTime || !form.saleEndTime) {
+        setError(t('ticketSaleTimeInvalid'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (form.saleStartTime >= form.saleEndTime) {
+        setError(t('ticketSaleEndTimeInvalid'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (!eventId) {
+        setError(t('eventNotFound'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+      if (!form.description.trim()) {
+        setError(t('ticketDescriptionEmpty'));
+        setLoading(false); // Reset loading state
+        return;
+      }
+
       const ticketPayload = {
         eventId,
         name: form.name,
@@ -94,17 +124,13 @@ export default function CreateTicket() {
         isTransferable: false,
       };
 
-      const ticket = await createTicket(ticketPayload); // Gọi API tạo vé
+      const ticket = await createTicket(ticketPayload);
 
-      // Nếu API trả về lỗi thiếu thông tin tài khoản ngân hàng
-      if (
-        ticket &&
-        ticket.success === false &&
-        ticket.message &&
-        ticket.message.toLowerCase().includes('bank')
-      ) {
+      // Handle bank account error
+      if (ticket && ticket.success === false && ticket.message?.toLowerCase().includes('bank')) {
         setError(ticket.message);
         setShowBankError(true);
+        setLoading(false); // Reset loading state
         return;
       }
 
@@ -117,21 +143,20 @@ export default function CreateTicket() {
         setError(t('ticketCreationFailed'));
       }
     } catch (err: unknown) {
-      if (
-        err &&
-        typeof err === 'object' &&
-        'response' in err &&
-        err.response &&
-        typeof err.response === 'object' &&
-        'data' in err.response &&
-        err.response.data &&
-        typeof err.response.data === 'object' &&
+      const errorMessage = 
+        err && 
+        typeof err === 'object' && 
+        'response' in err && 
+        err.response && 
+        typeof err.response === 'object' && 
+        'data' in err.response && 
+        err.response.data && 
+        typeof err.response.data === 'object' && 
         'message' in err.response.data
-      ) {
-        setError((err.response.data.message as string) || t('ticketCreationFailed'));
-      } else {
-        setError(t('ticketCreationFailed'));
-      }
+          ? (err.response.data.message as string)
+          : t('ticketCreationFailed');
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

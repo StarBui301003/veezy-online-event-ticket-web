@@ -23,7 +23,7 @@ const OrderHistory = ({
   onPageChange,
   onSelectOrder,
 }: OrderHistoryProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation('profileCustomer');
   const { getThemeClass } = useThemeClasses();
 
   return (
@@ -97,12 +97,12 @@ const OrderHistory = ({
                   )
                 )}
               >
-                <th className="px-4 py-3 font-medium">Mã đơn</th>
-                <th className="px-4 py-3 font-medium">Sự kiện</th>
-                <th className="px-4 py-3 font-medium">Tổng tiền</th>
-                <th className="px-4 py-3 font-medium">Ngày mua</th>
-                <th className="px-4 py-3 font-medium">Trạng thái</th>
-                <th className="px-4 py-3 font-medium">Thao tác</th>
+                <th className="px-4 py-3 font-medium">{t('orderId')}</th>
+                <th className="px-4 py-3 font-medium">{t('eventName')}</th>
+                <th className="px-4 py-3 font-medium">{t('totalAmount')}</th>
+                <th className="px-4 py-3 font-medium">{t('createdAt')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderStatus')}</th>
+                <th className="px-4 py-3 font-medium">{t('action')}</th>
               </tr>
             </thead>
             <tbody>

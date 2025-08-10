@@ -17,7 +17,7 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
   return (
     <div className="flex flex-col items-center w-full min-h-[400px]">
       <h2 className={cn('text-2xl font-bold mb-6', getThemeClass('text-gray-900', 'text-white'))}>
-        Lịch sử tham dự
+        {t('profileCustomer.attendanceHistory')}
       </h2>
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
@@ -28,7 +28,7 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
             )}
           />
           <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-slate-400'))}>
-            {t('loadingAttendance') || 'Đang tải lịch sử tham dự...'}
+            {t('profileCustomer.loadingAttendance')}
           </p>
         </div>
       ) : error ? (
@@ -45,7 +45,7 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
         </div>
       ) : attendances.length === 0 ? (
         <div className={cn('text-center', getThemeClass('text-gray-500', 'text-gray-400'))}>
-          {t('noAttendance')}
+          {t('profileCustomer.noAttendance')}
         </div>
       ) : (
         <div className="w-full overflow-x-auto">
@@ -61,9 +61,8 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
                   getThemeClass('bg-gray-100/80 text-gray-900', 'bg-slate-700 text-slate-100')
                 )}
               >
-                <th className="px-4 py-3 font-medium">{t('eventName')}</th>
-                <th className="px-4 py-3 font-medium">{t('checkedInAt')}</th>
-                <th className="px-4 py-3 font-medium">{t('status')}</th>
+                <th className="px-4 py-3 font-medium">{t('profileCustomer.eventName')}</th>
+                <th className="px-4 py-3 font-medium">{t('profileCustomer.checkedInAt')}</th>
               </tr>
             </thead>
             <tbody>
@@ -89,14 +88,7 @@ const AttendanceHistory = ({ attendances, loading, error }: AttendanceHistoryPro
                   >
                     {att.checkedInAt
                       ? new Date(att.checkedInAt).toLocaleString('vi-VN')
-                      : 'Not Checked In'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {att.status === 'attended' ? (
-                      <span className="text-green-400 font-semibold">{t('attended')}</span>
-                    ) : (
-                      <span className="text-yellow-400 font-semibold">{t('notAttended')}</span>
-                    )}
+                      : t('profileCustomer.notCheckedIn')}
                   </td>
                 </tr>
               ))}

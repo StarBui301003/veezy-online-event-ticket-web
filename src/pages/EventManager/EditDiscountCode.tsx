@@ -42,12 +42,40 @@ interface FormData {
   expiredAt: string;
 }
 
+interface FieldErrors {
+  [key: string]: string;
+}
+
+const validateEditDiscountCodeForm = (formData: FormData) => {
+  const errors: FieldErrors = {};
+
+  if (!formData.code.trim()) {
+    errors.code = 'Mã giảm giá không được để trống';
+  }
+
+  if (formData.value <= 0) {
+    errors.value = 'Giá trị giảm giá phải lớn hơn 0';
+  }
+
+  if (formData.discountType === 0 && formData.value > 100) {
+    errors.value = 'Phần trăm giảm giá không được vượt quá 100';
+  }
+
+  if (!formData.expiredAt) {
+    errors.expiredAt = 'Ngày hết hạn không được để trống';
+  }
+
+  return errors;
+};
+
 export default function EditDiscountCode() {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { discountId } = useParams<{ discountId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [discountCode, setDiscountCode] = useState<DiscountCode | null>(null);
   const [formData, setFormData] = useState<FormData>({
     code: '',
@@ -114,42 +142,129 @@ export default function EditDiscountCode() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!discountId || !discountCode) {
-      toast.error(t('invalidDiscountCode'));
-      return;
-    }
-
-    // Validation
-    if (!formData.code.trim()) {
-      toast.error(t('discountCodeRequired'));
-      return;
-    }
-    if (formData.value <= 0) {
-      toast.error(t('discountValueMustBePositive'));
-      return;
-    }
-    if (formData.discountType === 0 && formData.value > 100) {
-      toast.error(t('percentageCannotExceed100'));
-      return;
-    }
-    if (!formData.expiredAt) {
-      toast.error(t('expirationDateRequired'));
-      return;
-    }
-
-    setLoading(true);
+    // Reset previous errors
+    setFieldErrors({});
 
     try {
-      const response = await updateDiscountCode(discountId, formData);
-      if (response) {
-        toast.success(t('discountCodeUpdated'));
-        navigate('/event-manager/discount-codes');
+      // Validate form data
+      const errors = validateEditDiscountCodeForm({
+        ...formData,
+        expiredAt: formData.expiredAt || ''
+      });
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+
+        // Scroll to first error
+        const firstError = Object.keys(errors)[0];
+        document.getElementById(firstError)?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'center'
+        });
+        return;
       }
-    } catch (err) {
-      console.error('Failed to update discount code:', err);
-      toast.error(t('failedToUpdateDiscountCode'));
+
+      setSubmitting(true);
+
+      // Prepare the request data
+      const requestData = {
+        ...formData,
+        // Ensure numeric values are properly converted
+        value: Number(formData.value),
+        minimum: Number(formData.minimum),
+        maximum: Number(formData.maximum),
+        maxUsage: Number(formData.maxUsage)
+      };
+
+      if (!discountId) {
+        throw new Error('Mã giảm giá không hợp lệ');
+      }
+
+      const response = await updateDiscountCode(discountId, requestData);
+
+      if (response.flag) {
+        toast.success('Cập nhật mã giảm giá thành công!', {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+
+        // Redirect back to discount codes list after a short delay
+        setTimeout(() => {
+          navigate('/event-manager/discount-codes');
+        }, 1500);
+      } else {
+        throw new Error(response.message || 'Không thể cập nhật mã giảm giá');
+      }
+    } catch (error) {
+      console.error('Error updating discount code:', error);
+
+      // Check if it's an Axios error
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as {
+          response?: {
+            status: number;
+            data?: {
+              fieldErrors?: Record<string, string[]>;
+              message?: string;
+            };
+          };
+          message: string;
+        };
+
+        // Handle backend validation errors (400)
+        if (axiosError.response?.status === 400 && axiosError.response.data?.fieldErrors) {
+          const backendErrors = axiosError.response.data.fieldErrors;
+          const formattedErrors: FieldErrors = {};
+
+          // Map backend field names to frontend field names
+          Object.keys(backendErrors).forEach(key => {
+            const frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
+            // Join multiple error messages with a space
+            formattedErrors[frontendKey] = Array.isArray(backendErrors[key]) 
+              ? backendErrors[key].join(' ')
+              : String(backendErrors[key]);
+          });
+
+          setFieldErrors(formattedErrors);
+
+          // Scroll to first error
+          const firstError = Object.keys(formattedErrors)[0];
+          if (firstError) {
+            setTimeout(() => {
+              document.getElementById(firstError)?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+            }, 100);
+          }
+          return;
+        }
+
+        // Handle other API errors
+        const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Có lỗi xảy ra khi cập nhật mã giảm giá';
+        toast.error(errorMessage, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+      } else {
+        // Handle non-API errors
+        const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
+        toast.error(`Lỗi: ${errorMessage}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        });
+      }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -249,6 +364,9 @@ export default function EditDiscountCode() {
               placeholder="SUMMER20"
               required
             />
+            {fieldErrors.code && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.code}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -274,6 +392,9 @@ export default function EditDiscountCode() {
               <option value={0}>{t('percentage')}</option>
               <option value={1}>{t('fixedAmount')}</option>
             </select>
+            {fieldErrors.discountType && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.discountType}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -296,6 +417,9 @@ export default function EditDiscountCode() {
               )}
               required
             />
+            {fieldErrors.value && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.value}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -317,6 +441,9 @@ export default function EditDiscountCode() {
               )}
               required
             />
+            {fieldErrors.minimum && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.minimum}</p>
+            )}
           </div>
 
           {formData.discountType === 0 && (
@@ -339,6 +466,9 @@ export default function EditDiscountCode() {
                 )}
                 required
               />
+              {fieldErrors.maximum && (
+                <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.maximum}</p>
+              )}
             </div>
           )}
 
@@ -365,6 +495,9 @@ export default function EditDiscountCode() {
                 )
               )}
             />
+            {fieldErrors.maxUsage && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.maxUsage}</p>
+            )}
             <p className={cn('text-xs', getThemeClass('text-blue-600/70', 'text-pink-200'))}>
               {t('leaveBlankForUnlimited')}
             </p>
@@ -388,6 +521,9 @@ export default function EditDiscountCode() {
               )}
               required
             />
+            {fieldErrors.expiredAt && (
+              <p className={cn('text-xs text-red-600 mt-1')}>{fieldErrors.expiredAt}</p>
+            )}
             {discountCode.isExpired && (
               <p className={cn('text-xs', getThemeClass('text-red-600', 'text-red-400'))}>
                 {t('currentlyExpired')}
@@ -405,9 +541,9 @@ export default function EditDiscountCode() {
                   'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
                 )
               )}
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? t('updating') : t('updateDiscountCode')}
+              {submitting ? t('updating') : t('updateDiscountCode')}
             </Button>
             <Button
               type="button"

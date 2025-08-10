@@ -43,12 +43,13 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { t } from 'i18next';
 
 const TABS = [
-  { key: 'info', label: 'Thông tin cá nhân' },
-  { key: 'settings', label: 'Cài đặt chung' },
-  { key: 'orders', label: 'Lịch sử mua vé' },
-  { key: 'attendances', label: 'Lịch sử tham dự' },
+  { key: 'info', label: t('profileCustomer.personalInformation') },
+  { key: 'settings', label: t('profileCustomer.generalSettings') },
+  { key: 'orders', label: t('profileCustomer.orderHistory') },
+  { key: 'attendances', label: t('profileCustomer.attendanceHistory') },
 ];
 
 const ProfileCustomer = () => {
@@ -608,9 +609,9 @@ const ProfileCustomer = () => {
   const handleSave = async () => {
     setFieldErrors({});
     const newFieldErrors: FieldErrors = {};
-    if (!form.fullName?.trim()) newFieldErrors.fullname = ['Full name is required!'];
-    if (!form.email?.trim()) newFieldErrors.email = ['Email is required!'];
-    if (!form.phone?.trim()) newFieldErrors.phone = ['Phone number is required!'];
+    if (!form.fullName?.trim()) newFieldErrors.fullname = [t('profileCustomer.fullNameRequired')];
+    if (!form.email?.trim()) newFieldErrors.email = [t('profileCustomer.emailRequired')];
+    if (!form.phone?.trim()) newFieldErrors.phone = [t('profileCustomer.phoneRequired')];
     if (form.dob) {
       const dobValidation = validateDateOfBirth(form.dob);
       if (!dobValidation.isValid) newFieldErrors.dob = [dobValidation.errorMessage!];
@@ -697,14 +698,14 @@ const ProfileCustomer = () => {
       window.dispatchEvent(new Event('user-updated'));
       setFieldErrors({});
 
-      toast.success('Profile updated successfully!');
+      toast.success(t('profileCustomer.profileUpdated'));
     } catch (error: unknown) {
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
       setFieldErrors(backendFieldErrors);
       if (generalErrors.length > 0) {
         toast.error(generalErrors[0]);
       } else if (Object.keys(backendFieldErrors).length === 0) {
-        toast.error('Failed to update profile. Please try again.');
+        toast.error(t('profileCustomer.updateProfileError'));
       }
     } finally {
       setLoading(false);
@@ -759,10 +760,10 @@ const ProfileCustomer = () => {
                 getThemeClass('text-red-600', 'text-red-400')
               )}
             >
-              Unable to load account information
+              {t('profileCustomer.unableToLoadAccount')}
             </div>
             <div className={cn('mb-6', getThemeClass('text-gray-500', 'text-gray-300'))}>
-              Please try again or contact administrator.
+              {t('profileCustomer.tryAgainOrContactAdmin')}
             </div>
             <Button
               className={cn(
@@ -774,7 +775,7 @@ const ProfileCustomer = () => {
               )}
               onClick={() => (window.location.href = '/')}
             >
-              Go to Homepage
+              {t('profileCustomer.goToHomepage')}
             </Button>
           </div>
         </div>

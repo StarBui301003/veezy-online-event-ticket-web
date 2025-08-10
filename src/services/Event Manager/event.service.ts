@@ -108,23 +108,56 @@ export async function updateEvent(eventId: string, data: CreateEventData) {
 // === Delete Event Image ===
 export async function deleteEventImage(imageUrl: string) {
   try {
-    // Get just the filename from the URL
-    const fileName = imageUrl.split('/').pop();
+    // Extract the filename from the URL, handling both full URLs and filenames
+    let fileName = imageUrl;
+    try {
+      // If it's a full URL, extract just the filename part
+      const url = new URL(imageUrl);
+      fileName = url.pathname.split('/').pop() || fileName;
+    } catch (e) {
+      // If URL parsing fails, assume it's already a filename
+      fileName = imageUrl.split('/').pop() || fileName;
+    }
+
+    // Ensure we have a valid filename
+    if (!fileName) {
+      console.warn('Invalid image URL provided for deletion:', imageUrl);
+      return { flag: false, message: 'Invalid image URL' };
+    }
+
+    // Log the filename being sent to the server for debugging
+    console.log('Attempting to delete image with filename:', fileName);
 
     const response = await instance.delete(
-      `/api/Event/delete-image?imageUrl=${encodeURIComponent(fileName)}`
+      `/api/Event/delete-image`,
+      { 
+        params: { 
+          imageUrl: fileName 
+        },
+        // Ensure params are properly encoded
+        paramsSerializer: params => {
+          return Object.entries(params)
+            .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+            .join('&');
+        }
+      }
     );
 
     return response.data;
   } catch (error) {
-    console.warn('Image deletion failed, but continuing:', {
+    console.error('Image deletion failed:', {
       error: error.response?.data || error.message,
       status: error.response?.status,
-      imageUrl
+      imageUrl,
+      stack: error.stack
     });
 
-    // Return a resolved promise to prevent the error from propagating
-    return { flag: false };
+    // Return a resolved promise with error details
+    return { 
+      flag: false, 
+      message: error.response?.data?.message || 'Failed to delete image',
+      status: error.response?.status
+    };
   }
 }
 
@@ -1034,6 +1067,8 @@ export async function getAIRecommendedEvents(): Promise<AIRecommendResponse> {
 // === Discount Code APIs ===
 
 export interface DiscountCode {
+  flag: any;
+  message: string;
   discountId: string;
   eventId: string;
   code: string;

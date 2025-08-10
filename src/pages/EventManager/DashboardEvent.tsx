@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Bell, Filter, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,7 @@ import DashboardSummaryCards from './components/DashboardSummaryCards';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { getEventManagerDashboard } from '@/services/Event Manager/event.service';
 
 // TimePeriod enum matching API
 const TimePeriod = {
@@ -54,7 +55,7 @@ export default function EventManagerDashboard() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [activeTab, setActiveTab] = useState('revenue'); // New state for tab switching
+  const [activeTab, setActiveTab] = useState('revenue'); 
   const { unreadCount } = useRealtimeNotifications();
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
@@ -88,6 +89,107 @@ export default function EventManagerDashboard() {
     { value: GroupBy.Quarter, label: 'Theo quý' },
     { value: GroupBy.Year, label: 'Theo năm' },
   ];
+
+  const [dashboardData, setDashboardData] = useState(null);
+
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true);
+  // Track previous filter values for comparison
+  const prevFiltersRef = useRef({
+    selectedPeriod,
+    groupBy,
+    customStartDate,
+    customEndDate
+  });
+
+  // Stable fetch function that only runs when filters change
+  const fetchDashboardData = useCallback(async () => {
+    const currentFilters = { selectedPeriod, groupBy, customStartDate, customEndDate };
+    
+    // Skip fetch if filters haven't changed
+    if (
+      !isInitialMount.current &&
+      prevFiltersRef.current.selectedPeriod === currentFilters.selectedPeriod &&
+      prevFiltersRef.current.groupBy === currentFilters.groupBy &&
+      prevFiltersRef.current.customStartDate === currentFilters.customStartDate &&
+      prevFiltersRef.current.customEndDate === currentFilters.customEndDate
+    ) {
+      return;
+    }
+
+    // Update previous filters
+    prevFiltersRef.current = { ...currentFilters };
+    
+    try {
+      const data = await getEventManagerDashboard({
+        period: currentFilters.selectedPeriod,
+        groupBy: currentFilters.groupBy,
+        startDate: currentFilters.customStartDate,
+        endDate: currentFilters.customEndDate,
+      });
+      
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Không thể tải dữ liệu bảng điều khiển');
+    }
+  }, [selectedPeriod, groupBy, customStartDate, customEndDate]);
+
+  // Initial data fetch and cleanup
+  useEffect(() => {
+    // Only fetch on initial mount or when filters change
+    const timer = setTimeout(() => {
+      fetchDashboardData();
+    }, 0);
+    
+    // Mark initial mount as complete after first render
+    isInitialMount.current = false;
+    
+    return () => clearTimeout(timer);
+  }, [fetchDashboardData]);
+
+  // Memoize handlers to prevent re-renders
+  const handleViewAll = useCallback(() => {
+    setNotifDropdown(false);
+    navigate('/event-manager/notifications');
+  }, [navigate]);
+
+  const handleRedirect = useCallback(() => setNotifDropdown(false), []);
+
+  const handlePeriodChange = useCallback((periodId: number) => {
+    setSelectedPeriod(periodId);
+    
+    // Reset custom dates when switching to non-custom period
+    if (periodId !== TimePeriod.Custom) {
+      setCustomStartDate('');
+      setCustomEndDate('');
+    } else if (!customStartDate || !customEndDate) {
+      // Set default date range for custom period
+      const defaultStart = new Date();
+      defaultStart.setDate(defaultStart.getDate() - 30);
+      setCustomStartDate(defaultStart.toISOString().split('T')[0]);
+      setCustomEndDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [customStartDate, customEndDate]);
+
+  const notificationDropdown = useMemo(() => (
+    <NotificationDropdown
+      userId={userId}
+      onViewAll={handleViewAll}
+      onRedirect={handleRedirect}
+      t={t}
+    />
+  ), [userId, t, handleViewAll, handleRedirect]);
+
+  const exportButtons = useMemo(() => (
+    <ExportButtons 
+      period={selectedPeriod} 
+      groupBy={groupBy}
+      startDate={customStartDate}
+      endDate={customEndDate}
+      dashboardData={dashboardData}
+    />
+  ), [selectedPeriod, groupBy, customStartDate, customEndDate, dashboardData]);
 
   useEffect(() => {
     const setupRealtimeDashboard = async () => {
@@ -190,38 +292,6 @@ export default function EventManagerDashboard() {
     };
   }, [userId]);
 
-  const handlePeriodChange = (periodId) => {
-    setSelectedPeriod(periodId);
-    if (periodId !== TimePeriod.Custom) {
-      setCustomStartDate('');
-      setCustomEndDate('');
-    } else {
-      if (!customStartDate) {
-        const defaultStart = new Date();
-        defaultStart.setDate(defaultStart.getDate() - 30);
-        setCustomStartDate(defaultStart.toISOString().split('T')[0]);
-      }
-      if (!customEndDate) {
-        setCustomEndDate(new Date().toISOString().split('T')[0]);
-      }
-    }
-  };
-
-  const getCurrentPeriodLabel = () => {
-    const tab = periodTabs.find((tab) => tab.id === selectedPeriod);
-    return tab?.label || 'Tùy chỉnh';
-  };
-
-  const currentFilter = {
-    period: selectedPeriod,
-    customStartDate: customStartDate,
-    customEndDate: customEndDate,
-    groupBy: groupBy,
-    includeComparison: false,
-    comparisonPeriod: 0,
-    includeRealtimeData: true,
-  };
-
   return (
     <NotificationProvider userId={userId} userRole={2}>
       <div
@@ -280,7 +350,7 @@ export default function EventManagerDashboard() {
                 <span className="hidden sm:inline">Bộ lọc</span>
               </button>
 
-              <ExportButtons />
+              {exportButtons}
 
               <div className="relative">
                 <button
@@ -305,15 +375,7 @@ export default function EventManagerDashboard() {
                 </button>
                 {notifDropdown && (
                   <div className="absolute right-0 mt-2 z-50">
-                    <NotificationDropdown
-                      userId={userId}
-                      onViewAll={() => {
-                        setNotifDropdown(false);
-                        navigate('/event-manager/notifications');
-                      }}
-                      onRedirect={() => setNotifDropdown(false)}
-                      t={t}
-                    />
+                    {notificationDropdown}
                   </div>
                 )}
               </div>
@@ -494,7 +556,7 @@ export default function EventManagerDashboard() {
                   Thời gian:
                 </span>
                 <span className={cn('font-semibold', getThemeClass('text-gray-900', 'text-white'))}>
-                  {getCurrentPeriodLabel()}
+                  {periodTabs.find((tab) => tab.id === selectedPeriod)?.label}
                 </span>
                 {selectedPeriod === TimePeriod.Custom && customStartDate && customEndDate && (
                   <span
@@ -519,7 +581,15 @@ export default function EventManagerDashboard() {
           </div>
 
           {/* Summary Cards */}
-          <DashboardSummaryCards filter={currentFilter} />
+          <DashboardSummaryCards filter={{
+            period: selectedPeriod,
+            customStartDate: customStartDate,
+            customEndDate: customEndDate,
+            groupBy: groupBy,
+            includeComparison: false,
+            comparisonPeriod: 0,
+            includeRealtimeData: true,
+          }} />
 
           {/* Chart Tabs */}
           <div className="mb-6">
