@@ -43,6 +43,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import GeneralSettings from '@/components/EventManager/GeneralSettings';
+import ChangePasswordModal from '@/pages/Customer/ChangePasswordModal';
 import {
   setAccountAndUpdateTheme,
   updateUserConfigAndTriggerUpdate,
@@ -79,6 +80,7 @@ export default function ProfileEventManager() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [showFaceModal, setShowFaceModal] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [facePassword, setFacePassword] = useState('');
   const [faceError, setFaceError] = useState('');
   const [tab, setTab] = useState<
@@ -661,13 +663,22 @@ export default function ProfileEventManager() {
                     className="hidden"
                     onChange={handleAvatarChange}
                   />
-                  <Button
-                    type="button"
-                    className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] mb-2"
-                    onClick={() => document.getElementById('edit-avatar-input')?.click()}
-                  >
-                    {t('Change Avatar')}
-                  </Button>
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      onClick={() => document.getElementById('edit-avatar-input')?.click()}
+                    >
+                      {t('Change Avatar')}
+                    </Button>
+                    <Button
+                      type="button"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      onClick={() => setShowChangePasswordModal(true)}
+                    >
+                      {t('Change Password')}
+                    </Button>
+                  </div>
                 </div>
                 {/* Personal Information */}
                 <div className="w-full flex flex-col items-center justify-center">
@@ -1306,6 +1317,12 @@ export default function ProfileEventManager() {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
     </>
   );
 }
