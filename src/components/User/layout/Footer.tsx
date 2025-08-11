@@ -69,58 +69,6 @@ export const Footer = () => {
             </div>
           </div>
         </div>
-
-        <Separator className={getThemeClass('bg-gray-400', 'bg-white/20')} />
-
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-y-6">
-          <p className={cn('text-xs', getThemeClass('text-gray-700', 'text-white/70'))}>
-            © 2025 VEZZY. All rights reserved.
-          </p>
-
-          <div className="flex flex-wrap sm:gap-x-12 gap-x-6 gap-y-4 justify-center text-sm font-medium pr-8">
-            <Link
-              to="/"
-              className={cn(
-                'hover:underline',
-                getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
-              )}
-            >
-              Home
-            </Link>
-            <Link
-              to="/events"
-              className={cn(
-                'hover:underline',
-                getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
-              )}
-            >
-              Event
-            </Link>
-            <Link
-              to="/news"
-              className={cn(
-                'hover:underline',
-                getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
-              )}
-            >
-              News
-            </Link>
-          </div>
-
-          <div
-            className={cn('flex gap-6 text-xs', getThemeClass('text-gray-700', 'text-white/70'))}
-          >
-            <Link
-              to="/terms-of-use"
-              className={cn(
-                'hover:underline',
-                getThemeClass('text-gray-700 hover:text-gray-900', 'text-white/70 hover:text-white')
-              )}
-            >
-              Terms of User
-            </Link>
-          </div>
-        </div>
       </div>
     </footer>
   );
