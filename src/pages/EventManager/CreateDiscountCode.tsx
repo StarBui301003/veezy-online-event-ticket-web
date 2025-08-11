@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { onNotification } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { FieldErrors, validateDiscountCodeForm  } from '@/utils/validation';
+import { FieldErrors, validateDiscountCodeForm } from '@/utils/validation';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface Event {
@@ -44,7 +44,7 @@ export default function CreateDiscountCode() {
     discountType: 0,
     value: 0,
     minimum: 0,
-    maximum: 0,
+    maximum: 0, // Will be reset to 0 when discountType changes to 1
     maxUsage: 1,
     expiredAt: '',
   });
@@ -62,16 +62,29 @@ export default function CreateDiscountCode() {
   // Handle input change with validation
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'discountType' || name === 'value' || name === 'minimum' || name === 'maximum' || name === 'maxUsage'
-        ? Number(value)
-        : value
-    }));
-    
+
+    // Special handling for discountType change
+    if (name === 'discountType') {
+      const newDiscountType = Number(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: newDiscountType,
+        // Reset maximum to 0 when switching to fixed amount (discountType === 1)
+        ...(newDiscountType === 1 && { maximum: 0 }),
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]:
+          name === 'value' || name === 'minimum' || name === 'maximum' || name === 'maxUsage'
+            ? Number(value)
+            : value,
+      }));
+    }
+
     // Clear error when user types
     if (fieldErrors[name]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -126,30 +139,30 @@ export default function CreateDiscountCode() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Reset previous errors
     setFieldErrors({});
-    
+
     try {
       // Validate form data
       const errors = validateDiscountCodeForm({
         ...formData,
-        eventId: eventId || ''
+        eventId: eventId || '',
       });
-      
+
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         // Scroll to first error
         const firstError = Object.keys(errors)[0];
-        document.getElementById(firstError)?.scrollIntoView({ 
+        document.getElementById(firstError)?.scrollIntoView({
           behavior: 'smooth',
-          block: 'center'
+          block: 'center',
         });
         return;
       }
 
       setLoading(true);
-      
+
       // Prepare the request data
       const requestData = {
         ...formData,
@@ -157,19 +170,20 @@ export default function CreateDiscountCode() {
         // Ensure numeric values are properly converted
         value: Number(formData.value),
         minimum: Number(formData.minimum),
-        maximum: Number(formData.maximum),
-        maxUsage: Number(formData.maxUsage)
+        // Only include maximum for percentage discounts (discountType === 0)
+        ...(formData.discountType === 0 && { maximum: Number(formData.maximum) }),
+        maxUsage: Number(formData.maxUsage),
       };
 
       const response = await instance.post('/api/DiscountCode/create-discount-code', requestData);
-      
+
       if (response.data.success) {
         toast.success('Đang tạo mã giảm giá...', {
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
         // Wait for signalR confirmation
       } else {
@@ -177,35 +191,35 @@ export default function CreateDiscountCode() {
       }
     } catch (error) {
       console.error('Error creating discount code:', error);
-      
+
       if (error instanceof AxiosError) {
         // Handle backend validation errors
         if (error.response?.status === 400 && error.response.data?.fieldErrors) {
           const backendErrors = error.response.data.fieldErrors;
           const formattedErrors: FieldErrors = {};
-          
+
           // Map backend field names to frontend field names
-          Object.keys(backendErrors).forEach(key => {
+          Object.keys(backendErrors).forEach((key) => {
             const frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
             formattedErrors[frontendKey] = backendErrors[key];
           });
-          
+
           setFieldErrors(formattedErrors);
-          
+
           // Scroll to first error
           const firstError = Object.keys(formattedErrors)[0];
           if (firstError) {
             setTimeout(() => {
               document.getElementById(firstError)?.scrollIntoView({
                 behavior: 'smooth',
-                block: 'center'
+                block: 'center',
               });
             }, 100);
           }
-          
+
           return;
         }
-        
+
         // Handle other API errors
         const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi tạo mã giảm giá';
         toast.error(errorMessage, {
@@ -213,7 +227,7 @@ export default function CreateDiscountCode() {
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
       } else {
         // Handle non-API errors
@@ -222,7 +236,7 @@ export default function CreateDiscountCode() {
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
       }
     } finally {

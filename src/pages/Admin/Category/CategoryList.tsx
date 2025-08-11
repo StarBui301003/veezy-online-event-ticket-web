@@ -21,23 +21,8 @@ import {
   PaginationNext,
   PaginationLink,
 } from '@/components/ui/pagination';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';
 import { MdOutlineEdit } from 'react-icons/md';
-import {
-  FaEye,
-  FaPlus,
-  FaRegTrashAlt,
-  FaSort,
-  FaSortUp,
-  FaSortDown,
-  FaFilter,
-} from 'react-icons/fa';
+import { FaEye, FaPlus, FaRegTrashAlt, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import CreateCategoryModal from '@/pages/Admin/Category/CreateCategoryModal';
 import CategoryDetailModal from '@/pages/Admin/Category/CategoryDetailModal';
@@ -54,7 +39,6 @@ export const CategoryList = () => {
     getAdminListTableClass,
     getAdminListTableRowClass,
     getAdminListTableCellClass,
-    getAdminListDropdownClass,
     getAdminListPaginationClass,
     getAdminListPageSizeSelectClass,
     getAdminListTableBorderClass,
@@ -79,9 +63,6 @@ export const CategoryList = () => {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  // Category filter state
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
-
   // Refs for SignalR
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
@@ -94,7 +75,7 @@ export const CategoryList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    connectEventHub('https://event.vezzy.site/notificationHub');
 
     const reload = () => reloadList();
     onEvent('OnCategoryCreated', reload);
@@ -106,7 +87,7 @@ export const CategoryList = () => {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, searchTerm, selectedCategoryName]);
+  }, [filters, sortBy, sortDescending, searchTerm]);
 
   // Sync filters.page with page on mount
   useEffect(() => {
@@ -120,7 +101,7 @@ export const CategoryList = () => {
         ...filters,
         sortBy,
         sortDescending,
-        searchTerm: searchTerm || selectedCategoryName || undefined,
+        searchTerm: searchTerm || undefined,
       };
       const response = await getCategoriesWithFilter(params);
       setData(response.data);
@@ -262,77 +243,8 @@ export const CategoryList = () => {
               </div>
             </div>
 
-            {/* Filter and Create buttons (right) */}
+            {/* Create button (right) */}
             <div className="flex items-center gap-2">
-              {/* Filter dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex gap-2 items-center border-2 border-blue-500 bg-blue-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-blue-600 hover:text-white hover:border-blue-500">
-                    <FaFilter />
-                    Filter
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
-                >
-                  {/* Category Name Filter */}
-                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
-                    Category Name
-                  </div>
-                  <DropdownMenuItem
-                    onSelect={() => setSelectedCategoryName('')}
-                    className="flex items-center gap-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!selectedCategoryName}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span className="dark:text-white">All Categories</span>
-                  </DropdownMenuItem>
-                  {selectedCategoryName && (
-                    <DropdownMenuItem
-                      onSelect={() => setSelectedCategoryName('')}
-                      className="text-xs flex items-center gap-2"
-                    >
-                      Clear Filter
-                    </DropdownMenuItem>
-                  )}
-                  {(() => {
-                    // Extract unique category names from current data
-                    const uniqueCategories = items
-                      ? Array.from(
-                          new Map(
-                            items.map((item) => [item.categoryName, item.categoryName])
-                          ).entries()
-                        )
-                      : [];
-
-                    return uniqueCategories.map(([categoryName, categoryNameValue]) => (
-                      <DropdownMenuItem
-                        key={categoryName}
-                        onSelect={() => setSelectedCategoryName(categoryName)}
-                        className="flex items-center gap-2"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedCategoryName === categoryName}
-                          readOnly
-                          className="mr-2"
-                        />
-                        <span className="truncate dark:text-white" title={categoryNameValue}>
-                          {categoryNameValue}
-                        </span>
-                      </DropdownMenuItem>
-                    ));
-                  })()}
-                  <DropdownMenuSeparator />
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Create button */}
               <button
                 className="flex gap-2 items-center border-2 border-green-500 bg-green-500 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[16px] font-semibold text-white hover:bg-green-600 hover:text-white hover:border-green-500"
                 onClick={() => setShowCreateModal(true)}

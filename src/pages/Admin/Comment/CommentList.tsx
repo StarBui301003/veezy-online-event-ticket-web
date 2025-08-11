@@ -23,10 +23,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { getCommentsWithFilter } from '@/services/Admin/comment.service';
 import type { Comment, PaginatedCommentResponse, CommentFilterParams } from '@/types/Admin/comment';
-import { FaEye, FaSort, FaSortUp, FaSortDown, FaFilter } from 'react-icons/fa';
+import { FaEye, FaSort, FaSortUp, FaSortDown, FaFilter, FaTimes } from 'react-icons/fa';
 import CommentDetailModal from './CommentDetailModal';
 import { useTranslation } from 'react-i18next';
 import AnalyzeCommentModal from './AnalyzeCommentModal';
@@ -63,6 +64,10 @@ export const CommentList = () => {
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
+
+  // New state for event filtering - store both eventId and eventName
+  const [allEvents, setAllEvents] = useState<Array<{ eventId: string; eventName: string }>>([]);
+
   const { t } = useTranslation();
 
   // Refs for SignalR
@@ -77,9 +82,13 @@ export const CommentList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-    const COMMENT_HUB_URL = ((import.meta as any)?.env?.VITE_COMMENT_HUB_URL as string)
-      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_COMMENT_HUB_URL : undefined)
-      || '/commentHub';
+    const COMMENT_HUB_URL =
+      (import.meta as { env?: { VITE_COMMENT_HUB_URL?: string } })?.env?.VITE_COMMENT_HUB_URL ||
+      (typeof process !== 'undefined'
+        ? (process as { env?: { REACT_APP_COMMENT_HUB_URL?: string } })?.env
+            ?.REACT_APP_COMMENT_HUB_URL
+        : undefined) ||
+      '/commentHub';
     connectCommentHub(COMMENT_HUB_URL);
 
     const reload = () => reloadList();
@@ -102,15 +111,83 @@ export const CommentList = () => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
+  // Load events from comments data - extract both eventId and eventName
+  // Similar to ApprovedEventList.tsx approach: fetch a larger sample to get more events for filter
+  useEffect(() => {
+    const loadEventsFromComments = async () => {
+      try {
+        console.log('🔄 Loading events from comments for filter options...');
+        // Fetch a larger sample of comments to extract events (similar to ApprovedEventList.tsx pageSize: 100)
+        const response = await getCommentsWithFilter({ page: 1, pageSize: 100 });
+        if (response?.data?.items) {
+          const uniqueEvents = Array.from(
+            new Map(
+              response.data.items
+                .filter(
+                  (comment) =>
+                    comment.eventId && comment.eventName && comment.eventName !== 'Unknown Event'
+                )
+                .map((comment) => [comment.eventId, comment.eventName])
+            ).entries()
+          )
+            .map(([eventId, eventName]) => ({ eventId, eventName }))
+            .sort((a, b) => a.eventName.localeCompare(b.eventName));
+          console.log('📋 Extracted events from comments for filter:', uniqueEvents);
+          setAllEvents(uniqueEvents);
+        } else {
+          console.warn('⚠️ No comments found to extract events:', response);
+          setAllEvents([]);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load events from comments:', error);
+        setAllEvents([]);
+      }
+    };
+
+    loadEventsFromComments();
+  }, []); // Only run once on mount, not dependent on data?.items
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const params = {
-        ...filters,
-        sortBy,
-        sortDescending,
-        searchTerm: searchTerm || undefined,
+      // Tách riêng pagination và filter parameters giống ApprovedEventList.tsx
+      const paginationParams = {
+        page: filters.page,
+        pageSize: filters.pageSize,
       };
+
+      // Chuẩn hóa eventId filter thành dạng mảng (eventId[]=...) nếu là mảng
+      let eventIdParam: any = undefined;
+      if (Array.isArray(filters.eventId)) {
+        if (filters.eventId.length > 0) {
+          eventIdParam = filters.eventId;
+        }
+      } else if (typeof filters.eventId === 'string' && filters.eventId) {
+        eventIdParam = [filters.eventId];
+      }
+
+      const filterParams = {
+        searchTerm: searchTerm || undefined,
+        eventId: eventIdParam, // Đảm bảo truyền dạng mảng nếu có nhiều eventId
+        userId: filters.userId,
+        createdFrom: filters.createdFrom,
+        createdTo: filters.createdTo,
+        sortBy: sortBy || filters.sortBy,
+        sortDescending: sortDescending,
+      };
+
+      // Kết hợp pagination và filter parameters
+      const params = { ...paginationParams, ...filterParams };
+
+      // Debug: Log search parameters
+      console.log('🔍 Comment Search Parameters:', {
+        pagination: paginationParams,
+        filters: filterParams,
+        searchTerm: searchTerm,
+        eventId: filterParams.eventId,
+        note: 'eventId filter is now properly passed to API as array (eventId[]=...)',
+      });
+
       const response = await getCommentsWithFilter(params);
       setData(response.data);
     } catch (error) {
@@ -160,7 +237,12 @@ export const CommentList = () => {
     key: keyof CommentFilterParams,
     value: string | string[] | boolean | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    console.log('🔧 Comment Filter update:', { key, value });
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      console.log('🔧 New comment filters state:', newFilters);
+      return newFilters;
+    });
     setPage(1);
   };
 
@@ -246,8 +328,63 @@ export const CommentList = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
+                  className={`w-64 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
                 >
+                  {/* Event Filter - RADIO ONLY, NOT MULTIPLE */}
+                  {allEvents.length > 0 ? (
+                    <>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Event
+                      </div>
+                      <div className="max-h-48 overflow-y-auto overflow-x-hidden">
+                        <DropdownMenuItem
+                          onSelect={() => updateFilter('eventId', undefined)}
+                          className={`flex items-center gap-2 ${getAdminListDropdownClass()} dark:text-white`}
+                        >
+                          <input
+                            type="radio"
+                            name="eventFilter"
+                            checked={!filters.eventId}
+                            readOnly
+                            className="mr-2 flex-shrink-0"
+                            style={{ minWidth: 16 }}
+                          />
+                          <span>All Events</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {allEvents.map((event) => (
+                          <DropdownMenuItem
+                            key={event.eventId}
+                            onSelect={() => updateFilter('eventId', event.eventId)}
+                            className={`flex items-center gap-2 ${getAdminListDropdownClass()} dark:text-white`}
+                          >
+                            <input
+                              type="radio"
+                              name="eventFilter"
+                              checked={filters.eventId === event.eventId}
+                              readOnly
+                              className="mr-2 flex-shrink-0"
+                              style={{ minWidth: 16 }}
+                            />
+                            <span className="text-sm truncate max-w-32" title={event.eventName}>
+                              {event.eventName}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Event
+                      </div>
+                      <div className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        Loading events...
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
                   {/* Date Range Filter */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Created Date Range
@@ -280,6 +417,24 @@ export const CommentList = () => {
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
+                  </DropdownMenuItem>
+
+                  {/* Clear Filter Button */}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setFilters({
+                        page: 1,
+                        pageSize: filters.pageSize,
+                        sortDescending: true,
+                        sortBy: 'createdAt',
+                      });
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                  >
+                    <FaTimes className="w-4 h-4" />
+                    <span>Clear All Filters</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -396,31 +551,43 @@ export const CommentList = () => {
                       key={comment.commentId}
                       className={`${getAdminListTableRowClass()} ${getAdminListTableCellBorderClass()}`}
                     >
-                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
+                      <TableCell
+                        className={`text-center ${getAdminListTableCellClass()} truncate max-w-[60px]`}
+                      >
                         {((filters.page || 1) - 1) * (filters.pageSize || 5) + idx + 1}
                       </TableCell>
-                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
+                      <TableCell
+                        className={`text-center ${getAdminListTableCellClass()} truncate max-w-[120px]`}
+                        title={comment.fullName || 'Unknown User'}
+                      >
                         {comment.fullName || 'Unknown User'}
                       </TableCell>
                       <TableCell
-                        className={`text-left max-w-[200px] ${getAdminListTableCellClass()}`}
+                        className={`text-left ${getAdminListTableCellClass()} truncate max-w-[140px]`}
+                        title={comment.eventName || 'Unknown Event'}
                       >
-                        <div className="truncate" title={comment.eventName || 'Unknown Event'}>
-                          {comment.eventName || 'Unknown Event'}
-                        </div>
+                        {comment.eventName || 'Unknown Event'}
                       </TableCell>
                       <TableCell
-                        className={`text-left max-w-[200px] truncate ${getAdminListTableCellClass()}`}
+                        className={`text-left ${getAdminListTableCellClass()} truncate max-w-[220px]`}
                         title={comment.content}
                       >
-                        {comment.content.length > 50
-                          ? comment.content.slice(0, 50) + '...'
-                          : comment.content}
+                        {comment.content}
                       </TableCell>
-                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
+                      <TableCell
+                        className={`text-center ${getAdminListTableCellClass()} truncate max-w-[120px]`}
+                        title={
+                          comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''
+                        }
+                      >
                         {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ''}
                       </TableCell>
-                      <TableCell className={`text-center ${getAdminListTableCellClass()}`}>
+                      <TableCell
+                        className={`text-center ${getAdminListTableCellClass()} truncate max-w-[120px]`}
+                        title={
+                          comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''
+                        }
+                      >
                         {comment.updatedAt ? new Date(comment.updatedAt).toLocaleString() : ''}
                       </TableCell>
                       <TableCell className="text-center flex items-center justify-center gap-2">

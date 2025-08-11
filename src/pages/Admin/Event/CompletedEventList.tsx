@@ -78,6 +78,7 @@ export const CompletedEventList = ({
     page: 1,
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
+    categoryNames: [], // Initialize categoryNames as empty array
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -104,15 +105,34 @@ export const CompletedEventList = ({
     }
   }, []); // Only run once on mount
 
-  // Fetch all categories for filter
+  // Load categories from events when component mounts
   useEffect(() => {
-    (async () => {
-      const res = await getCompletedEventsWithFilter({ page: 1, pageSize: 50 });
-      const categoryNames = Array.from(
-        new Set(res.data.items.flatMap((event) => event.categoryName || []))
-      );
-      setAllCategories(categoryNames);
-    })();
+    const loadCategories = async () => {
+      try {
+        console.log('🔄 Loading categories from completed events...');
+        // Load initial events to extract categories
+        const response = await getCompletedEventsWithFilter({ page: 1, pageSize: 100 });
+        console.log('📥 Completed events API response for categories:', response);
+        if (response && response.data && response.data.items) {
+          // Extract unique category names from events
+          const categoryNames = Array.from(
+            new Set(
+              response.data.items.flatMap((event) => event.categoryName || []).filter(Boolean) // Remove empty/null values
+            )
+          );
+          console.log('📋 Extracted categories from completed events:', categoryNames);
+          setAllCategories(categoryNames);
+        } else {
+          console.warn('⚠️ No completed events found to extract categories:', response);
+          setAllCategories([]);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load categories from completed events:', error);
+        setAllCategories([]);
+      }
+    };
+
+    loadCategories();
   }, []);
 
   const pageRef = useRef(page);
@@ -157,7 +177,7 @@ export const CompletedEventList = ({
     const filterParams = {
       searchTerm: completedEventSearch,
       createdByFullName: filters.createdByFullName,
-      categoryIds: filters.categoryIds,
+      categoryNames: filters.categoryNames, // Will be converted to categoryIds by event.service.ts
       location: filters.location,
       startFrom: filters.startFrom,
       startTo: filters.startTo,
@@ -343,12 +363,12 @@ export const CompletedEventList = ({
                         Category
                       </div>
                       <DropdownMenuItem
-                        onSelect={() => updateFilter('categoryIds', undefined)}
+                        onSelect={() => updateFilter('categoryNames', undefined)}
                         className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                       >
                         <input
                           type="checkbox"
-                          checked={!filters.categoryIds || filters.categoryIds.length === 0}
+                          checked={!filters.categoryNames || filters.categoryNames.length === 0}
                           readOnly
                           className="mr-2"
                         />
@@ -358,17 +378,17 @@ export const CompletedEventList = ({
                         <DropdownMenuItem
                           key={category}
                           onSelect={() => {
-                            const currentIds = filters.categoryIds || [];
-                            const newIds = currentIds.includes(category)
-                              ? currentIds.filter((id) => id !== category)
-                              : [...currentIds, category];
-                            updateFilter('categoryIds', newIds);
+                            const currentNames = filters.categoryNames || [];
+                            const newNames = currentNames.includes(category)
+                              ? currentNames.filter((name) => name !== category)
+                              : [...currentNames, category];
+                            updateFilter('categoryNames', newNames);
                           }}
                           className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categoryIds?.includes(category) || false}
+                            checked={filters.categoryNames?.includes(category) || false}
                             readOnly
                             className="mr-2"
                           />

@@ -82,6 +82,7 @@ export const ApprovedEventList = ({
     page: 1,
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
+    categoryNames: [], // Initialize categoryNames as empty array
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -96,6 +97,36 @@ export const ApprovedEventList = ({
     setFilters((prev) => ({ ...prev, page }));
   }, [page]);
 
+  // Load categories when component mounts
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        console.log('�� Loading categories from events...');
+        // Load initial events to extract categories
+        const response = await getApprovedEventsWithFilter({ page: 1, pageSize: 100 });
+        console.log('📥 Events API response for categories:', response);
+        if (response && response.data && response.data.items) {
+          // Extract unique category names from events
+          const categoryNames = Array.from(
+            new Set(
+              response.data.items.flatMap((event) => event.categoryName || []).filter(Boolean) // Remove empty/null values
+            )
+          );
+          console.log('📋 Extracted categories from events:', categoryNames);
+          setAllCategories(categoryNames);
+        } else {
+          console.warn('⚠️ No events found to extract categories:', response);
+          setAllCategories([]);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load categories from events:', error);
+        setAllCategories([]);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
   // Ensure filters.page is synced on mount
   useEffect(() => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
@@ -107,17 +138,6 @@ export const ApprovedEventList = ({
       setPageSize(5);
     }
   }, []); // Only run once on mount
-
-  // Fetch all categories for filter
-  useEffect(() => {
-    (async () => {
-      const res = await getApprovedEventsWithFilter({ page: 1, pageSize: 5 });
-      const categoryNames = Array.from(
-        new Set(res.data.items.flatMap((event) => event.categoryName || []))
-      );
-      setAllCategories(categoryNames);
-    })();
-  }, []);
 
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
@@ -158,7 +178,7 @@ export const ApprovedEventList = ({
     const filterParams = {
       searchTerm: approvedEventSearch,
       createdByFullName: filters.createdByFullName,
-      categoryIds: filters.categoryIds,
+      categoryNames: filters.categoryNames, // Will be converted to categoryIds by event.service.ts
       location: filters.location,
       startFrom: filters.startFrom,
       startTo: filters.startTo,
@@ -174,6 +194,8 @@ export const ApprovedEventList = ({
       pagination: paginationParams,
       filters: filterParams,
       approvedEventSearch: approvedEventSearch,
+      categoryNames: filters.categoryNames, // These will be converted to categoryIds by the service
+      note: 'categoryNames will be automatically converted to categoryIds by event.service.ts',
     });
 
     // Combine pagination and filter parameters
@@ -214,6 +236,7 @@ export const ApprovedEventList = ({
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedEventSearch] đổi
   useEffect(() => {
+    console.log('🔄 useEffect triggered - calling fetchData with filters:', filters);
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, approvedEventSearch]);
@@ -253,7 +276,12 @@ export const ApprovedEventList = ({
 
   // Filter handlers
   const updateFilter = (key: keyof EventFilterParams, value: string | string[] | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    console.log('🔧 Filter update:', { key, value });
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      console.log('🔧 New filters state:', newFilters);
+      return newFilters;
+    });
     setPage(1);
   };
 
@@ -299,6 +327,11 @@ export const ApprovedEventList = ({
         <div className={`p-4 ${getEventListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            {/* Debug info */}
+            <div className="text-xs text-gray-500 mb-2">
+              Debug: Categories loaded: {allCategories.length} | Filter state:{' '}
+              {JSON.stringify(filters.categoryNames)}
+            </div>
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div
@@ -374,50 +407,68 @@ export const ApprovedEventList = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className={`w-56 ${getEventListDropdownClass()}`}>
-                  {/* Category Filter - only show if categories exist */}
-                  {allCategories.length > 0 && (
+                  {/* Category Filter - Categories are extracted from the events list and displayed as names.
+                       When filtering, category names are converted to IDs and sent to the backend.
+                       This ensures only relevant categories (those with actual events) are shown. */}
+                  {allCategories.length > 0 ? (
                     <>
                       <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                         Category
                       </div>
-                      <DropdownMenuItem
-                        onSelect={() => updateFilter('categoryIds', undefined)}
-                        className={`flex items-center gap-2 ${getEventListDropdownItemClass()} dark:text-white`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!filters.categoryIds || filters.categoryIds.length === 0}
-                          readOnly
-                          className="mr-2"
-                        />
-                        <span>All</span>
-                      </DropdownMenuItem>
-                      {allCategories.map((category) => (
+                      {/* Scrollable category list - Shows categories from actual events */}
+                      <div className="max-h-48 overflow-y-auto">
                         <DropdownMenuItem
-                          key={category}
-                          onSelect={() => {
-                            const currentIds = filters.categoryIds || [];
-                            const newIds = currentIds.includes(category)
-                              ? currentIds.filter((id) => id !== category)
-                              : [...currentIds, category];
-                            updateFilter('categoryIds', newIds);
-                          }}
-                          className="flex items-center gap-2 dark:text-white"
+                          onSelect={() => updateFilter('categoryNames', undefined)}
+                          className={`flex items-center gap-2 ${getEventListDropdownItemClass()} dark:text-white`}
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categoryIds?.includes(category) || false}
+                            checked={!filters.categoryNames || filters.categoryNames.length === 0}
                             readOnly
                             className="mr-2"
                           />
-                          <span>{category}</span>
+                          <span>All</span>
                         </DropdownMenuItem>
-                      ))}
+                        {allCategories.map((category) => (
+                          <DropdownMenuItem
+                            key={category}
+                            onSelect={() => {
+                              const currentNames = filters.categoryNames || [];
+                              const newNames = currentNames.includes(category)
+                                ? currentNames.filter((name) => name !== category)
+                                : [...currentNames, category];
+                              console.log('🎯 Category filter changed:', { category, newNames });
+                              updateFilter('categoryNames', newNames);
+                            }}
+                            className="flex items-center gap-2 dark:text-white"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={filters.categoryNames?.includes(category) || false}
+                              readOnly
+                              className="mr-2"
+                            />
+                            <span className="truncate max-w-32" title={category}>
+                              {category}
+                            </span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Category
+                      </div>
+                      <div className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        Loading categories...
+                      </div>
                       <DropdownMenuSeparator />
                     </>
                   )}
 
-                  {/* Date Range Filters */}
+                  {/* Date Range Filters - Fixed at bottom */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Start Date Range
                   </div>
@@ -449,6 +500,33 @@ export const ApprovedEventList = ({
                         className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
+                  </DropdownMenuItem>
+
+                  {/* Clear Filter Button */}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      console.log('🧹 Clearing all filters...');
+                      setFilters({
+                        page: 1,
+                        pageSize: filters.pageSize,
+                        sortDescending: true,
+                        categoryNames: [],
+                        createdByFullName: undefined,
+                        location: undefined,
+                        startFrom: undefined,
+                        startTo: undefined,
+                        endFrom: undefined,
+                        endTo: undefined,
+                        createdBy: undefined,
+                        sortBy: undefined,
+                      });
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                  >
+                    <FaTimes className="w-4 h-4" />
+                    <span>Clear All Filters</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

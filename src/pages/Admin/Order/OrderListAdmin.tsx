@@ -29,7 +29,7 @@ import {
 import OrderDetailModal from './OrderDetailModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
 import { connectTicketHub, onTicket } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -61,6 +61,7 @@ const OrderListAdmin = () => {
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    EventId: undefined, // Initialize EventId in filters
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -68,9 +69,13 @@ const OrderListAdmin = () => {
   // Slider states for amount range
   const [amountRange, setAmountRange] = useState<[number, number]>([0, 1000000]);
   const [maxAmount, setMaxAmount] = useState(1000000);
+  const [globalMaxAmount, setGlobalMaxAmount] = useState(1000000);
 
-  // Event filter state
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  // Store all unique events from complete order list for filter options
+  const [allEvents, setAllEvents] = useState<Array<[string, string]>>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+
+  // Remove the separate selectedEventId state since it's now in filters
 
   const pageRef = useRef(filters.Page);
   const pageSizeRef = useRef(filters.PageSize);
@@ -93,6 +98,8 @@ const OrderListAdmin = () => {
     connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
     const reload = () => {
       fetchData();
+      // Also refresh events list to include any new events from new orders
+      fetchAllEvents();
     };
     onTicket('OnOrderCreated', reload);
     onTicket('OnOrderStatusChanged', reload);
@@ -102,6 +109,41 @@ const OrderListAdmin = () => {
     onTicket('OnOrderExpired', reload);
     onTicket('OnOrderFailed', reload);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Function to fetch all events for filter options
+  const fetchAllEvents = async () => {
+    setEventsLoading(true);
+    try {
+      // Fetch all orders without any filters to get complete event list
+      // Using large page size to get most events in one request
+      const allOrdersResponse = await getOrdersAdmin({
+        Page: 1,
+        PageSize: 1000, // Large page size to get most events
+        SortDescending: false,
+      });
+
+      if (allOrdersResponse && allOrdersResponse.success && allOrdersResponse.data) {
+        const allUniqueEvents = Array.from(
+          new Map(
+            allOrdersResponse.data.items.map((item) => [item.eventId, item.eventName])
+          ).entries()
+        );
+        setAllEvents(allUniqueEvents);
+      } else {
+        console.warn('Failed to get events for filter options:', allOrdersResponse?.message);
+      }
+    } catch (error) {
+      console.error('Failed to fetch all events for filter options:', error);
+      setAllEvents([]); // Reset to empty array on error
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
+  // Fetch all events for filter options on component mount
+  useEffect(() => {
+    fetchAllEvents();
   }, []);
 
   const fetchData = useCallback(() => {
@@ -115,27 +157,12 @@ const OrderListAdmin = () => {
 
     const filterParams = {
       SearchTerm: orderSearch,
-      MinAmount: amountRange[0] > 0 ? amountRange[0] : undefined,
-      MaxAmount: amountRange[1] < maxAmount ? amountRange[1] : undefined,
-      EventId: selectedEventId || undefined,
+      MinAmount: amountRange[0],
+      MaxAmount: amountRange[1],
+      EventId: filters.EventId || undefined,
       SortBy: sortBy,
       SortDescending: sortDescending,
     };
-
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Order Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      orderSearch: orderSearch,
-    });
 
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
@@ -144,20 +171,18 @@ const OrderListAdmin = () => {
       .then(async (res) => {
         if (res && res.success && res.data) {
           setData(res);
-          // Calculate max amount from data
+
+          // Calculate max amount from current filtered data
           const maxAmountInData =
             res.data.items.length > 0
               ? Math.max(...res.data.items.map((item) => item.totalAmount))
               : 1000000;
           setMaxAmount(maxAmountInData);
-          console.log(
-            '🔍 Max Amount calculated:',
-            maxAmountInData,
-            'Items count:',
-            res.data.items.length,
-            'All amounts:',
-            res.data.items.map((item) => item.totalAmount)
-          );
+
+          // Update global max amount if we get data without filters
+          if (!orderSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+            setGlobalMaxAmount(maxAmountInData);
+          }
         } else {
           setData(null);
         }
@@ -168,36 +193,49 @@ const OrderListAdmin = () => {
       .finally(() => {
         setTimeout(() => setLoading(false), 500);
       });
-  }, [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending, selectedEventId]);
+  }, [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch, selectedEventId] đổi
+  // Filter handlers
+  const updateFilter = (
+    key: keyof OrderFilterParams,
+    value: string | number | boolean | undefined
+  ) => {
+    setFilters((prev) => ({ ...prev, [key]: value, Page: 1 }));
+  };
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch] đổi
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, orderSearch, selectedEventId]);
+  }, [filters, sortBy, sortDescending, orderSearch]);
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
       setAmountRange([0, maxAmount]);
     }
-  }, [maxAmount]);
+  }, [maxAmount, amountRange]);
 
-  // Handle amountRange changes separately
+  // Update amountRange when globalMaxAmount changes (for initial load)
+  useEffect(() => {
+    if (globalMaxAmount > 0 && globalMaxAmount !== 1000000) {
+      setAmountRange([0, globalMaxAmount]);
+      setMaxAmount(globalMaxAmount);
+    }
+  }, [globalMaxAmount]);
+
+  // Handle amountRange changes separately with debouncing
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Always fetch when amountRange changes (including when dragged to 0)
-    fetchData();
-  }, [amountRange]);
-
-  // Handle event filter changes
-  useEffect(() => {
-    if (selectedEventId !== '') {
+    // Debounce the fetchData call to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
       fetchData();
-    }
-  }, [selectedEventId, fetchData]);
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [amountRange]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
@@ -232,6 +270,8 @@ const OrderListAdmin = () => {
   const refreshData = () => {
     setOrderSearch(''); // Reset search when refresh
     setFilters((prev) => ({ ...prev, Page: 1 })); // Reset to page 1
+    // Also refresh events list to ensure it's up-to-date
+    fetchAllEvents();
   };
 
   // Items and pagination
@@ -381,48 +421,56 @@ const OrderListAdmin = () => {
                     Event
                   </div>
                   <DropdownMenuItem
-                    onSelect={() => setSelectedEventId('')}
+                    onSelect={() => updateFilter('EventId', undefined)}
                     className={getAdminListDropdownItemClass()}
                   >
-                    <input type="checkbox" checked={!selectedEventId} readOnly className="mr-2" />
+                    <input
+                      type="radio"
+                      name="orderEventFilter"
+                      checked={filters.EventId === undefined}
+                      readOnly
+                      className="mr-2 flex-shrink-0"
+                      style={{ minWidth: 16 }}
+                    />
                     <span>All Events</span>
                   </DropdownMenuItem>
-                  {selectedEventId && (
+                  {filters.EventId !== undefined && (
                     <DropdownMenuItem
-                      onSelect={() => setSelectedEventId('')}
+                      onSelect={() => updateFilter('EventId', undefined)}
                       className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       Clear Filter
                     </DropdownMenuItem>
                   )}
-                  {(() => {
-                    // Extract unique events from current data
-                    const uniqueEvents = data?.data?.items
-                      ? Array.from(
-                          new Map(
-                            data.data.items.map((item) => [item.eventId, item.eventName])
-                          ).entries()
-                        )
-                      : [];
-
-                    return uniqueEvents.map(([eventId, eventName]) => (
+                  {eventsLoading ? (
+                    <DropdownMenuItem className="text-xs text-gray-500 dark:text-gray-400">
+                      Loading events...
+                    </DropdownMenuItem>
+                  ) : allEvents.length === 0 ? (
+                    <DropdownMenuItem className="text-xs text-gray-500 dark:text-gray-400">
+                      No events found.
+                    </DropdownMenuItem>
+                  ) : (
+                    allEvents.map(([eventId, eventName]) => (
                       <DropdownMenuItem
                         key={eventId}
-                        onSelect={() => setSelectedEventId(eventId)}
+                        onSelect={() => updateFilter('EventId', eventId)}
                         className={getAdminListDropdownItemClass()}
                       >
                         <input
-                          type="checkbox"
-                          checked={selectedEventId === eventId}
+                          type="radio"
+                          name="orderEventFilter"
+                          checked={filters.EventId === eventId}
                           readOnly
-                          className="mr-2"
+                          className="mr-2 flex-shrink-0"
+                          style={{ minWidth: 16 }}
                         />
-                        <span className="truncate" title={eventName}>
+                        <span className="truncate max-w-40" title={eventName}>
                           {eventName}
                         </span>
                       </DropdownMenuItem>
-                    ));
-                  })()}
+                    ))
+                  )}
                   <DropdownMenuSeparator />
 
                   {/* Amount Range Filters */}
@@ -435,7 +483,7 @@ const OrderListAdmin = () => {
                   >
                     <div className="space-y-4 w-full">
                       <div className="space-y-2">
-                        <div className="flex justify-between text-xs text-gray-600 gap-3">
+                        <div className="flex justify-between text-xs text-gray-600">
                           <span className="dark:text-white">
                             Min: {formatCurrency(amountRange[0])}
                           </span>
@@ -443,20 +491,22 @@ const OrderListAdmin = () => {
                             Max: {formatCurrency(amountRange[1])}
                           </span>
                         </div>
-                        <Slider
+                        <DualRangeSlider
                           value={amountRange}
                           onValueChange={(value) => setAmountRange(value as [number, number])}
-                          max={maxAmount}
+                          max={globalMaxAmount}
                           min={0}
                           step={10000}
+                          label={(value) => formatCurrency(value)}
                           className="w-full"
+                          debounceMs={200}
                         />
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setAmountRange([0, maxAmount]);
+                            setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
                               fetchData();

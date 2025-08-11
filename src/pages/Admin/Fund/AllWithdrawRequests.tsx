@@ -29,7 +29,7 @@ import {
 import FundDetailModal from './FundDetailModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
 import { connectFundHub, onFund } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -67,6 +67,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
   // Slider states for amount range
   const [amountRange, setAmountRange] = useState<[number, number]>([0, 1000000]);
   const [maxAmount, setMaxAmount] = useState(1000000);
+  const [globalMaxAmount, setGlobalMaxAmount] = useState(1000000);
 
   // Get all unique statuses for filter
   const allStatuses = ['Pending', 'Processing', 'Paid', 'Rejected', 'Success', 'Failed'];
@@ -88,7 +89,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-          connectFundHub('https://ticket.vezzy.site/fundHub', token);
+    connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
       fetchData();
     };
@@ -142,21 +143,17 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
       .then(async (res) => {
         if (res && res.data && res.data.data) {
           setData(res.data.data);
-          // Calculate max amount from data
+          // Calculate max amount from current filtered data
           const maxAmountInData =
             res.data.data.items.length > 0
               ? Math.max(...res.data.data.items.map((item) => item.amount))
               : 1000000;
           setMaxAmount(maxAmountInData);
-          console.log(
-            '🔍 Max Amount calculated:',
-            maxAmountInData,
-            'Items count:',
-            res.data.data.items.length,
-            'All amounts:',
-            res.data.data.items.map((item) => item.amount)
-          );
-          // Max amount updated
+
+          // Update global max amount if we get data without filters
+          if (!withdrawalSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+            setGlobalMaxAmount(maxAmountInData);
+          }
         } else {
           setData(null);
         }
@@ -180,15 +177,27 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     if (maxAmount > 0 && amountRange[1] === 1000000) {
       setAmountRange([0, maxAmount]);
     }
-  }, [maxAmount]);
+  }, [maxAmount, amountRange]);
 
-  // Handle amountRange changes separately
+  // Update amountRange when globalMaxAmount changes (for initial load)
+  useEffect(() => {
+    if (globalMaxAmount > 0 && globalMaxAmount !== 1000000) {
+      setAmountRange([0, globalMaxAmount]);
+      setMaxAmount(globalMaxAmount);
+    }
+  }, [globalMaxAmount]);
+
+  // Handle amountRange changes separately with debouncing
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Always fetch when amountRange changes (including when dragged to 0)
-    fetchData();
+    // Debounce the fetchData call to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
   }, [amountRange]);
 
   // Pagination handlers
@@ -412,13 +421,15 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
                           <span>Min: {formatCurrency(amountRange[0])}</span>
                           <span>Max: {formatCurrency(amountRange[1])}</span>
                         </div>
-                        <Slider
+                        <DualRangeSlider
                           value={amountRange}
                           onValueChange={(value) => setAmountRange(value as [number, number])}
-                          max={maxAmount}
+                          max={globalMaxAmount}
                           min={0}
                           step={10000}
+                          label={(value) => formatCurrency(value)}
                           className="w-full"
+                          debounceMs={200}
                         />
                       </div>
                       <div className="flex gap-2">

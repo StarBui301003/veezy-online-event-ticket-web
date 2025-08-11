@@ -29,7 +29,7 @@ import PaymentDetailModal from './PaymentDetailModal';
 import GenerateTicketModal from './GenerateTicketModal';
 import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTicketAlt } from 'react-icons/fa';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
 import { connectPaymentHub, onPayment } from '@/services/signalr.service';
 import { formatCurrency } from '@/utils/format';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
@@ -68,6 +68,7 @@ const PaymentListAdmin = () => {
   // Slider states for amount range
   const [amountRange, setAmountRange] = useState<[number, number]>([0, 1000000]);
   const [maxAmount, setMaxAmount] = useState(1000000);
+  const [globalMaxAmount, setGlobalMaxAmount] = useState(1000000);
 
   const pageRef = useRef(filters.Page);
   const pageSizeRef = useRef(filters.PageSize);
@@ -108,26 +109,11 @@ const PaymentListAdmin = () => {
 
     const filterParams = {
       SearchTerm: paymentSearch,
-      MinAmount: amountRange[0] > 0 ? amountRange[0] : undefined,
-      MaxAmount: amountRange[1] < maxAmount ? amountRange[1] : undefined,
+      MinAmount: amountRange[0],
+      MaxAmount: amountRange[1],
       SortBy: sortBy,
       SortDescending: sortDescending,
     };
-
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Payment Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      paymentSearch: paymentSearch,
-    });
 
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
@@ -136,20 +122,17 @@ const PaymentListAdmin = () => {
       .then(async (res) => {
         if (res && res.success && res.data) {
           setData(res);
-          // Calculate max amount from data
+          // Calculate max amount from current filtered data
           const maxAmountInData =
             res.data.items.length > 0
               ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
               : 1000000;
           setMaxAmount(maxAmountInData);
-          console.log(
-            '🔍 Max Amount calculated:',
-            maxAmountInData,
-            'Items count:',
-            res.data.items.length,
-            'All amounts:',
-            res.data.items.map((item) => item.amount)
-          );
+
+          // Update global max amount if we get data without filters
+          if (!paymentSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+            setGlobalMaxAmount(maxAmountInData);
+          }
         } else {
           setData(null);
         }
@@ -173,15 +156,27 @@ const PaymentListAdmin = () => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
       setAmountRange([0, maxAmount]);
     }
-  }, [maxAmount]);
+  }, [maxAmount, amountRange]);
 
-  // Handle amountRange changes separately
+  // Update amountRange when globalMaxAmount changes (for initial load)
+  useEffect(() => {
+    if (globalMaxAmount > 0 && globalMaxAmount !== 1000000) {
+      setAmountRange([0, globalMaxAmount]);
+      setMaxAmount(globalMaxAmount);
+    }
+  }, [globalMaxAmount]);
+
+  // Handle amountRange changes separately with debouncing
   useEffect(() => {
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
-    // Always fetch when amountRange changes (including when dragged to 0)
-    fetchData();
+    // Debounce the fetchData call to avoid excessive API calls
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
   }, [amountRange]);
 
   // Pagination handlers
@@ -417,13 +412,15 @@ const PaymentListAdmin = () => {
                             Max: {formatCurrency(amountRange[1])}
                           </span>
                         </div>
-                        <Slider
+                        <DualRangeSlider
                           value={amountRange}
                           onValueChange={(value) => setAmountRange(value as [number, number])}
-                          max={maxAmount}
+                          max={globalMaxAmount}
                           min={0}
                           step={10000}
+                          label={(value) => formatCurrency(value)}
                           className="w-full"
+                          debounceMs={200}
                         />
                       </div>
                       <div className="flex gap-2">

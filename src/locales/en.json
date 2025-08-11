@@ -173,7 +173,7 @@
   "deleteDiscountCode": "Delete discount code",
   "discountType": "Discount Type",
   "percentage": "Percentage",
-  "fixedAmount": "Fixed Amount",
+  "fixedAmount": "Amount",
   "value": "Value",
   "minimumOrder": "Minimum Order",
   "maximumDiscount": "Maximum Discount",

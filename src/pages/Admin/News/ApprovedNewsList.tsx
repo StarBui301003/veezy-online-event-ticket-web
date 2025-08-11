@@ -65,6 +65,8 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     page: 1,
     pageSize: 5,
     sortDescending: true,
+    eventId: '',
+    authorFullName: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -111,9 +113,12 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
-      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL : undefined)
-      || '/newsHub';
+    const NEWS_HUB_URL =
+      ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
+      (typeof process !== 'undefined'
+        ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL
+        : undefined) ||
+      '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
@@ -148,8 +153,8 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       page: currentPage,
       pageSize: currentPageSize,
       searchTerm: approvedNewsSearch,
-      authorFullName: selectedAuthorName || filters.authorFullName,
-      eventId: selectedEventId || filters.eventId,
+      authorFullName: filters.authorFullName,
+      eventId: filters.eventId,
       authorId: filters.authorId,
       sortBy: sortBy || filters.sortBy,
       sortDescending: sortDescending,
@@ -180,21 +185,13 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedNewsSearch, selectedEventId, selectedAuthorName] đổi
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedNewsSearch, activeTab] đổi
   useEffect(() => {
     if (activeTab === 'approved') {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filters,
-    sortBy,
-    sortDescending,
-    approvedNewsSearch,
-    selectedEventId,
-    selectedAuthorName,
-    activeTab,
-  ]);
+  }, [filters, sortBy, sortDescending, approvedNewsSearch, activeTab]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
@@ -216,6 +213,17 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       setSortBy(field);
       setSortDescending(true);
     }
+  };
+
+  // Filter handlers
+  const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
+    console.log('🔧 Filter update:', { key, value });
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      console.log('🔧 New filters state:', newFilters);
+      return newFilters;
+    });
+    setPage(1);
   };
 
   const getSortIcon = (field: string) => {
@@ -320,25 +328,27 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className={`w-80 ${getAdminListDropdownClass()}`}>
-                  {/* Event Filter */}
+                  {/* Event Filter - RADIO ONLY, NOT MULTIPLE */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Event
                   </div>
                   <DropdownMenuItem
-                    onSelect={() => setSelectedEventId('')}
+                    onSelect={() => {
+                      setSelectedEventId('');
+                      updateFilter('eventId', '');
+                    }}
                     className={getAdminListDropdownItemClass()}
                   >
-                    <input type="checkbox" checked={!selectedEventId} readOnly className="mr-2" />
+                    <input
+                      type="radio"
+                      name="newsEventFilter"
+                      checked={!selectedEventId}
+                      readOnly
+                      className="mr-2"
+                    />
                     <span>All Events</span>
                   </DropdownMenuItem>
-                  {selectedEventId && (
-                    <DropdownMenuItem
-                      onSelect={() => setSelectedEventId('')}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      Clear Filter
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuSeparator />
                   {(() => {
                     // Extract unique events from current data
                     const uniqueEvents = news
@@ -350,11 +360,15 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                     return uniqueEvents.map(([eventId, eventName]) => (
                       <DropdownMenuItem
                         key={eventId}
-                        onSelect={() => setSelectedEventId(eventId)}
+                        onSelect={() => {
+                          setSelectedEventId(eventId);
+                          updateFilter('eventId', eventId);
+                        }}
                         className={getAdminListDropdownItemClass()}
                       >
                         <input
-                          type="checkbox"
+                          type="radio"
+                          name="newsEventFilter"
                           checked={selectedEventId === eventId}
                           readOnly
                           className="mr-2"
@@ -372,7 +386,10 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                     Author
                   </div>
                   <DropdownMenuItem
-                    onSelect={() => setSelectedAuthorName('')}
+                    onSelect={() => {
+                      setSelectedAuthorName('');
+                      updateFilter('authorFullName', '');
+                    }}
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
@@ -385,7 +402,10 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                   </DropdownMenuItem>
                   {selectedAuthorName && (
                     <DropdownMenuItem
-                      onSelect={() => setSelectedAuthorName('')}
+                      onSelect={() => {
+                        setSelectedAuthorName('');
+                        updateFilter('authorFullName', '');
+                      }}
                       className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       Clear Filter
@@ -402,7 +422,10 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                     return uniqueAuthors.map(([authorName, authorNameValue]) => (
                       <DropdownMenuItem
                         key={authorName}
-                        onSelect={() => setSelectedAuthorName(authorName)}
+                        onSelect={() => {
+                          setSelectedAuthorName(authorName);
+                          updateFilter('authorFullName', authorName);
+                        }}
                         className={getAdminListDropdownItemClass()}
                       >
                         <input

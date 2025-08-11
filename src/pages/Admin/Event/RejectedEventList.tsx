@@ -78,6 +78,7 @@ export const RejectedEventList = ({
     page: 1,
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
+    categoryNames: [], // Initialize categoryNames as empty array
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -104,15 +105,34 @@ export const RejectedEventList = ({
     }
   }, []); // Only run once on mount
 
-  // Fetch all categories for filter
+  // Load categories from events when component mounts
   useEffect(() => {
-    (async () => {
-      const res = await getRejectedEventsWithFilter({ page: 1, pageSize: 100 });
-      const categoryNames = Array.from(
-        new Set(res.data.items.flatMap((event) => event.categoryName || []))
-      );
-      setAllCategories(categoryNames);
-    })();
+    const loadCategories = async () => {
+      try {
+        console.log('🔄 Loading categories from rejected events...');
+        // Load initial events to extract categories
+        const response = await getRejectedEventsWithFilter({ page: 1, pageSize: 100 });
+        console.log('📥 Rejected events API response for categories:', response);
+        if (response && response.data && response.data.items) {
+          // Extract unique category names from events
+          const categoryNames = Array.from(
+            new Set(
+              response.data.items.flatMap((event) => event.categoryName || []).filter(Boolean) // Remove empty/null values
+            )
+          );
+          console.log('📋 Extracted categories from rejected events:', categoryNames);
+          setAllCategories(categoryNames);
+        } else {
+          console.warn('⚠️ No rejected events found to extract categories:', response);
+          setAllCategories([]);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load categories from rejected events:', error);
+        setAllCategories([]);
+      }
+    };
+
+    loadCategories();
   }, []);
 
   const pageRef = useRef(page);
@@ -157,7 +177,7 @@ export const RejectedEventList = ({
     const filterParams = {
       searchTerm: rejectedEventSearch,
       createdByFullName: filters.createdByFullName,
-      categoryIds: filters.categoryIds,
+      categoryNames: filters.categoryNames, // Will be converted to categoryIds by event.service.ts
       location: filters.location,
       startFrom: filters.startFrom,
       startTo: filters.startTo,
@@ -336,45 +356,57 @@ export const RejectedEventList = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className={`w-56 ${getAdminListDropdownClass()}`}>
-                  {/* Category Filter - only show if categories exist */}
-                  {allCategories.length > 0 && (
+                  {/* Category Filter - giống ApprovedEventList */}
+                  {allCategories.length > 0 ? (
                     <>
                       <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                         Category
                       </div>
-                      <DropdownMenuItem
-                        onSelect={() => updateFilter('categoryIds', undefined)}
-                        className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!filters.categoryIds || filters.categoryIds.length === 0}
-                          readOnly
-                          className="mr-2"
-                        />
-                        <span className="text-gray-900 dark:text-white">All</span>
-                      </DropdownMenuItem>
-                      {allCategories.map((category) => (
+                      <div className="max-h-48 overflow-y-auto">
                         <DropdownMenuItem
-                          key={category}
-                          onSelect={() => {
-                            const currentIds = filters.categoryIds || [];
-                            const newIds = currentIds.includes(category)
-                              ? currentIds.filter((id) => id !== category)
-                              : [...currentIds, category];
-                            updateFilter('categoryIds', newIds);
-                          }}
+                          onSelect={() => updateFilter('categoryNames', undefined)}
                           className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categoryIds?.includes(category) || false}
+                            checked={!filters.categoryNames || filters.categoryNames.length === 0}
                             readOnly
                             className="mr-2"
                           />
-                          <span className="text-gray-900 dark:text-white">{category}</span>
+                          <span>All</span>
                         </DropdownMenuItem>
-                      ))}
+                        {allCategories.map((category) => (
+                          <DropdownMenuItem
+                            key={category}
+                            onSelect={() => {
+                              const currentNames = filters.categoryNames || [];
+                              const newNames = currentNames.includes(category)
+                                ? currentNames.filter((name) => name !== category)
+                                : [...currentNames, category];
+                              updateFilter('categoryNames', newNames);
+                            }}
+                            className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={filters.categoryNames?.includes(category) || false}
+                              readOnly
+                              className="mr-2"
+                            />
+                            <span>{category}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Category
+                      </div>
+                      <div className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        Loading categories...
+                      </div>
                       <DropdownMenuSeparator />
                     </>
                   )}
@@ -411,6 +443,24 @@ export const RejectedEventList = ({
                         className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
+                  </DropdownMenuItem>
+
+                  {/* Clear Filters */}
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setRejectedEventSearch('');
+                      setFilters({
+                        page: 1,
+                        pageSize: 5,
+                        sortDescending: true,
+                        categoryNames: [],
+                      });
+                      setPage(1);
+                      setPageSize(5);
+                    }}
+                    className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
+                  >
+                    <span className="text-red-500">Clear Filters</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

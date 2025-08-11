@@ -27,10 +27,9 @@ import {
   PaginationLink,
 } from '@/components/ui/pagination';
 import PendingEventDetailModal from '@/pages/Admin/Event/PendingEventDetailModal';
-import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { FaEye, FaFilter, FaSort, FaSortUp, FaSortDown, FaTimes } from 'react-icons/fa';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { onEvent } from '@/services/signalr.service';
-import { useCategoryMapping } from '@/contexts/CategoryMappingContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 
 const pageSizeOptions = [5, 10, 20, 50];
@@ -65,7 +64,6 @@ export const PendingEventList = ({
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<ApprovedEvent | null>(null);
-  const { initializeMapping } = useCategoryMapping();
 
   // Search and filter states
   const [pendingEventSearch, setPendingEventSearch] = useState('');
@@ -73,6 +71,7 @@ export const PendingEventList = ({
     page: 1,
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
+    categoryNames: [], // Initialize categoryNames as empty array
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -94,23 +93,35 @@ export const PendingEventList = ({
     }
   }, []); // Only run once on mount
 
-  // Fetch all categories for filter and initialize category mapping
+  // Load categories from events when component mounts
   useEffect(() => {
-    (async () => {
+    const loadCategories = async () => {
       try {
-        // Initialize category mapping first
-        await initializeMapping();
-
-        const res = await getPendingEventsWithFilter({ page: 1, pageSize: 50 });
-        const categoryNames = Array.from(
-          new Set(res.data.items.flatMap((event) => event.categoryName || []))
-        );
-        setAllCategories(categoryNames);
+        console.log('🔄 Loading categories from pending events...');
+        // Load initial events to extract categories
+        const response = await getPendingEventsWithFilter({ page: 1, pageSize: 100 });
+        console.log('📥 Pending events API response for categories:', response);
+        if (response && response.data && response.data.items) {
+          // Extract unique category names from events
+          const categoryNames = Array.from(
+            new Set(
+              response.data.items.flatMap((event) => event.categoryName || []).filter(Boolean) // Remove empty/null values
+            )
+          );
+          console.log('📋 Extracted categories from pending events:', categoryNames);
+          setAllCategories(categoryNames);
+        } else {
+          console.warn('⚠️ No pending events found to extract categories:', response);
+          setAllCategories([]);
+        }
       } catch (error) {
-        console.error('Failed to initialize category mapping:', error);
+        console.error('❌ Failed to load categories from pending events:', error);
+        setAllCategories([]);
       }
-    })();
-  }, [initializeMapping]);
+    };
+
+    loadCategories();
+  }, []);
 
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
@@ -151,7 +162,7 @@ export const PendingEventList = ({
     const filterParams = {
       searchTerm: pendingEventSearch,
       createdByFullName: filters.createdByFullName,
-      categoryNames: filters.categoryNames, // Use categoryNames instead of categoryIds
+      categoryNames: filters.categoryNames, // Will be converted to categoryIds by event.service.ts
       location: filters.location,
       startFrom: filters.startFrom,
       startTo: filters.startTo,
@@ -167,6 +178,8 @@ export const PendingEventList = ({
       pagination: paginationParams,
       filters: filterParams,
       pendingEventSearch: pendingEventSearch,
+      categoryNames: filters.categoryNames, // These will be converted to categoryIds by the service
+      note: 'categoryNames will be automatically converted to categoryIds by event.service.ts',
     });
 
     // Combine pagination and filter parameters
@@ -334,50 +347,62 @@ export const PendingEventList = ({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className={`w-56 ${getAdminListDropdownClass()}`}>
-                  {/* Category Filter - only show if categories exist */}
-                  {allCategories.length > 0 && (
+                  {/* Category Filter - giống ApprovedEventList */}
+                  {allCategories.length > 0 ? (
                     <>
                       <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                         Category
                       </div>
-                      <DropdownMenuItem
-                        onSelect={() => updateFilter('categoryNames', undefined)}
-                        className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!filters.categoryNames || filters.categoryNames.length === 0}
-                          readOnly
-                          className="mr-2"
-                        />
-                        <span>All</span>
-                      </DropdownMenuItem>
-                      {allCategories.map((category) => (
+                      <div className="max-h-48 overflow-y-auto">
                         <DropdownMenuItem
-                          key={category}
-                          onSelect={() => {
-                            const currentNames = filters.categoryNames || [];
-                            const newNames = currentNames.includes(category)
-                              ? currentNames.filter((name) => name !== category)
-                              : [...currentNames, category];
-                            updateFilter('categoryNames', newNames);
-                          }}
+                          onSelect={() => updateFilter('categoryNames', undefined)}
                           className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categoryNames?.includes(category) || false}
+                            checked={!filters.categoryNames || filters.categoryNames.length === 0}
                             readOnly
                             className="mr-2"
                           />
-                          <span>{category}</span>
+                          <span>All</span>
                         </DropdownMenuItem>
-                      ))}
+                        {allCategories.map((category) => (
+                          <DropdownMenuItem
+                            key={category}
+                            onSelect={() => {
+                              const currentNames = filters.categoryNames || [];
+                              const newNames = currentNames.includes(category)
+                                ? currentNames.filter((name) => name !== category)
+                                : [...currentNames, category];
+                              updateFilter('categoryNames', newNames);
+                            }}
+                            className={`flex items-center gap-2 ${getAdminListDropdownItemClass()}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={filters.categoryNames?.includes(category) || false}
+                              readOnly
+                              className="mr-2"
+                            />
+                            <span>{category}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        Category
+                      </div>
+                      <div className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        Loading categories...
+                      </div>
                       <DropdownMenuSeparator />
                     </>
                   )}
 
-                  {/* Date Range Filters */}
+                  {/* Date Range Filters - Fixed at bottom */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Start Date Range
                   </div>
@@ -409,6 +434,33 @@ export const PendingEventList = ({
                         className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
+                  </DropdownMenuItem>
+
+                  {/* Clear Filter Button */}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      console.log('🧹 Clearing all filters...');
+                      setFilters({
+                        page: 1,
+                        pageSize: filters.pageSize,
+                        sortDescending: true,
+                        categoryNames: [],
+                        createdByFullName: undefined,
+                        location: undefined,
+                        startFrom: undefined,
+                        startTo: undefined,
+                        endFrom: undefined,
+                        endTo: undefined,
+                        createdBy: undefined,
+                        sortBy: undefined,
+                      });
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                  >
+                    <FaTimes className="w-4 h-4" />
+                    <span>Clear All Filters</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

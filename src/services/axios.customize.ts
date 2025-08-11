@@ -62,7 +62,31 @@ const shouldAutoRefresh = (): boolean => {
   const timeSinceLastRefresh = currentTime - lastRefreshTime;
   const REFRESH_INTERVAL = 170 * 60 * 1000; // 170 phút = 170 * 60 * 1000 ms
 
-  return timeSinceLastRefresh >= REFRESH_INTERVAL;
+  // ✅ Kiểm tra access token có tồn tại không
+  const currentToken = localStorage.getItem('access_token');
+  if (!currentToken) {
+    console.log('❌ No access token found, skipping auto-refresh');
+    return false;
+  }
+
+  // ✅ Kiểm tra token có format hợp lệ không (basic validation)
+  if (currentToken.split('.').length !== 3) {
+    console.log('❌ Invalid token format, skipping auto-refresh');
+    return false;
+  }
+
+  // ✅ Chỉ refresh khi đã đủ thời gian từ lần refresh cuối
+  if (timeSinceLastRefresh >= REFRESH_INTERVAL) {
+    console.log(`🔄 Auto-refresh triggered after ${Math.floor(timeSinceLastRefresh / 60000)} minutes`);
+    return true;
+  }
+
+  // ✅ Nếu chưa đủ thời gian, hiển thị thông tin về lần refresh tiếp theo
+  const timeUntilNextRefresh = REFRESH_INTERVAL - timeSinceLastRefresh;
+  const timeUntilNextRefreshMinutes = Math.floor(timeUntilNextRefresh / 60000);
+
+  console.log(`⏰ Next auto-refresh in ${timeUntilNextRefreshMinutes} minutes`);
+  return false;
 };
 
 // Hàm gọi API refresh token
@@ -70,9 +94,17 @@ const callRefreshTokenAPI = async (): Promise<boolean> => {
   try {
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
+      console.log('❌ No refresh token found');
       return false;
     }
 
+    // ✅ Kiểm tra refresh token có hợp lệ không
+    if (!/^[0-9a-fA-F-]{32,36}$/.test(refreshToken)) {
+      console.log('❌ Invalid refresh token format');
+      return false;
+    }
+
+    console.log('🔄 Calling refresh token API...');
     const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
       method: 'POST',
       headers: {
@@ -84,11 +116,26 @@ const callRefreshTokenAPI = async (): Promise<boolean> => {
     });
 
     if (!response.ok) {
+      console.log(`❌ Refresh token API failed: ${response.status}`);
+
+      // ✅ Nếu refresh thất bại, đợi lâu hơn trước khi thử lại
+      if (response.status === 401) {
+        // Unauthorized - có thể refresh token đã hết hạn
+        console.log('❌ Refresh token expired or invalid, clearing auth data');
+        clearAuthDataAndRedirect();
+        return false;
+      }
+
+      // ✅ Cập nhật thời gian để tránh gọi liên tục khi có lỗi
+      lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
       return false;
     }
 
     const data = await response.json();
     if (!data?.flag || !data.data?.accessToken) {
+      console.log('❌ Invalid response from refresh token API');
+      // ✅ Cập nhật thời gian để tránh gọi liên tục
+      lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
       return false;
     }
 
@@ -131,10 +178,15 @@ const callRefreshTokenAPI = async (): Promise<boolean> => {
     // Cập nhật thời gian refresh cuối cùng
     lastRefreshTime = Date.now();
 
-    console.log('🔄 Token refreshed automatically after 160 minutes');
+    console.log('✅ Token refreshed successfully');
     return true;
+
   } catch (error) {
     console.error('❌ Auto refresh token failed:', error);
+
+    // ✅ Cập nhật thời gian để tránh gọi liên tục khi có lỗi
+    lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
+
     return false;
   }
 };
@@ -143,9 +195,20 @@ const callRefreshTokenAPI = async (): Promise<boolean> => {
 const initAutoRefresh = () => {
   // Kiểm tra mỗi phút
   setInterval(async () => {
-    const token = localStorage.getItem('access_token');
-    if (token && shouldAutoRefresh()) {
-      await callRefreshTokenAPI();
+    try {
+      const token = localStorage.getItem('access_token');
+      if (token && shouldAutoRefresh()) {
+        console.log('🔄 Auto-refresh timer triggered');
+        const success = await callRefreshTokenAPI();
+
+        if (!success) {
+          console.log('⚠️ Auto-refresh failed, will retry later');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in auto-refresh timer:', error);
+      // ✅ Nếu có lỗi, đợi lâu hơn trước khi thử lại
+      lastRefreshTime = Date.now() - (60 * 60 * 1000); // Đợi 1 giờ
     }
   }, 60 * 1000); // Check every minute
 };

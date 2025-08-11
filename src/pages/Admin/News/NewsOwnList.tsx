@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { getOwnNews, hideNews, showNews, deleteNews } from '@/services/Admin/news.service';
@@ -68,12 +69,11 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
     page: 1,
     pageSize: 5,
     sortDescending: true,
+    eventId: '',
+    authorFullName: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
-
-  // Event filter states
-  const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   // Sync filters.pageSize with pageSize prop
   useEffect(() => {
@@ -113,9 +113,12 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
-      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL : undefined)
-      || '/newsHub';
+    const NEWS_HUB_URL =
+      ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
+      (typeof process !== 'undefined'
+        ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL
+        : undefined) ||
+      '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
       fetchData(pageRef.current, pageSizeRef.current);
@@ -151,7 +154,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       pageSize: currentPageSize,
       searchTerm: ownNewsSearch,
       authorFullName: filters.authorFullName,
-      eventId: selectedEventId || filters.eventId,
+      eventId: filters.eventId,
       authorId: filters.authorId,
       createdFrom: filters.createdFrom,
       createdTo: filters.createdTo,
@@ -188,13 +191,13 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, ownNewsSearch, selectedEventId] đổi
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, ownNewsSearch] đổi
   useEffect(() => {
     if (activeTab === 'own') {
       fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, ownNewsSearch, selectedEventId, activeTab]);
+  }, [filters, sortBy, sortDescending, ownNewsSearch, activeTab]);
 
   // Filter handlers
   const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
@@ -322,25 +325,24 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className={`w-80 ${getAdminListDropdownClass()}`}>
-                  {/* Event Filter */}
+                  {/* Event Filter - RADIO ONLY, NOT MULTIPLE */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Event
                   </div>
                   <DropdownMenuItem
-                    onSelect={() => setSelectedEventId('')}
+                    onSelect={() => updateFilter('eventId', '')}
                     className="focus:bg-blue-100 focus:text-blue-900 hover:bg-blue-50 transition rounded-md text-gray-900 dark:text-white dark:focus:bg-blue-900 dark:focus:text-white dark:hover:bg-blue-800"
                   >
-                    <input type="checkbox" checked={!selectedEventId} readOnly className="mr-2" />
+                    <input
+                      type="radio"
+                      name="newsEventFilter"
+                      checked={!filters.eventId}
+                      readOnly
+                      className="mr-2"
+                    />
                     <span>All Events</span>
                   </DropdownMenuItem>
-                  {selectedEventId && (
-                    <DropdownMenuItem
-                      onSelect={() => setSelectedEventId('')}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      Clear Filter
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuSeparator />
                   {(() => {
                     // Extract unique events from current data
                     const uniqueEvents = news
@@ -352,12 +354,13 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
                     return uniqueEvents.map(([eventId, eventName]) => (
                       <DropdownMenuItem
                         key={eventId}
-                        onSelect={() => setSelectedEventId(eventId)}
+                        onSelect={() => updateFilter('eventId', eventId)}
                         className="focus:bg-blue-100 focus:text-blue-900 hover:bg-blue-50 transition rounded-md text-gray-900 dark:text-white dark:focus:bg-blue-900 dark:focus:text-white dark:hover:bg-blue-800"
                       >
                         <input
-                          type="checkbox"
-                          checked={selectedEventId === eventId}
+                          type="radio"
+                          name="newsEventFilter"
+                          checked={filters.eventId === eventId}
                           readOnly
                           className="mr-2"
                         />

@@ -101,7 +101,7 @@ export const DiscountCodeList = () => {
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectEventHub('https://event.vezzy.site/notificationHub');
+    connectEventHub('https://event.vezzy.site/notificationHub');
 
     const reload = () => reloadList();
     onEvent('OnDiscountCodeCreated', reload);
@@ -320,7 +320,7 @@ export const DiscountCodeList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>Fixed</span>
+                    <span>Amount</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
 

@@ -123,7 +123,8 @@ export default function EditDiscountCode() {
           discountType: data.discountType ?? 0,
           value: data.value ?? 0,
           minimum: data.minimum ?? 0,
-          maximum: data.maximum ?? 0,
+          // Set maximum to 0 for fixed amount discounts (discountType === 1)
+          maximum: data.discountType === 1 ? 0 : data.maximum ?? 0,
           maxUsage: data.maxUsage ?? 2147483647,
           expiredAt: data.expiredAt ? format(parseISO(data.expiredAt), "yyyy-MM-dd'T'HH:mm") : '',
         });
@@ -149,7 +150,7 @@ export default function EditDiscountCode() {
       // Validate form data
       const errors = validateEditDiscountCodeForm({
         ...formData,
-        expiredAt: formData.expiredAt || ''
+        expiredAt: formData.expiredAt || '',
       });
 
       if (Object.keys(errors).length > 0) {
@@ -157,9 +158,9 @@ export default function EditDiscountCode() {
 
         // Scroll to first error
         const firstError = Object.keys(errors)[0];
-        document.getElementById(firstError)?.scrollIntoView({ 
+        document.getElementById(firstError)?.scrollIntoView({
           behavior: 'smooth',
-          block: 'center'
+          block: 'center',
         });
         return;
       }
@@ -172,8 +173,9 @@ export default function EditDiscountCode() {
         // Ensure numeric values are properly converted
         value: Number(formData.value),
         minimum: Number(formData.minimum),
-        maximum: Number(formData.maximum),
-        maxUsage: Number(formData.maxUsage)
+        // Only include maximum for percentage discounts (discountType === 0)
+        ...(formData.discountType === 0 && { maximum: Number(formData.maximum) }),
+        maxUsage: Number(formData.maxUsage),
       };
 
       if (!discountId) {
@@ -188,7 +190,7 @@ export default function EditDiscountCode() {
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
 
         // Redirect back to discount codes list after a short delay
@@ -220,10 +222,10 @@ export default function EditDiscountCode() {
           const formattedErrors: FieldErrors = {};
 
           // Map backend field names to frontend field names
-          Object.keys(backendErrors).forEach(key => {
+          Object.keys(backendErrors).forEach((key) => {
             const frontendKey = key.charAt(0).toLowerCase() + key.slice(1);
             // Join multiple error messages with a space
-            formattedErrors[frontendKey] = Array.isArray(backendErrors[key]) 
+            formattedErrors[frontendKey] = Array.isArray(backendErrors[key])
               ? backendErrors[key].join(' ')
               : String(backendErrors[key]);
           });
@@ -236,7 +238,7 @@ export default function EditDiscountCode() {
             setTimeout(() => {
               document.getElementById(firstError)?.scrollIntoView({
                 behavior: 'smooth',
-                block: 'center'
+                block: 'center',
               });
             }, 100);
           }
@@ -244,13 +246,16 @@ export default function EditDiscountCode() {
         }
 
         // Handle other API errors
-        const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Có lỗi xảy ra khi cập nhật mã giảm giá';
+        const errorMessage =
+          axiosError.response?.data?.message ||
+          axiosError.message ||
+          'Có lỗi xảy ra khi cập nhật mã giảm giá';
         toast.error(errorMessage, {
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
       } else {
         // Handle non-API errors
@@ -260,7 +265,7 @@ export default function EditDiscountCode() {
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
-          draggable: true
+          draggable: true,
         });
       }
     } finally {
@@ -379,7 +384,15 @@ export default function EditDiscountCode() {
             <select
               id="discountType"
               value={formData.discountType}
-              onChange={(e) => setFormData({ ...formData, discountType: Number(e.target.value) })}
+              onChange={(e) => {
+                const newDiscountType = Number(e.target.value);
+                setFormData((prev) => ({
+                  ...prev,
+                  discountType: newDiscountType,
+                  // Reset maximum to 0 when switching to fixed amount (discountType === 1)
+                  ...(newDiscountType === 1 && { maximum: 0 }),
+                }));
+              }}
               className={cn(
                 'w-full p-3 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
                 getThemeClass(

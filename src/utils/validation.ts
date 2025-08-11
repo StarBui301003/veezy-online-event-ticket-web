@@ -783,16 +783,18 @@ export const validateDiscountCodeForm = (formData: {
     errors.minimum = [minimumValidation.errorMessage!];
   }
 
-  // Maximum amount
-  const maximumValidation = validateAmount(formData.maximum, 'Maximum amount');
-  if (!maximumValidation.isValid) {
-    errors.maximum = [maximumValidation.errorMessage!];
-  }
+  // Maximum amount - only validate for percentage discounts (discountType === 0)
+  if (formData.discountType === 0) {
+    const maximumValidation = validateAmount(formData.maximum, 'Maximum amount');
+    if (!maximumValidation.isValid) {
+      errors.maximum = [maximumValidation.errorMessage!];
+    }
 
-  // Min-Max relationship
-  const minMaxValidation = validateMinMaxAmount(formData.minimum, formData.maximum);
-  if (!minMaxValidation.isValid) {
-    errors.maximum = [minMaxValidation.errorMessage!];
+    // Min-Max relationship - only validate for percentage discounts
+    const minMaxValidation = validateMinMaxAmount(formData.minimum, formData.maximum);
+    if (!minMaxValidation.isValid) {
+      errors.maximum = [minMaxValidation.errorMessage!];
+    }
   }
 
   // Max usage
@@ -996,16 +998,18 @@ export const validateEditDiscountCodeForm = (formData: {
     errors.minimum = [minimumValidation.errorMessage!];
   }
 
-  // Maximum amount
-  const maximumValidation = validateAmount(formData.maximum, 'Maximum amount');
-  if (!maximumValidation.isValid) {
-    errors.maximum = [maximumValidation.errorMessage!];
-  }
+  // Maximum amount - only validate for percentage discounts (discountType === 0)
+  if (formData.discountType === 0) {
+    const maximumValidation = validateAmount(formData.maximum, 'Maximum amount');
+    if (!maximumValidation.isValid) {
+      errors.maximum = [maximumValidation.errorMessage!];
+    }
 
-  // Min-Max relationship
-  const minMaxValidation = validateMinMaxAmount(formData.minimum, formData.maximum);
-  if (!minMaxValidation.isValid) {
-    errors.maximum = [minMaxValidation.errorMessage!];
+    // Min-Max relationship - only validate for percentage discounts
+    const minMaxValidation = validateMinMaxAmount(formData.minimum, formData.maximum);
+    if (!minMaxValidation.isValid) {
+      errors.maximum = [minMaxValidation.errorMessage!];
+    }
   }
 
   // Max usage
