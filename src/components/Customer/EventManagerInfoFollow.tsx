@@ -122,7 +122,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
         className={cn(
           'absolute inset-0 rounded-2xl opacity-75 blur-sm group-hover:opacity-100 group-hover:blur-none transition-all duration-500 animate-pulse',
           getThemeClass(
-            'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600',
+            'bg-gradient-to-r from-blue-500 to-cyan-400',
             'bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600'
           )
         )}
@@ -143,7 +143,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             className={cn(
               'w-2 h-2 rounded-full animate-pulse',
               getThemeClass(
-                'bg-gradient-to-r from-indigo-400 to-purple-400',
+                'bg-gradient-to-r from-blue-400 to-cyan-400',
                 'bg-gradient-to-r from-purple-400 to-pink-400'
               )
             )}
@@ -152,7 +152,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             className={cn(
               'text-sm font-medium text-transparent bg-clip-text uppercase tracking-wider',
               getThemeClass(
-                'bg-gradient-to-r from-indigo-400 to-purple-400',
+                'bg-gradient-to-r from-blue-600 to-cyan-600',
                 'bg-gradient-to-r from-purple-400 to-pink-400'
               )
             )}
@@ -163,7 +163,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             className={cn(
               'flex-1 h-px',
               getThemeClass(
-                'bg-gradient-to-r from-indigo-400/30 to-transparent',
+                'bg-gradient-to-r from-blue-400/30 to-transparent',
                 'bg-gradient-to-r from-purple-400/30 to-transparent'
               )
             )}
@@ -177,7 +177,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               className={cn(
                 'absolute inset-0 rounded-full animate-spin-slow opacity-75 blur-sm group-hover/avatar:opacity-100 transition-opacity duration-300',
                 getThemeClass(
-                  'bg-gradient-to-r from-indigo-400 to-purple-400',
+                  'bg-gradient-to-r from-blue-400 to-cyan-400',
                   'bg-gradient-to-r from-purple-400 to-pink-400'
                 )
               )}
@@ -199,7 +199,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               className={cn(
                 'font-bold text-lg cursor-pointer truncate transition-all duration-300 transform hover:scale-105',
                 getThemeClass(
-                  'text-gray-800 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-indigo-400 hover:to-purple-400',
+                  'text-gray-800 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600',
                   'text-white hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-purple-400 hover:to-pink-400'
                 )
               )}
@@ -228,7 +228,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
                       'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white border-slate-500'
                     )
                   : getThemeClass(
-                      'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-indigo-500 shadow-lg hover:shadow-indigo-500/25',
+                      'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-blue-500 shadow-lg hover:shadow-blue-500/25',
                       'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-purple-500 shadow-lg hover:shadow-purple-500/25'
                     )
               )}
@@ -258,7 +258,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
           className={cn(
             'absolute top-2 right-2 w-2 h-2 rounded-full animate-ping',
             getThemeClass(
-              'bg-gradient-to-r from-indigo-400 to-purple-400',
+              'bg-gradient-to-r from-blue-400 to-cyan-400',
               'bg-gradient-to-r from-purple-400 to-pink-400'
             )
           )}

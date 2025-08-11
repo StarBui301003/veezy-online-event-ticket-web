@@ -42,11 +42,12 @@ const getInitialTheme = (): 'light' | 'dark' => {
       const userConfigStr = localStorage.getItem('user_config');
       if (userConfigStr) {
         const userConfig = JSON.parse(userConfigStr);
-        if (
-          userConfig.userId &&
-          userConfig.userId === currentUserId &&
-          userConfig.theme !== undefined
-        ) {
+        // Prefer exact match on userId if available
+        if (userConfig.userId === currentUserId && userConfig.theme !== undefined) {
+          return userConfig.theme === 1 ? 'dark' : 'light';
+        }
+        // Fallback: if theme exists but userId missing/mismatch, still use theme to prevent unwanted reset
+        if (userConfig.theme !== undefined) {
           return userConfig.theme === 1 ? 'dark' : 'light';
         }
       }
@@ -58,6 +59,12 @@ const getInitialTheme = (): 'light' | 'dark' => {
         if (guestConfig.theme !== undefined) {
           return guestConfig.theme === 1 ? 'dark' : 'light';
         }
+      }
+
+      // Fallback: support legacy guest theme key
+      const guestTheme = localStorage.getItem('guest_theme');
+      if (guestTheme === 'light' || guestTheme === 'dark') {
+        return guestTheme;
       }
     }
   } catch {
@@ -139,32 +146,40 @@ const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
 };
 
 // Helper function to load theme from user config (localStorage)
-const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' => {
+// Returns null when not available to avoid overriding current theme
+const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' | null => {
   try {
     const userConfigStr = localStorage.getItem('user_config');
     if (userConfigStr) {
       const userConfig = JSON.parse(userConfigStr);
+      // Prefer exact match on userId if available
       if (userConfig.userId === userId && userConfig.theme !== undefined) {
+        return userConfig.theme === 1 ? 'dark' : 'light';
+      }
+      // Fallback: if theme exists but userId missing/mismatch, still use theme to prevent unwanted reset
+      if (userConfig.theme !== undefined) {
         return userConfig.theme === 1 ? 'dark' : 'light';
       }
     }
   } catch {
     // Failed to load theme from user config
   }
-  return 'light'; // Default to light theme
+  return null;
 };
 
 // Helper function to load theme from database (API)
-const loadThemeFromDatabase = async (userId: string): Promise<'light' | 'dark'> => {
+// Returns null when not available to avoid overriding local preference incorrectly
+const loadThemeFromDatabase = async (userId: string): Promise<'light' | 'dark' | null> => {
   try {
     const res = await getUserConfig(userId);
     if (res?.data && res.data.theme !== undefined) {
       return res.data.theme === 1 ? 'dark' : 'light';
     }
+    return null;
   } catch {
     console.error('Failed to load theme from database');
+    return null;
   }
-  return 'light'; // Default to light theme
 };
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
@@ -199,7 +214,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       (async () => {
         try {
           const userTheme = await loadThemeFromDatabase(currentUserId);
-          if (userTheme !== theme) {
+          if (userTheme && userTheme !== theme) {
             setThemeState(userTheme);
           }
 
@@ -241,7 +256,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             try {
               const userTheme = await loadThemeFromDatabase(currentUserId);
               // Only update if theme is actually different to prevent unnecessary re-renders
-              if (userTheme !== theme) {
+              if (userTheme && userTheme !== theme) {
                 setThemeState(userTheme);
               }
 
@@ -258,7 +273,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
               console.error('Failed to load theme from database');
               // Fallback to localStorage if database fails
               const userTheme = loadThemeFromUserConfig(currentUserId);
-              if (userTheme !== theme) {
+              if (userTheme && userTheme !== theme) {
                 setThemeState(userTheme);
               }
             }
@@ -375,6 +390,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         }
       }
 
+      // Fallback: legacy guest theme key
+      const guestTheme = localStorage.getItem('guest_theme');
+      if (guestTheme === 'light' || guestTheme === 'dark') {
+        console.log('🎨 Legacy guest theme found, applying:', guestTheme);
+        setThemeState(guestTheme);
+        setLastUserId(null);
+        return;
+      }
+
       // No guest theme, reset to light
       console.log('No guest theme found, resetting to light theme');
       setThemeState('light');
@@ -388,10 +412,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     localStorage.removeItem('guest_userconfig');
 
     // Load theme from database first, then fallback to localStorage
+    // Prefer local theme immediately to avoid flicker, then sync from API if available
+    const localUserTheme = loadThemeFromUserConfig(currentUserId);
+    if (localUserTheme && localUserTheme !== theme) {
+      console.log('Applying local user theme:', localUserTheme);
+      setThemeState(localUserTheme);
+    }
+
     try {
       const userTheme = await loadThemeFromDatabase(currentUserId);
       console.log('Theme loaded from database:', userTheme, 'current theme:', theme);
-      if (userTheme !== theme) {
+      if (userTheme && userTheme !== theme) {
         console.log('Updating theme from database:', theme, '->', userTheme);
         setThemeState(userTheme);
       }
@@ -408,13 +439,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to load theme from database in resetThemeForNewUser:', error);
-      // Fallback to localStorage if database fails
-      const userTheme = loadThemeFromUserConfig(currentUserId);
-      console.log('Fallback to localStorage theme:', userTheme, 'current theme:', theme);
-      if (userTheme !== theme) {
-        console.log('Updating theme from localStorage:', theme, '->', userTheme);
-        setThemeState(userTheme);
-      }
+      // Fallback already applied via localUserTheme
     }
 
     setLastUserId(currentUserId);
