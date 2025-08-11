@@ -173,7 +173,6 @@ export default function CreateEventForm() {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [contentErrors, setContentErrors] = useState<{ [key: number]: string }>({});
-  const [_touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [formData, setFormData] = useState<EnhancedCreateEventData>({
     eventName: '',
     eventDescription: '',
@@ -349,7 +348,6 @@ export default function CreateEventForm() {
   };
 
   const handleBlur = (fieldName: string) => {
-    setTouched((prev) => ({ ...prev, [fieldName]: true }));
     validateSingleField(fieldName, formData[fieldName as keyof EnhancedCreateEventData]);
   };
 
@@ -603,13 +601,13 @@ export default function CreateEventForm() {
     >
       <style>
         {`
-        /* Light theme styles */
-        .light .ql-toolbar {
+        /* ReactQuill styles */
+        .quill-editor .ql-toolbar {
           background: #f8fafc !important;
           border-radius: 0.75rem 0.75rem 0 0 !important;
           border-color: #3b82f6 !important;
         }
-        .light .ql-toolbar button {
+        .quill-editor .ql-toolbar button {
           color: #374151 !important;
           opacity: 0.8;
           transition: opacity 0.2s;
@@ -617,71 +615,61 @@ export default function CreateEventForm() {
           padding: 0.25rem 0.5rem;
           margin: 0 0.125rem;
         }
-        .light .ql-toolbar button:hover {
+        .quill-editor .ql-toolbar button:hover {
           opacity: 1;
           background-color: rgba(59, 130, 246, 0.1) !important;
         }
-        .light .ql-container {
+        .quill-editor .ql-container {
           background: #ffffff !important;
           color: #374151 !important;
           border-radius: 0 0 0.75rem 0.75rem !important;
           border-color: #3b82f6 !important;
           min-height: 160px;
         }
-        .light .ql-editor {
+        .quill-editor .ql-editor {
           color: #374151 !important;
         }
-        .light .ql-picker {
+        .quill-editor .ql-picker {
           color: #374151 !important;
         }
-        .light .ql-picker-options {
+        .quill-editor .ql-picker-options {
           background: #ffffff !important;
           color: #374151 !important;
           border: 1px solid #3b82f6 !important;
           z-index: 9999 !important;
         }
-        .light .ql-picker-item {
+        .quill-editor .ql-picker-item {
           color: #374151 !important;
         }
 
-        /* Dark theme styles */
-        .dark .ql-toolbar {
+        /* Dark theme for ReactQuill */
+        .dark .quill-editor .ql-toolbar {
           background: #18181b !important;
-          border-radius: 0.75rem 0.75rem 0 0 !important;
           border-color: #a21caf !important;
         }
-        .dark .ql-toolbar button {
+        .dark .quill-editor .ql-toolbar button {
           color: #fff !important;
-          opacity: 0.8;
-          transition: opacity 0.2s;
-          border-radius: 0.25rem;
-          padding: 0.25rem 0.5rem;
-          margin: 0 0.125rem;
         }
-        .dark .ql-toolbar button:hover {
-          opacity: 1;
+        .dark .quill-editor .ql-toolbar button:hover {
           background-color: rgba(162, 28, 175, 0.2) !important;
         }
-        .dark .ql-container {
+        .dark .quill-editor .ql-container {
           background: #27272a !important;
           color: #fff !important;
-          border-radius: 0 0 0.75rem 0.75rem !important;
           border-color: #a21caf !important;
-          min-height: 160px;
         }
-        .dark .ql-editor {
+        .dark .quill-editor .ql-editor {
           color: #fff !important;
         }
-        .dark .ql-picker {
+        .dark .quill-editor .ql-picker {
           color: #fff !important;
         }
-        .dark .ql-picker-options {
+        .dark .quill-editor .ql-picker-options {
           background: #27272a !important;
           color: #fff !important;
           border: 1px solid #a21caf !important;
-          z-index: 9999 !important;
         }
-        .dark .ql-picker-item {
+        .dark .quill-editor .ql-picker-item {
           color: #fff !important;
         }
 
@@ -854,10 +842,7 @@ export default function CreateEventForm() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2 mb-8',
-              getThemeClass(
-                'bg-white/95 border-blue-200',
-                'bg-[#2d0036]/80 border-pink-500/30'
-              )
+              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
             )}
           >
             <h3 className="text-xl font-semibold text-purple-600 mb-4 flex items-center">

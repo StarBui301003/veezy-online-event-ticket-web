@@ -211,30 +211,37 @@ const ProfilePage = () => {
       return;
     }
 
+    const languageNumber = parseInt(language);
+
+    // ✅ Kiểm tra xem language có thực sự thay đổi không
+    if (userConfig.language === languageNumber) {
+      console.log('Language already matches, skipping update:', languageNumber);
+      return;
+    }
+
     setIsLanguageLoading(true);
 
     try {
-      const languageNumber = parseInt(language);
       const languageCode = languageNumber === 0 ? 'en' : 'vi';
 
       // Update language in i18n
       await i18n.changeLanguage(languageCode);
 
-      // Update user config - only send the language field
+      // ✅ Chỉ gọi API một lần - update user config
       await updateUserConfigAPI(account.userId, {
         language: languageNumber,
       });
 
-      // Update local state
+      // ✅ Update local state
       const newConfig = {
         ...userConfig,
         language: languageNumber,
-        userId: account.userId, // Thêm userId
+        userId: account.userId,
       };
       setUserConfig(newConfig);
 
-      // Save to localStorage
-      updateUserConfigAndTriggerUpdate(newConfig);
+      // ✅ KHÔNG gọi updateUserConfigAndTriggerUpdate để tránh vòng lặp
+      // updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
     } catch (error) {
@@ -247,22 +254,29 @@ const ProfilePage = () => {
 
   const handleEmailNotificationsChange = async (checked: boolean) => {
     console.log('Switch clicked! New value:', checked);
+
+    // ✅ Kiểm tra xem email notifications có thực sự thay đổi không
+    if (userConfig.receiveEmail === checked) {
+      console.log('Email notifications already match, skipping update:', checked);
+      return;
+    }
+
     try {
-      // Update user config - only send the receiveEmail field
+      // ✅ Chỉ gọi API một lần - update user config
       await updateUserConfigAPI(account.userId, {
         receiveEmail: checked,
       });
 
-      // Update local state
+      // ✅ Update local state
       const newConfig = {
         ...userConfig,
         receiveEmail: checked,
-        userId: account.userId, // Thêm userId
+        userId: account.userId,
       };
       setUserConfig(newConfig);
 
-      // Save to localStorage
-      updateUserConfigAndTriggerUpdate(newConfig);
+      // ✅ KHÔNG gọi updateUserConfigAndTriggerUpdate để tránh vòng lặp
+      // updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Email notifications updated successfully:', checked);
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
@@ -278,30 +292,37 @@ const ProfilePage = () => {
       return;
     }
 
+    const themeNumber = parseInt(themeValue);
+
+    // ✅ Kiểm tra xem theme có thực sự thay đổi không
+    if (userConfig.theme === themeNumber) {
+      console.log('Theme already matches, skipping update:', themeNumber);
+      return;
+    }
+
     setIsThemeLoading(true);
 
     try {
-      const themeNumber = parseInt(themeValue);
       const themeMode = themeNumber === 1 ? 'dark' : 'light';
 
-      // Update user config via API first
+      // ✅ Chỉ gọi API một lần - update user config
       await updateUserConfigAPI(account.userId, {
         theme: themeNumber,
       });
 
-      // Only update UI after successful API call
-      setTheme(themeMode);
-
-      // Update local state
+      // ✅ Update local state trước
       const newConfig = {
         ...userConfig,
         theme: themeNumber,
-        userId: account.userId, // Thêm userId
+        userId: account.userId,
       };
       setUserConfig(newConfig);
 
-      // Save to localStorage
-      updateUserConfigAndTriggerUpdate(newConfig);
+      // ✅ Update theme context sau khi API thành công
+      setTheme(themeMode);
+
+      // ✅ KHÔNG gọi updateUserConfigAndTriggerUpdate để tránh vòng lặp
+      // updateUserConfigAndTriggerUpdate(newConfig);
 
       console.log('Theme updated successfully:', themeNumber);
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));

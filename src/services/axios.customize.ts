@@ -56,165 +56,25 @@ const isAccessTokenExpired = (token: string): boolean => {
   }
 };
 
-// Hàm tự động refresh token sau 160 phút
-const shouldAutoRefresh = (): boolean => {
+// ✅ Hàm kiểm tra xem có nên refresh token không
+// Token sẽ được refresh tự động sau mỗi 170 phút (khi có request 401)
+const shouldRefreshToken = (): boolean => {
   const currentTime = Date.now();
   const timeSinceLastRefresh = currentTime - lastRefreshTime;
   const REFRESH_INTERVAL = 170 * 60 * 1000; // 170 phút = 170 * 60 * 1000 ms
 
-  // ✅ Kiểm tra access token có tồn tại không
-  const currentToken = localStorage.getItem('access_token');
-  if (!currentToken) {
-    console.log('❌ No access token found, skipping auto-refresh');
-    return false;
-  }
-
-  // ✅ Kiểm tra token có format hợp lệ không (basic validation)
-  if (currentToken.split('.').length !== 3) {
-    console.log('❌ Invalid token format, skipping auto-refresh');
-    return false;
-  }
-
   // ✅ Chỉ refresh khi đã đủ thời gian từ lần refresh cuối
-  if (timeSinceLastRefresh >= REFRESH_INTERVAL) {
-    console.log(`🔄 Auto-refresh triggered after ${Math.floor(timeSinceLastRefresh / 60000)} minutes`);
-    return true;
-  }
-
-  // ✅ Nếu chưa đủ thời gian, hiển thị thông tin về lần refresh tiếp theo
-  const timeUntilNextRefresh = REFRESH_INTERVAL - timeSinceLastRefresh;
-  const timeUntilNextRefreshMinutes = Math.floor(timeUntilNextRefresh / 60000);
-
-  console.log(`⏰ Next auto-refresh in ${timeUntilNextRefreshMinutes} minutes`);
-  return false;
-};
-
-// Hàm gọi API refresh token
-const callRefreshTokenAPI = async (): Promise<boolean> => {
-  try {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      console.log('❌ No refresh token found');
-      return false;
-    }
-
-    // ✅ Kiểm tra refresh token có hợp lệ không
-    if (!/^[0-9a-fA-F-]{32,36}$/.test(refreshToken)) {
-      console.log('❌ Invalid refresh token format');
-      return false;
-    }
-
-    console.log('🔄 Calling refresh token API...');
-    const response = await fetch(`${config.gatewayUrl}/api/Account/refresh-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) {
-      console.log(`❌ Refresh token API failed: ${response.status}`);
-
-      // ✅ Nếu refresh thất bại, đợi lâu hơn trước khi thử lại
-      if (response.status === 401) {
-        // Unauthorized - có thể refresh token đã hết hạn
-        console.log('❌ Refresh token expired or invalid, clearing auth data');
-        clearAuthDataAndRedirect();
-        return false;
-      }
-
-      // ✅ Cập nhật thời gian để tránh gọi liên tục khi có lỗi
-      lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
-      return false;
-    }
-
-    const data = await response.json();
-    if (!data?.flag || !data.data?.accessToken) {
-      console.log('❌ Invalid response from refresh token API');
-      // ✅ Cập nhật thời gian để tránh gọi liên tục
-      lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
-      return false;
-    }
-
-    const newAccessToken = data.data.accessToken;
-    const newRefreshToken = data.data.refreshToken;
-    const newAccount = data.data.account;
-
-    // Lưu token mới
-    localStorage.setItem('access_token', newAccessToken);
-    if (newRefreshToken) {
-      document.cookie = `refresh_token=${newRefreshToken}; path=/; samesite=lax; max-age=${7 * 24 * 60 * 60}`;
-    }
-
-    // Lưu account mới
-    if (newAccount) {
-      const essentialAccountData = {
-        accountId: newAccount.accountId,
-        userId: newAccount.userId,
-        username: newAccount.username,
-        email: newAccount.email,
-        role: newAccount.role,
-        avatar: newAccount.avatar
-      };
-      localStorage.setItem('account', JSON.stringify(essentialAccountData));
-    }
-
-    // Lưu user config mới
-    if (data.data.userConfig) {
-      const userConfig = data.data.userConfig;
-      const essentialUserConfig = {
-        language: userConfig.language,
-        theme: userConfig.theme,
-        receiveEmail: userConfig.receiveEmail,
-        receiveNotify: userConfig.receiveNotify,
-        userId: userConfig.userId
-      };
-      localStorage.setItem('user_config', JSON.stringify(essentialUserConfig));
-    }
-
-    // Cập nhật thời gian refresh cuối cùng
-    lastRefreshTime = Date.now();
-
-    console.log('✅ Token refreshed successfully');
-    return true;
-
-  } catch (error) {
-    console.error('❌ Auto refresh token failed:', error);
-
-    // ✅ Cập nhật thời gian để tránh gọi liên tục khi có lỗi
-    lastRefreshTime = Date.now() - (30 * 60 * 1000); // Đợi 30 phút
-
+  if (timeSinceLastRefresh < REFRESH_INTERVAL) {
+    const timeUntilNextRefresh = REFRESH_INTERVAL - timeSinceLastRefresh;
+    const timeUntilNextRefreshMinutes = Math.floor(timeUntilNextRefresh / 60000);
+    console.log(`⏰ Next refresh allowed in ${timeUntilNextRefreshMinutes} minutes`);
     return false;
   }
+
+  console.log(`🔄 Auto-refresh triggered after ${Math.floor(timeSinceLastRefresh / 60000)} minutes`);
+  return true;
 };
 
-// Khởi tạo auto refresh timer
-const initAutoRefresh = () => {
-  // Kiểm tra mỗi phút
-  setInterval(async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (token && shouldAutoRefresh()) {
-        console.log('🔄 Auto-refresh timer triggered');
-        const success = await callRefreshTokenAPI();
-
-        if (!success) {
-          console.log('⚠️ Auto-refresh failed, will retry later');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error in auto-refresh timer:', error);
-      // ✅ Nếu có lỗi, đợi lâu hơn trước khi thử lại
-      lastRefreshTime = Date.now() - (60 * 60 * 1000); // Đợi 1 giờ
-    }
-  }, 60 * 1000); // Check every minute
-};
-
-// Khởi tạo auto refresh khi module được load
-initAutoRefresh();
 
 export function registerGlobalSpinner(fn: (show: boolean) => void) {
   setSpinner = fn;
@@ -333,6 +193,12 @@ instance.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // ✅ KIỂM TRA xem có nên refresh token không
+      if (!shouldRefreshToken()) {
+        console.log('⏰ Refresh blocked - too soon since last refresh');
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // ✅ TẤT CẢ request đều được thêm vào hàng đợi
         // Tránh tình trạng nhiều request cùng gọi refresh token
@@ -410,7 +276,7 @@ instance.interceptors.response.use(
           localStorage.setItem('user_config', JSON.stringify(essentialUserConfig));
         }
 
-        // Cập nhật thời gian refresh cuối cùng
+        // ✅ Cập nhật thời gian refresh cuối cùng ở MỘT NƠI DUY NHẤT
         lastRefreshTime = Date.now();
 
         // ✅ Xử lý subscriber queue TRƯỚC KHI reset flag
