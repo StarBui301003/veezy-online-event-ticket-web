@@ -132,17 +132,6 @@ export default function FinancialTabs() {
           topEventRevenue: firstTopEvent?.revenue ?? 0,
           topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
         });
-
-        // Verify that the data was actually set
-        setTimeout(() => {
-          console.log('🔍 After setSummary - Current summary state:', summary);
-          console.log('🔍 After setSummary - Current revenueTimeline state:', revenueTimeline);
-          console.log('🔍 After setSummary - Current topEvents state:', topEvents);
-          console.log('🔍 After setSummary - Current platformFees state:', platformFees);
-        }, 100);
-
-        // Force a re-render to ensure the data is displayed
-        console.log('🔄 Forcing re-render with new data');
       })
       .catch((error) => {
         console.error('❌ Error loading financial analytics:', error);
@@ -175,14 +164,6 @@ export default function FinancialTabs() {
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
-        console.log('📡 SignalR Update Received:', data);
-        console.log('🎯 SignalR topEvents:', data.topEvents);
-        console.log('📈 SignalR revenueTimeline:', data.revenueTimeline);
-        console.log('💰 SignalR platformFees:', data.platformFees);
-        console.log('📊 SignalR summary:', data.summary);
-        console.log('💵 SignalR netRevenue:', data.netRevenue);
-        console.log('🏦 SignalR platformFee:', data.platformFee);
-
         // Defensive: always ensure platformFees is an array
         const safePlatformFees = Array.isArray(data.platformFees)
           ? data.platformFees
@@ -192,18 +173,9 @@ export default function FinancialTabs() {
         const safeTopEvents = Array.isArray(data.topEvents) ? data.topEvents : [];
         const safeRevenueTimeline = Array.isArray(data.revenueTimeline) ? data.revenueTimeline : [];
 
-        // Handle both old and new SignalR data structures
-        const signalRSummary = data.summary || {
-          totalRevenue: data.totalRevenue || 0,
-          netRevenue: data.netRevenue || 0,
-          platformFee: data.platformFee || 0,
-          topEventRevenue: safeTopEvents[0]?.revenue || 0,
-          topEventPlatformFee: safePlatformFees[0]?.feeCollected || 0,
-        };
-
         if (
           !summary ||
-          JSON.stringify(signalRSummary) !== JSON.stringify(summary) ||
+          JSON.stringify(data.summary) !== JSON.stringify(summary) ||
           !revenueTimeline ||
           JSON.stringify(safeRevenueTimeline) !== JSON.stringify(revenueTimeline) ||
           !topEvents ||
@@ -212,7 +184,7 @@ export default function FinancialTabs() {
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
           console.log('🔄 SignalR: Updating states due to data changes');
-          setSummary(signalRSummary);
+          setSummary(data.summary || null);
           setRevenueTimeline(safeRevenueTimeline);
           setTopEvents(safeTopEvents);
           setPlatformFees(safePlatformFees);

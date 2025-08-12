@@ -163,6 +163,7 @@ export interface EventTopPerformingEvent {
 export interface EventApprovalMetrics {
   totalEvents: number;
   pendingApprovals: number;
+  newEvents: number;
   approvedToday: number | null;
   rejectedToday: number | null;
   approvedThisWeek: number | null;
@@ -176,6 +177,7 @@ export interface EventApprovalMetrics {
 
 export interface EventApprovalTrendItem {
   period: string;
+  newEvents: number;
   approved: number;
   rejected: number;
   pending: number;

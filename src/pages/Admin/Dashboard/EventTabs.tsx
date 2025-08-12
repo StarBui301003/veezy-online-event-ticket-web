@@ -391,9 +391,7 @@ export default function EventTabs() {
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               <div className="text-center">
                 <div>No top performing events data available</div>
-                <div className="text-sm mt-2">
-                  Debug: topEvents = {JSON.stringify(topEvents)}
-                </div>
+                <div className="text-sm mt-2">Debug: topEvents = {JSON.stringify(topEvents)}</div>
               </div>
             </div>
           ) : (
