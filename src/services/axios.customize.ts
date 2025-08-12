@@ -67,11 +67,11 @@ const shouldRefreshToken = (): boolean => {
   if (timeSinceLastRefresh < REFRESH_INTERVAL) {
     const timeUntilNextRefresh = REFRESH_INTERVAL - timeSinceLastRefresh;
     const timeUntilNextRefreshMinutes = Math.floor(timeUntilNextRefresh / 60000);
-    console.log(`⏰ Next refresh allowed in ${timeUntilNextRefreshMinutes} minutes`);
+
     return false;
   }
 
-  console.log(`🔄 Auto-refresh triggered after ${Math.floor(timeSinceLastRefresh / 60000)} minutes`);
+
   return true;
 };
 
@@ -195,7 +195,7 @@ instance.interceptors.response.use(
 
       // ✅ KIỂM TRA xem có nên refresh token không
       if (!shouldRefreshToken()) {
-        console.log('⏰ Refresh blocked - too soon since last refresh');
+
         return Promise.reject(error);
       }
 

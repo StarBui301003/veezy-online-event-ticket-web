@@ -278,11 +278,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
               }
             }
           } else {
-            // User logged out, reset to light theme
-            if (theme !== 'light') {
-              setThemeState('light');
+            // User logged out, kiểm tra xem có đang logout không
+            const isLoggingOut = localStorage.getItem('is_logging_out') === 'true';
+            if (!isLoggingOut) {
+              // Chỉ reset theme nếu thực sự cần thiết
+              if (theme !== 'light') {
+                console.log('🎨 Resetting theme to light after logout');
+                setThemeState('light');
+              } else {
+                console.log('🎨 Theme already light, no change needed');
+              }
+
+              // Xóa user_config sau khi đã xử lý theme
+              localStorage.removeItem('user_config');
+              console.log('🗑️ user_config removed after theme processing');
+            } else {
+              console.log('🔄 Still logging out, skipping theme reset');
             }
-            localStorage.removeItem('user_config');
           }
         } finally {
           setIsProcessingTheme(false);

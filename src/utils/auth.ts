@@ -22,16 +22,21 @@ export function safeLogout() {
   console.log('🔐 safeLogout() called');
   console.log('📍 Call stack:', new Error().stack); // ✅ Thêm call stack để biết gọi từ đâu
 
+  // ✅ Đánh dấu đang trong quá trình logout để ThemeContext tránh thay đổi theme
+  localStorage.setItem('is_logging_out', 'true');
+  console.log('🚪 Set logout flag to prevent theme reset');
+
   // Lưu lại remembered_username trước khi xóa localStorage
   const rememberedUsername = localStorage.getItem('remembered_username');
   console.log('📝 Current remembered_username:', rememberedUsername);
 
-  // Xóa tất cả auth-related data
+  // Xóa tất cả auth-related data TRỪ user_config để tránh thay đổi theme
+  // user_config sẽ được xóa sau khi redirect hoàn tất
   console.log('🗑️ Clearing auth-related localStorage items...');
   localStorage.removeItem('access_token');
   localStorage.removeItem('customerId');
   localStorage.removeItem('account');
-  localStorage.removeItem('user_config');
+  // localStorage.removeItem('user_config'); // ❌ KHÔNG xóa user_config ở đây
   localStorage.removeItem('admin-event-tab');
   localStorage.removeItem('token_expire_at');
 

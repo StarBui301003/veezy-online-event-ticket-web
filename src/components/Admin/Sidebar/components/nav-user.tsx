@@ -114,9 +114,18 @@ export function NavUser() {
       safeLogout();
 
       toast.success('Logged out successfully!');
+
+      // ✅ Sử dụng navigate để redirect ngay lập tức
+      console.log('🔄 Redirecting to login page...');
+      navigate('/login', { replace: true });
+
+      // ✅ Cleanup user_config sau khi redirect hoàn tất
       setTimeout(() => {
-        window.location.href = '/login';
-      }, 600); // Đợi toast hiển thị
+        console.log('🗑️ Cleaning up localStorage after navigation...');
+        localStorage.removeItem('user_config');
+        localStorage.removeItem('is_logging_out'); // Xóa flag logout
+        console.log('✅ user_config and logout flag removed after navigation');
+      }, 100); // Delay nhỏ để đảm bảo navigate hoàn tất
     } finally {
       setLoadingLogout(false);
     }
