@@ -49,10 +49,16 @@ export interface AdminFinancialAnalyticsData {
   yearRevenue: number | null;
   totalRevenue: number;
   revenueFilter: number;
+  netRevenue: number;
+  netRevenueFilter: number;
+  platformFee: number;
+  platformFeeFilter: number;
   revenueTimeline: FinancialRevenueTimelineItem[];
   topEventsByRevenue: FinancialTopEventByRevenue[];
   withdrawalStats: FinancialWithdrawalStats;
+  withdrawalStatsAllTime: FinancialWithdrawalStats;
   platformFees: FinancialPlatformFees;
+  platformFeesAllTime: FinancialPlatformFees;
 }
 
 export interface FinancialRevenueTimelineItem {

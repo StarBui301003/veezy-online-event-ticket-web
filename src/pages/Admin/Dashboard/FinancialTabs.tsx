@@ -102,20 +102,47 @@ export default function FinancialTabs() {
         console.log('📈 revenueTimeline:', res.data?.revenueTimeline);
         console.log('💰 platformFees:', res.data?.platformFees);
 
-        setRevenueTimeline(res.data?.revenueTimeline || []);
-        setTopEvents(res.data?.topEventsByRevenue || []);
-        setPlatformFees(res.data?.platformFees?.topContributingEvents || []);
+        // Safely set the data with proper null checks
+        const safeRevenueTimeline = res.data?.revenueTimeline || [];
+        const safeTopEvents = res.data?.topEventsByRevenue || [];
+        const safePlatformFees = res.data?.platformFees?.topContributingEvents || [];
 
-        console.log('🔄 State updated - topEvents:', res.data?.topEventsByRevenue || []);
+        setRevenueTimeline(safeRevenueTimeline);
+        setTopEvents(safeTopEvents);
+        setPlatformFees(safePlatformFees);
+
+        console.log('🔄 State updated - topEvents:', safeTopEvents);
+
+        // Safely set summary with proper null checks
+        const firstTopEvent = safeTopEvents.length > 0 ? safeTopEvents[0] : null;
+        const firstPlatformFeeEvent = safePlatformFees.length > 0 ? safePlatformFees[0] : null;
 
         setSummary({
           totalRevenue: res.data?.totalRevenue || 0,
-          netRevenue: res.data?.revenueTimeline?.[0]?.revenue ?? 0,
-          platformFee: res.data?.revenueTimeline?.[0]?.platformFee ?? 0,
-          topEventRevenue: res.data?.topEventsByRevenue?.[0]?.revenue ?? 0,
-          topEventPlatformFee:
-            res.data?.platformFees?.topContributingEvents?.[0]?.feeCollected ?? 0,
+          netRevenue: res.data?.netRevenue ?? 0, // Use direct netRevenue from API
+          platformFee: res.data?.platformFee ?? 0, // Use direct platformFee from API
+          topEventRevenue: firstTopEvent?.revenue ?? 0,
+          topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
         });
+
+        console.log('🔄 Summary set:', {
+          totalRevenue: res.data?.totalRevenue || 0,
+          netRevenue: res.data?.netRevenue ?? 0,
+          platformFee: res.data?.platformFee ?? 0,
+          topEventRevenue: firstTopEvent?.revenue ?? 0,
+          topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
+        });
+
+        // Verify that the data was actually set
+        setTimeout(() => {
+          console.log('🔍 After setSummary - Current summary state:', summary);
+          console.log('🔍 After setSummary - Current revenueTimeline state:', revenueTimeline);
+          console.log('🔍 After setSummary - Current topEvents state:', topEvents);
+          console.log('🔍 After setSummary - Current platformFees state:', platformFees);
+        }, 100);
+
+        // Force a re-render to ensure the data is displayed
+        console.log('🔄 Forcing re-render with new data');
       })
       .catch((error) => {
         console.error('❌ Error loading financial analytics:', error);
@@ -152,25 +179,42 @@ export default function FinancialTabs() {
         console.log('🎯 SignalR topEvents:', data.topEvents);
         console.log('📈 SignalR revenueTimeline:', data.revenueTimeline);
         console.log('💰 SignalR platformFees:', data.platformFees);
+        console.log('📊 SignalR summary:', data.summary);
+        console.log('💵 SignalR netRevenue:', data.netRevenue);
+        console.log('🏦 SignalR platformFee:', data.platformFee);
 
         // Defensive: always ensure platformFees is an array
         const safePlatformFees = Array.isArray(data.platformFees)
           ? data.platformFees
           : data.platformFees?.topContributingEvents || [];
+
+        // Safely handle all data arrays
+        const safeTopEvents = Array.isArray(data.topEvents) ? data.topEvents : [];
+        const safeRevenueTimeline = Array.isArray(data.revenueTimeline) ? data.revenueTimeline : [];
+
+        // Handle both old and new SignalR data structures
+        const signalRSummary = data.summary || {
+          totalRevenue: data.totalRevenue || 0,
+          netRevenue: data.netRevenue || 0,
+          platformFee: data.platformFee || 0,
+          topEventRevenue: safeTopEvents[0]?.revenue || 0,
+          topEventPlatformFee: safePlatformFees[0]?.feeCollected || 0,
+        };
+
         if (
           !summary ||
-          JSON.stringify(data.summary) !== JSON.stringify(summary) ||
+          JSON.stringify(signalRSummary) !== JSON.stringify(summary) ||
           !revenueTimeline ||
-          JSON.stringify(data.revenueTimeline) !== JSON.stringify(revenueTimeline) ||
+          JSON.stringify(safeRevenueTimeline) !== JSON.stringify(revenueTimeline) ||
           !topEvents ||
-          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents) ||
+          JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents) ||
           !platformFees ||
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
           console.log('🔄 SignalR: Updating states due to data changes');
-          setSummary(data.summary || null);
-          setRevenueTimeline(data.revenueTimeline || []);
-          setTopEvents(data.topEvents || []);
+          setSummary(signalRSummary);
+          setRevenueTimeline(safeRevenueTimeline);
+          setTopEvents(safeTopEvents);
           setPlatformFees(safePlatformFees);
         } else {
           console.log('⏭️ SignalR: No changes detected, skipping update');
@@ -199,6 +243,14 @@ export default function FinancialTabs() {
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log('🔍 State changed - summary:', summary);
+    console.log('🔍 State changed - revenueTimeline:', revenueTimeline);
+    console.log('🔍 State changed - topEvents:', topEvents);
+    console.log('🔍 State changed - platformFees:', platformFees);
+  }, [summary, revenueTimeline, topEvents, platformFees]);
 
   // PieChart colors
   const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
@@ -271,6 +323,10 @@ export default function FinancialTabs() {
       </div>
       {/* Card tổng quan financial */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
+        {(() => {
+          console.log('🎨 Rendering Summary Cards - loading:', loading, 'summary:', summary);
+          return null;
+        })()}
         {loading ? (
           <>
             <div className={cardClass}>
@@ -312,13 +368,33 @@ export default function FinancialTabs() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Revenue Timeline</h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Revenue Timeline - loading:',
+              loading,
+              'revenueTimeline:',
+              revenueTimeline,
+              'length:',
+              revenueTimeline?.length,
+              'type:',
+              typeof revenueTimeline,
+              'isArray:',
+              Array.isArray(revenueTimeline)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
             </div>
           ) : !revenueTimeline || revenueTimeline.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No revenue data available
+              <div className="text-center">
+                <div>No revenue data available</div>
+                <div className="text-sm mt-2">
+                  Debug: revenueTimeline = {JSON.stringify(revenueTimeline)}
+                </div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -353,7 +429,11 @@ export default function FinancialTabs() {
               'topEvents:',
               topEvents,
               'length:',
-              topEvents?.length
+              topEvents?.length,
+              'type:',
+              typeof topEvents,
+              'isArray:',
+              Array.isArray(topEvents)
             );
             return null;
           })()}
@@ -363,7 +443,10 @@ export default function FinancialTabs() {
             </div>
           ) : !topEvents || topEvents.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No top events data available
+              <div className="text-center">
+                <div>No top events data available</div>
+                <div className="text-sm mt-2">Debug: topEvents = {JSON.stringify(topEvents)}</div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -395,13 +478,33 @@ export default function FinancialTabs() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Platform Fee</h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Platform Fee - loading:',
+              loading,
+              'platformFees:',
+              platformFees,
+              'length:',
+              platformFees?.length,
+              'type:',
+              typeof platformFees,
+              'isArray:',
+              Array.isArray(platformFees)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
             </div>
           ) : !platformFees || platformFees.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No platform fee data available
+              <div className="text-center">
+                <div>No platform fee data available</div>
+                <div className="text-sm mt-2">
+                  Debug: platformFees = {JSON.stringify(platformFees)}
+                </div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
