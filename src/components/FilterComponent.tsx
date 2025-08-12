@@ -1,226 +1,113 @@
 import React from 'react';
-import { Search, ChevronDown, X, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Search, X, User } from 'lucide-react';
+import Select from 'react-select';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
 
-// Update the FilterOptions interface to match backend parameters
+// Nguồn định nghĩa duy nhất cho FilterOptions
 export interface FilterOptions {
   searchTerm: string;
-  dateRange: 'all' | 'today' | 'week' | 'month' | 'upcoming';
   location: string;
   sortBy: 'date' | 'name' | 'relevance';
   sortOrder: 'asc' | 'desc';
-  // For events only
-  categoryIds?: string[];
-  onlyUpcoming?: boolean;
-  // For news only
-  authorFullName?: string;
-  eventId?: string;
-  authorId?: string;
+  categoryIds: string[];
+  authorFullName: string;
 }
 
-// Add this helper function to convert frontend filters to API parameters
-export const convertToApiParams = (filters: FilterOptions, contentType: 'event' | 'news') => {
-  const params: any = {
-    searchTerm: filters.searchTerm ? encodeURIComponent(filters.searchTerm) : undefined,
-    sortBy:
-      filters.sortBy === 'date'
-        ? contentType === 'news'
-          ? 'CreatedAt'
-          : 'StartAt'
-        : filters.sortBy === 'name'
-        ? 'Title'
-        : 'Relevance',
-    sortDescending: filters.sortOrder === 'desc',
-  };
-
-  // Add location if exists
-  if (filters.location) {
-    params.location = encodeURIComponent(filters.location);
-  }
-
-  // Handle date range
-  const now = new Date();
-  switch (filters.dateRange) {
-    case 'today':
-      params.startDate = now.toISOString().split('T')[0];
-      break;
-    case 'week': {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      params.startDate = weekStart.toISOString().split('T')[0];
-      break;
-    }
-    case 'month':
-      params.startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      break;
-    case 'upcoming':
-      if (contentType === 'event') {
-        params.onlyUpcoming = true;
-      } else {
-        params.startDate = now.toISOString().split('T')[0];
-      }
-      break;
-  }
-
-  return params;
-};
-
 interface FilterComponentProps {
-  filters: FilterOptions;
+  filters: Partial<FilterOptions>;
   onFilterChange: (filters: FilterOptions) => void;
-  locations?: string[];
   showLocationFilter?: boolean;
-  contentType?: 'event' | 'news';
-  resultsCount?: { events?: number; news?: number; total?: number };
-  className?: string;
+  showCategoryFilter?: boolean;
+  showAuthorFilter?: boolean;
+  locations?: { value: string; label: string }[];
+  categories?: { value: string; label: string }[];
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
   filters,
   onFilterChange,
+  showLocationFilter = false,
+  showCategoryFilter = false,
+  showAuthorFilter = false,
   locations = [],
-  showLocationFilter = true,
-  contentType = 'event',
-  resultsCount,
-  className = '',
+  categories = [],
 }) => {
   const { t } = useTranslation();
-  const { getThemeClass } = useThemeClasses();
+  const { theme } = useThemeClasses();
+
+  const baseFilters: FilterOptions = {
+    searchTerm: '',
+    location: '',
+    sortBy: 'date',
+    sortOrder: 'desc',
+    categoryIds: [],
+    authorFullName: '',
+  };
 
   const updateFilter = (key: keyof FilterOptions, value: any) => {
-    onFilterChange({
-      ...filters,
-      [key]: value,
-    });
+    onFilterChange({ ...baseFilters, ...filters, [key]: value });
+  };
+  
+  const handleSelectChange = (key: keyof FilterOptions) => (opt: any) => {
+    updateFilter(key, opt ? opt.value : '');
   };
 
-  const clearFilters = () => {
-    onFilterChange({
-      searchTerm: '',
-      dateRange: 'all',
-      location: '',
-      sortBy: 'date',
-      sortOrder: 'desc',
-    });
+  const handleMultiSelectChange = (key: keyof FilterOptions) => (opts: any) => {
+    updateFilter(key, opts ? opts.map((o: any) => o.value) : []);
   };
+  
+  const hasActiveFilters = filters.searchTerm || filters.authorFullName || filters.location || (filters.categoryIds && filters.categoryIds.length > 0);
 
-  const getResultsText = () => {
-    if (contentType === 'event') {
-      return resultsCount?.events !== undefined
-        ? t('filter.eventsFound', { count: resultsCount.events })
-        : t('filter.loading');
-    } else {
-      return resultsCount?.news !== undefined
-        ? t('filter.newsFound', { count: resultsCount.news })
-        : t('filter.loading');
-    }
+  const selectStyles = {
+    control: (provided: any, state: any) => ({ ...provided, backgroundColor: theme === 'dark' ? '#1f2937' : 'white', borderColor: state.isFocused ? '#3b82f6' : (theme === 'dark' ? '#4b5563' : '#d1d5db'), boxShadow: 'none', '&:hover': { borderColor: '#3b82f6' }, borderRadius: '0.75rem', minHeight: '48px' }),
+    menu: (provided: any) => ({...provided, backgroundColor: theme === 'dark' ? '#1f2937' : 'white', zIndex: 50 }),
+    option: (provided: any, state: any) => ({ ...provided, backgroundColor: state.isSelected ? '#3b82f6' : (state.isFocused ? (theme === 'dark' ? '#374151' : '#f3f4f6') : 'transparent'), color: theme === 'dark' ? '#e5e7eb' : '#111827', }),
+    singleValue: (provided: any) => ({ ...provided, color: theme === 'dark' ? 'white' : '#111827' }),
+    input: (provided: any) => ({ ...provided, color: theme === 'dark' ? 'white' : '#111827' }),
+    placeholder: (provided: any) => ({ ...provided, color: theme === 'dark' ? '#9ca3af' : '#6b7280' }),
+    multiValue: (styles: any) => ({...styles, backgroundColor: theme === 'dark' ? '#3b82f6' : '#dbeafe',}),
+    multiValueLabel: (styles: any) => ({...styles, color: theme === 'dark' ? '#fff' : '#1e40af',}),
   };
-
-  const hasActiveFilters =
-    filters.searchTerm ||
-    filters.dateRange !== 'all' ||
-    filters.location ||
-    filters.sortBy !== 'date' ||
-    filters.sortOrder !== 'desc';
 
   return (
-    <div className={cn('w-full', className)}>
-      <div className="flex flex-col md:flex-row gap-4 items-center mb-4">
-        {/* Search Input */}
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+    <div className="p-4 md:p-6 rounded-2xl bg-white/60 dark:bg-gray-800/40 backdrop-blur-lg border border-gray-200 dark:border-gray-700 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Search Term */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
           <input
             type="text"
-            placeholder={
-              contentType === 'event'
-                ? t('filter.searchEventPlaceholder')
-                : t('filter.searchNewsPlaceholder')
-            }
-            className={cn(
-              'w-full pl-10 pr-4 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-offset-2',
-              getThemeClass(
-                'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-                'bg-gray-800 border-gray-600 focus:ring-cyan-500 focus:border-cyan-500 text-white'
-              )
-            )}
+            placeholder={t('filter.searchPlaceholder')}
+            className={cn('w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2', theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}
             value={filters.searchTerm}
             onChange={(e) => updateFilter('searchTerm', e.target.value)}
           />
         </div>
 
-        {/* Date Range Filter */}
-        <div className="relative">
-          <select
-            className={cn(
-              'appearance-none pl-3 pr-8 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-offset-2',
-              getThemeClass(
-                'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-                'bg-gray-800 border-gray-600 focus:ring-cyan-500 focus:border-cyan-500 text-white'
-              )
-            )}
-            value={filters.dateRange}
-            onChange={(e) => updateFilter('dateRange', e.target.value as any)}
-          >
-            <option value="all">{t('filter.allDates')}</option>
-            <option value="today">{t('filter.today')}</option>
-            <option value="week">{t('filter.thisWeek')}</option>
-            <option value="month">{t('filter.thisMonth')}</option>
-            <option value="upcoming">{t('filter.upcoming')}</option>
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-        </div>
-
-        {/* Location Filter */}
-        {showLocationFilter && (
+        {/* Author Filter (for News) */}
+        {showAuthorFilter && (
           <div className="relative">
-            <select
-              className={cn(
-                'appearance-none pl-3 pr-8 py-2 rounded-full border focus:outline-none focus:ring-2 focus:ring-offset-2',
-                getThemeClass(
-                  'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500',
-                  'bg-gray-800 border-gray-600 focus:ring-cyan-500 focus:border-cyan-500 text-white'
-                )
-              )}
-              value={filters.location}
-              onChange={(e) => updateFilter('location', e.target.value)}
-            >
-              <option value="">{t('filter.allLocations')}</option>
-              {locations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
+            <input
+              type="text"
+              placeholder={t('filter.authorPlaceholder')}
+              className={cn('w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2', theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}
+              value={filters.authorFullName}
+              onChange={(e) => updateFilter('authorFullName', e.target.value)}
+            />
           </div>
         )}
-
-        {/* Clear Filters Button */}
-        {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="flex items-center text-sm text-blue-600 dark:text-cyan-400 hover:underline"
-          >
-            <X className="h-4 w-4 mr-1" />
-            {t('filter.clearFilters')}
-          </button>
-        )}
-
-        {/* Results Count */}
-        <div className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-          {getResultsText()}
-        </div>
-
-        {/* Loading Indicator */}
-        {filters.searchTerm && (
-          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            {t('filter.filteringResults')}
-          </div>
-        )}
+        
+        {/* Location Filter (for Events) */}
+        {showLocationFilter && <Select options={locations} value={locations.find(l => l.value === filters.location)} onChange={handleSelectChange('location')} isClearable isSearchable placeholder={t('filter.locationPlaceholder')} styles={selectStyles} menuPortalTarget={document.body} maxMenuHeight={220} />}
+        
+        {/* Category Filter (for Events) */}
+        {showCategoryFilter && <Select isMulti options={categories} value={categories.filter(c => filters.categoryIds?.includes(c.value))} onChange={handleMultiSelectChange('categoryIds')} placeholder={t('filter.categoryPlaceholder')} styles={selectStyles} closeMenuOnSelect={false} menuPortalTarget={document.body} maxMenuHeight={220} />}
+      
       </div>
+      {hasActiveFilters && <button onClick={() => onFilterChange(baseFilters)} className="flex items-center text-sm text-blue-600 dark:text-cyan-400 hover:underline"><X className="h-4 w-4 mr-1" />{t('filter.clearFilters')}</button>}
     </div>
   );
 };

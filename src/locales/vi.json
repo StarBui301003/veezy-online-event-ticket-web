@@ -1,11 +1,20 @@
 {
+  "orderSummary": "Tóm Tắt Đơn Hàng",
+  "send": "Gửi",
+  "sending": "Đang gửi...",
+  "noTicketsAvailableForThisEvent": "Không có vé nào khả dụng cho sự kiện này",
+  "news":"Tin Tức",
+  "commentDiscussion": "Thảo luận bình luận",
+  "allNewsTitle": "Tin Tức Mới Nhất",
+  "allNewsSubtitle": "Luôn cập nhật những bài viết và câu chuyện mới nhất từ cộng đồng của chúng tôi.",
+  "noNewsFound": "Không tìm thấy tin tức",
     "notifications": "Thông Báo",
     "viewAllNotifications": "Xem Tất Cả Thông Báo",
-"new": "Mới",
-"noNotifications": "Không Có Thông Báo",
-"allRead": "Đã Đọc Hết",
-"markAllAsRead": "Đánh Dấu Đọc Tất Cả",
-"notificationHint": "Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới",
+     "new": "Mới",
+    "noNotifications": "Không Có Thông Báo",
+    "allRead": "Đã Đọc Hết",
+    "markAllAsRead": "Đánh Dấu Đọc Tất Cả",
+    "notificationHint": "Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới",
     "searchErrorFetchingResults": "Lỗi khi tải kết quả tìm kiếm",
     "searchLoading": "Đang tải...",
     "searchSearchingEvents": "Đang tìm kiếm sự kiện",
@@ -322,7 +331,7 @@
   "seeMore": "Xem Thêm",
   "noNewNotifications": "Không Có Thông Báo Mới",
   "viewMore": "Xem Thêm",
-  "news": "Tin Tức",
+
   "featuredEvents": "Sự Kiện Nổi Bật",
   "startAt": "Bắt Đầu",
   "noApprovedEvents": "Không Có Sự Kiện Nào Được Phê Duyệt.",
@@ -352,7 +361,8 @@
   "adminDashboard": "Bảng Điều Khiển Quản Trị",
   "users": "Người Dùng",
   "events": "Sự Kiện",
-  "news": "Tin Tức",
+
+
   "orders": "Đơn Hàng",
   "payments": "Thanh Toán",
   "categories": "Danh Mục",
@@ -745,7 +755,7 @@
   "performanceCompareChart": "Biểu Đồ So Sánh Hiệu Suất",
   "personalInfo": "Thông Tin Cá Nhân",
   "ongoingEvents": "Sự Kiện Đang Diễn Ra",
-  "news": "Tin Tức",
+  "newss": "Tin Tức",
   "reportEventManager": "Báo Cáo Quản Lý Sự Kiện",
   "email": "Email",
   "phone": "Số Điện Thoại",
@@ -1406,5 +1416,33 @@
   "eventName": "Tên Sự Kiện",
   "checkedInAt": "Đã Điểm Danh Lúc",
   "notCheckedIn": "Chưa Điểm Danh"
+  ,
+"filter": {
+    "searchPlaceholder": "Tìm theo tên, từ khóa...",
+    "authorPlaceholder": "Tìm theo tên tác giả...",
+    "locationPlaceholder": "Tất cả địa điểm",
+    "categoryPlaceholder": "Tất cả danh mục",
+    "time": "Thời gian",
+    "date.all": "Mọi lúc",
+    "date.today": "Hôm nay",
+    "date.thisWeek": "Tuần này",
+    "date.thisMonth": "Tháng này",
+    "date.upcoming": "Sắp diễn ra",
+    "clearFilters": "Xóa bộ lọc",
+    "noOptions": "Không có lựa chọn"
+  },
+  "allEvents": {
+    "pageTitle": "Khám Phá Sự Kiện",
+    "pageSubtitle": "Tìm kiếm trải nghiệm tiếp theo của bạn từ bộ sưu tập các sự kiện thú vị của chúng tôi.",
+    "noEventsFound": "Không tìm thấy sự kiện",
+    "noEventsDescription": "Hãy thử điều chỉnh bộ lọc hoặc quay lại sau để xem các sự kiện mới."
+  },
+  
+  "pagination": {
+    "previous": "Trước",
+    "next": "Sau"
+  }
+},
+"noTicketsAvailableForThisEvent": "Không có vé nào khả dụng cho sự kiện này"
 }
-}
+

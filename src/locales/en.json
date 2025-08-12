@@ -1,6 +1,13 @@
 {
+  "noTicketsAvailableForThisEvent": "No tickets available for this event",
+  "send": "Send",
+  "sending": "Sending...",
+  "news":"News",
+  "allNewsTitle": "Latest News",
+  "allNewsSubtitle": "Stay updated with the latest articles and stories from our community.",
+  "noNewsFound": "No News Found",
   "notifications": "Notifications",
-  "News": "News",
+  "newss": "News",
   "noNotifications": "No Notifications",
   "allRead": "All Read",
   "markAllAsRead": "Mark All As Read",
@@ -744,7 +751,7 @@
   "close": "Close",
   "personalInfo": "Personal Info",
   "ongoingEvents": "Ongoing Events",
-  "news": "News",
+
   "reportEventManager": "Report Event Manager",
   "email": "Email",
   "phone": "Phone",
@@ -1307,5 +1314,38 @@
   "eventName": "Event Name",
   "checkedInAt": "Checked In At",
   "notCheckedIn": "Not Checked In"
-}
-}
+},
+
+
+  
+    "filter": {
+      "searchPlaceholder": "Search by name, keyword...",
+      "authorPlaceholder": "Search by author name...",
+      "locationPlaceholder": "All Locations",
+      "categoryPlaceholder": "All Categories",
+      "time": "Time",
+      "date.all": "All Dates",
+      "date.today": "Today",
+      "date.thisWeek": "This Week",
+      "date.thisMonth": "This Month",
+      "date.upcoming": "Upcoming",
+      "clearFilters": "Clear Filters",
+      "noOptions": "No options"
+    },
+    "allEvents": {
+      "pageTitle": "Discover Events",
+      "pageSubtitle": "Find your next experience from our collection of exciting events.",
+      "noEventsFound": "No Events Found",
+      "noEventsDescription": "Try adjusting your filters or check back later for new events."
+    },
+    
+    
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "orderSummary": "Order Summary",
+    "send": "Send"
+  }
+
+

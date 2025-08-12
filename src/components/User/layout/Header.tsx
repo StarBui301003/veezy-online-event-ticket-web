@@ -308,7 +308,7 @@ export const Header = () => {
                   )
                 )}
               >
-                {t('news')}
+                {t('newss')}
               </Link>
               <Link
                 to="/terms-of-use"

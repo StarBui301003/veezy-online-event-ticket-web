@@ -62,7 +62,7 @@ import { Users } from 'lucide-react';
 import CreateCollaborator from './pages/EventManager/CreateCollaborator';
 import NewsAll from './pages/Customer/NewsAll';
 import AllNotificationsPage from './pages/EventManager/AllNotificationsPage';
-import SearchResultsPage from './pages/Customer/SearchResultsPage';
+import { SearchResultsPage } from '@/pages/Customer/SearchResultsPage';
 
 import ReportListTabs from './pages/Admin/Report/ReportListTabs';
 import ReportCommentPage from './pages/Customer/ReportCommentPage';
