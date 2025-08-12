@@ -170,6 +170,22 @@ export const joinChatRoom = async (roomId: string) => {
   return chatConnection.invoke('JoinRoom', roomId);
 };
 
+// Reconnection helpers for ChatHub
+export const onChatReconnecting = (cb: (error?: Error) => void) => {
+  const chatConnection = connections['chat'];
+  chatConnection?.onreconnecting(cb);
+};
+
+export const onChatReconnected = (cb: (connectionId?: string) => void) => {
+  const chatConnection = connections['chat'];
+  chatConnection?.onreconnected(cb);
+};
+
+export const onChatClosed = (cb: (error?: Error) => void) => {
+  const chatConnection = connections['chat'];
+  chatConnection?.onclose(cb);
+};
+
 // Switch chat room mode (AI/Human)
 export const switchChatRoomMode = async (roomId: string, mode: 'AI' | 'Human') => {
   const chatConnection = connections['chat'];

@@ -33,6 +33,7 @@ import { onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service'
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { getCurrentAccount } from '@/utils/account-utils';
 
 interface EventManagerChatBoxProps {
   eventId: string;
@@ -60,7 +61,7 @@ interface DisplayMessage {
   replyToMessage?: DisplayMessage;
 }
 
-export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
+const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
   eventId,
   eventName = 'Event',
   className = '',
@@ -972,4 +973,37 @@ export const EventManagerChatBox: React.FC<EventManagerChatBoxProps> = ({
   );
 };
 
-export default EventManagerChatBox;
+// Wrapper component with authentication and role checking (mirror CustomerChatBox)
+const AuthenticatedEventManagerChatBox: React.FC<EventManagerChatBoxProps> = (props) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  const checkVisibility = useCallback(() => {
+    const isAuthenticated = !!localStorage.getItem('access_token');
+    const currentAccount = getCurrentAccount();
+    // Show for logged-in users with Customer (1) or Event Manager (2) roles
+    const shouldShow = isAuthenticated && !!currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    setIsVisible(shouldShow);
+  }, []);
+
+  useEffect(() => {
+    checkVisibility();
+    const handleAuthChange = () => checkVisibility();
+    window.addEventListener('authChanged', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('login', handleAuthChange);
+    window.addEventListener('logout', handleAuthChange);
+    return () => {
+      window.removeEventListener('authChanged', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('login', handleAuthChange);
+      window.removeEventListener('logout', handleAuthChange);
+    };
+  }, [checkVisibility]);
+
+  if (!isVisible) return null;
+
+  return <EventManagerChatBoxInternal {...props} />;
+};
+
+export default AuthenticatedEventManagerChatBox;
+export { AuthenticatedEventManagerChatBox as EventManagerChatBox };

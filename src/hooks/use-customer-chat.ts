@@ -1,4 +1,4 @@
-import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
+import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom, onChatReconnected, onChatReconnecting, onChatClosed } from '@/services/signalr.service';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatService, ChatMessage, ChatRoom } from '@/services/chat.service';
 import { toast } from 'react-toastify';
@@ -80,7 +80,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   const chatRoomRef = useRef<ChatRoom | null>(null); // Add ref to track chatRoom for SignalR events
   // Use the correct ChatHub URL (port 5007) as backend is running there
   const chatHubUrl = 'https://chat.vezzy.site/chatHub';
-  const signalRSetupRef = useRef(false);
+  // Không dùng flag chặn re-setup nữa, luôn setup lại mỗi lần connect
 
   // Get current user info with fallback
   const getCurrentUser = useCallback(() => {
@@ -278,16 +278,40 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
         if (onDebug) onDebug('connectToSignalR:start', { url, roomId });
 
         // Connect and wait for connection to be ready
+        console.log('🔥🔥 [CustomerChat] Connecting to ChatHub...', url);
         await connectChatHub(url, token || undefined);
+        console.log('🔥🔥 [CustomerChat] ChatHub connected successfully');
 
-        // Set up event listeners AFTER connection is established
-        if (!signalRSetupRef.current) {
-          setupSignalREvents(roomId);
-          signalRSetupRef.current = true;
-        }
+        // Luôn setup lại listener mỗi lần connect thành công
+        console.log('🔥🔥 [CustomerChat] Setting up SignalR events...');
+        setupSignalREvents(roomId);
+        console.log('🔥🔥 [CustomerChat] SignalR events setup complete');
+
+        // Register reconnection handlers to re-join room
+        onChatReconnecting(() => {
+          console.log('🔄 [CustomerChat] Reconnecting to ChatHub...');
+        });
+        onChatReconnected(async () => {
+          try {
+            console.log('✅ [CustomerChat] Reconnected. Rejoining room:', roomId);
+            await joinChatRoom(roomId);
+            console.log('✅ [CustomerChat] Rejoined room successfully:', roomId);
+            // Re-setup listeners sau khi reconnect
+            setupSignalREvents(roomId);
+          } catch (e) {
+            console.warn('⚠️ [CustomerChat] Failed to rejoin room after reconnect:', e);
+          }
+        });
+        onChatClosed((err) => {
+          console.warn('❌ [CustomerChat] ChatHub connection closed:', err?.message);
+          setIsConnected(false);
+          // Reset listener state nếu cần (nếu có flag)
+        });
 
         if (onDebug) onDebug('connectToSignalR:joinRoom', { roomId });
+        console.log('🔥🔥 [CustomerChat] Joining chat room...', roomId);
         await joinChatRoom(roomId);
+        console.log('🔥🔥 [CustomerChat] Successfully joined chat room:', roomId);
         setIsConnected(true);
         if (onDebug) onDebug('connectToSignalR:connected', { roomId });
       } catch (error) {
@@ -304,47 +328,71 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
   }, [chatHubUrl, onDebug, isConnecting, isConnected, chatRoom, setCurrentChatMode]);
 
   // Setup SignalR event handlers
+  // Luôn setup lại listener mỗi lần connect, không dùng flag nữa
   const setupSignalREvents = useCallback((connectionRoomId?: string) => {
-    if (signalRSetupRef.current) {
-      return;
-    }
     if (onDebug) onDebug('setupSignalREvents:start');
 
     // Listen for new messages (support both 'ReceiveMessage' and 'receivemessage')
-    const handleReceiveMessage = (message: ChatMessage) => {
-      if (onDebug) onDebug('ReceiveMessage', message);
+    const handleReceiveMessage = (raw: any) => {
+      console.log('🔥🔥 [CustomerChat] ReceiveMessage event triggered!', raw);
+      if (onDebug) onDebug('ReceiveMessage', raw);
 
-      const currentUser = getCurrentUser();
-      if (onDebug) onDebug('ReceiveMessage:currentUser', currentUser);
+      // Normalize backend DTO (camelCase or PascalCase) to ChatMessage shape
+      const normalize = (dto: any): ChatMessage => {
+        const messageId = dto?.messageId ?? dto?.MessageId ?? dto?.id ?? dto?.Id;
+        const roomId = dto?.roomId ?? dto?.RoomId ?? '';
+        const senderId = dto?.senderId ?? dto?.SenderUserId ?? dto?.senderUserId ?? '';
+        const senderName = dto?.senderName ?? dto?.SenderUserName ?? dto?.senderUserName ?? 'Unknown';
+        const content = dto?.content ?? dto?.Content ?? '';
+        const createdAt = dto?.createdAt ?? dto?.CreatedAt ?? dto?.timestamp;
+        const timestamp = dto?.timestamp ?? dto?.CreatedAt ?? dto?.createdAt ?? createdAt;
+        const isDeleted = dto?.isDeleted ?? dto?.IsDeleted ?? false;
+        const isEdited = dto?.isEdited ?? dto?.IsEdited ?? false;
+        const replyToMessageId = dto?.replyToMessageId ?? dto?.ReplyToMessageId;
+        const replyToMessage = dto?.replyToMessage ?? dto?.ReplyToMessage;
 
-      // If any critical field is missing, reload all messages for the room
-      if (!message.senderName || !message.messageId || !message.content || !message.timestamp || !message.senderId || !message.roomId) {
-        if (chatRoom?.roomId) {
-          chatService.getRoomMessages(chatRoom.roomId, 1, 50).then(roomMessages => {
-            setMessages(roomMessages);
-          });
-        }
-        return;
+        return {
+          messageId,
+          roomId,
+          senderId,
+          senderName,
+          content,
+          timestamp,
+          createdAt,
+          isRead: false,
+          messageType: 'Text',
+          isDeleted,
+          isEdited,
+          replyToMessageId,
+          replyToMessage,
+        } as ChatMessage;
+      };
+
+      const message = normalize(raw);
+
+      // Sử dụng ref để lấy roomId hiện tại, tránh closure cũ
+      const currentRoomId = chatRoomRef.current?.roomId;
+      console.log(`[CustomerChat] Current room ID: ${currentRoomId}, Message room ID: ${message.roomId}`);
+      if (currentRoomId && message.roomId === currentRoomId) {
+        setMessages((prev) => {
+          const exists = prev.some((m) => m.messageId === message.messageId);
+          if (exists) return prev;
+          return [...prev, message];
+        });
+        // Show notification
+        showNotification(message);
+        // Increase unread count if chat is minimized or closed
+        if (isMinimized || !isOpen) setUnreadCount((prev) => prev + 1);
+        // Auto-scroll to bottom
+        scrollToBottom();
+      } else {
+        console.log('[CustomerChat] Message not for current room, ignoring');
       }
-      setMessages(prev => {
-        // Prevent duplicate messages
-        const exists = prev.some(m => m.messageId === message.messageId);
-        if (exists) {
-          return prev;
-        }
-        return [...prev, message];
-      });
-      // Show notification
-      showNotification(message);
-      // Increase unread count if chat is minimized or closed
-      if (isMinimized || !isOpen) {
-        setUnreadCount(prev => prev + 1);
-      }
-      // Auto-scroll to bottom
-      scrollToBottom();
     };
-    onChat('ReceiveMessage', handleReceiveMessage);
-    onChat('receivemessage', handleReceiveMessage);
+    console.log('🔥🔥 [CustomerChat] Setting up ReceiveMessage listeners...');
+  onChat('ReceiveMessage', handleReceiveMessage);
+  onChat('receivemessage', handleReceiveMessage);
+    console.log('🔥🔥 [CustomerChat] ReceiveMessage listeners setup complete');
 
     // Listen for message deleted
     onChat('MessageDeleted', ({ messageId }: { messageId: string }) => {
@@ -519,9 +567,8 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
     onChat('Disconnected', () => {
       console.log('🔥🔥 [SignalR] Disconnected event received');
     });
-    signalRSetupRef.current = true;
-    console.log('[useCustomerChat] SignalR event handlers set up');
-    if (onDebug) onDebug('setupSignalREvents:done');
+  console.log('🔥🔥 [CustomerChat] SignalR event handlers set up successfully');
+  if (onDebug) onDebug('setupSignalREvents:done');
   }, [isMinimized, isOpen, scrollToBottom, getCurrentUser, showNotification, onDebug, chatRoom, setCurrentChatMode]);
 
   // Open chat
@@ -532,9 +579,9 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
 
       if (!chatRoom) {
         const roomId = await initializeChatRoom();
-        if (!signalRSetupRef.current) {
-          setupSignalREvents(roomId);
-        }
+        console.log('🔥🔥 [CustomerChat] Chat room initialized, roomId:', roomId);
+        // Không cần setupSignalREvents trước connect nữa, đã chuyển vào sau connect
+        console.log('🔥🔥 [CustomerChat] Connecting to SignalR...');
         await connectToSignalR(roomId);
       }
 
