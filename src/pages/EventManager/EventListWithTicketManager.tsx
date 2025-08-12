@@ -56,7 +56,7 @@ export default function EventListWithTicketManager() {
   const loadEvents = async () => {
     setLoadingEvents(true);
     try {
-      const data = await getMyEvents(1, 100);
+      const data = await getMyEvents(1, EVENTS_PER_PAGE);
       const items = Array.isArray(data?.items) ? data.items : [];
       const approved = items.filter((ev) => ev.isApproved === 1);
       setEvents(approved);

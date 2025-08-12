@@ -1,20 +1,104 @@
-import React, { useState, useCallback, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
+import React, { useState, useEffect, useCallback, lazy, Suspense, forwardRef, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
+import { toast } from 'react-toastify';
 import { getNewsDetail, updateNews, uploadNewsImage } from '@/services/Event Manager/event.service';
 import { NewsPayload } from '@/types/event';
-import { toast } from 'react-toastify';
-import { useQuill } from 'react-quilljs';
-import 'quill/dist/quill.snow.css';
 import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { useThemeClasses } from '@/hooks/useThemeClasses';
+import 'react-quill/dist/quill.snow.css';
+
+// --- BẮT ĐẦU: CÁC THÀNH PHẦN VÀ TIỆN ÍCH CHUNG ---
+
+// Định nghĩa props cho ReactQuill
+type ReactQuillProps = {
+  value: string;
+  onChange: (content: string, delta: any, source: any, editor: any) => void;
+  modules?: any;
+  formats?: string[];
+  placeholder?: string;
+  className?: string;
+  theme?: string;
+};
+
+// Định nghĩa ref cho trình soạn thảo
+interface QuillEditorRef {
+  getEditor: () => any;
+  focus: () => void;
+  blur: () => void;
+}
+
+// Sử dụng React.lazy để tải ReactQuill chỉ ở phía client
+const ReactQuill = lazy(() => import('react-quill'));
+
+// Component wrapper để xử lý trạng thái tải
+const QuillEditor = forwardRef<QuillEditorRef, ReactQuillProps>((props, ref) => {
+  const { t } = useTranslation();
+  const quillRef = useRef<any>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    getEditor: () => quillRef.current?.getEditor(),
+    focus: () => quillRef.current?.focus(),
+    blur: () => quillRef.current?.blur(),
+  }));
+
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[300px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+          <p>{t('common.loadingEditor') || 'Đang tải trình soạn thảo...'}</p>
+        </div>
+      }
+    >
+      <ReactQuill
+        ref={quillRef}
+        theme={props.theme || 'snow'}
+        value={props.value}
+        onChange={props.onChange}
+        modules={props.modules}
+        formats={props.formats}
+        placeholder={props.placeholder}
+        className={cn('h-[300px]', props.className)}
+      />
+    </Suspense>
+  );
+});
+
+QuillEditor.displayName = 'QuillEditor';
+
+// Hàm loại bỏ HTML tags và trả về plain text
+function stripHtmlTags(html: string) {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
+
+// Hàm làm sạch các thẻ <p> rỗng
+function cleanHtml(html: string) {
+  if (!html) return '';
+  const cleaned = html
+    .replace(/<p><br><\/p>/g, '')
+    .replace(/<p>\s*<\/p>/g, '')
+    .trim();
+  const plainText = stripHtmlTags(cleaned);
+  return plainText.trim() === '' ? '' : cleaned;
+}
+
+// --- KẾT THÚC: CÁC THÀNH PHẦN VÀ TIỆN ÍCH CHUNG ---
 
 const EditNews: React.FC = () => {
   const { t } = useTranslation();
   const { newsId } = useParams<{ newsId: string }>();
   const navigate = useNavigate();
+  const { getThemeClass } = useThemeClasses();
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Bắt đầu với trạng thái tải dữ liệu
 
   const [newsPayload, setNewsPayload] = useState<NewsPayload>({
     eventId: '',
@@ -25,15 +109,18 @@ const EditNews: React.FC = () => {
     authorId: '',
     status: true,
   });
-  const [newsContent, setNewsContent] = useState('');
-  const { quill, quillRef } = useQuill();
 
-  // Fetch news detail on mount
+  // Tìm nạp dữ liệu tin tức khi component được mount
   useEffect(() => {
-    if (!newsId) return;
-    setLoading(true);
-    getNewsDetail(newsId)
-      .then((res) => {
+    if (!newsId) {
+      toast.error('News ID is missing.');
+      navigate('/event-manager/news');
+      return;
+    }
+    
+    const fetchNews = async () => {
+      try {
+        const res = await getNewsDetail(newsId);
         const data = res.data?.data;
         if (data) {
           setNewsPayload({
@@ -45,82 +132,24 @@ const EditNews: React.FC = () => {
             authorId: data.authorId,
             status: data.status,
           });
-          setNewsContent(data.newsContent || '');
           setImagePreview(data.imageUrl || null);
         } else {
-          toast.error(t('editNews.newsNotFound'));
+          toast.error(t('error.newsNotFound'));
           navigate('/event-manager/news');
         }
-      })
-      .catch(() => {
-        toast.error(t('editNews.errorLoadingNews'));
+      } catch (error) {
+        console.error('Error fetching news detail:', error);
+        toast.error(t('error.fetchingNewsFailed'));
         navigate('/event-manager/news');
-      })
-      .finally(() => setLoading(false));
-
-    // Note: News realtime updates not available in current backend
-    // No NewsHub implemented yet
-    // eslint-disable-next-line
-  }, [newsId]);
-
-  // Initialize Quill editor
-  useEffect(() => {
-    if (quill) {
-      quill.clipboard.dangerouslyPasteHTML(newsContent || '');
-      quill.on('text-change', () => {
-        setNewsContent(quill.root.innerHTML);
-      });
-
-      // Set editor container styles
-      const editorContainer = quill.container.firstChild as HTMLElement;
-      if (editorContainer) {
-        editorContainer.style.minHeight = '300px';
-        editorContainer.style.color = '#fff';
-        editorContainer.style.border = 'none';
-        editorContainer.style.borderRadius = '0.5rem';
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Set toolbar styles
-      const toolbar = quill.getModule('toolbar') as any;
-      if (toolbar && toolbar.container) {
-        const toolbarElement = toolbar.container as HTMLElement;
-        toolbarElement.style.border = 'none';
-        toolbarElement.style.borderBottom = '1px solid rgba(236, 72, 153, 0.3)';
-        toolbarElement.style.borderRadius = '0.5rem 0.5rem 0 0';
-        toolbarElement.style.backgroundColor = '#1a0022';
-        toolbarElement.style.padding = '0.5rem';
+    fetchNews();
+  }, [newsId, navigate, t]);
 
-        // Style all buttons in the toolbar
-        const buttons = toolbarElement.querySelectorAll('button');
-        buttons.forEach((button) => {
-          button.style.color = '#fff';
-          button.style.opacity = '0.8';
-          button.style.transition = 'opacity 0.2s';
-          button.style.borderRadius = '0.25rem';
-          button.style.padding = '0.25rem 0.5rem';
-          button.style.margin = '0 0.125rem';
-
-          button.addEventListener('mouseenter', () => {
-            button.style.opacity = '1';
-            button.style.backgroundColor = 'rgba(236, 72, 153, 0.2)';
-          });
-
-          button.addEventListener('mouseleave', () => {
-            button.style.opacity = '0.8';
-            button.style.backgroundColor = 'transparent';
-          });
-        });
-      }
-    }
-  }, [quill]);
-
-  // Update content when newsContent changes from props
-  useEffect(() => {
-    if (quill && newsContent !== quill.root.innerHTML) {
-      quill.clipboard.dangerouslyPasteHTML(newsContent || '');
-    }
-  }, [newsContent, quill]);
-
+  // Xử lý upload ảnh
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
@@ -129,19 +158,23 @@ const EditNews: React.FC = () => {
       try {
         const imageUrl = await uploadNewsImage(file);
         setNewsPayload((prev) => ({ ...prev, imageUrl }));
-        toast.success(t('editNews.imageUploaded'));
+        toast.success(t('createNews.imageUploaded'));
       } catch (error) {
-        toast.error(t('editNews.errorUploadingImage'));
-        setImagePreview(null);
+        console.error('Image upload failed:', error);
+        toast.error(t('createNews.imageUploadFailed'));
+        // Nếu upload lỗi, quay lại ảnh cũ
+        setImagePreview(newsPayload.imageUrl);
       } finally {
         setIsUploading(false);
       }
     }
-  }, []);
+  }, [t, newsPayload.imageUrl]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'image/*': [] },
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif'] },
+    maxSize: 10 * 1024 * 1024,
+    multiple: false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -153,34 +186,37 @@ const EditNews: React.FC = () => {
     }));
   };
 
+  const handleEditorChange = (content: string) => {
+    setNewsPayload((prev) => ({
+      ...prev,
+      newsContent: content,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!newsId) return;
 
-    // Validate form
+    const cleanedContent = cleanHtml(newsPayload.newsContent);
+
     if (!newsPayload.newsTitle.trim()) {
-      toast.error(t('editNews.newsTitleRequired'));
+      toast.error(t('createNews.newsTitleRequired'));
       return;
     }
-
-    if (!newsPayload.newsDescription.trim()) {
-      toast.error(t('editNews.descriptionRequired'));
-      return;
-    }
-
-    if (!newsContent || newsContent === '<p><br></p>') {
-      toast.error(t('editNews.contentRequired'));
+    if (!cleanedContent) {
+      toast.error(t('createNews.contentRequired'));
       return;
     }
 
     setLoading(true);
-
     try {
-      const payload = {
+      const payloadToUpdate: NewsPayload = {
         ...newsPayload,
-        newsContent,
+        newsContent: cleanedContent,
       };
 
-      await updateNews(newsId, payload);
+      await updateNews(newsId, payloadToUpdate);
       toast.success(t('editNews.newsUpdated'));
       navigate('/event-manager/news');
     } catch (error) {
@@ -191,305 +227,154 @@ const EditNews: React.FC = () => {
     }
   };
 
-  if (loading) {
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'image'],
+      ['clean'],
+    ],
+  };
+
+  const quillFormats = [
+    'header', 'bold', 'italic', 'underline', 'strike', 'blockquote',
+    'list', 'bullet', 'link', 'image'
+  ];
+
+  if (loading && !newsPayload.newsTitle) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <span className="text-lg text-gray-500">{t('editNews.loading')}</span>
+      <div className="flex items-center justify-center min-h-screen bg-slate-900">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a0022] via-[#3a0ca3] to-[#ff008e] py-12 px-4 sm:px-6 lg:px-8">
+    <div
+      className={cn(
+        'min-h-screen py-12 px-4 sm:px-6 lg:px-8',
+        getThemeClass(
+          'bg-gradient-to-br from-blue-50 to-indigo-100',
+          'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900'
+        )
+      )}
+    >
+      <style>{/* Style block from CreateNews can be placed here */ `
+        .quill-editor .ql-toolbar { border-radius: 0.75rem 0.75rem 0 0 !important; border-width: 1px !important; padding: 8px !important; }
+        .quill-editor .ql-container { border-radius: 0 0 0.75rem 0.75rem !important; border-width: 1px !important; min-height: 250px; }
+        .light .quill-editor .ql-toolbar { background: #f9fafb !important; border-color: #d1d5db !important; }
+        .light .quill-editor .ql-container { background: #ffffff !important; border-color: #d1d5db !important; }
+        .dark .quill-editor .ql-toolbar { background: #1f2937 !important; border-color: #4b5563 !important; }
+        .dark .quill-editor .ql-container { background: #374151 !important; border-color: #4b5563 !important; }
+        .dark .quill-editor .ql-editor { color: #f3f4f6 !important; }
+        .dark .quill-editor .ql-editor.ql-blank::before { color: #9ca3af !important; }
+        .toggle-checkbox:checked { transform: translateX(1rem); border-color: #ffffff; }
+      `}</style>
+
       <div className="max-w-5xl mx-auto">
-        <div className="bg-gradient-to-br from-[#2d0036]/90 via-[#3a0ca3]/90 to-[#ff008e]/90 rounded-3xl shadow-2xl border-2 border-pink-500/30 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20 p-6 border-b border-pink-500/30">
+        <div
+          className={cn(
+            'rounded-3xl shadow-2xl overflow-hidden',
+            getThemeClass('bg-white/90 border-blue-200', 'bg-slate-800/90 border-purple-700/40')
+          )}
+        >
+          <div className={cn('p-6 border-b', getThemeClass('border-blue-200', 'border-purple-700/40'))}>
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-extrabold bg-gradient-to-r from-pink-400 to-yellow-400 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                   {t('editNews.title')}
                 </h1>
-                <p className="mt-1 text-sm text-pink-200/80">{t('editNews.subtitle')}</p>
+                <p className={cn('mt-1 text-sm', getThemeClass('text-gray-600', 'text-slate-400'))}>
+                  {t('editNews.subtitle')}
+                </p>
               </div>
-              <button
-                onClick={() => navigate('/event-manager/news')}
-                className="px-4 py-2 text-sm font-medium text-pink-200 hover:text-white bg-pink-900/30 hover:bg-pink-800/50 rounded-lg border border-pink-500/30 transition-all duration-200 flex items-center gap-2"
+              <button onClick={() => navigate('/event-manager/news')}
+                className={cn('px-4 py-2 text-sm font-medium rounded-lg border transition-all', getThemeClass('hover:bg-blue-600 hover:text-white', 'hover:bg-purple-800/50'))}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
-                {t('editNews.backToNews')}
+                {t('createNews.backToNews')}
               </button>
             </div>
           </div>
 
-          {/* Form Content */}
-          <div className="p-6 bg-gradient-to-br from-[#2d0036]/90 via-[#3a0ca3]/90 to-[#ff008e]/90">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-400"></div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                {/* Image Upload */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-pink-300 mb-2">
-                      {t('editNews.newsImage')}
-                      <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <div
-                      {...getRootProps()}
-                      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 min-h-[200px] flex flex-col items-center justify-center ${
-                        isDragActive
-                          ? 'border-yellow-400 bg-yellow-500/10'
-                          : 'border-pink-500/30 hover:border-pink-400 hover:bg-pink-500/10'
-                      }`}
-                    >
-                      <input {...getInputProps()} />
-                      {isUploading ? (
-                        <div className="space-y-2">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-400 mx-auto"></div>
-                          <p className="text-pink-300">{t('editNews.updating')}...</p>
-                        </div>
-                      ) : imagePreview ? (
-                        <div className="relative w-full h-full">
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="mx-auto max-h-40 rounded-lg object-contain"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                            <span className="text-sm bg-pink-600/80 text-white px-3 py-1 rounded-lg">
-                              {t('editNews.changeImage')}
-                            </span>
-                          </div>
-                        </div>
-                      ) : newsPayload.imageUrl ? (
-                        <div className="relative w-full h-full">
-                          <img
-                            src={newsPayload.imageUrl}
-                            alt="Current"
-                            className="mx-auto max-h-40 rounded-lg object-contain"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                            <span className="text-sm bg-pink-600/80 text-white px-3 py-1 rounded-lg">
-                              {t('editNews.changeImage')}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4">
-                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-pink-500/10 mb-2">
-                            <svg
-                              className="h-6 w-6 text-pink-400"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                          <p className="text-sm text-pink-300">
-                            <span className="font-medium text-pink-200">
-                              {t('editNews.clickToUpload')}
-                            </span>
-                          </p>
-                          <p className="text-xs text-pink-400/80 mt-1">
-                            {t('editNews.orDragAndDrop')}
-                          </p>
-                          <p className="text-xs text-pink-400/60 mt-1">
-                            {t('editNews.imageFormatHint')}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-2 space-y-6">
-                    {/* News Title */}
-                    <div>
-                      <label
-                        htmlFor="newsTitle"
-                        className="block text-sm font-medium text-pink-300 mb-2"
-                      >
-                        {t('editNews.newsTitle')}
-                        <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="newsTitle"
-                        name="newsTitle"
-                        value={newsPayload.newsTitle}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200"
-                        placeholder={t('editNews.newsTitlePlaceholder')}
-                        required
-                      />
-                    </div>
-
-                    {/* News Description */}
-                    <div>
-                      <label
-                        htmlFor="newsDescription"
-                        className="block text-sm font-medium text-pink-300 mb-2"
-                      >
-                        {t('editNews.shortDescription')}
-                        <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <textarea
-                        id="newsDescription"
-                        name="newsDescription"
-                        value={newsPayload.newsDescription}
-                        onChange={handleChange}
-                        rows={3}
-                        className="w-full p-4 rounded-xl bg-[#1a0022]/80 border-2 border-pink-500/30 text-white placeholder-pink-400/60 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 resize-none"
-                        placeholder={t('editNews.shortDescriptionPlaceholder')}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rich Text Editor */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-pink-300 mb-2">
-                    {t('editNews.newsContent')}
-                    <span className="text-red-500 ml-1">*</span>
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-1">
+                  <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
+                    {t('createNews.newsImage')} <span className="text-red-500">*</span>
                   </label>
-                  <div className="rounded-xl overflow-hidden border-2 border-pink-500/30 bg-[#1a0022]">
-                    <div className="h-[300px] overflow-auto" ref={quillRef} />
+                  <div {...getRootProps()}
+                    className={cn('border-2 border-dashed rounded-xl p-6 text-center cursor-pointer min-h-[200px] flex items-center justify-center', getThemeClass('border-blue-400', 'border-purple-500/50'), isDragActive && getThemeClass('bg-blue-100', 'bg-purple-500/20'))}>
+                    <input {...getInputProps()} />
+                    {isUploading ? (
+                      <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    ) : imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="mx-auto max-h-40 rounded-lg object-contain" />
+                    ) : (
+                      <div className="text-center text-5xl">📷</div>
+                    )}
                   </div>
-                  {!newsContent && (
-                    <p className="mt-1 text-xs text-red-400">{t('editNews.contentRequired')}</p>
-                  )}
                 </div>
 
-                {/* Footer with gradient matching the header */}
-                <div className="mt-8 pt-6 border-t border-pink-500/30">
-                  <div className="bg-gradient-to-r from-pink-600/20 via-purple-600/20 to-blue-600/20 rounded-xl p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center">
+                <div className="md:col-span-2 space-y-6">
+                  <div>
+                    <label htmlFor="newsTitle" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
+                      {t('createNews.newsTitle')} <span className="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="newsTitle" name="newsTitle" value={newsPayload.newsTitle} onChange={handleChange}
+                      className={cn('w-full p-3 rounded-xl border focus:ring-2', getThemeClass('border-gray-300', 'bg-slate-700/80 border-purple-700'))}
+                      placeholder={t('createNews.newsTitlePlaceholder')} required />
+                  </div>
+                  <div>
+                    <label htmlFor="newsDescription" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
+                      {t('createNews.shortDescription')} <span className="text-red-500">*</span>
+                    </label>
+                    <textarea id="newsDescription" name="newsDescription" value={newsPayload.newsDescription} onChange={handleChange} rows={4}
+                      className={cn('w-full p-3 rounded-xl border focus:ring-2 resize-none', getThemeClass('border-gray-300', 'bg-slate-700/80 border-purple-700'))}
+                      placeholder={t('createNews.shortDescriptionPlaceholder')} required />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
+                  {t('createNews.newsContent')} <span className="text-red-500">*</span>
+                </label>
+                <div className={cn('rounded-xl overflow-hidden', getThemeClass('light', 'dark'))}>
+                  <QuillEditor value={newsPayload.newsContent} onChange={handleEditorChange} modules={quillModules} formats={quillFormats}
+                    placeholder={t('enterNewsContent') || 'Nhập nội dung tin tức...'} className="quill-editor" />
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-purple-500/30">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center">
                         <div className="relative inline-block w-10 mr-2 align-middle select-none">
-                          <input
-                            type="checkbox"
-                            id="status"
-                            name="status"
-                            checked={newsPayload.status}
-                            onChange={handleChange}
-                            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out"
-                          />
-                          <label
-                            htmlFor="status"
-                            className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-                              newsPayload.status
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-400'
-                                : 'bg-gray-600'
-                            }`}
-                          ></label>
+                            <input type="checkbox" id="status" name="status" checked={newsPayload.status} onChange={handleChange}
+                                className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" />
+                            <label htmlFor="status"
+                                className={cn('toggle-label block h-6 rounded-full cursor-pointer', newsPayload.status ? 'bg-green-500' : 'bg-gray-600')}>
+                            </label>
                         </div>
-                        <label htmlFor="status" className="text-sm font-medium text-pink-200">
-                          {newsPayload.status
-                            ? t('editNews.newsStatusActive')
-                            : t('editNews.newsStatusInactive')}
+                        <label htmlFor="status" className={cn('text-sm font-medium', getThemeClass('text-gray-700', 'text-pink-200'))}>
+                            {newsPayload.status ? t('createNews.newsStatusActive') : t('createNews.newsStatusInactive')}
                         </label>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                        <button
-                          type="button"
-                          onClick={() => navigate('/event-manager/news')}
-                          className="px-6 py-2.5 text-sm font-medium text-pink-100 hover:text-white bg-pink-900/40 hover:bg-pink-800/60 rounded-xl border border-pink-500/40 transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:shadow-pink-500/20 hover:shadow-md"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                          {t('editNews.cancel')}
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-pink-600 to-yellow-500 hover:from-pink-700 hover:to-yellow-600 rounded-xl shadow-lg hover:shadow-pink-500/30 transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                          {loading ? (
-                            <>
-                              <svg
-                                className="animate-spin h-4 w-4 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                              </svg>
-                              {t('editNews.updating')}...
-                            </>
-                          ) : (
-                            <>
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                              {t('editNews.updateNews')}
-                            </>
-                          )}
-                        </button>
-                      </div>
                     </div>
-                  </div>
+
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => navigate('/event-manager/news')}
+                            className={cn('px-6 py-2.5 rounded-xl border', getThemeClass('border-gray-300', 'border-pink-500/40 hover:bg-pink-800/60'))}>
+                            {t('createNews.cancel')}
+                        </button>
+                        <button type="submit" disabled={loading}
+                            className="px-6 py-3 font-semibold text-white rounded-xl shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-70">
+                            {loading ? t('editNews.updating') : t('editNews.updateNews')}
+                        </button>
+                    </div>
                 </div>
-              </form>
-            )}
+              </div>
+            </form>
           </div>
         </div>
       </div>

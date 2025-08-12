@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { createEvent, getAllCategories, uploadImage } from '@/services/Event Manager/event.service';
 import { onEvent } from '@/services/signalr.service';
 import { Button } from '@/components/ui/button';
 import { useDropzone } from 'react-dropzone';
 import Select from 'react-select';
-import { useQuill } from 'react-quilljs';
-import 'quill/dist/quill.snow.css';
+import 'react-quill/dist/quill.snow.css';
 import { Category, CreateEventData } from '@/types/event';
 import { useNavigate } from 'react-router-dom';
 import type { StylesConfig } from 'react-select';
@@ -16,17 +15,77 @@ import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
+// Define proper types for ReactQuill props
+type ReactQuillProps = {
+  value: string;
+  onChange: (content: string, delta: any, source: any, editor: any) => void;
+  modules?: any;
+  formats?: string[];
+  placeholder?: string;
+  className?: string;
+  theme?: string;
+};
+
+// Define the ref type for the editor
+interface QuillEditorRef {
+  getEditor: () => any;
+  focus: () => void;
+  blur: () => void;
+}
+
+// Use React.lazy with dynamic import for client-side only loading
+const ReactQuill = React.lazy(() => import('react-quill'));
+
+// Create a wrapper component to handle loading state
+const QuillEditor = React.forwardRef<QuillEditorRef, ReactQuillProps>((props, ref) => {
+  const { t } = useTranslation();
+  const quillRef = useRef<any>(null);
+  
+  // Expose methods via ref
+  React.useImperativeHandle(ref, () => ({
+    getEditor: () => quillRef.current?.getEditor(),
+    focus: () => quillRef.current?.focus(),
+    blur: () => quillRef.current?.blur(),
+  }));
+  
+  return (
+    <Suspense
+      fallback={
+        <div className="h-[300px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
+          <p>{t('common.loadingEditor') || 'Loading editor...'}</p>
+        </div>
+      }
+    >
+      <ReactQuill 
+        ref={quillRef}
+        theme={props.theme || 'snow'}
+        value={props.value}
+        onChange={props.onChange}
+        modules={props.modules}
+        formats={props.formats}
+        placeholder={props.placeholder}
+        className={cn('h-[300px]', props.className)}
+      />
+    </Suspense>
+  );
+});
+
+QuillEditor.displayName = 'QuillEditor';
+
 // Định nghĩa type cho EnhancedContent
 interface EnhancedContent {
   position: number;
   contentType: 'description' | 'image';
   description: string;
   imageUrl: string;
+  file?: File;
+  id?: string;
 }
 
 // Định nghĩa type cho EnhancedCreateEventData
-interface EnhancedCreateEventData extends CreateEventData {
+interface EnhancedCreateEventData extends Omit<CreateEventData, 'contents'> {
   contents: EnhancedContent[];
+  [key: string]: any; // For dynamic access
 }
 
 // Validation errors interface
@@ -188,7 +247,6 @@ export default function CreateEventForm() {
     bankName: '',
   });
 
-  const { quill, quillRef } = useQuill();
   const navigate = useNavigate();
   const { getThemeClass, theme } = useThemeClasses();
 
@@ -225,17 +283,23 @@ export default function CreateEventForm() {
     });
   }, [fetchCategories]);
 
-  useEffect(() => {
-    if (quill) {
-      quill.on('text-change', () => {
-        const content = quill.root.innerHTML;
-        setFormData((prev) => ({
-          ...prev,
-          eventDescription: cleanHtml(content),
-        }));
-      });
+  const quillRef = useRef<QuillEditorRef>(null);
+
+  // Handle editor content changes
+  const handleEditorChange = (
+    content: string,
+    _delta: any,
+    _source: any,
+    editor: {
+      getText: () => string;
     }
-  }, [quill]);
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      eventDescription: content,
+      eventDescriptionText: editor.getText(),
+    }));
+  };
 
   // Validation helpers
   const validateSingleField = (name: string, value: any) => {
@@ -292,7 +356,9 @@ export default function CreateEventForm() {
     isDragActive: isCoverDragActive,
   } = useDropzone({
     onDrop: onDropCover,
-    accept: { 'image/*': [] },
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif']
+    } as const,
     maxSize: 10 * 1024 * 1024,
     multiple: false,
   });
@@ -775,7 +841,7 @@ export default function CreateEventForm() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      Uploaded
+                      <span>Uploaded</span>
                     </div>
                   </div>
                 ) : (
@@ -842,7 +908,10 @@ export default function CreateEventForm() {
           <div
             className={cn(
               'p-6 rounded-2xl border-2 mb-8',
-              getThemeClass('bg-white/95 border-blue-200', 'bg-[#2d0036]/80 border-pink-500/30')
+              getThemeClass(
+                'bg-white/95 border-blue-200',
+                'bg-[#2d0036]/80 border-pink-500/30'
+              )
             )}
           >
             <h3 className="text-xl font-semibold text-purple-600 mb-4 flex items-center">
@@ -929,7 +998,27 @@ export default function CreateEventForm() {
           {/* Event Description */}
           <FormField label={t('eventDescription')}>
             <div className="rounded-xl border border-purple-700 bg-[#27272a] overflow-hidden">
-              <div ref={quillRef} style={{ minHeight: 160, color: '#fff' }} />
+              <QuillEditor
+                value={formData.eventDescription}
+                onChange={handleEditorChange}
+                modules={{
+                  toolbar: [
+                    [{ header: [1, 2, false] }],
+                    ['bold', 'italic', 'underline'],
+                    ['link', 'image'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                  ],
+                }}
+                formats={[
+                  'header',
+                  'bold', 'italic', 'underline',
+                  'list', 'bullet',
+                  'link', 'image'
+                ]}
+                placeholder="Enter event description..."
+                className="quill-editor"
+                ref={quillRef}
+              />
             </div>
           </FormField>
 
@@ -1085,7 +1174,7 @@ export default function CreateEventForm() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2m0 0h.01"
                               />
                             </svg>
                           )}
@@ -1153,7 +1242,7 @@ export default function CreateEventForm() {
                         {uploadingContentImage[index] && (
                           <div className="absolute inset-0 bg-slate-800/80 rounded-xl flex items-center justify-center">
                             <div className="flex items-center space-x-3">
-                              <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                              <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
                               <p className="text-sm text-slate-300">{t('uploadingImage')}</p>
                             </div>
                           </div>
