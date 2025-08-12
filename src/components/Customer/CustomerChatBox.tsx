@@ -67,7 +67,8 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   // State management
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<UnifiedMessage[]>([]);
+  // messagesLocal chỉ dùng cho AI/local, còn human sẽ đồng bộ với adminMessages
+  const [messagesLocal, setMessagesLocal] = useState<UnifiedMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
@@ -134,7 +135,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     }, 100);
   }, []);
 
-  // Add message to local state (chuẩn hóa theo ChatMessageDto)
+  // Add message to local state (chỉ dùng cho AI/local)
   const addLocalMessage = useCallback(
     (
       content: string,
@@ -168,28 +169,28 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
         replyToMessage,
         sources,
       };
-      setMessages((prev) => [...prev, newMessage]);
+      setMessagesLocal((prev) => [...prev, newMessage]);
       scrollToBottom();
       return messageId;
     },
     [generateMessageId, scrollToBottom]
   );
 
-  // Khi mount: chỉ setup welcome message, KHÔNG tạo chat room ngay
+  // Khi mount: chỉ setup welcome message nếu ở chế độ AI, KHÔNG tạo chat room ngay
   useEffect(() => {
-    setMessages([]);
-    addLocalMessage(
-      "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
-      false,
-      false,
-      true
-    );
-    // KHÔNG gọi openAdminChat() ở đây nữa - sẽ gọi khi user mở chat
-    // Ensure scroll to bottom after welcome message is added and chat is rendered
-    setTimeout(() => {
-      scrollToBottom();
-    }, 400);
-  }, [addLocalMessage, scrollToBottom]); // Bỏ openAdminChat khỏi dependencies
+    if (chatMode === 'ai') {
+      setMessagesLocal([]);
+      addLocalMessage(
+        "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
+        false,
+        false,
+        true
+      );
+      setTimeout(() => {
+        scrollToBottom();
+      }, 400);
+    }
+  }, [addLocalMessage, scrollToBottom, chatMode]);
 
   // Open chat - Tạo chat room khi user mở chat box
   const openChat = useCallback(async () => {
@@ -210,17 +211,65 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
       }
     }
 
-    // Wait for chat window to render, then scroll
+    // Khi mở lại chatbox ở chế độ human, luôn đồng bộ lại messagesLocal từ adminMessages
+    if (chatMode === 'human') {
+      setMessagesLocal(adminMessages.map(msg => ({
+        id: msg.messageId,
+        roomId: msg.roomId || '',
+        senderUserId: msg.senderId,
+        senderUserName: msg.senderName,
+        content: msg.content,
+        type: 0,
+        createdAt: msg.createdAt || msg.timestamp,
+        updatedAt: msg.createdAt || msg.timestamp,
+        isUser: false, // Sẽ xác định lại bên dưới
+        isAI: msg.senderId === 'system-ai-bot',
+        isError: false,
+        isStreaming: false,
+        isEdited: msg.isEdited || false,
+        isDeleted: msg.isDeleted || false,
+        senderName: msg.senderName,
+        sources: [],
+        attachments: [],
+        readByUserIds: [],
+        mentionedUserIds: [],
+        replyToMessageId: msg.replyToMessageId,
+        replyToMessage: msg.replyToMessage
+          ? {
+              id: msg.replyToMessage.messageId,
+              roomId: msg.roomId || '',
+              senderUserId: msg.replyToMessage.senderId,
+              senderUserName: msg.replyToMessage.senderName,
+              content: msg.replyToMessage.content,
+              type: 0,
+              createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              isUser: false,
+              isAI: msg.replyToMessage.senderId === 'system-ai-bot',
+              isError: false,
+              isStreaming: false,
+              isDeleted: false,
+              senderName: msg.replyToMessage.senderName,
+              sources: [],
+              attachments: [],
+              readByUserIds: [],
+              mentionedUserIds: [],
+            }
+          : undefined,
+      })));
+    }
+
     setTimeout(() => {
       scrollToBottom();
     }, 400);
-  }, [scrollToBottom, openAdminChat, chatRoom, roomId, addLocalMessage]);
+  }, [scrollToBottom, openAdminChat, chatRoom, roomId, addLocalMessage, chatMode, adminMessages]);
 
   // Close chat
   const closeChat = useCallback(() => {
     setIsOpen(false);
     setIsMinimized(false);
-    setMessages([]);
+    // Chỉ reset messagesLocal nếu đang ở chế độ AI, còn human giữ nguyên để khi mở lại còn đồng bộ lại
+    if (chatMode === 'ai') setMessagesLocal([]);
     // Abort any ongoing streaming
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -229,7 +278,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     if (isConnected) {
       closeAdminChat();
     }
-  }, [isConnected, closeAdminChat]);
+  }, [isConnected, closeAdminChat, chatMode]);
 
   // Toggle minimize
   const toggleMinimize = useCallback(() => {
@@ -245,7 +294,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   // Update streaming message
   const updateStreamingMessage = useCallback(
     (messageId: string, content: string, isComplete: boolean = false) => {
-      setMessages((prev) =>
+      setMessagesLocal((prev) =>
         prev.map((msg) =>
           msg.id === messageId ? { ...msg, content, isStreaming: !isComplete } : msg
         )
@@ -321,7 +370,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
 
         updateStreamingMessage(aiMessageId, answer, true);
         if (sources && sources.length > 0) {
-          setMessages((prev) =>
+          setMessagesLocal((prev) =>
             prev.map((msg) => (msg.id === aiMessageId ? { ...msg, sources } : msg))
           );
         }
@@ -475,7 +524,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     if (isOpen && !isMinimized) {
       scrollToBottom();
     }
-  }, [messages, adminMessages, isOpen, isMinimized, scrollToBottom]);
+  }, [messagesLocal, adminMessages, isOpen, isMinimized, scrollToBottom]);
 
   // Close modal when clicking outside
   useEffect(() => {
@@ -501,56 +550,19 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     };
   }, [isOpen, closeChat]);
 
-  // Chuẩn hóa messages cho hiển thị (hỗ trợ reply, attachment, trạng thái, nguồn AI)
-  // Combine both local AI messages and admin messages from database
-  const displayMessages = useMemo(() => {
-    // Get current user info to determine message ownership
-    const getCurrentUser = () => {
-      const accountStr = localStorage.getItem('account');
-      if (accountStr) {
-        try {
-          return JSON.parse(accountStr);
-        } catch {
-          return null;
-        }
-      }
-      return null;
-    };
-
-    const currentUser = getCurrentUser();
-
-    // Helper function to check if message is from current user
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isMessageFromCurrentUser = (msg: any) => {
-      if (!currentUser) return false;
-
-      // Try multiple possible ID matches (same logic as useCustomerChat)
-      const possibleMatches = [
-        msg.senderId === currentUser.userId,
-        msg.senderId === currentUser.accountId,
-        msg.senderId === currentUser.id,
-        // Also check by username as backup
-        msg.senderName === currentUser.username,
-        msg.senderName === currentUser.fullName,
-      ];
-
-      return possibleMatches.some((match) => match);
-    };
-
-    // Convert admin messages to unified format
-    const convertedAdminMessages: UnifiedMessage[] = adminMessages.map((msg) => {
-      const isFromCurrentUser = isMessageFromCurrentUser(msg);
-
-      return {
+  // Luôn đồng bộ messagesLocal với adminMessages khi ở chế độ human (kể cả khi có event mới hoặc khi mở lại chatbox)
+  useEffect(() => {
+    if (chatMode === 'human') {
+      setMessagesLocal(adminMessages.map(msg => ({
         id: msg.messageId,
         roomId: msg.roomId || '',
         senderUserId: msg.senderId,
         senderUserName: msg.senderName,
         content: msg.content,
-        type: 0, // Text message
+        type: 0,
         createdAt: msg.createdAt || msg.timestamp,
         updatedAt: msg.createdAt || msg.timestamp,
-        isUser: isFromCurrentUser, // Correctly determine if message is from current user
+        isUser: false, // Sẽ xác định lại bên dưới
         isAI: msg.senderId === 'system-ai-bot',
         isError: false,
         isStreaming: false,
@@ -572,7 +584,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
               type: 0,
               createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
               updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
-              isUser: isMessageFromCurrentUser(msg.replyToMessage),
+              isUser: false,
               isAI: msg.replyToMessage.senderId === 'system-ai-bot',
               isError: false,
               isStreaming: false,
@@ -584,31 +596,37 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
               mentionedUserIds: [],
             }
           : undefined,
-      };
-    });
+      })));
+    }
+  }, [adminMessages, chatMode, isOpen]);
 
-    // Merge local AI messages with converted admin messages
-    const allMessages = [...messages, ...convertedAdminMessages];
-
-    // Remove duplicates based on content and timestamp (in case AI message appears in both)
-    const uniqueMessages = allMessages.filter((msg, index, arr) => {
-      return (
-        index ===
-        arr.findIndex(
-          (m) =>
-            m.content === msg.content &&
-            Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 1000
-        )
-      );
+  // Chỉ dùng messagesLocal (AI/local) khi chatMode là 'ai', còn lại dùng messagesLocal đã đồng bộ với adminMessages
+  const displayMessages = useMemo(() => {
+    // Đánh dấu isUser cho các tin nhắn của user hiện tại
+    const currentUser = (() => {
+      const accountStr = localStorage.getItem('account');
+      if (accountStr) {
+        try {
+          return JSON.parse(accountStr);
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    })();
+    const msgs = messagesLocal.map(msg => {
+      if (currentUser) {
+        return {
+          ...msg,
+          isUser:
+            [currentUser.userId, currentUser.accountId, currentUser.id].includes(msg.senderUserId) ||
+            [currentUser.username, currentUser.fullName].includes(msg.senderUserName),
+        };
+      }
+      return msg;
     });
-
-    // Sort by timestamp to maintain chronological order
-    return uniqueMessages.sort((a, b) => {
-      const timeA = new Date(a.createdAt || 0).getTime();
-      const timeB = new Date(b.createdAt || 0).getTime();
-      return timeA - timeB;
-    });
-  }, [messages, adminMessages]);
+    return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [messagesLocal]);
 
   return (
     <div className={`fixed bottom-4 right-4 z-[9998] ${className}`}>
