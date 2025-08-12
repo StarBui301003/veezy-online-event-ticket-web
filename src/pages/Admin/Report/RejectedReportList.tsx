@@ -93,16 +93,20 @@ export const RejectedReportList = ({
   }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-          connectFeedbackHub('https://feedback.vezzy.site/notificationHub');
+    connectFeedbackHub('https://feedback.vezzy.site/notificationHub');
 
-    const reload = () => fetchData();
+    const reload = () => fetchData(false);
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportStatusChanged', reload);
     onFeedback('OnReportListFetched', reload);
   }, []);
 
   useEffect(() => {
-    fetchData();
+    if (searchTerm !== filters.searchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
   }, [filters, sortBy, sortDescending, searchTerm]);
 
   // Sync filters.page with page on mount
@@ -110,8 +114,10 @@ export const RejectedReportList = ({
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params = {
         ...filters,

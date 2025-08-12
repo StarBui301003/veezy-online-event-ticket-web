@@ -107,9 +107,6 @@ export default function UserTabs() {
     };
     onAnalytics('OnUserAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
       offAnalytics('OnUserAnalytics', handler);

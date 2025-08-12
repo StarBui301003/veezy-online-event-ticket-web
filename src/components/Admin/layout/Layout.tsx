@@ -68,7 +68,7 @@ function AdminLayoutContent() {
   }, [themeContext, themeClasses, isThemeReady]);
 
   const { getThemeClass } = themeClasses || {
-    getThemeClass: (lightClass: string, darkClass: string) => lightClass,
+    getThemeClass: (lightClass: string, _darkClass: string) => lightClass,
   };
   const { resetThemeForNewUser } = themeContext || {
     resetThemeForNewUser: () => {},

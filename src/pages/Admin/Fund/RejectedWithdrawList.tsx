@@ -81,12 +81,22 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
     searchRef.current = rejectedSearch;
   }, [rejectedSearch]);
 
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedSearch] đổi
+  useEffect(() => {
+    if (rejectedSearch !== filters.SearchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending, rejectedSearch]);
+
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onFund('OnWithdrawalRequested', reload);
     onFund('OnWithdrawalStatusChanged', reload);
@@ -98,8 +108,10 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -161,12 +173,6 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedSearch] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, rejectedSearch]);
-
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
@@ -189,7 +195,7 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData();
+      fetchData(false);
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -396,7 +402,7 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
                             setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData();
+                              fetchData(false);
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-700 dark:text-gray-300"

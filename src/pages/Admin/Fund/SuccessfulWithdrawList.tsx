@@ -86,7 +86,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     const token = localStorage.getItem('access_token');
     connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onFund('OnWithdrawalRequested', reload);
     onFund('OnWithdrawalStatusChanged', reload);
@@ -98,8 +98,10 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -163,7 +165,11 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, successfulSearch] đổi
   useEffect(() => {
-    fetchData();
+    if (successfulSearch !== filters.SearchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, successfulSearch]);
 
@@ -189,7 +195,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData();
+      fetchData(false);
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -396,7 +402,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
                             setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData();
+                              fetchData(false);
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-700 dark:text-gray-300"

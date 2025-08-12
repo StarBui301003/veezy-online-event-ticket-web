@@ -97,7 +97,7 @@ const OrderListAdmin = () => {
     // TicketService emits order-related events on its NotificationHub (/notificationHub)
     connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
       // Also refresh events list to include any new events from new orders
       fetchAllEvents();
     };
@@ -146,54 +146,60 @@ const OrderListAdmin = () => {
     fetchAllEvents();
   }, []);
 
-  const fetchData = useCallback(() => {
-    setLoading(true);
+  const fetchData = useCallback(
+    (isSearching = false) => {
+      // Chỉ hiển thị loading khi không phải đang search
+      if (!isSearching) {
+        setLoading(true);
+      }
 
-    // Separate pagination parameters from filter parameters
-    const paginationParams = {
-      Page: orderSearch ? 1 : filters.Page,
-      PageSize: filters.PageSize,
-    };
+      // Separate pagination parameters from filter parameters
+      const paginationParams = {
+        Page: orderSearch ? 1 : filters.Page,
+        PageSize: filters.PageSize,
+      };
 
-    const filterParams = {
-      SearchTerm: orderSearch,
-      MinAmount: amountRange[0],
-      MaxAmount: amountRange[1],
-      EventId: filters.EventId || undefined,
-      SortBy: sortBy,
-      SortDescending: sortDescending,
-    };
+      const filterParams = {
+        SearchTerm: orderSearch,
+        MinAmount: amountRange[0],
+        MaxAmount: amountRange[1],
+        EventId: filters.EventId || undefined,
+        SortBy: sortBy,
+        SortDescending: sortDescending,
+      };
 
-    // Combine pagination and filter parameters
-    const params = { ...paginationParams, ...filterParams };
+      // Combine pagination and filter parameters
+      const params = { ...paginationParams, ...filterParams };
 
-    getOrdersAdmin(params)
-      .then(async (res) => {
-        if (res && res.success && res.data) {
-          setData(res);
+      getOrdersAdmin(params)
+        .then(async (res) => {
+          if (res && res.success && res.data) {
+            setData(res);
 
-          // Calculate max amount from current filtered data
-          const maxAmountInData =
-            res.data.items.length > 0
-              ? Math.max(...res.data.items.map((item) => item.totalAmount))
-              : 1000000;
-          setMaxAmount(maxAmountInData);
+            // Calculate max amount from current filtered data
+            const maxAmountInData =
+              res.data.items.length > 0
+                ? Math.max(...res.data.items.map((item) => item.totalAmount))
+                : 1000000;
+            setMaxAmount(maxAmountInData);
 
-          // Update global max amount if we get data without filters
-          if (!orderSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
-            setGlobalMaxAmount(maxAmountInData);
+            // Update global max amount if we get data without filters
+            if (!orderSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+              setGlobalMaxAmount(maxAmountInData);
+            }
+          } else {
+            setData(null);
           }
-        } else {
+        })
+        .catch(() => {
           setData(null);
-        }
-      })
-      .catch(() => {
-        setData(null);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  }, [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
+        })
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    },
+    [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
+  );
 
   // Filter handlers
   const updateFilter = (
@@ -205,7 +211,12 @@ const OrderListAdmin = () => {
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch] đổi
   useEffect(() => {
-    fetchData();
+    // Khi orderSearch thay đổi, đây là search nên không hiển thị loading
+    if (orderSearch !== filters.SearchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, orderSearch]);
 
@@ -231,7 +242,7 @@ const OrderListAdmin = () => {
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData();
+      fetchData(false);
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -509,7 +520,7 @@ const OrderListAdmin = () => {
                             setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData();
+                              fetchData(false);
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"

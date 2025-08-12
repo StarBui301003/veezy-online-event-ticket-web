@@ -65,6 +65,14 @@ export default function FinancialTabs() {
 
   // Real-time data reload function
   const reloadData = () => {
+    console.log(
+      '🔄 reloadData called with filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -86,11 +94,20 @@ export default function FinancialTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    console.log('📡 API call params:', params);
     getFinancialAnalytics(params)
       .then((res: AdminFinancialAnalyticsResponse) => {
+        console.log('📊 API Response:', res.data);
+        console.log('🎯 topEventsByRevenue:', res.data?.topEventsByRevenue);
+        console.log('📈 revenueTimeline:', res.data?.revenueTimeline);
+        console.log('💰 platformFees:', res.data?.platformFees);
+
         setRevenueTimeline(res.data?.revenueTimeline || []);
         setTopEvents(res.data?.topEventsByRevenue || []);
         setPlatformFees(res.data?.platformFees?.topContributingEvents || []);
+
+        console.log('🔄 State updated - topEvents:', res.data?.topEventsByRevenue || []);
+
         setSummary({
           totalRevenue: res.data?.totalRevenue || 0,
           netRevenue: res.data?.revenueTimeline?.[0]?.revenue ?? 0,
@@ -101,7 +118,12 @@ export default function FinancialTabs() {
         });
       })
       .catch((error) => {
-        console.error('Error loading financial analytics:', error);
+        console.error('❌ Error loading financial analytics:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
         toast.error('Failed to load financial data');
         // Set default values on error
         setRevenueTimeline([]);
@@ -120,11 +142,17 @@ export default function FinancialTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
+    console.log('🚀 FinancialTabs mounted - connecting to AnalyticsHub...');
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
+        console.log('📡 SignalR Update Received:', data);
+        console.log('🎯 SignalR topEvents:', data.topEvents);
+        console.log('📈 SignalR revenueTimeline:', data.revenueTimeline);
+        console.log('💰 SignalR platformFees:', data.platformFees);
+
         // Defensive: always ensure platformFees is an array
         const safePlatformFees = Array.isArray(data.platformFees)
           ? data.platformFees
@@ -139,26 +167,35 @@ export default function FinancialTabs() {
           !platformFees ||
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
+          console.log('🔄 SignalR: Updating states due to data changes');
           setSummary(data.summary || null);
           setRevenueTimeline(data.revenueTimeline || []);
           setTopEvents(data.topEvents || []);
           setPlatformFees(safePlatformFees);
+        } else {
+          console.log('⏭️ SignalR: No changes detected, skipping update');
         }
       }
     };
     onAnalytics('OnFinancialAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
+      console.log('🧹 FinancialTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnFinancialAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    console.log(
+      '🔄 useEffect triggered - filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
@@ -279,7 +316,7 @@ export default function FinancialTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
             </div>
-          ) : revenueTimeline.length === 0 ? (
+          ) : !revenueTimeline || revenueTimeline.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               No revenue data available
             </div>
@@ -309,11 +346,22 @@ export default function FinancialTabs() {
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Top Events by Revenue
           </h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Top Events - loading:',
+              loading,
+              'topEvents:',
+              topEvents,
+              'length:',
+              topEvents?.length
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
             </div>
-          ) : topEvents.length === 0 ? (
+          ) : !topEvents || topEvents.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               No top events data available
             </div>
@@ -351,7 +399,7 @@ export default function FinancialTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
             </div>
-          ) : platformFees.length === 0 ? (
+          ) : !platformFees || platformFees.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               No platform fee data available
             </div>

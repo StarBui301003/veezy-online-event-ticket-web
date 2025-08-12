@@ -177,10 +177,12 @@ export default function NewsTabs() {
     const handler = (data: AdminNewsAnalyticsResponse['data']) => {
       if (document.visibilityState !== 'visible') return;
       // Defensive: always ensure arrays
-      const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend) ? data.approvalMetrics.approvalTrend : [];
+      const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend)
+        ? data.approvalMetrics.approvalTrend
+        : [];
       const safeNewsByEvent = Array.isArray(data.newsByEvent) ? data.newsByEvent : [];
       const safeNewsByAuthor = Array.isArray(data.newsByAuthor) ? data.newsByAuthor : [];
-      // Only update if data is actually different  
+      // Only update if data is actually different
       if (JSON.stringify(safeApprovalTrend) !== JSON.stringify(approvalTrend)) {
         setApprovalTrend(safeApprovalTrend);
       }
@@ -213,9 +215,6 @@ export default function NewsTabs() {
       // Analytics data updated via SignalR
     };
     onAnalytics('OnNewsAnalytics', handler);
-
-    // Initial data load
-    reloadData();
 
     // Cleanup to avoid duplicate listeners
     return () => {

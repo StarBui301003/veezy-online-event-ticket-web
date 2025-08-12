@@ -114,7 +114,7 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
       '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current);
+      fetchData(pageRef.current, pageSizeRef.current, false);
     };
     onNews('OnNewsCreated', reload);
     onNews('OnNewsUpdated', reload);
@@ -135,8 +135,10 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Use current page and pageSize, but reset to page 1 when searching
     const currentPage = rejectedNewsSearch ? 1 : p;
@@ -181,7 +183,11 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedNewsSearch] đổi
   useEffect(() => {
     if (activeTab === 'rejected') {
-      fetchData();
+      if (rejectedNewsSearch !== filters.searchTerm) {
+        fetchData(page, pageSize, true);
+      } else {
+        fetchData(page, pageSize, false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, rejectedNewsSearch, activeTab]);

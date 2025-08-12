@@ -89,7 +89,7 @@ const PaymentListAdmin = () => {
     const token = localStorage.getItem('access_token');
     connectPaymentHub('http://localhost:5005/paymentHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onPayment('OnPaymentCreated', reload);
     onPayment('OnPaymentStatusChanged', reload);
@@ -98,56 +98,67 @@ const PaymentListAdmin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = useCallback(() => {
-    setLoading(true);
+  const fetchData = useCallback(
+    (isSearching = false) => {
+      // Chỉ hiển thị loading khi không phải đang search
+      if (!isSearching) {
+        setLoading(true);
+      }
 
-    // Separate pagination parameters from filter parameters
-    const paginationParams = {
-      Page: paymentSearch ? 1 : filters.Page,
-      PageSize: filters.PageSize,
-    };
+      // Separate pagination parameters from filter parameters
+      const paginationParams = {
+        Page: paymentSearch ? 1 : filters.Page,
+        PageSize: filters.PageSize,
+      };
 
-    const filterParams = {
-      SearchTerm: paymentSearch,
-      MinAmount: amountRange[0],
-      MaxAmount: amountRange[1],
-      SortBy: sortBy,
-      SortDescending: sortDescending,
-    };
+      const filterParams = {
+        SearchTerm: paymentSearch,
+        MinAmount: amountRange[0],
+        MaxAmount: amountRange[1],
+        SortBy: sortBy,
+        SortDescending: sortDescending,
+      };
 
-    // Combine pagination and filter parameters
-    const params = { ...paginationParams, ...filterParams };
+      // Combine pagination and filter parameters
+      const params = { ...paginationParams, ...filterParams };
 
-    getPaymentsAdmin(params)
-      .then(async (res) => {
-        if (res && res.success && res.data) {
-          setData(res);
-          // Calculate max amount from current filtered data
-          const maxAmountInData =
-            res.data.items.length > 0
-              ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
-              : 1000000;
-          setMaxAmount(maxAmountInData);
+      getPaymentsAdmin(params)
+        .then(async (res) => {
+          if (res && res.success && res.data) {
+            setData(res);
+            // Calculate max amount from current filtered data
+            const maxAmountInData =
+              res.data.items.length > 0
+                ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
+                : 1000000;
+            setMaxAmount(maxAmountInData);
 
-          // Update global max amount if we get data without filters
-          if (!paymentSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
-            setGlobalMaxAmount(maxAmountInData);
+            // Update global max amount if we get data without filters
+            if (!paymentSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+              setGlobalMaxAmount(maxAmountInData);
+            }
+          } else {
+            setData(null);
           }
-        } else {
+        })
+        .catch(() => {
           setData(null);
-        }
-      })
-      .catch(() => {
-        setData(null);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
+        })
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    },
+    [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
+  );
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
   useEffect(() => {
-    fetchData();
+    // Khi paymentSearch thay đổi, đây là search nên không hiển thị loading
+    if (paymentSearch !== filters.SearchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, paymentSearch]);
 
@@ -173,7 +184,7 @@ const PaymentListAdmin = () => {
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData();
+      fetchData(false);
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -430,7 +441,7 @@ const PaymentListAdmin = () => {
                             setAmountRange([0, maxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData();
+                              fetchData(false);
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"

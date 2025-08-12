@@ -110,7 +110,12 @@ export const DiscountCodeList = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    // Khi searchTerm thay đổi, đây là search nên không hiển thị loading
+    if (searchTerm !== filters.searchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
   }, [filters, sortBy, sortDescending, searchTerm]);
 
   // Sync filters.page with page on mount
@@ -118,8 +123,11 @@ export const DiscountCodeList = () => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params = {
         ...filters,
@@ -138,7 +146,7 @@ export const DiscountCodeList = () => {
   };
 
   const reloadList = () => {
-    fetchData();
+    fetchData(false);
   };
 
   const handlePageChange = (newPage: number) => {

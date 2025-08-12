@@ -80,8 +80,11 @@ export const AdminList = () => {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params: Omit<UserFilterParams, 'role'> = {
         searchTerm: adminSearch || filters.searchTerm,
@@ -122,7 +125,7 @@ export const AdminList = () => {
     // Listen for real-time admin user updates
     onIdentity('AdminCreated', (data: any) => {
       console.log('👤 Admin created:', data);
-      fetchUsers();
+      fetchUsers(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -137,7 +140,12 @@ export const AdminList = () => {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
+    // Khi adminSearch thay đổi, đây là search nên không hiển thị loading
+    if (adminSearch !== filters.searchTerm) {
+      fetchUsers(true);
+    } else {
+      fetchUsers(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, adminSearch, sortBy, sortDescending]);
 
@@ -183,7 +191,7 @@ export const AdminList = () => {
       // Always call deactivate API - if user is active, it will deactivate; if inactive, it will activate
       await deactivateUserAPI(user.accountId);
       toast.success(`User ${user.isActive ? 'deactivated' : 'activated'} successfully!`);
-      fetchUsers(); // Refresh the list
+      fetchUsers(false); // Refresh the list
     } catch (error) {
       // Handle API error with specific message
       if (error instanceof Error) {
@@ -205,7 +213,7 @@ export const AdminList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            fetchUsers();
+            fetchUsers(false);
           }}
           title="Edit Admin"
           disableEmail
@@ -216,7 +224,7 @@ export const AdminList = () => {
         onClose={() => setShowCreateModal(false)}
         onCreated={() => {
           setShowCreateModal(false);
-          fetchUsers();
+          fetchUsers(false);
         }}
       />
 

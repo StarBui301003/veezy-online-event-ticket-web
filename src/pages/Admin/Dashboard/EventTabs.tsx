@@ -56,6 +56,14 @@ export default function EventTabs() {
 
   // Real-time data reload function
   const reloadData = () => {
+    console.log(
+      '🔄 EventTabs reloadData called with filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -77,49 +85,98 @@ export default function EventTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    console.log('📡 EventTabs API call params:', params);
     getEventAnalytics(params)
       .then((res: AdminEventAnalyticsResponse) => {
+        console.log('📊 EventTabs API Response:', res.data);
+        console.log('🎯 approvalMetrics:', res.data.approvalMetrics);
+        console.log('📈 eventsByCategory:', res.data.eventsByCategory);
+        console.log('🏆 topPerformingEvents:', res.data.topPerformingEvents);
+
         setApprovalTrend(res.data.approvalMetrics.approvalTrend || []);
         setEventsByCategory(res.data.eventsByCategory || []);
         setTopEvents(res.data.topPerformingEvents || []);
+
+        console.log('🔄 EventTabs State updated:');
+        console.log('  - approvalTrend:', res.data.approvalMetrics.approvalTrend || []);
+        console.log('  - eventsByCategory:', res.data.eventsByCategory || []);
+        console.log('  - topEvents:', res.data.topPerformingEvents || []);
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error('❌ Error loading event analytics:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+        toast.error('Failed to load event data');
+        // Set default values on error
+        setApprovalTrend([]);
+        setEventsByCategory([]);
+        setTopEvents([]);
+      })
+      .finally(() => {
+        console.log('✅ EventTabs API call completed - setting loading to false');
+        setLoading(false);
+      });
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    console.log('🚀 EventTabs mounted - connecting to AnalyticsHub...');
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
+        console.log('📡 EventTabs SignalR Update Received:', data);
+        console.log('🎯 SignalR approvalTrend:', data.approvalTrend);
+        console.log('📈 SignalR eventsByCategory:', data.eventsByCategory);
+        console.log('🏆 SignalR topEvents:', data.topEvents);
+
+        // Defensive: always ensure arrays
+        const safeApprovalTrend = Array.isArray(data.approvalTrend) ? data.approvalTrend : [];
+        const safeEventsByCategory = Array.isArray(data.eventsByCategory)
+          ? data.eventsByCategory
+          : [];
+        const safeTopEvents = Array.isArray(data.topEvents) ? data.topEvents : [];
+
         if (
           !approvalTrend ||
-          JSON.stringify(data.approvalTrend) !== JSON.stringify(approvalTrend) ||
+          JSON.stringify(safeApprovalTrend) !== JSON.stringify(approvalTrend) ||
           !eventsByCategory ||
-          JSON.stringify(data.eventsByCategory) !== JSON.stringify(eventsByCategory) ||
+          JSON.stringify(safeEventsByCategory) !== JSON.stringify(eventsByCategory) ||
           !topEvents ||
-          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents)
+          JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents)
         ) {
-          setApprovalTrend(data.approvalTrend);
-          setEventsByCategory(data.eventsByCategory);
-          setTopEvents(data.topEvents);
+          console.log('🔄 EventTabs SignalR: Updating states due to data changes');
+          setApprovalTrend(safeApprovalTrend);
+          setEventsByCategory(safeEventsByCategory);
+          setTopEvents(safeTopEvents);
+        } else {
+          console.log('⏭️ EventTabs SignalR: No changes detected, skipping update');
         }
       }
     };
     onAnalytics('OnEventAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
+      console.log('🧹 EventTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnEventAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    console.log(
+      '🔄 EventTabs useEffect triggered - filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
@@ -168,6 +225,10 @@ export default function EventTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
+            </div>
+          ) : !approvalTrend || approvalTrend.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No approval trend data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -219,6 +280,10 @@ export default function EventTabs() {
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
             </div>
+          ) : !eventsByCategory || eventsByCategory.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No events by category data available
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -247,6 +312,10 @@ export default function EventTabs() {
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
+            </div>
+          ) : !topEvents || topEvents.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              No top performing events data available
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>

@@ -142,8 +142,11 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Use current page and pageSize, but reset to page 1 when searching
     const currentPage = approvedNewsSearch ? 1 : p;
@@ -188,7 +191,12 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedNewsSearch, activeTab] đổi
   useEffect(() => {
     if (activeTab === 'approved') {
-      fetchData();
+      // Khi approvedNewsSearch thay đổi, đây là search nên không hiển thị loading
+      if (approvedNewsSearch !== filters.searchTerm) {
+        fetchData(page, pageSize, true);
+      } else {
+        fetchData(page, pageSize, false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, approvedNewsSearch, activeTab]);
@@ -247,7 +255,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
         await showNews(item.newsId);
         toast.success('News shown successfully!');
       }
-      fetchData();
+      fetchData(page, pageSize, false);
     } catch {
       toast.error('Failed to update status!');
     }

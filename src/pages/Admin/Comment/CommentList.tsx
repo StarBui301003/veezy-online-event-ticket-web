@@ -103,7 +103,12 @@ export const CommentList = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    // Khi searchTerm thay đổi, đây là search nên không hiển thị loading
+    if (searchTerm !== filters.searchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
   }, [filters, sortBy, sortDescending, searchTerm]);
 
   // Sync filters.page with page on mount
@@ -147,8 +152,11 @@ export const CommentList = () => {
     loadEventsFromComments();
   }, []); // Only run once on mount, not dependent on data?.items
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       // Tách riêng pagination và filter parameters giống ApprovedEventList.tsx
       const paginationParams = {
@@ -198,7 +206,7 @@ export const CommentList = () => {
   };
 
   const reloadList = () => {
-    fetchData();
+    fetchData(false);
   };
 
   const handlePageChange = (newPage: number) => {

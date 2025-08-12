@@ -151,22 +151,28 @@ export const CompletedEventList = ({
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, completedEventSearch] đổi
   useEffect(() => {
-    fetchData();
+    if (completedEventSearch !== filters.searchTerm) {
+      fetchData(page, pageSize, true);
+    } else {
+      fetchData(page, pageSize, false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, completedEventSearch]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData();
+      fetchData(page, pageSize, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -269,7 +275,7 @@ export const CompletedEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData();
+        fetchData(page, pageSize, false);
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

@@ -140,7 +140,7 @@ export const PendingEventList = ({
   // Connect hub chỉ 1 lần khi mount using global connections
   useEffect(() => {
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current);
+      fetchData(pageRef.current, pageSizeRef.current, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
@@ -150,8 +150,11 @@ export const PendingEventList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -220,7 +223,12 @@ export const PendingEventList = ({
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingEventSearch] đổi
   useEffect(() => {
-    fetchData();
+    // Khi pendingEventSearch thay đổi, đây là search nên không hiển thị loading
+    if (pendingEventSearch !== filters.searchTerm) {
+      fetchData(page, pageSize, true);
+    } else {
+      fetchData(page, pageSize, false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, pendingEventSearch]);
 

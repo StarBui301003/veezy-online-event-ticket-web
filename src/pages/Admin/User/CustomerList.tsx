@@ -77,8 +77,11 @@ export const CustomerList = () => {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params: Omit<UserFilterParams, 'role'> = {
         searchTerm: customerSearch || filters.searchTerm,
@@ -132,7 +135,12 @@ export const CustomerList = () => {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
+    // Khi customerSearch thay đổi, đây là search nên không hiển thị loading
+    if (customerSearch !== filters.searchTerm) {
+      fetchUsers(true);
+    } else {
+      fetchUsers(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, customerSearch, sortBy, sortDescending]);
 

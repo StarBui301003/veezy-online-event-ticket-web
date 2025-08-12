@@ -156,7 +156,7 @@ export const ApprovedEventList = ({
   // Connect hub chỉ 1 lần khi mount using global connections
   useEffect(() => {
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current);
+      fetchData(pageRef.current, pageSizeRef.current, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
@@ -166,8 +166,11 @@ export const ApprovedEventList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -237,7 +240,12 @@ export const ApprovedEventList = ({
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedEventSearch] đổi
   useEffect(() => {
     console.log('🔄 useEffect triggered - calling fetchData with filters:', filters);
-    fetchData();
+    // Khi approvedEventSearch thay đổi, đây là search nên không hiển thị loading
+    if (approvedEventSearch !== filters.searchTerm) {
+      fetchData(page, pageSize, true);
+    } else {
+      fetchData(page, pageSize, false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, approvedEventSearch]);
 
@@ -291,7 +299,7 @@ export const ApprovedEventList = ({
       try {
         await cancelEvent(event.eventId);
         toast.success('Event cancelled successfully');
-        fetchData();
+        fetchData(page, pageSize, false);
       } catch {
         toast.error('Failed to cancel event');
       }
@@ -308,7 +316,7 @@ export const ApprovedEventList = ({
         await showEvent(event.eventId);
         toast.success('Event shown successfully!');
       }
-      fetchData();
+      fetchData(page, pageSize, false);
     } catch {
       toast.error('Failed to update status!');
     }
@@ -327,11 +335,6 @@ export const ApprovedEventList = ({
         <div className={`p-4 ${getEventListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Debug info */}
-            <div className="text-xs text-gray-500 mb-2">
-              Debug: Categories loaded: {allCategories.length} | Filter state:{' '}
-              {JSON.stringify(filters.categoryNames)}
-            </div>
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div

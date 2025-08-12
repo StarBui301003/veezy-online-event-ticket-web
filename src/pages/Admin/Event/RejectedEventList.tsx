@@ -151,22 +151,28 @@ export const RejectedEventList = ({
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedEventSearch] đổi
   useEffect(() => {
-    fetchData();
+    if (rejectedEventSearch !== filters.searchTerm) {
+      fetchData(true);
+    } else {
+      fetchData(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, rejectedEventSearch]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -269,7 +275,7 @@ export const RejectedEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData();
+        fetchData(false);
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

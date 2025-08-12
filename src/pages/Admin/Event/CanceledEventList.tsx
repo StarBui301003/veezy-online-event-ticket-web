@@ -157,23 +157,29 @@ export const CanceledEventList = ({
       sortDescending,
       canceledEventSearch,
     });
-    fetchData();
+    if (canceledEventSearch !== filters.searchTerm) {
+      fetchData(page, pageSize, true);
+    } else {
+      fetchData(page, pageSize, false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, canceledEventSearch]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData();
+      fetchData(page, pageSize, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    console.log('🔄 CanceledEventList: fetchData called', { p, ps, filters });
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+    console.log('🔄 CanceledEventList: fetchData called', { p, ps, filters, isSearching });
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -277,7 +283,7 @@ export const CanceledEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData();
+        fetchData(page, pageSize, false);
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

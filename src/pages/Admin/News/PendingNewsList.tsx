@@ -117,15 +117,10 @@ export const PendingNewsList = ({
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    const NEWS_HUB_URL =
-      ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
-      (typeof process !== 'undefined'
-        ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL
-        : undefined) ||
-      '/newsHub';
+    const NEWS_HUB_URL = (import.meta.env.VITE_NEWS_HUB_URL as string) || '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onNews('OnNewsCreated', reload);
     onNews('OnNewsUpdated', reload);
@@ -146,8 +141,10 @@ export const PendingNewsList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (isSearching = false) => {
+    if (!isSearching) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -240,12 +237,17 @@ export const PendingNewsList = ({
     );
   };
 
-  // Single useEffect to handle all data fetching
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingNewsSearch] đổi
   useEffect(() => {
-    if (activeTab !== 'pending') return;
-    fetchData();
+    if (activeTab === 'pending') {
+      if (pendingNewsSearch !== filters.searchTerm) {
+        fetchData(true);
+      } else {
+        fetchData(false);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, filters, sortBy, sortDescending, pendingNewsSearch]);
+  }, [filters, sortBy, sortDescending, pendingNewsSearch, activeTab]);
 
   // Fetch author names when news data changes
   useEffect(() => {
