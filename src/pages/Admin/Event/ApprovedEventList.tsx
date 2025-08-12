@@ -83,6 +83,7 @@ export const ApprovedEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -166,9 +167,9 @@ export const ApprovedEventList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
     // Chỉ hiển thị loading khi không phải đang search
-    if (!isSearching) {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -237,26 +238,36 @@ export const ApprovedEventList = ({
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedEventSearch] đổi
+  // Khi approvedEventSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, searchTerm: approvedEventSearch, _searchOnly: true }));
+    setPage(1);
+  }, [approvedEventSearch]);
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending] đổi
   useEffect(() => {
     console.log('🔄 useEffect triggered - calling fetchData with filters:', filters);
-    // Khi approvedEventSearch thay đổi, đây là search nên không hiển thị loading
-    if (approvedEventSearch !== filters.searchTerm) {
-      fetchData(page, pageSize, true);
-    } else {
-      fetchData(page, pageSize, false);
-    }
+    // Nếu chỉ search thì không loading
+    fetchData(page, pageSize, filters._searchOnly ? false : true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, approvedEventSearch]);
+  }, [filters, sortBy, sortDescending]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, page: 1, pageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -269,6 +280,12 @@ export const ApprovedEventList = ({
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {

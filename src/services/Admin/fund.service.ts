@@ -18,6 +18,7 @@ export interface FundFilterParams {
     TransactionStatus?: string; // Pending, Processing, Paid, Rejected
     SortBy?: string;
     SortDescending?: boolean;
+    _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 // Lấy danh sách chờ duyệt

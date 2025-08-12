@@ -61,6 +61,7 @@ const PaymentListAdmin = () => {
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('paidAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -89,7 +90,7 @@ const PaymentListAdmin = () => {
     const token = localStorage.getItem('access_token');
     connectPaymentHub('http://localhost:5005/paymentHub', token);
     const reload = () => {
-      fetchData(false);
+      fetchData();
     };
     onPayment('OnPaymentCreated', reload);
     onPayment('OnPaymentStatusChanged', reload);
@@ -98,12 +99,20 @@ const PaymentListAdmin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Khi paymentSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, SearchTerm: paymentSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, Page: 1 }));
+  }, [paymentSearch]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
+
   const fetchData = useCallback(
-    (isSearching = false) => {
-      // Chỉ hiển thị loading khi không phải đang search
-      if (!isSearching) {
-        setLoading(true);
-      }
+    (showLoading = true) => {
+      if (showLoading && !filters._searchOnly) setLoading(true);
 
       // Separate pagination parameters from filter parameters
       const paginationParams = {
@@ -151,17 +160,6 @@ const PaymentListAdmin = () => {
     [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
   );
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
-  useEffect(() => {
-    // Khi paymentSearch thay đổi, đây là search nên không hiển thị loading
-    if (paymentSearch !== filters.SearchTerm) {
-      fetchData(true);
-    } else {
-      fetchData(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, paymentSearch]);
-
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
@@ -184,7 +182,7 @@ const PaymentListAdmin = () => {
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData(false);
+      fetchData();
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -192,11 +190,19 @@ const PaymentListAdmin = () => {
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: 1, PageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Sort handlers
@@ -207,6 +213,12 @@ const PaymentListAdmin = () => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -441,7 +453,7 @@ const PaymentListAdmin = () => {
                             setAmountRange([0, maxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData(false);
+                              fetchData();
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"

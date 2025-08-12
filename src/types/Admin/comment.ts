@@ -13,7 +13,7 @@ export interface Comment {
 
 export interface CommentFilterParams {
   searchTerm?: string;
-  eventId?: string;
+  eventId?: string | string[];
   userId?: string;
   createdFrom?: string;
   createdTo?: string;
@@ -21,6 +21,7 @@ export interface CommentFilterParams {
   pageSize: number;
   sortBy?: string;
   sortDescending: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 export interface PaginatedCommentResponse {

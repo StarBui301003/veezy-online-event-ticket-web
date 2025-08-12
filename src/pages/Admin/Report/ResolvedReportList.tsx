@@ -80,6 +80,7 @@ export const ResolvedReportList = ({
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
+  const [searchOnly, setSearchOnly] = useState(false);
 
   // Refs for SignalR
   const pageRef = useRef(page);
@@ -94,35 +95,38 @@ export const ResolvedReportList = ({
 
   useEffect(() => {
     // Listen for feedback updates using global connections
-    const reload = () => fetchData(false);
+    const reload = () => fetchData();
     onFeedback('OnReportCreated', reload);
     onFeedback('OnReportStatusChanged', reload);
     onFeedback('OnReportListFetched', reload);
   }, []);
 
+  // Khi searchTerm thay đổi, chỉ search (không loading overlay)
   useEffect(() => {
-    if (searchTerm !== filters.searchTerm) {
-      fetchData(true);
-    } else {
-      fetchData(false);
-    }
-  }, [filters, sortBy, sortDescending, searchTerm]);
+    setSearchOnly(true);
+    setFilters((prev) => ({ ...prev, searchTerm }));
+    setPage(1);
+  }, [searchTerm]);
+
+  // Khi filter khác thay đổi, không phải search only
+  useEffect(() => {
+    setSearchOnly(false);
+    fetchData();
+  }, [filters, sortBy, sortDescending]);
 
   // Sync filters.page with page on mount
   useEffect(() => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
-  const fetchData = async (isSearching = false) => {
-    if (!isSearching) {
-      setLoading(true);
-    }
+  const fetchData = async () => {
+    if (!searchOnly) setLoading(true);
     try {
       const params = {
         ...filters,
         sortBy,
         sortDescending,
-        searchTerm: searchTerm || undefined,
+        searchTerm: filters.searchTerm || undefined,
       };
       const response = await getResolvedReportsWithFilter(params);
       setData(response.data);
@@ -180,9 +184,11 @@ export const ResolvedReportList = ({
 
   return (
     <div className="p-6">
-      <SpinnerOverlay show={loading} />
-      {viewReport && <ReportDetailModal report={viewReport} onClose={() => setViewReport(null)} />}
       <div className="overflow-x-auto">
+        <SpinnerOverlay show={loading} />
+        {viewReport && (
+          <ReportDetailModal report={viewReport} onClose={() => setViewReport(null)} />
+        )}
         <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}

@@ -62,6 +62,7 @@ const OrderListAdmin = () => {
     PageSize: 5,
     SortDescending: true,
     EventId: undefined, // Initialize EventId in filters
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -97,7 +98,7 @@ const OrderListAdmin = () => {
     // TicketService emits order-related events on its NotificationHub (/notificationHub)
     connectTicketHub('https://ticket.vezzy.site/notificationHub', token);
     const reload = () => {
-      fetchData(false);
+      fetchData();
       // Also refresh events list to include any new events from new orders
       fetchAllEvents();
     };
@@ -147,11 +148,8 @@ const OrderListAdmin = () => {
   }, []);
 
   const fetchData = useCallback(
-    (isSearching = false) => {
-      // Chỉ hiển thị loading khi không phải đang search
-      if (!isSearching) {
-        setLoading(true);
-      }
+    (showLoading = true) => {
+      if (showLoading && !filters._searchOnly) setLoading(true);
 
       // Separate pagination parameters from filter parameters
       const paginationParams = {
@@ -201,22 +199,34 @@ const OrderListAdmin = () => {
     [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
   );
 
+  // Khi orderSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, SearchTerm: orderSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, Page: 1 }));
+  }, [orderSearch]);
+
+  // Khi filter/sort thay đổi
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending]);
+
   // Filter handlers
   const updateFilter = (
     key: keyof OrderFilterParams,
     value: string | number | boolean | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, Page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value, Page: 1 };
+      delete next._searchOnly; // Bỏ _searchOnly flag khi filter thay đổi
+      return next;
+    });
   };
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch] đổi
   useEffect(() => {
-    // Khi orderSearch thay đổi, đây là search nên không hiển thị loading
-    if (orderSearch !== filters.SearchTerm) {
-      fetchData(true);
-    } else {
-      fetchData(false);
-    }
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortBy, sortDescending, orderSearch]);
 
@@ -242,7 +252,7 @@ const OrderListAdmin = () => {
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData(false);
+      fetchData();
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -250,11 +260,19 @@ const OrderListAdmin = () => {
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: 1, PageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Sort handlers
@@ -265,6 +283,12 @@ const OrderListAdmin = () => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -520,7 +544,7 @@ const OrderListAdmin = () => {
                             setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData(false);
+                              fetchData();
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors"

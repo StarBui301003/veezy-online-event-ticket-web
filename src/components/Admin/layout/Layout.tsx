@@ -219,20 +219,6 @@ function AdminLayoutContent() {
 
   const loading = useGlobalLoading();
 
-  // ✅ Hiển thị loading khi theme chưa sẵn sàng
-  if (!isThemeReady) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center transition-all duration-300 ease-in-out">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 transition-colors duration-300">
-            Loading theme...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <ScrollToTop />

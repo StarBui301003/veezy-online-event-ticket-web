@@ -213,7 +213,7 @@ const ApprovedEventsManager = () => {
           )}
         ></div>
         <span className={cn('ml-3', getThemeClass('text-blue-600', 'text-pink-500'))}>
-          Đang tải sự kiện...
+          Loading event...
         </span>
       </div>
     );
@@ -314,10 +314,7 @@ const ApprovedEventsManager = () => {
               key={event.eventId}
               className={cn(
                 'shadow-sm rounded-lg p-6 border-l-4',
-                getThemeClass(
-                  'bg-white border-blue-400',
-                  'bg-[#20143a] border-green-400'
-                )
+                getThemeClass('bg-white border-blue-400', 'bg-[#20143a] border-green-400')
               )}
             >
               <div className="flex items-center justify-between mb-4">
@@ -346,66 +343,31 @@ const ApprovedEventsManager = () => {
                   </span>
                 </div>
               </div>
-              <p
-                className={cn(
-                  'mb-4',
-                  getThemeClass('text-gray-700', 'text-gray-300')
-                )}
-              >
+              <p className={cn('mb-4', getThemeClass('text-gray-700', 'text-gray-300'))}>
                 {event.eventDescription || t('noDescription')}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p
-                    className={cn(
-                      'text-sm',
-                      getThemeClass('text-gray-600', 'text-gray-400')
-                    )}
-                  >
+                  <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-400'))}>
                     {t('startDate')}
                   </p>
-                  <p
-                    className={cn(
-                      'font-medium',
-                      getThemeClass('text-gray-900', 'text-white')
-                    )}
-                  >
+                  <p className={cn('font-medium', getThemeClass('text-gray-900', 'text-white'))}>
                     {formatDate(event.startAt)}
                   </p>
                 </div>
                 <div>
-                  <p
-                    className={cn(
-                      'text-sm',
-                      getThemeClass('text-gray-600', 'text-gray-400')
-                    )}
-                  >
+                  <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-400'))}>
                     {t('endDate')}
                   </p>
-                  <p
-                    className={cn(
-                      'font-medium',
-                      getThemeClass('text-gray-900', 'text-white')
-                    )}
-                  >
+                  <p className={cn('font-medium', getThemeClass('text-gray-900', 'text-white'))}>
                     {formatDate(event.endAt)}
                   </p>
                 </div>
                 <div>
-                  <p
-                    className={cn(
-                      'text-sm',
-                      getThemeClass('text-gray-600', 'text-gray-400')
-                    )}
-                  >
+                  <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-400'))}>
                     {t('status')}
                   </p>
-                  <p
-                    className={cn(
-                      'font-medium',
-                      getThemeClass('text-gray-900', 'text-white')
-                    )}
-                  >
+                  <p className={cn('font-medium', getThemeClass('text-gray-900', 'text-white'))}>
                     {event.isApproved === 0
                       ? t('pendingApproval')
                       : event.isApproved === 1
@@ -463,12 +425,7 @@ const ApprovedEventsManager = () => {
           >
             {t('prev')}
           </button>
-          <span
-            className={cn(
-              'font-bold',
-              getThemeClass('text-blue-600', 'text-green-200')
-            )}
-          >
+          <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-green-200'))}>
             {t('page')} {page}/{totalPages}
           </span>
           <button

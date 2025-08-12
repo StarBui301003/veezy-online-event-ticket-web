@@ -71,6 +71,7 @@ export const PendingNewsList = ({
     sortDescending: true,
     eventId: '',
     authorFullName: '',
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -117,10 +118,15 @@ export const PendingNewsList = ({
 
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
-    const NEWS_HUB_URL = (import.meta.env.VITE_NEWS_HUB_URL as string) || '/newsHub';
+    const NEWS_HUB_URL =
+      ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string) ||
+      (typeof process !== 'undefined'
+        ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL
+        : undefined) ||
+      '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     const reload = () => {
-      fetchData(false);
+      fetchData();
     };
     onNews('OnNewsCreated', reload);
     onNews('OnNewsUpdated', reload);
@@ -141,8 +147,8 @@ export const PendingNewsList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (isSearching = false) => {
-    if (!isSearching) {
+  const fetchData = (showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -193,14 +199,41 @@ export const PendingNewsList = ({
       });
   };
 
+  // Handle search term changes separately
+  useEffect(() => {
+    if (pendingNewsSearch !== filters.searchTerm) {
+      setFilters((prev) => ({ ...prev, searchTerm: pendingNewsSearch, _searchOnly: true }));
+    }
+  }, [pendingNewsSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (activeTab !== 'pending') return;
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [activeTab, filters, sortBy, sortDescending]);
+
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -213,6 +246,12 @@ export const PendingNewsList = ({
       setSortBy(field);
       setSortDescending(true);
     }
+    // Remove searchOnly flag for sort changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   // Filter handlers
@@ -220,6 +259,7 @@ export const PendingNewsList = ({
     console.log('🔧 Filter update:', { key, value });
     setFilters((prev) => {
       const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly;
       console.log('🔧 New filters state:', newFilters);
       return newFilters;
     });
@@ -237,17 +277,12 @@ export const PendingNewsList = ({
     );
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingNewsSearch] đổi
+  // Single useEffect to handle all data fetching
   useEffect(() => {
-    if (activeTab === 'pending') {
-      if (pendingNewsSearch !== filters.searchTerm) {
-        fetchData(true);
-      } else {
-        fetchData(false);
-      }
-    }
+    if (activeTab !== 'pending') return;
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, pendingNewsSearch, activeTab]);
+  }, [activeTab, filters, sortBy, sortDescending, pendingNewsSearch]);
 
   // Fetch author names when news data changes
   useEffect(() => {

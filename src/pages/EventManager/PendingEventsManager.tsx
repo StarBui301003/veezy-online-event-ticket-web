@@ -235,7 +235,7 @@ const PendingEventsManager = () => {
           )}
         ></div>
         <span className={cn('ml-3', getThemeClass('text-blue-600', 'text-pink-500'))}>
-          Đang tải sự kiện...
+          Loading event...
         </span>
       </div>
     );

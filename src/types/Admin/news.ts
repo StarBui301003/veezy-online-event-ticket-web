@@ -41,6 +41,7 @@ export interface NewsFilterParams {
   createdTo?: string; // Date filter to
   sortBy?: string;
   sortDescending?: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 export interface NewsListResponse {

@@ -79,6 +79,7 @@ export const RejectedEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -149,28 +150,36 @@ export const RejectedEventList = ({
     searchRef.current = rejectedEventSearch;
   }, [rejectedEventSearch]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedEventSearch] đổi
+  // Handle search term changes separately
   useEffect(() => {
     if (rejectedEventSearch !== filters.searchTerm) {
-      fetchData(true);
-    } else {
-      fetchData(false);
+      setFilters((prev) => ({ ...prev, searchTerm: rejectedEventSearch, _searchOnly: true }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, rejectedEventSearch]);
+  }, [rejectedEventSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData(false);
+      fetchData();
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = (isSearching = false) => {
-    if (!isSearching) {
+  const fetchData = (showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -227,12 +236,20 @@ export const RejectedEventList = ({
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -242,7 +259,11 @@ export const RejectedEventList = ({
     const newSortDescending = sortBy === field ? !sortDescending : true;
     setSortBy(field);
     setSortDescending(newSortDescending);
-    setFilters((prev) => ({ ...prev, sortBy: field, sortDescending: newSortDescending }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, sortBy: field, sortDescending: newSortDescending };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -275,7 +296,7 @@ export const RejectedEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData(false);
+        fetchData();
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

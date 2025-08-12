@@ -60,6 +60,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -103,11 +104,26 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (isSearching = false) => {
-    // Chỉ hiển thị loading khi không phải đang search
-    if (!isSearching) {
-      setLoading(true);
+  // Handle search term changes separately
+  useEffect(() => {
+    if (withdrawalSearch !== filters.SearchTerm) {
+      setFilters((prev) => ({ ...prev, SearchTerm: withdrawalSearch, _searchOnly: true }));
     }
+  }, [withdrawalSearch, filters.SearchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
+
+  const fetchData = (showLoading: boolean = true) => {
+    if (showLoading && !filters._searchOnly) setLoading(true);
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -169,17 +185,6 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, withdrawalSearch] đổi
-  useEffect(() => {
-    // Khi withdrawalSearch thay đổi, đây là search nên không hiển thị loading
-    if (withdrawalSearch !== filters.SearchTerm) {
-      fetchData(true);
-    } else {
-      fetchData(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, withdrawalSearch]);
-
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
@@ -202,7 +207,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
 
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData(false);
+      fetchData();
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -447,7 +452,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
                             setAmountRange([0, maxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData(false);
+                              fetchData();
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-700 dark:text-gray-300"

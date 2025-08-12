@@ -71,6 +71,7 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
     sortDescending: true,
     eventId: '',
     authorFullName: '',
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -142,8 +143,8 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
-    if (!isSearching) {
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -193,21 +194,28 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, ownNewsSearch] đổi
+  // Khi ownNewsSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, searchTerm: ownNewsSearch, _searchOnly: true }));
+    setPage(1);
+  }, [ownNewsSearch]);
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending] đổi
   useEffect(() => {
     if (activeTab === 'own') {
-      if (ownNewsSearch !== filters.searchTerm) {
-        fetchData(page, pageSize, true);
-      } else {
-        fetchData(page, pageSize, false);
-      }
+      // Nếu chỉ search thì không loading
+      fetchData(page, pageSize, filters._searchOnly ? false : true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, ownNewsSearch, activeTab]);
+  }, [filters, sortBy, sortDescending, activeTab]);
 
   // Filter handlers
   const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value, page: 1 };
+      delete next._searchOnly; // Bỏ _searchOnly flag khi filter thay đổi
+      return next;
+    });
     setPage(1);
   };
 
@@ -219,6 +227,12 @@ export const NewsOwnList = ({ activeTab }: { activeTab: string }) => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {

@@ -170,7 +170,7 @@ export default function FinancialTabs() {
           : data.platformFees?.topContributingEvents || [];
 
         // Safely handle all data arrays
-        const safeTopEvents = Array.isArray(data.topEvents) ? data.topEvents : [];
+        const safeTopEvents = Array.isArray(data.topEventsByRevenue) ? data.topEventsByRevenue : [];
         const safeRevenueTimeline = Array.isArray(data.revenueTimeline) ? data.revenueTimeline : [];
 
         if (
@@ -363,9 +363,6 @@ export default function FinancialTabs() {
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               <div className="text-center">
                 <div>No revenue data available</div>
-                <div className="text-sm mt-2">
-                  Debug: revenueTimeline = {JSON.stringify(revenueTimeline)}
-                </div>
               </div>
             </div>
           ) : (
@@ -417,7 +414,6 @@ export default function FinancialTabs() {
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               <div className="text-center">
                 <div>No top events data available</div>
-                <div className="text-sm mt-2">Debug: topEvents = {JSON.stringify(topEvents)}</div>
               </div>
             </div>
           ) : (
@@ -473,9 +469,6 @@ export default function FinancialTabs() {
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
               <div className="text-center">
                 <div>No platform fee data available</div>
-                <div className="text-sm mt-2">
-                  Debug: platformFees = {JSON.stringify(platformFees)}
-                </div>
               </div>
             </div>
           ) : (

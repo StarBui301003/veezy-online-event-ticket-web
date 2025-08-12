@@ -72,6 +72,7 @@ export const PendingEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -140,7 +141,7 @@ export const PendingEventList = ({
   // Connect hub chỉ 1 lần khi mount using global connections
   useEffect(() => {
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current, false);
+      fetchData(pageRef.current, pageSizeRef.current);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
@@ -150,9 +151,8 @@ export const PendingEventList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
-    // Chỉ hiển thị loading khi không phải đang search
-    if (!isSearching) {
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -221,25 +221,40 @@ export const PendingEventList = ({
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingEventSearch] đổi
+  // Handle search term changes separately
   useEffect(() => {
-    // Khi pendingEventSearch thay đổi, đây là search nên không hiển thị loading
     if (pendingEventSearch !== filters.searchTerm) {
-      fetchData(page, pageSize, true);
-    } else {
-      fetchData(page, pageSize, false);
+      setFilters((prev) => ({ ...prev, searchTerm: pendingEventSearch, _searchOnly: true }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, pendingEventSearch]);
+  }, [pendingEventSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(page, pageSize, false);
+    } else {
+      // Other filters - show loading
+      fetchData(page, pageSize, true);
+    }
+  }, [filters, sortBy, sortDescending]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -252,6 +267,12 @@ export const PendingEventList = ({
       setSortBy(field);
       setSortDescending(true);
     }
+    // Remove searchOnly flag for sort changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {

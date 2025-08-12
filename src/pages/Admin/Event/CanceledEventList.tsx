@@ -79,6 +79,7 @@ export const CanceledEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -149,35 +150,37 @@ export const CanceledEventList = ({
     searchRef.current = canceledEventSearch;
   }, [canceledEventSearch]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, canceledEventSearch] đổi
+  // Handle search term changes separately
   useEffect(() => {
-    console.log('🔄 CanceledEventList: fetchData called', {
-      filters,
-      sortBy,
-      sortDescending,
-      canceledEventSearch,
-    });
     if (canceledEventSearch !== filters.searchTerm) {
-      fetchData(page, pageSize, true);
-    } else {
-      fetchData(page, pageSize, false);
+      setFilters((prev) => ({ ...prev, searchTerm: canceledEventSearch, _searchOnly: true }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, canceledEventSearch]);
+  }, [canceledEventSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(page, pageSize, false);
+    } else {
+      // Other filters - show loading
+      fetchData(page, pageSize, true);
+    }
+  }, [filters, sortBy, sortDescending]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData(page, pageSize, false);
+      fetchData();
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
-    console.log('🔄 CanceledEventList: fetchData called', { p, ps, filters, isSearching });
-    if (!isSearching) {
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    console.log('🔄 CanceledEventList: fetchData called', { p, ps, filters });
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
@@ -235,12 +238,20 @@ export const CanceledEventList = ({
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
     console.log('🔄 CanceledEventList: handlePageChange called', { newPage });
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -250,7 +261,11 @@ export const CanceledEventList = ({
     const newSortDescending = sortBy === field ? !sortDescending : true;
     setSortBy(field);
     setSortDescending(newSortDescending);
-    setFilters((prev) => ({ ...prev, sortBy: field, sortDescending: newSortDescending }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, sortBy: field, sortDescending: newSortDescending };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -269,7 +284,11 @@ export const CanceledEventList = ({
     key: keyof EventFilterParams,
     value: string | string[] | boolean | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(1);
   };
 
@@ -283,7 +302,7 @@ export const CanceledEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData(page, pageSize, false);
+        fetchData();
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

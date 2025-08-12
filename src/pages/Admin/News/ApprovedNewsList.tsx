@@ -67,6 +67,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     sortDescending: true,
     eventId: '',
     authorFullName: '',
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -111,6 +112,26 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     searchRef.current = approvedNewsSearch;
   }, [approvedNewsSearch]);
 
+  // Handle search term changes separately
+  useEffect(() => {
+    if (approvedNewsSearch !== filters.searchTerm) {
+      setFilters((prev) => ({ ...prev, searchTerm: approvedNewsSearch, _searchOnly: true }));
+    }
+  }, [approvedNewsSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (activeTab === 'approved') {
+      if (filters._searchOnly) {
+        // Search only - don't show loading
+        fetchData(page, pageSize, false);
+      } else {
+        // Other filters - show loading
+        fetchData(page, pageSize, true);
+      }
+    }
+  }, [filters, sortBy, sortDescending, activeTab]);
+
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const NEWS_HUB_URL =
@@ -142,20 +163,19 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize, isSearching = false) => {
-    // Chỉ hiển thị loading khi không phải đang search
-    if (!isSearching) {
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
       setLoading(true);
     }
 
     // Use current page and pageSize, but reset to page 1 when searching
-    const currentPage = approvedNewsSearch ? 1 : p;
+    const currentPage = filters._searchOnly ? 1 : p;
     const currentPageSize = ps;
 
     const filterParams = {
       page: currentPage,
       pageSize: currentPageSize,
-      searchTerm: approvedNewsSearch,
+      searchTerm: filters.searchTerm,
       authorFullName: filters.authorFullName,
       eventId: filters.eventId,
       authorId: filters.authorId,
@@ -188,27 +208,22 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedNewsSearch, activeTab] đổi
-  useEffect(() => {
-    if (activeTab === 'approved') {
-      // Khi approvedNewsSearch thay đổi, đây là search nên không hiển thị loading
-      if (approvedNewsSearch !== filters.searchTerm) {
-        fetchData(page, pageSize, true);
-      } else {
-        fetchData(page, pageSize, false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, approvedNewsSearch, activeTab]);
-
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -221,6 +236,12 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Remove searchOnly flag for sort changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   // Filter handlers
@@ -228,6 +249,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
     console.log('🔧 Filter update:', { key, value });
     setFilters((prev) => {
       const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly;
       console.log('🔧 New filters state:', newFilters);
       return newFilters;
     });
@@ -255,7 +277,7 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
         await showNews(item.newsId);
         toast.success('News shown successfully!');
       }
-      fetchData(page, pageSize, false);
+      fetchData();
     } catch {
       toast.error('Failed to update status!');
     }

@@ -273,7 +273,7 @@ export default function UserTabs() {
               <PieChart>
                 <Pie
                   data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
-                    name: gender,
+                    name: gender === 'Unknow' ? 'Others' : gender,
                     value,
                   }))}
                   dataKey="value"

@@ -30,6 +30,7 @@ export interface EventFilterParams {
   createdBy?: string;
   sortBy?: string;
   sortDescending?: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 // Helper function to convert category names to IDs

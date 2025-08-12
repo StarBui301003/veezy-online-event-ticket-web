@@ -142,16 +142,23 @@ export default function EventTabs() {
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
         console.log('📡 EventTabs SignalR Update Received:', data);
-        console.log('🎯 SignalR approvalTrend:', data.approvalTrend);
+        console.log(
+          '🎯 SignalR approvalMetrics.approvalTrend:',
+          data.approvalMetrics?.approvalTrend
+        );
         console.log('📈 SignalR eventsByCategory:', data.eventsByCategory);
-        console.log('🏆 SignalR topEvents:', data.topEvents);
+        console.log('🏆 SignalR topPerformingEvents:', data.topPerformingEvents);
 
         // Defensive: always ensure arrays with proper null checks
-        const safeApprovalTrend = Array.isArray(data.approvalTrend) ? data.approvalTrend : [];
+        const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend)
+          ? data.approvalMetrics.approvalTrend
+          : [];
         const safeEventsByCategory = Array.isArray(data.eventsByCategory)
           ? data.eventsByCategory
           : [];
-        const safeTopEvents = Array.isArray(data.topEvents) ? data.topEvents : [];
+        const safeTopEvents = Array.isArray(data.topPerformingEvents)
+          ? data.topPerformingEvents
+          : [];
 
         if (
           !approvalTrend ||
