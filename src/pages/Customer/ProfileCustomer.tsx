@@ -43,18 +43,18 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
-import { t } from 'i18next';
 import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/utils/account-utils';
-
-const TABS = [
-  { key: 'info', label: t('profileCustomer.personalInformation') },
-  { key: 'settings', label: t('profileCustomer.generalSettings') },
-  { key: 'orders', label: t('profileCustomer.orderHistory') },
-  { key: 'attendances', label: t('profileCustomer.attendanceHistory') },
-];
 
 const ProfileCustomer = () => {
   const { t, i18n } = useTranslation();
+  
+  const TABS = [
+    { key: 'info', label: t('profileCustomer.personalInformation') },
+    { key: 'settings', label: t('profileCustomer.generalSettings') },
+    { key: 'orders', label: t('profileCustomer.orderHistory') },
+    { key: 'attendances', label: t('profileCustomer.attendanceHistory') },
+  ];
+  
   const { theme, setTheme } = useTheme();
   const { getThemeClass } = useThemeClasses();
   const [account, setAccount] = useState<User | null>(null);

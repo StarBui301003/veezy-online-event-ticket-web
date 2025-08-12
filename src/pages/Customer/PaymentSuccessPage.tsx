@@ -168,7 +168,7 @@ const PaymentSuccessPage = () => {
                     <span>
                       {item.ticketName} <span className="text-green-600">x{quantity}</span>
                     </span>
-                    <span>{isNaN(itemSubtotal) ? '0' : itemSubtotal.toLocaleString('vi-VN')} VNĐ</span>
+                    <span>{isNaN(itemSubtotal) ? '0' : itemSubtotal.toLocaleString('vi-VN')} đ</span>
                   </li>
                 );
               })}
@@ -181,7 +181,7 @@ const PaymentSuccessPage = () => {
           {/* Subtotal */}
           <div className="flex justify-between text-gray-700">
             <span>{t('subtotal')}:</span>
-            <span>{subtotal.toLocaleString('vi-VN')} VNĐ</span>
+            <span>{subtotal.toLocaleString('vi-VN')} đ</span>
           </div>
           
           {/* Discount */}
@@ -190,14 +190,14 @@ const PaymentSuccessPage = () => {
               <div>
                 {t('discount')}: {checkout?.discountCode && `(${checkout.discountCode})`}
               </div>
-              <span>-{discountAmount.toLocaleString('vi-VN')} VNĐ</span>
+              <span>-{discountAmount.toLocaleString('vi-VN')} đ</span>
             </div>
           )}
           
           {/* Total */}
           <div className="flex justify-between font-bold text-lg text-green-700 pt-2 border-t border-gray-200 mt-2">
             <span>{t('finalTotal')}:</span>
-            <span>{finalTotal.toLocaleString('vi-VN')} VNĐ</span>
+            <span>{finalTotal.toLocaleString('vi-VN')} đ</span>
           </div>
         </div>
       </div>

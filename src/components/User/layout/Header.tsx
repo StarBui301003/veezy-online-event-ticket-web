@@ -47,7 +47,10 @@ export const Header = () => {
   const { unreadCount } = useRealtimeNotifications();
 
   // Helper: update language in user config
-  const handleChangeLanguage = async (lang: 'vi' | 'en') => {
+  const handleChangeLanguage = async (e: React.MouseEvent, lang: 'vi' | 'en') => {
+    // Prevent the default behavior of the click event
+    e.preventDefault();
+    
     try {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
@@ -78,6 +81,7 @@ export const Header = () => {
         toast.error(t('languageChangeFailed'));
       }
     } catch (error) {
+      console.error('Error changing language:', error);
       toast.error(t('languageChangeFailed'));
     }
   };
@@ -334,7 +338,7 @@ export const Header = () => {
                 <Button
                   variant="ghost"
                   className={cn(
-                    'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:scale-110 hover:shadow',
+                    'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:shadow',
                     getThemeClass(
                       'text-black hover:text-black hover:bg-gray-100',
                       'text-white hover:bg-white/10'
@@ -352,7 +356,7 @@ export const Header = () => {
                 )}
               >
                 <DropdownMenuItem
-                  onClick={() => handleChangeLanguage('vi')}
+                  onClick={(e) => handleChangeLanguage(e, 'vi')}
                   className={cn(
                     'cursor-pointer',
                     getThemeClass(
@@ -364,7 +368,7 @@ export const Header = () => {
                   VN
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleChangeLanguage('en')}
+                  onClick={(e) => handleChangeLanguage(e, 'en')}
                   className={cn(
                     'cursor-pointer',
                     getThemeClass(
@@ -547,8 +551,8 @@ export const Header = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {/* Notification Bell */}
-            {user && (
+            {/* Notification Bell - Hidden for event managers (role 2) */}
+            {user && user.role !== 2 && (
               <div className="relative">
                 <button
                   className={cn(

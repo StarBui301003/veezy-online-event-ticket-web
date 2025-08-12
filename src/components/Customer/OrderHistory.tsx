@@ -23,7 +23,7 @@ const OrderHistory = ({
   onPageChange,
   onSelectOrder,
 }: OrderHistoryProps) => {
-  const { t } = useTranslation('profileCustomer');
+  const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
 
   return (
@@ -39,7 +39,7 @@ const OrderHistory = ({
           getThemeClass('text-gray-900', 'text-slate-100')
         )}
       >
-        {t('orderHistory')}
+        {t('titleOrder')}
       </h2>
 
       {loading ? (
@@ -97,12 +97,12 @@ const OrderHistory = ({
                   )
                 )}
               >
-                <th className="px-4 py-3 font-medium">{t('orderId')}</th>
-                <th className="px-4 py-3 font-medium">{t('eventName')}</th>
-                <th className="px-4 py-3 font-medium">{t('totalAmount')}</th>
-                <th className="px-4 py-3 font-medium">{t('createdAt')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderStatus')}</th>
-                <th className="px-4 py-3 font-medium">{t('action')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.orderId')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.eventName')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.totalAmount')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.createdAt')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.orderStatus')}</th>
+                <th className="px-4 py-3 font-medium">{t('orderHistory.action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -140,15 +140,15 @@ const OrderHistory = ({
                       getThemeClass('text-gray-900', 'text-slate-200')
                     )}
                   >
-                    {order.totalAmount?.toLocaleString()}đ
+                    {order.totalAmount?.toLocaleString()} {t('orderHistory.currency')}
                   </td>
                   <td
                     className={cn(
-                      'px-4 py-3 text-xs',
-                      getThemeClass('text-gray-500', 'text-slate-300')
+                      'text-sm',
+                      getThemeClass('text-gray-600', 'text-slate-400')
                     )}
                   >
-                    {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : ''}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : t('orderHistory.unknownDate')}
                   </td>
                   <td className="px-4 py-3">
                     {order.orderStatus === 1 ? (
@@ -167,7 +167,7 @@ const OrderHistory = ({
                             getThemeClass('bg-green-600', 'bg-green-400')
                           )}
                         ></span>
-                        {t('paid')}
+                        {t('orderHistory.status.paid')}
                       </span>
                     ) : (
                       <span
@@ -185,7 +185,7 @@ const OrderHistory = ({
                             getThemeClass('bg-yellow-600', 'bg-yellow-400')
                           )}
                         ></span>
-                        {t('pendingPayment')}
+                        {t('orderHistory.status.pendingPayment')}
                       </span>
                     )}
                   </td>
@@ -202,7 +202,7 @@ const OrderHistory = ({
                         )
                       )}
                     >
-                      {t('viewTickets')}
+                      {t('orderHistory.viewTickets')}
                     </Button>
                   </td>
                 </tr>
@@ -226,7 +226,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                {t('previous')}
+                {t('orderHistory.previous')}
               </Button>
               <div
                 className={cn(
@@ -254,7 +254,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                {t('next')}
+                {t('orderHistory.next')}
               </Button>
             </div>
           )}

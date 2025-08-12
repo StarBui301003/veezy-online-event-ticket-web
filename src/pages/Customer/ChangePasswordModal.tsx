@@ -56,23 +56,23 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
     const newErrors: typeof errors = {};
 
     if (!formData.currentPassword) {
-      newErrors.currentPassword = t('currentPasswordRequired');
+      newErrors.currentPassword = t('profileCustomer.currentPasswordRequired');
     }
 
     if (!formData.newPassword) {
-      newErrors.newPassword = t('newPasswordRequired');
+      newErrors.newPassword = t('profileCustomer.newPasswordRequired');
     } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = t('passwordMinLength');
+      newErrors.newPassword = t('profileCustomer.passwordMinLength');
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t('confirmPasswordRequired');
+      newErrors.confirmPassword = t('profileCustomer.confirmPasswordRequired');
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('passwordsDoNotMatch');
+      newErrors.confirmPassword = t('profileCustomer.passwordsDoNotMatch');
     }
 
     if (formData.currentPassword === formData.newPassword) {
-      newErrors.newPassword = t('newPasswordMustBeDifferent');
+      newErrors.newPassword = t('profileCustomer.newPasswordMustBeDifferent');
     }
 
     setErrors(newErrors);
@@ -91,7 +91,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
       const response = await changePasswordAPI(formData.currentPassword, formData.newPassword);
 
       if (response.flag) {
-        toast.success(t('passwordChangedLoginRequired'));
+        toast.success(t('profileCustomer.passwordChangedLoginRequired'));
 
         // Clear form
         setFormData({
@@ -110,7 +110,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
           navigate('/login');
         }, 3000);
       } else {
-        toast.error(response.message || t('changePasswordFailed'));
+        toast.error(response.message || t('profileCustomer.changePasswordFailed'));
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
@@ -119,14 +119,14 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
       const errorMessage = error?.response?.data?.message;
       if (errorMessage) {
         if (errorMessage.includes('Current password is incorrect')) {
-          setErrors((prev) => ({ ...prev, currentPassword: t('currentPasswordIncorrect') }));
+          setErrors((prev) => ({ ...prev, currentPassword: t('profileCustomer.currentPasswordIncorrect') }));
         } else if (errorMessage.includes('validation')) {
           setErrors((prev) => ({ ...prev, newPassword: errorMessage }));
         } else {
           toast.error(errorMessage);
         }
       } else {
-        toast.error(t('changePasswordFailed'));
+        toast.error(t('profileCustomer.changePasswordFailed'));
       }
     } finally {
       setLoading(false);
@@ -169,7 +169,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
             getThemeClass('text-gray-500 hover:text-gray-700', 'text-gray-400 hover:text-white')
           )}
           onClick={handleClose}
-          aria-label="Close"
+          aria-label={t('close')}
         >
           ×
         </button>
@@ -180,7 +180,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
             getThemeClass('text-gray-900', 'text-white')
           )}
         >
-          {t('changePassword')}
+          {t('profileCustomer.changePassword')}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -191,7 +191,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
-              {t('currentPassword')}
+              {t('profileCustomer.currentPassword')}
             </label>
             <div className="relative">
               <Input
@@ -207,7 +207,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                   ),
                   errors.currentPassword && 'border-red-500'
                 )}
-                placeholder={t('enterCurrentPassword')}
+                placeholder={t('profileCustomer.enterCurrentPassword')}
                 disabled={loading}
               />
               <button
@@ -239,7 +239,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
-              {t('newPassword')}
+              {t('profileCustomer.newPassword')}
             </label>
             <div className="relative">
               <Input
@@ -255,7 +255,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                   ),
                   errors.newPassword && 'border-red-500'
                 )}
-                placeholder={t('enterNewPassword')}
+                placeholder={t('profileCustomer.enterNewPassword')}
                 disabled={loading}
               />
               <button
@@ -287,7 +287,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
-              {t('confirmPassword')}
+              {t('profileCustomer.confirmPassword')}
             </label>
             <div className="relative">
               <Input
@@ -303,7 +303,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                   ),
                   errors.confirmPassword && 'border-red-500'
                 )}
-                placeholder={t('confirmNewPassword')}
+                placeholder={t('profileCustomer.confirmNewPassword')}
                 disabled={loading}
               />
               <button
@@ -341,7 +341,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
               onClick={handleClose}
               disabled={loading}
             >
-              {t('cancel')}
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -354,7 +354,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
                 )
               )}
             >
-              {loading ? t('changing') : t('changePassword')}
+              {loading ? t('common.changing') : t('profileCustomer.changePassword')}
             </Button>
           </div>
         </form>
