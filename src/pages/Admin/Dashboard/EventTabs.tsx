@@ -56,6 +56,14 @@ export default function EventTabs() {
 
   // Real-time data reload function
   const reloadData = () => {
+    console.log(
+      '🔄 EventTabs reloadData called with filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -77,52 +85,127 @@ export default function EventTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    console.log('📡 EventTabs API call params:', params);
     getEventAnalytics(params)
       .then((res: AdminEventAnalyticsResponse) => {
-        setApprovalTrend(res.data.approvalMetrics.approvalTrend || []);
-        setEventsByCategory(res.data.eventsByCategory || []);
-        setTopEvents(res.data.topPerformingEvents || []);
+        console.log('📊 EventTabs API Response:', res.data);
+        console.log('🎯 approvalMetrics:', res.data.approvalMetrics);
+        console.log('📈 eventsByCategory:', res.data.eventsByCategory);
+        console.log('🏆 topPerformingEvents:', res.data.topPerformingEvents);
+
+        // Safely set the data with proper null checks
+        const safeApprovalTrend = res.data.approvalMetrics?.approvalTrend || [];
+        const safeEventsByCategory = res.data.eventsByCategory || [];
+        const safeTopEvents = res.data.topPerformingEvents || [];
+
+        // Log the actual data structure received
+        console.log('📊 EventTabs Raw API Data Structure:');
+        console.log('  - approvalMetrics:', res.data.approvalMetrics);
+        console.log('  - approvalTrend[0]:', safeApprovalTrend[0]);
+        console.log('  - eventsByCategory[0]:', safeEventsByCategory[0]);
+        console.log('  - topPerformingEvents[0]:', safeTopEvents[0]);
+
+        setApprovalTrend(safeApprovalTrend);
+        setEventsByCategory(safeEventsByCategory);
+        setTopEvents(safeTopEvents);
+
+        console.log('🔄 EventTabs State updated:');
+        console.log('  - approvalTrend:', safeApprovalTrend);
+        console.log('  - eventsByCategory:', safeEventsByCategory);
+        console.log('  - topEvents:', safeTopEvents);
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error('❌ Error loading event analytics:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+        toast.error('Failed to load event data');
+        // Set default values on error
+        setApprovalTrend([]);
+        setEventsByCategory([]);
+        setTopEvents([]);
+      })
+      .finally(() => {
+        console.log('✅ EventTabs API call completed - setting loading to false');
+        setLoading(false);
+      });
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-          connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
+    console.log('🚀 EventTabs mounted - connecting to AnalyticsHub...');
+    connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
+        console.log('📡 EventTabs SignalR Update Received:', data);
+        console.log(
+          '🎯 SignalR approvalMetrics.approvalTrend:',
+          data.approvalMetrics?.approvalTrend
+        );
+        console.log('📈 SignalR eventsByCategory:', data.eventsByCategory);
+        console.log('🏆 SignalR topPerformingEvents:', data.topPerformingEvents);
+
+        // Defensive: always ensure arrays with proper null checks
+        const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend)
+          ? data.approvalMetrics.approvalTrend
+          : [];
+        const safeEventsByCategory = Array.isArray(data.eventsByCategory)
+          ? data.eventsByCategory
+          : [];
+        const safeTopEvents = Array.isArray(data.topPerformingEvents)
+          ? data.topPerformingEvents
+          : [];
+
         if (
           !approvalTrend ||
-          JSON.stringify(data.approvalTrend) !== JSON.stringify(approvalTrend) ||
+          JSON.stringify(safeApprovalTrend) !== JSON.stringify(approvalTrend) ||
           !eventsByCategory ||
-          JSON.stringify(data.eventsByCategory) !== JSON.stringify(eventsByCategory) ||
+          JSON.stringify(safeEventsByCategory) !== JSON.stringify(eventsByCategory) ||
           !topEvents ||
-          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents)
+          JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents)
         ) {
-          setApprovalTrend(data.approvalTrend);
-          setEventsByCategory(data.eventsByCategory);
-          setTopEvents(data.topEvents);
+          console.log('🔄 EventTabs SignalR: Updating states due to data changes');
+          setApprovalTrend(safeApprovalTrend);
+          setEventsByCategory(safeEventsByCategory);
+          setTopEvents(safeTopEvents);
+        } else {
+          console.log('⏭️ EventTabs SignalR: No changes detected, skipping update');
         }
       }
     };
     onAnalytics('OnEventAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
+      console.log('🧹 EventTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnEventAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    console.log(
+      '🔄 EventTabs useEffect triggered - filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log('🔍 EventTabs State changed - approvalTrend:', approvalTrend);
+    console.log('🔍 EventTabs State changed - eventsByCategory:', eventsByCategory);
+    console.log('🔍 EventTabs State changed - topEvents:', topEvents);
+  }, [approvalTrend, eventsByCategory, topEvents]);
 
   return (
     <div className="space-y-6 p-3 min-h-screen">
@@ -165,9 +248,33 @@ export default function EventTabs() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-200">Approval Trend</h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Approval Trend - loading:',
+              loading,
+              'approvalTrend:',
+              approvalTrend,
+              'length:',
+              approvalTrend?.length,
+              'type:',
+              typeof approvalTrend,
+              'isArray:',
+              Array.isArray(approvalTrend)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
+            </div>
+          ) : !approvalTrend || approvalTrend.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              <div className="text-center">
+                <div>No approval trend data available</div>
+                <div className="text-sm mt-2">
+                  Debug: approvalTrend = {JSON.stringify(approvalTrend)}
+                </div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -215,9 +322,33 @@ export default function EventTabs() {
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-200">
             Events by Category
           </h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Events by Category - loading:',
+              loading,
+              'eventsByCategory:',
+              eventsByCategory,
+              'length:',
+              eventsByCategory?.length,
+              'type:',
+              typeof eventsByCategory,
+              'isArray:',
+              Array.isArray(eventsByCategory)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
+            </div>
+          ) : !eventsByCategory || eventsByCategory.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              <div className="text-center">
+                <div>No events by category data available</div>
+                <div className="text-sm mt-2">
+                  Debug: eventsByCategory = {JSON.stringify(eventsByCategory)}
+                </div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -244,9 +375,31 @@ export default function EventTabs() {
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-200">
             Top Performing Events
           </h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Top Performing Events - loading:',
+              loading,
+              'topEvents:',
+              topEvents,
+              'length:',
+              topEvents?.length,
+              'type:',
+              typeof topEvents,
+              'isArray:',
+              Array.isArray(topEvents)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
+            </div>
+          ) : !topEvents || topEvents.length === 0 ? (
+            <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+              <div className="text-center">
+                <div>No top performing events data available</div>
+                <div className="text-sm mt-2">Debug: topEvents = {JSON.stringify(topEvents)}</div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>

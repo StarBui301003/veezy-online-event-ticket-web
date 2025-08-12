@@ -61,6 +61,7 @@ const PaymentListAdmin = () => {
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('paidAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -98,58 +99,66 @@ const PaymentListAdmin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = useCallback(() => {
-    setLoading(true);
-
-    // Separate pagination parameters from filter parameters
-    const paginationParams = {
-      Page: paymentSearch ? 1 : filters.Page,
-      PageSize: filters.PageSize,
-    };
-
-    const filterParams = {
-      SearchTerm: paymentSearch,
-      MinAmount: amountRange[0],
-      MaxAmount: amountRange[1],
-      SortBy: sortBy,
-      SortDescending: sortDescending,
-    };
-
-    // Combine pagination and filter parameters
-    const params = { ...paginationParams, ...filterParams };
-
-    getPaymentsAdmin(params)
-      .then(async (res) => {
-        if (res && res.success && res.data) {
-          setData(res);
-          // Calculate max amount from current filtered data
-          const maxAmountInData =
-            res.data.items.length > 0
-              ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
-              : 1000000;
-          setMaxAmount(maxAmountInData);
-
-          // Update global max amount if we get data without filters
-          if (!paymentSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
-            setGlobalMaxAmount(maxAmountInData);
-          }
-        } else {
-          setData(null);
-        }
-      })
-      .catch(() => {
-        setData(null);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  }, [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, paymentSearch] đổi
+  // Khi paymentSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, paymentSearch]);
+    setFilters((prev) => ({ ...prev, SearchTerm: paymentSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, Page: 1 }));
+  }, [paymentSearch]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
+
+  const fetchData = useCallback(
+    (showLoading = true) => {
+      if (showLoading && !filters._searchOnly) setLoading(true);
+
+      // Separate pagination parameters from filter parameters
+      const paginationParams = {
+        Page: paymentSearch ? 1 : filters.Page,
+        PageSize: filters.PageSize,
+      };
+
+      const filterParams = {
+        SearchTerm: paymentSearch,
+        MinAmount: amountRange[0],
+        MaxAmount: amountRange[1],
+        SortBy: sortBy,
+        SortDescending: sortDescending,
+      };
+
+      // Combine pagination and filter parameters
+      const params = { ...paginationParams, ...filterParams };
+
+      getPaymentsAdmin(params)
+        .then(async (res) => {
+          if (res && res.success && res.data) {
+            setData(res);
+            // Calculate max amount from current filtered data
+            const maxAmountInData =
+              res.data.items.length > 0
+                ? Math.max(...res.data.items.map((item) => parseFloat(item.amount || '0')))
+                : 1000000;
+            setMaxAmount(maxAmountInData);
+
+            // Update global max amount if we get data without filters
+            if (!paymentSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+              setGlobalMaxAmount(maxAmountInData);
+            }
+          } else {
+            setData(null);
+          }
+        })
+        .catch(() => {
+          setData(null);
+        })
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    },
+    [paymentSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
+  );
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
@@ -181,11 +190,19 @@ const PaymentListAdmin = () => {
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: 1, PageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Sort handlers
@@ -196,6 +213,12 @@ const PaymentListAdmin = () => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {

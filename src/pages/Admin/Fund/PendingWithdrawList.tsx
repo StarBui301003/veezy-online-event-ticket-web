@@ -59,6 +59,7 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -99,8 +100,20 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  // Khi pendingSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, SearchTerm: pendingSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, Page: 1 }));
+  }, [pendingSearch]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending]);
+
+  const fetchData = (showLoading = true) => {
+    if (showLoading && !filters._searchOnly) setLoading(true);
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -162,12 +175,6 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, pendingSearch] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, pendingSearch]);
-
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
     if (maxAmount > 0 && amountRange[1] === 1000000) {
@@ -198,11 +205,19 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: 1, PageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Sort handlers

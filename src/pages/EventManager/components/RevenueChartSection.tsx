@@ -39,11 +39,25 @@ interface RevenueFilterProps {
   Period: number;
 }
 
+interface EventData {
+  eventName: string;
+  revenue: number;
+}
+
+interface TimelineData {
+  periodLabel?: string;
+  period?: string;
+  revenue?: number;
+  transactionCount?: number;
+}
+
+import type { TooltipItem } from 'chart.js';
+
 export default function RevenueChartSection({ filter }: { filter: RevenueFilterProps }) {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
-  const [events, setEvents] = useState<{ eventName: string; revenue: number }[]>([]);
-  const [timeline, setTimeline] = useState<any[]>([]);
+  const [events, setEvents] = useState<EventData[]>([]);
+  const [timeline, setTimeline] = useState<TimelineData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'bar' | 'line' | 'doughnut'>('bar');
   const [showTop, setShowTop] = useState(10);
@@ -62,12 +76,12 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       const revenueTrend = dash.data?.revenueTrend || dash.revenueTrend || [];
 
       const sortedEvents = revenueByEvent
-        .map((e: any) => ({ eventName: e.eventName, revenue: e.revenue }))
-        .sort((a: any, b: any) => b.revenue - a.revenue);
+        .map((e: EventData) => ({ eventName: e.eventName, revenue: e.revenue }))
+        .sort((a: EventData, b: EventData) => b.revenue - a.revenue);
 
       setEvents(sortedEvents);
       setTimeline(revenueTrend);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching revenue data:', error);
       setEvents([]);
       setTimeline([]);
@@ -80,9 +94,9 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
   }, [filter.CustomStartDate, filter.CustomEndDate, filter.GroupBy, filter.Period]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'VND',
+      currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -90,14 +104,14 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
 
   const getGroupByLabel = () => {
     const labels = {
-      0: 'giờ',
-      1: 'ngày',
-      2: 'tuần',
-      3: 'tháng',
-      4: 'quý',
-      5: 'năm',
+      0: 'hour',
+      1: 'day',
+      2: 'week',
+      3: 'month',
+      4: 'quarter',
+      5: 'year',
     };
-    return labels[filter.GroupBy as keyof typeof labels] || 'thời gian';
+    return labels[filter.GroupBy as keyof typeof labels] || 'time';
   };
 
   if (loading) {
@@ -153,10 +167,10 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
             getThemeClass('text-gray-800', 'text-gray-300')
           )}
         >
-          Không có dữ liệu doanh thu
+          No Revenue Data
         </h3>
         <p className={cn(getThemeClass('text-gray-600', 'text-gray-400'))}>
-          Chưa có dữ liệu doanh thu trong khoảng thời gian đã chọn
+          No revenue data available for the selected time period
         </p>
       </div>
     );
@@ -222,7 +236,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`,
+        text: `${t('revenueByEvent') || 'Revenue by Event'} (Top ${showTop})`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -233,14 +247,14 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         borderColor: getThemeClass('rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.2)'),
         borderWidth: 1,
         callbacks: {
-          label: (ctx: any) => {
+          label: (ctx: TooltipItem<'bar'>) => {
             const value = formatCurrency(ctx.parsed.y);
             return `${ctx.dataset.label}: ${value}`;
           },
-          afterLabel: (ctx: any) => {
+          afterLabel: (ctx: TooltipItem<'bar'>) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
             const percentage = ((ctx.parsed.y / total) * 100).toFixed(1);
-            return `Tỷ trọng: ${percentage}%`;
+            return `Proportion: ${percentage}%`;
           },
         },
       },
@@ -258,7 +272,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       y: {
         ticks: {
           color: getThemeClass('#374151', '#fff'),
-          callback: function (value: any) {
+          callback: function (value: number) {
             return formatCurrency(value);
           },
         },
@@ -287,7 +301,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueByEvent') || 'Doanh thu theo sự kiện'} (Top ${showTop})`,
+        text: `${t('revenueByEvent') || 'Revenue by Event'} (Top ${showTop})`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -305,7 +319,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
           afterLabel: (ctx: any) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
             const percentage = ((ctx.parsed / total) * 100).toFixed(1);
-            return `Tỷ trọng: ${percentage}%`;
+            return `Proportion: ${percentage}%`;
           },
         },
       },
@@ -320,7 +334,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     labels: timeline.map((item) => {
       const label = item.periodLabel || item.period || 'N/A';
       if (filter.GroupBy <= 1) {
-        return new Date(label).toLocaleDateString('vi-VN', {
+        return new Date(label).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
           ...(filter.GroupBy === 0 && { hour: '2-digit' }),
@@ -343,7 +357,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         pointHoverRadius: 8,
       },
       {
-        label: t('transactionCount') || 'Số giao dịch',
+        label: t('transactionCount') || 'Transaction Count',
         data: timeline.map((item) => item.transactionCount || 0),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -376,7 +390,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueTimeline') || 'Xu hướng doanh thu'} theo ${getGroupByLabel()}`,
+        text: `${t('revenueTimeline') || 'Revenue Trend'} theo ${getGroupByLabel()}`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -387,11 +401,11 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         borderColor: getThemeClass('rgba(0, 0, 0, 0.3)', 'rgba(255, 255, 255, 0.2)'),
         borderWidth: 1,
         callbacks: {
-          label: (ctx: any) => {
+          label: (ctx: TooltipItem<'line'>) => {
             if (ctx.datasetIndex === 0) {
               return `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`;
             }
-            return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} giao dịch`;
+            return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} transactions`;
           },
         },
       },
@@ -411,7 +425,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         position: 'left' as const,
         ticks: {
           color: getThemeClass('#374151', '#fff'),
-          callback: function (value: any) {
+          callback: function (value: number) {
             return formatCurrency(value);
           },
         },
@@ -424,7 +438,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         position: 'right' as const,
         ticks: {
           color: getThemeClass('#374151', '#fff'),
-          callback: function (value: any) {
+          callback: function (value: number) {
             return value.toLocaleString();
           },
         },
@@ -470,7 +484,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-blue-700 font-semibold', 'text-blue-300')
               )}
             >
-              Tổng doanh thu
+              Total Revenue
             </span>
           </div>
           <div className={cn('text-xl font-bold', getThemeClass('text-blue-800', 'text-blue-400'))}>
@@ -495,7 +509,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-green-700 font-semibold', 'text-green-300')
               )}
             >
-              TB/sự kiện
+              Avg/Event
             </span>
           </div>
           <div
@@ -522,7 +536,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-purple-700 font-semibold', 'text-purple-300')
               )}
             >
-              Cao nhất
+              Highest
             </span>
           </div>
           <div
@@ -552,7 +566,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-yellow-700 font-semibold', 'text-yellow-300')
               )}
             >
-              Tăng trưởng
+              Growth
             </span>
           </div>
           <div
@@ -583,7 +597,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-blue-800 font-semibold', 'text-blue-300')
               )}
             >
-              Doanh thu theo sự kiện
+              Revenue by Event
             </span>
           </div>
 
@@ -611,7 +625,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                     )
                   )}
                 >
-                  {mode === 'bar' ? 'Cột' : 'Tròn'}
+                  {mode === 'bar' ? 'Bar' : 'Doughnut'}
                 </button>
               ))}
             </div>
@@ -681,7 +695,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-yellow-800 font-semibold', 'text-yellow-300')
               )}
             >
-              Xu hướng doanh thu theo {getGroupByLabel()}
+              Revenue Trend by {getGroupByLabel()}
             </span>
             <span
               className={cn(
@@ -692,7 +706,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 )
               )}
             >
-              {timeline.length} điểm dữ liệu
+              {timeline.length} data points
             </span>
           </div>
 

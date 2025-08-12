@@ -65,6 +65,14 @@ export default function FinancialTabs() {
 
   // Real-time data reload function
   const reloadData = () => {
+    console.log(
+      '🔄 reloadData called with filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     if (filter === '16') {
       if (!startDate || !endDate) {
         if (startDate || endDate) {
@@ -86,22 +94,52 @@ export default function FinancialTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    console.log('📡 API call params:', params);
     getFinancialAnalytics(params)
       .then((res: AdminFinancialAnalyticsResponse) => {
-        setRevenueTimeline(res.data?.revenueTimeline || []);
-        setTopEvents(res.data?.topEventsByRevenue || []);
-        setPlatformFees(res.data?.platformFees?.topContributingEvents || []);
+        console.log('📊 API Response:', res.data);
+        console.log('🎯 topEventsByRevenue:', res.data?.topEventsByRevenue);
+        console.log('📈 revenueTimeline:', res.data?.revenueTimeline);
+        console.log('💰 platformFees:', res.data?.platformFees);
+
+        // Safely set the data with proper null checks
+        const safeRevenueTimeline = res.data?.revenueTimeline || [];
+        const safeTopEvents = res.data?.topEventsByRevenue || [];
+        const safePlatformFees = res.data?.platformFees?.topContributingEvents || [];
+
+        setRevenueTimeline(safeRevenueTimeline);
+        setTopEvents(safeTopEvents);
+        setPlatformFees(safePlatformFees);
+
+        console.log('🔄 State updated - topEvents:', safeTopEvents);
+
+        // Safely set summary with proper null checks
+        const firstTopEvent = safeTopEvents.length > 0 ? safeTopEvents[0] : null;
+        const firstPlatformFeeEvent = safePlatformFees.length > 0 ? safePlatformFees[0] : null;
+
         setSummary({
           totalRevenue: res.data?.totalRevenue || 0,
-          netRevenue: res.data?.revenueTimeline?.[0]?.revenue ?? 0,
-          platformFee: res.data?.revenueTimeline?.[0]?.platformFee ?? 0,
-          topEventRevenue: res.data?.topEventsByRevenue?.[0]?.revenue ?? 0,
-          topEventPlatformFee:
-            res.data?.platformFees?.topContributingEvents?.[0]?.feeCollected ?? 0,
+          netRevenue: res.data?.netRevenue ?? 0, // Use direct netRevenue from API
+          platformFee: res.data?.platformFee ?? 0, // Use direct platformFee from API
+          topEventRevenue: firstTopEvent?.revenue ?? 0,
+          topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
+        });
+
+        console.log('🔄 Summary set:', {
+          totalRevenue: res.data?.totalRevenue || 0,
+          netRevenue: res.data?.netRevenue ?? 0,
+          platformFee: res.data?.platformFee ?? 0,
+          topEventRevenue: firstTopEvent?.revenue ?? 0,
+          topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
         });
       })
       .catch((error) => {
-        console.error('Error loading financial analytics:', error);
+        console.error('❌ Error loading financial analytics:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
         toast.error('Failed to load financial data');
         // Set default values on error
         setRevenueTimeline([]);
@@ -120,6 +158,7 @@ export default function FinancialTabs() {
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
+    console.log('🚀 FinancialTabs mounted - connecting to AnalyticsHub...');
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
@@ -129,39 +168,61 @@ export default function FinancialTabs() {
         const safePlatformFees = Array.isArray(data.platformFees)
           ? data.platformFees
           : data.platformFees?.topContributingEvents || [];
+
+        // Safely handle all data arrays
+        const safeTopEvents = Array.isArray(data.topEventsByRevenue) ? data.topEventsByRevenue : [];
+        const safeRevenueTimeline = Array.isArray(data.revenueTimeline) ? data.revenueTimeline : [];
+
         if (
           !summary ||
           JSON.stringify(data.summary) !== JSON.stringify(summary) ||
           !revenueTimeline ||
-          JSON.stringify(data.revenueTimeline) !== JSON.stringify(revenueTimeline) ||
+          JSON.stringify(safeRevenueTimeline) !== JSON.stringify(revenueTimeline) ||
           !topEvents ||
-          JSON.stringify(data.topEvents) !== JSON.stringify(topEvents) ||
+          JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents) ||
           !platformFees ||
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
+          console.log('🔄 SignalR: Updating states due to data changes');
           setSummary(data.summary || null);
-          setRevenueTimeline(data.revenueTimeline || []);
-          setTopEvents(data.topEvents || []);
+          setRevenueTimeline(safeRevenueTimeline);
+          setTopEvents(safeTopEvents);
           setPlatformFees(safePlatformFees);
+        } else {
+          console.log('⏭️ SignalR: No changes detected, skipping update');
         }
       }
     };
     onAnalytics('OnFinancialAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
+      console.log('🧹 FinancialTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnFinancialAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    console.log(
+      '🔄 useEffect triggered - filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log('🔍 State changed - summary:', summary);
+    console.log('🔍 State changed - revenueTimeline:', revenueTimeline);
+    console.log('🔍 State changed - topEvents:', topEvents);
+    console.log('🔍 State changed - platformFees:', platformFees);
+  }, [summary, revenueTimeline, topEvents, platformFees]);
 
   // PieChart colors
   const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
@@ -234,6 +295,10 @@ export default function FinancialTabs() {
       </div>
       {/* Card tổng quan financial */}
       <div className="flex flex-row flex-wrap gap-4 items-stretch justify-between w-full mb-4">
+        {(() => {
+          console.log('🎨 Rendering Summary Cards - loading:', loading, 'summary:', summary);
+          return null;
+        })()}
         {loading ? (
           <>
             <div className={cardClass}>
@@ -275,13 +340,30 @@ export default function FinancialTabs() {
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Revenue Timeline</h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Revenue Timeline - loading:',
+              loading,
+              'revenueTimeline:',
+              revenueTimeline,
+              'length:',
+              revenueTimeline?.length,
+              'type:',
+              typeof revenueTimeline,
+              'isArray:',
+              Array.isArray(revenueTimeline)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#fbbf24" />
             </div>
-          ) : revenueTimeline.length === 0 ? (
+          ) : !revenueTimeline || revenueTimeline.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No revenue data available
+              <div className="text-center">
+                <div>No revenue data available</div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -309,13 +391,30 @@ export default function FinancialTabs() {
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Top Events by Revenue
           </h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Top Events - loading:',
+              loading,
+              'topEvents:',
+              topEvents,
+              'length:',
+              topEvents?.length,
+              'type:',
+              typeof topEvents,
+              'isArray:',
+              Array.isArray(topEvents)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#60a5fa" />
             </div>
-          ) : topEvents.length === 0 ? (
+          ) : !topEvents || topEvents.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No top events data available
+              <div className="text-center">
+                <div>No top events data available</div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
@@ -347,13 +446,30 @@ export default function FinancialTabs() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Platform Fee</h3>
+          {(() => {
+            console.log(
+              '🎨 Rendering Platform Fee - loading:',
+              loading,
+              'platformFees:',
+              platformFees,
+              'length:',
+              platformFees?.length,
+              'type:',
+              typeof platformFees,
+              'isArray:',
+              Array.isArray(platformFees)
+            );
+            return null;
+          })()}
           {loading ? (
             <div className="flex items-center justify-center h-[260px]">
               <RingLoader size={64} color="#a78bfa" />
             </div>
-          ) : platformFees.length === 0 ? (
+          ) : !platformFees || platformFees.length === 0 ? (
             <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
-              No platform fee data available
+              <div className="text-center">
+                <div>No platform fee data available</div>
+              </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={260}>

@@ -34,9 +34,7 @@ export function NewsListTabs() {
   };
 
   useEffect(() => {
-    const NEWS_HUB_URL = ((import.meta as any)?.env?.VITE_NEWS_HUB_URL as string)
-      || (typeof process !== 'undefined' ? (process as any)?.env?.REACT_APP_NEWS_HUB_URL : undefined)
-      || '/newsHub';
+    const NEWS_HUB_URL = (import.meta.env.VITE_NEWS_HUB_URL as string) || '/newsHub';
     connectNewsHub(NEWS_HUB_URL);
     // Lắng nghe realtime SignalR cho news
     const reloadNews = () => fetchPendingCount();

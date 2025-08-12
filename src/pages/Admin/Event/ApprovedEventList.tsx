@@ -83,6 +83,7 @@ export const ApprovedEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -156,7 +157,7 @@ export const ApprovedEventList = ({
   // Connect hub chỉ 1 lần khi mount using global connections
   useEffect(() => {
     const reload = () => {
-      fetchData(pageRef.current, pageSizeRef.current);
+      fetchData(pageRef.current, pageSizeRef.current, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
@@ -166,8 +167,11 @@ export const ApprovedEventList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (showLoading && !filters._searchOnly) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -234,21 +238,36 @@ export const ApprovedEventList = ({
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, approvedEventSearch] đổi
+  // Khi approvedEventSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, searchTerm: approvedEventSearch, _searchOnly: true }));
+    setPage(1);
+  }, [approvedEventSearch]);
+
+  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending] đổi
   useEffect(() => {
     console.log('🔄 useEffect triggered - calling fetchData with filters:', filters);
-    fetchData();
+    // Nếu chỉ search thì không loading
+    fetchData(page, pageSize, filters._searchOnly ? false : true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, approvedEventSearch]);
+  }, [filters, sortBy, sortDescending]);
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, page: 1, pageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -261,6 +280,12 @@ export const ApprovedEventList = ({
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -291,7 +316,7 @@ export const ApprovedEventList = ({
       try {
         await cancelEvent(event.eventId);
         toast.success('Event cancelled successfully');
-        fetchData();
+        fetchData(page, pageSize, false);
       } catch {
         toast.error('Failed to cancel event');
       }
@@ -308,7 +333,7 @@ export const ApprovedEventList = ({
         await showEvent(event.eventId);
         toast.success('Event shown successfully!');
       }
-      fetchData();
+      fetchData(page, pageSize, false);
     } catch {
       toast.error('Failed to update status!');
     }
@@ -327,11 +352,6 @@ export const ApprovedEventList = ({
         <div className={`p-4 ${getEventListCardClass()}`}>
           {/* Search and Filter UI */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
-            {/* Debug info */}
-            <div className="text-xs text-gray-500 mb-2">
-              Debug: Categories loaded: {allCategories.length} | Filter state:{' '}
-              {JSON.stringify(filters.categoryNames)}
-            </div>
             {/* Search input (left) */}
             <div className="flex-1 flex items-center gap-2">
               <div

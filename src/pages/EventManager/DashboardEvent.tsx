@@ -55,7 +55,7 @@ export default function EventManagerDashboard() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [activeTab, setActiveTab] = useState('revenue'); 
+  const [activeTab, setActiveTab] = useState('revenue');
   const { unreadCount } = useRealtimeNotifications();
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
   const accountObj = accountStr ? JSON.parse(accountStr) : null;
@@ -63,31 +63,31 @@ export default function EventManagerDashboard() {
 
   // Tab options with full API mapping
   const periodTabs = [
-    { id: TimePeriod.Today, label: 'Hôm nay', shortLabel: 'Hôm nay', icon: '📅' },
-    { id: TimePeriod.Yesterday, label: 'Hôm qua', shortLabel: 'Hôm qua', icon: '📅' },
-    { id: TimePeriod.ThisWeek, label: 'Tuần này', shortLabel: 'Tuần', icon: '📊' },
-    { id: TimePeriod.LastWeek, label: 'Tuần trước', shortLabel: 'Tuần trước', icon: '📊' },
-    { id: TimePeriod.ThisMonth, label: 'Tháng này', shortLabel: 'Tháng', icon: '📈' },
-    { id: TimePeriod.LastMonth, label: 'Tháng trước', shortLabel: 'Tháng trước', icon: '📈' },
-    { id: TimePeriod.ThisQuarter, label: 'Quý này', shortLabel: 'Quý', icon: '📊' },
-    { id: TimePeriod.LastQuarter, label: 'Quý trước', shortLabel: 'Quý trước', icon: '📊' },
-    { id: TimePeriod.ThisYear, label: 'Năm này', shortLabel: 'Năm', icon: '🎯' },
-    { id: TimePeriod.LastYear, label: 'Năm trước', shortLabel: 'Năm trước', icon: '🎯' },
-    { id: TimePeriod.Last7Days, label: '7 ngày qua', shortLabel: '7 ngày', icon: '📆' },
-    { id: TimePeriod.Last30Days, label: '30 ngày qua', shortLabel: '30 ngày', icon: '📉' },
-    { id: TimePeriod.Last90Days, label: '90 ngày qua', shortLabel: '90 ngày', icon: '📋' },
-    { id: TimePeriod.Last365Days, label: '365 ngày qua', shortLabel: '365 ngày', icon: '📅' },
-    { id: TimePeriod.AllTime, label: 'Toàn thời gian', shortLabel: 'All', icon: '∞' },
-    { id: TimePeriod.Custom, label: 'Tùy chỉnh', shortLabel: 'Tùy chỉnh', icon: '⚙️' },
+    { id: TimePeriod.Today, label: 'Today', shortLabel: 'Today', icon: '📅' },
+    { id: TimePeriod.Yesterday, label: 'Yesterday', shortLabel: 'Yesterday', icon: '📅' },
+    { id: TimePeriod.ThisWeek, label: 'This Week', shortLabel: 'Week', icon: '📊' },
+    { id: TimePeriod.LastWeek, label: 'Last Week', shortLabel: 'Last Week', icon: '📊' },
+    { id: TimePeriod.ThisMonth, label: 'This Month', shortLabel: 'Month', icon: '📈' },
+    { id: TimePeriod.LastMonth, label: 'Last Month', shortLabel: 'Last Month', icon: '📈' },
+    { id: TimePeriod.ThisQuarter, label: 'This Quarter', shortLabel: 'Quarter', icon: '📊' },
+    { id: TimePeriod.LastQuarter, label: 'Last Quarter', shortLabel: 'Last Quarter', icon: '📊' },
+    { id: TimePeriod.ThisYear, label: 'This Year', shortLabel: 'Year', icon: '🎯' },
+    { id: TimePeriod.LastYear, label: 'Last Year', shortLabel: 'Last Year', icon: '🎯' },
+    { id: TimePeriod.Last7Days, label: 'Last 7 Days', shortLabel: '7 Days', icon: '📆' },
+    { id: TimePeriod.Last30Days, label: 'Last 30 Days', shortLabel: '30 Days', icon: '📉' },
+    { id: TimePeriod.Last90Days, label: 'Last 90 Days', shortLabel: '90 Days', icon: '📋' },
+    { id: TimePeriod.Last365Days, label: 'Last 365 Days', shortLabel: '365 Days', icon: '📅' },
+    { id: TimePeriod.AllTime, label: 'All Time', shortLabel: 'All', icon: '∞' },
+    { id: TimePeriod.Custom, label: 'Custom', shortLabel: 'Custom', icon: '⚙️' },
   ];
 
   const groupByOptions = [
-    { value: GroupBy.Hour, label: 'Theo giờ' },
-    { value: GroupBy.Day, label: 'Theo ngày' },
-    { value: GroupBy.Week, label: 'Theo tuần' },
-    { value: GroupBy.Month, label: 'Theo tháng' },
-    { value: GroupBy.Quarter, label: 'Theo quý' },
-    { value: GroupBy.Year, label: 'Theo năm' },
+    { value: GroupBy.Hour, label: 'By Hour' },
+    { value: GroupBy.Day, label: 'By Day' },
+    { value: GroupBy.Week, label: 'By Week' },
+    { value: GroupBy.Month, label: 'By Month' },
+    { value: GroupBy.Quarter, label: 'By Quarter' },
+    { value: GroupBy.Year, label: 'By Year' },
   ];
 
   const [dashboardData, setDashboardData] = useState(null);
@@ -99,13 +99,13 @@ export default function EventManagerDashboard() {
     selectedPeriod,
     groupBy,
     customStartDate,
-    customEndDate
+    customEndDate,
   });
 
   // Stable fetch function that only runs when filters change
   const fetchDashboardData = useCallback(async () => {
     const currentFilters = { selectedPeriod, groupBy, customStartDate, customEndDate };
-    
+
     // Skip fetch if filters haven't changed
     if (
       !isInitialMount.current &&
@@ -119,7 +119,7 @@ export default function EventManagerDashboard() {
 
     // Update previous filters
     prevFiltersRef.current = { ...currentFilters };
-    
+
     try {
       const data = await getEventManagerDashboard({
         period: currentFilters.selectedPeriod,
@@ -127,11 +127,11 @@ export default function EventManagerDashboard() {
         startDate: currentFilters.customStartDate,
         endDate: currentFilters.customEndDate,
       });
-      
+
       setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Không thể tải dữ liệu bảng điều khiển');
+      toast.error('Unable to load dashboard data');
     }
   }, [selectedPeriod, groupBy, customStartDate, customEndDate]);
 
@@ -141,10 +141,10 @@ export default function EventManagerDashboard() {
     const timer = setTimeout(() => {
       fetchDashboardData();
     }, 0);
-    
+
     // Mark initial mount as complete after first render
     isInitialMount.current = false;
-    
+
     return () => clearTimeout(timer);
   }, [fetchDashboardData]);
 
@@ -156,40 +156,49 @@ export default function EventManagerDashboard() {
 
   const handleRedirect = useCallback(() => setNotifDropdown(false), []);
 
-  const handlePeriodChange = useCallback((periodId: number) => {
-    setSelectedPeriod(periodId);
-    
-    // Reset custom dates when switching to non-custom period
-    if (periodId !== TimePeriod.Custom) {
-      setCustomStartDate('');
-      setCustomEndDate('');
-    } else if (!customStartDate || !customEndDate) {
-      // Set default date range for custom period
-      const defaultStart = new Date();
-      defaultStart.setDate(defaultStart.getDate() - 30);
-      setCustomStartDate(defaultStart.toISOString().split('T')[0]);
-      setCustomEndDate(new Date().toISOString().split('T')[0]);
-    }
-  }, [customStartDate, customEndDate]);
+  const handlePeriodChange = useCallback(
+    (periodId: number) => {
+      setSelectedPeriod(periodId);
 
-  const notificationDropdown = useMemo(() => (
-    <NotificationDropdown
-      userId={userId}
-      onViewAll={handleViewAll}
-      onRedirect={handleRedirect}
-      t={t}
-    />
-  ), [userId, t, handleViewAll, handleRedirect]);
+      // Reset custom dates when switching to non-custom period
+      if (periodId !== TimePeriod.Custom) {
+        setCustomStartDate('');
+        setCustomEndDate('');
+      } else if (!customStartDate || !customEndDate) {
+        // Set default date range for custom period
+        const defaultStart = new Date();
+        defaultStart.setDate(defaultStart.getDate() - 30);
+        setCustomStartDate(defaultStart.toISOString().split('T')[0]);
+        setCustomEndDate(new Date().toISOString().split('T')[0]);
+      }
+    },
+    [customStartDate, customEndDate]
+  );
 
-  const exportButtons = useMemo(() => (
-    <ExportButtons 
-      period={selectedPeriod} 
-      groupBy={groupBy}
-      startDate={customStartDate}
-      endDate={customEndDate}
-      dashboardData={dashboardData}
-    />
-  ), [selectedPeriod, groupBy, customStartDate, customEndDate, dashboardData]);
+  const notificationDropdown = useMemo(
+    () => (
+      <NotificationDropdown
+        userId={userId}
+        onViewAll={handleViewAll}
+        onRedirect={handleRedirect}
+        t={t}
+      />
+    ),
+    [userId, t, handleViewAll, handleRedirect]
+  );
+
+  const exportButtons = useMemo(
+    () => (
+      <ExportButtons
+        period={selectedPeriod}
+        groupBy={groupBy}
+        startDate={customStartDate}
+        endDate={customEndDate}
+        dashboardData={dashboardData}
+      />
+    ),
+    [selectedPeriod, groupBy, customStartDate, customEndDate, dashboardData]
+  );
 
   useEffect(() => {
     const setupRealtimeDashboard = async () => {
@@ -347,7 +356,7 @@ export default function EventManagerDashboard() {
                 )}
               >
                 <Filter size={18} />
-                <span className="hidden sm:inline">Bộ lọc</span>
+                <span className="hidden sm:inline">Filters</span>
               </button>
 
               {exportButtons}
@@ -374,9 +383,7 @@ export default function EventManagerDashboard() {
                   )}
                 </button>
                 {notifDropdown && (
-                  <div className="absolute right-0 mt-2 z-50">
-                    {notificationDropdown}
-                  </div>
+                  <div className="absolute right-0 mt-2 z-50">{notificationDropdown}</div>
                 )}
               </div>
             </div>
@@ -428,7 +435,7 @@ export default function EventManagerDashboard() {
                   getThemeClass('text-blue-700', 'text-purple-200')
                 )}
               >
-                Chọn khoảng thời gian tùy chỉnh
+                Select Custom Time Range
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -438,7 +445,7 @@ export default function EventManagerDashboard() {
                       getThemeClass('text-blue-700', 'text-purple-200')
                     )}
                   >
-                    Từ ngày
+                    From Date
                   </label>
                   <input
                     type="date"
@@ -460,7 +467,7 @@ export default function EventManagerDashboard() {
                       getThemeClass('text-blue-700', 'text-purple-200')
                     )}
                   >
-                    Đến ngày
+                    To Date
                   </label>
                   <input
                     type="date"
@@ -497,7 +504,7 @@ export default function EventManagerDashboard() {
                     getThemeClass('text-blue-700', 'text-purple-200')
                   )}
                 >
-                  Bộ lọc nâng cao
+                  Advanced Filters
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -507,7 +514,7 @@ export default function EventManagerDashboard() {
                         getThemeClass('text-blue-700', 'text-purple-200')
                       )}
                     >
-                      Nhóm dữ liệu theo
+                      Group Data By
                     </label>
                     <select
                       value={groupBy}
@@ -552,9 +559,7 @@ export default function EventManagerDashboard() {
                   size={16}
                   className={cn(getThemeClass('text-blue-600', 'text-purple-300'))}
                 />
-                <span className={cn(getThemeClass('text-blue-700', 'text-purple-200'))}>
-                  Thời gian:
-                </span>
+                <span className={cn(getThemeClass('text-blue-700', 'text-purple-200'))}>Time:</span>
                 <span className={cn('font-semibold', getThemeClass('text-gray-900', 'text-white'))}>
                   {periodTabs.find((tab) => tab.id === selectedPeriod)?.label}
                 </span>
@@ -562,8 +567,8 @@ export default function EventManagerDashboard() {
                   <span
                     className={cn('text-sm', getThemeClass('text-blue-600', 'text-purple-200'))}
                   >
-                    ({new Date(customStartDate).toLocaleDateString('vi-VN')} -{' '}
-                    {new Date(customEndDate).toLocaleDateString('vi-VN')})
+                    ({new Date(customStartDate).toLocaleDateString('en-US')} -{' '}
+                    {new Date(customEndDate).toLocaleDateString('en-US')})
                   </span>
                 )}
               </div>
@@ -572,7 +577,7 @@ export default function EventManagerDashboard() {
                   size={16}
                   className={cn(getThemeClass('text-cyan-600', 'text-blue-300'))}
                 />
-                <span className={cn(getThemeClass('text-cyan-700', 'text-blue-200'))}>Nhóm:</span>
+                <span className={cn(getThemeClass('text-cyan-700', 'text-blue-200'))}>Group:</span>
                 <span className={cn('font-semibold', getThemeClass('text-gray-900', 'text-white'))}>
                   {groupByOptions.find((opt) => opt.value === groupBy)?.label}
                 </span>
@@ -581,15 +586,17 @@ export default function EventManagerDashboard() {
           </div>
 
           {/* Summary Cards */}
-          <DashboardSummaryCards filter={{
-            period: selectedPeriod,
-            customStartDate: customStartDate,
-            customEndDate: customEndDate,
-            groupBy: groupBy,
-            includeComparison: false,
-            comparisonPeriod: 0,
-            includeRealtimeData: true,
-          }} />
+          <DashboardSummaryCards
+            filter={{
+              period: selectedPeriod,
+              customStartDate: customStartDate,
+              customEndDate: customEndDate,
+              groupBy: groupBy,
+              includeComparison: false,
+              comparisonPeriod: 0,
+              includeRealtimeData: true,
+            }}
+          />
 
           {/* Chart Tabs */}
           <div className="mb-6">
@@ -608,7 +615,7 @@ export default function EventManagerDashboard() {
                   )
                 )}
               >
-                Doanh thu
+                Revenue
               </button>
               <button
                 onClick={() => setActiveTab('tickets')}
@@ -624,7 +631,7 @@ export default function EventManagerDashboard() {
                   )
                 )}
               >
-                Thống kê vé
+                Ticket Statistics
               </button>
             </div>
           </div>

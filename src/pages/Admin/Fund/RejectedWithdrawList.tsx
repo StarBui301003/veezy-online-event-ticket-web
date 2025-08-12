@@ -58,6 +58,7 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -81,6 +82,24 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
     searchRef.current = rejectedSearch;
   }, [rejectedSearch]);
 
+  // Handle search term changes separately
+  useEffect(() => {
+    if (rejectedSearch !== filters.SearchTerm) {
+      setFilters((prev) => ({ ...prev, SearchTerm: rejectedSearch, _searchOnly: true }));
+    }
+  }, [rejectedSearch, filters.SearchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
+
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -98,8 +117,8 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (showLoading: boolean = true) => {
+    if (showLoading) setLoading(true);
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -160,12 +179,6 @@ const RejectedWithdrawList = ({ onRejectedChanged }: { onRejectedChanged?: () =>
         setTimeout(() => setLoading(false), 500);
       });
   };
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedSearch] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, rejectedSearch]);
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {

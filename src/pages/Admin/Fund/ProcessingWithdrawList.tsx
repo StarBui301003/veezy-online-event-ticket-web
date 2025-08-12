@@ -58,6 +58,7 @@ const ProcessingWithdrawList = ({ onProcessingChanged }: { onProcessingChanged?:
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -81,6 +82,24 @@ const ProcessingWithdrawList = ({ onProcessingChanged }: { onProcessingChanged?:
     searchRef.current = processingSearch;
   }, [processingSearch]);
 
+  // Handle search term changes separately
+  useEffect(() => {
+    if (processingSearch !== filters.SearchTerm) {
+      setFilters((prev) => ({ ...prev, SearchTerm: processingSearch, _searchOnly: true }));
+    }
+  }, [processingSearch, filters.SearchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
+
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -98,9 +117,8 @@ const ProcessingWithdrawList = ({ onProcessingChanged }: { onProcessingChanged?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
-
+  const fetchData = (showLoading: boolean = true) => {
+    if (showLoading && !filters._searchOnly) setLoading(true);
     // Separate pagination parameters from filter parameters
     const paginationParams = {
       Page: processingSearch ? 1 : filters.Page,
@@ -160,12 +178,6 @@ const ProcessingWithdrawList = ({ onProcessingChanged }: { onProcessingChanged?:
         setTimeout(() => setLoading(false), 500);
       });
   };
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, processingSearch] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, processingSearch]);
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {

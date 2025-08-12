@@ -49,10 +49,16 @@ export interface AdminFinancialAnalyticsData {
   yearRevenue: number | null;
   totalRevenue: number;
   revenueFilter: number;
+  netRevenue: number;
+  netRevenueFilter: number;
+  platformFee: number;
+  platformFeeFilter: number;
   revenueTimeline: FinancialRevenueTimelineItem[];
   topEventsByRevenue: FinancialTopEventByRevenue[];
   withdrawalStats: FinancialWithdrawalStats;
+  withdrawalStatsAllTime: FinancialWithdrawalStats;
   platformFees: FinancialPlatformFees;
+  platformFeesAllTime: FinancialPlatformFees;
 }
 
 export interface FinancialRevenueTimelineItem {
@@ -157,6 +163,7 @@ export interface EventTopPerformingEvent {
 export interface EventApprovalMetrics {
   totalEvents: number;
   pendingApprovals: number;
+  newEvents: number;
   approvedToday: number | null;
   rejectedToday: number | null;
   approvedThisWeek: number | null;
@@ -170,6 +177,7 @@ export interface EventApprovalMetrics {
 
 export interface EventApprovalTrendItem {
   period: string;
+  newEvents: number;
   approved: number;
   rejected: number;
   pending: number;

@@ -62,6 +62,7 @@ const OrderListAdmin = () => {
     PageSize: 5,
     SortDescending: true,
     EventId: undefined, // Initialize EventId in filters
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -146,61 +147,81 @@ const OrderListAdmin = () => {
     fetchAllEvents();
   }, []);
 
-  const fetchData = useCallback(() => {
-    setLoading(true);
+  const fetchData = useCallback(
+    (showLoading = true) => {
+      if (showLoading && !filters._searchOnly) setLoading(true);
 
-    // Separate pagination parameters from filter parameters
-    const paginationParams = {
-      Page: orderSearch ? 1 : filters.Page,
-      PageSize: filters.PageSize,
-    };
+      // Separate pagination parameters from filter parameters
+      const paginationParams = {
+        Page: orderSearch ? 1 : filters.Page,
+        PageSize: filters.PageSize,
+      };
 
-    const filterParams = {
-      SearchTerm: orderSearch,
-      MinAmount: amountRange[0],
-      MaxAmount: amountRange[1],
-      EventId: filters.EventId || undefined,
-      SortBy: sortBy,
-      SortDescending: sortDescending,
-    };
+      const filterParams = {
+        SearchTerm: orderSearch,
+        MinAmount: amountRange[0],
+        MaxAmount: amountRange[1],
+        EventId: filters.EventId || undefined,
+        SortBy: sortBy,
+        SortDescending: sortDescending,
+      };
 
-    // Combine pagination and filter parameters
-    const params = { ...paginationParams, ...filterParams };
+      // Combine pagination and filter parameters
+      const params = { ...paginationParams, ...filterParams };
 
-    getOrdersAdmin(params)
-      .then(async (res) => {
-        if (res && res.success && res.data) {
-          setData(res);
+      getOrdersAdmin(params)
+        .then(async (res) => {
+          if (res && res.success && res.data) {
+            setData(res);
 
-          // Calculate max amount from current filtered data
-          const maxAmountInData =
-            res.data.items.length > 0
-              ? Math.max(...res.data.items.map((item) => item.totalAmount))
-              : 1000000;
-          setMaxAmount(maxAmountInData);
+            // Calculate max amount from current filtered data
+            const maxAmountInData =
+              res.data.items.length > 0
+                ? Math.max(...res.data.items.map((item) => item.totalAmount))
+                : 1000000;
+            setMaxAmount(maxAmountInData);
 
-          // Update global max amount if we get data without filters
-          if (!orderSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
-            setGlobalMaxAmount(maxAmountInData);
+            // Update global max amount if we get data without filters
+            if (!orderSearch && amountRange[0] === 0 && amountRange[1] === 1000000) {
+              setGlobalMaxAmount(maxAmountInData);
+            }
+          } else {
+            setData(null);
           }
-        } else {
+        })
+        .catch(() => {
           setData(null);
-        }
-      })
-      .catch(() => {
-        setData(null);
-      })
-      .finally(() => {
-        setTimeout(() => setLoading(false), 500);
-      });
-  }, [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]);
+        })
+        .finally(() => {
+          setTimeout(() => setLoading(false), 500);
+        });
+    },
+    [orderSearch, filters, amountRange, maxAmount, sortBy, sortDescending]
+  );
+
+  // Khi orderSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, SearchTerm: orderSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, Page: 1 }));
+  }, [orderSearch]);
+
+  // Khi filter/sort thay đổi
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sortBy, sortDescending]);
 
   // Filter handlers
   const updateFilter = (
     key: keyof OrderFilterParams,
     value: string | number | boolean | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, Page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value, Page: 1 };
+      delete next._searchOnly; // Bỏ _searchOnly flag khi filter thay đổi
+      return next;
+    });
   };
 
   // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, orderSearch] đổi
@@ -239,11 +260,19 @@ const OrderListAdmin = () => {
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const next = { ...prev, Page: 1, PageSize: newPageSize };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Sort handlers
@@ -254,6 +283,12 @@ const OrderListAdmin = () => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Bỏ _searchOnly flag khi sort
+    setFilters((prev) => {
+      const next = { ...prev };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   const getSortIcon = (field: string) => {

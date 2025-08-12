@@ -58,6 +58,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -86,7 +87,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     const token = localStorage.getItem('access_token');
     connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onFund('OnWithdrawalRequested', reload);
     onFund('OnWithdrawalStatusChanged', reload);
@@ -98,8 +99,10 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -161,11 +164,23 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, successfulSearch] đổi
+  // Handle search term changes separately
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, successfulSearch]);
+    if (successfulSearch !== filters.SearchTerm) {
+      setFilters((prev) => ({ ...prev, SearchTerm: successfulSearch, _searchOnly: true }));
+    }
+  }, [successfulSearch, filters.SearchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {
@@ -187,9 +202,16 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
     // Skip initial render
     if (amountRange[0] === 0 && amountRange[1] === 1000000) return;
 
+    // Remove searchOnly flag for amount range changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
+
     // Debounce the fetchData call to avoid excessive API calls
     const timeoutId = setTimeout(() => {
-      fetchData();
+      fetchData(false);
     }, 150);
 
     return () => clearTimeout(timeoutId);
@@ -197,11 +219,19 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, Page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, Page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, Page: 1, PageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, Page: 1, PageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   // Sort handlers
@@ -212,6 +242,12 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
       setSortBy(field);
       setSortDescending(true);
     }
+    // Remove searchOnly flag for sort changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -396,7 +432,7 @@ const SuccessfulWithdrawList = ({ onSuccessfulChanged }: { onSuccessfulChanged?:
                             setAmountRange([0, globalMaxAmount]);
                             // Force fetchData after reset
                             setTimeout(() => {
-                              fetchData();
+                              fetchData(false);
                             }, 0);
                           }}
                           className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors text-gray-700 dark:text-gray-300"

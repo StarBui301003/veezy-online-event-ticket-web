@@ -107,9 +107,6 @@ export default function UserTabs() {
     };
     onAnalytics('OnUserAnalytics', handler);
 
-    // Initial data load
-    reloadData();
-
     // Cleanup to avoid duplicate listeners
     return () => {
       offAnalytics('OnUserAnalytics', handler);
@@ -276,7 +273,7 @@ export default function UserTabs() {
               <PieChart>
                 <Pie
                   data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
-                    name: gender,
+                    name: gender === 'Unknow' ? 'Others' : gender,
                     value,
                   }))}
                   dataKey="value"

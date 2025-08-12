@@ -79,6 +79,7 @@ export const CompletedEventList = ({
     pageSize: 5, // Set default to 5 like AdminList
     sortDescending: true,
     categoryNames: [], // Initialize categoryNames as empty array
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -149,24 +150,38 @@ export const CompletedEventList = ({
     searchRef.current = completedEventSearch;
   }, [completedEventSearch]);
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, completedEventSearch] đổi
+  // Handle search term changes separately
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, completedEventSearch]);
+    if (completedEventSearch !== filters.searchTerm) {
+      setFilters((prev) => ({ ...prev, searchTerm: completedEventSearch, _searchOnly: true }));
+    }
+  }, [completedEventSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(page, pageSize, false);
+    } else {
+      // Other filters - show loading
+      fetchData(page, pageSize, true);
+    }
+  }, [filters, sortBy, sortDescending]);
 
   useEffect(() => {
     // Use global event connections for realtime updates
     const reload = () => {
-      fetchData();
+      fetchData(page, pageSize, false);
     };
     onEvent('OnEventCreated', reload);
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = (_p = page, _ps = pageSize, showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
+      setLoading(true);
+    }
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -221,12 +236,20 @@ export const CompletedEventList = ({
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -236,7 +259,11 @@ export const CompletedEventList = ({
     const newSortDescending = sortBy === field ? !sortDescending : true;
     setSortBy(field);
     setSortDescending(newSortDescending);
-    setFilters((prev) => ({ ...prev, sortBy: field, sortDescending: newSortDescending }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, sortBy: field, sortDescending: newSortDescending };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {
@@ -255,7 +282,11 @@ export const CompletedEventList = ({
     key: keyof EventFilterParams,
     value: string | string[] | boolean | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(1);
   };
 
@@ -269,7 +300,7 @@ export const CompletedEventList = ({
       try {
         await deleteEvent(event.eventId);
         toast.success('Event deleted successfully');
-        fetchData();
+        fetchData(page, pageSize, false);
       } catch (error: any) {
         // Show backend response message from JSON structure
         if (error.response?.data?.message) {

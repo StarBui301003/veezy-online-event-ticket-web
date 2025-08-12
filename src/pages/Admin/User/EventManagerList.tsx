@@ -77,8 +77,11 @@ export const EventManagerList = () => {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params: Omit<UserFilterParams, 'role'> = {
         searchTerm: eventManagerSearch || filters.searchTerm,
@@ -114,7 +117,7 @@ export const EventManagerList = () => {
     }
   };
 
-  // Identity Hub listeners using global connections  
+  // Identity Hub listeners using global connections
   useEffect(() => {
     // Identity hub connection is managed globally in App.tsx
     // Listen for real-time event manager updates
@@ -132,7 +135,12 @@ export const EventManagerList = () => {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
+    // Khi eventManagerSearch thay đổi, đây là search nên không hiển thị loading
+    if (eventManagerSearch !== filters.searchTerm) {
+      fetchUsers(true);
+    } else {
+      fetchUsers(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, eventManagerSearch, sortBy, sortDescending]);
 

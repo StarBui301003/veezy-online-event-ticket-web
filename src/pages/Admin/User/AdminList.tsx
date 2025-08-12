@@ -74,17 +74,18 @@ export const AdminList = () => {
     page: 1,
     pageSize: 5,
     sortDescending: true,
+    searchTerm: '',
   });
 
   // Sort state
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const params: Omit<UserFilterParams, 'role'> = {
-        searchTerm: adminSearch || filters.searchTerm,
+        searchTerm: filters.searchTerm || undefined,
         isActive: filters.isActive,
         isOnline: filters.isOnline,
         isEmailVerified: filters.isEmailVerified,
@@ -122,7 +123,7 @@ export const AdminList = () => {
     // Listen for real-time admin user updates
     onIdentity('AdminCreated', (data: any) => {
       console.log('👤 Admin created:', data);
-      fetchUsers();
+      fetchUsers(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -136,10 +137,16 @@ export const AdminList = () => {
     }
   }, []);
 
+  // Tách riêng cập nhật filters.searchTerm khi adminSearch thay đổi
   useEffect(() => {
-    fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, adminSearch, sortBy, sortDescending]);
+    setFilters((prev) => ({ ...prev, searchTerm: adminSearch }));
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, [adminSearch]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchUsers(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
 
   const handlePageChange = (newPage: number) => {
     setFilters((prev) => ({ ...prev, page: newPage }));
@@ -169,12 +176,19 @@ export const AdminList = () => {
     );
   };
 
+  // Khi adminSearch thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, searchTerm: adminSearch, _searchOnly: true }));
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, [adminSearch]);
+
+  // Khi các filter khác thay đổi (không phải search), bỏ _searchOnly
   const updateFilter = (key: keyof UserFilterParams, value: any) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: 1, // Reset to first page when filters change
-    }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value, page: 1 };
+      delete next._searchOnly;
+      return next;
+    });
   };
 
   // Handle toggle user status (deactivate only)
@@ -183,7 +197,7 @@ export const AdminList = () => {
       // Always call deactivate API - if user is active, it will deactivate; if inactive, it will activate
       await deactivateUserAPI(user.accountId);
       toast.success(`User ${user.isActive ? 'deactivated' : 'activated'} successfully!`);
-      fetchUsers(); // Refresh the list
+      fetchUsers(false); // Refresh the list
     } catch (error) {
       // Handle API error with specific message
       if (error instanceof Error) {
@@ -205,7 +219,7 @@ export const AdminList = () => {
           onClose={() => setEditUser(null)}
           onUpdated={() => {
             setEditUser(null);
-            fetchUsers();
+            fetchUsers(false);
           }}
           title="Edit Admin"
           disableEmail
@@ -216,7 +230,7 @@ export const AdminList = () => {
         onClose={() => setShowCreateModal(false)}
         onCreated={() => {
           setShowCreateModal(false);
-          fetchUsers();
+          fetchUsers(false);
         }}
       />
 

@@ -51,17 +51,18 @@ export const CategoryList = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewCate, setViewCategory] = useState<Category | null>(null);
-  const [editCategory, setEditCategory] = useState<Category | null>(null);
   const [filters, setFilters] = useState<CategoryFilterParams>({
     page: 1,
     pageSize: 5,
     sortBy: 'createdAt',
     sortDescending: true,
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
+  const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [viewCate, setViewCategory] = useState<Category | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Refs for SignalR
   const pageRef = useRef(page);
@@ -83,32 +84,39 @@ export const CategoryList = () => {
     onEvent('OnCategoryDeleted', reload);
   }, []);
 
-  // Single useEffect to handle all data fetching
+  // Khi searchTerm thay đổi, cập nhật filters và đánh dấu là searchOnly
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, searchTerm]);
+    setFilters((prev) => ({ ...prev, searchTerm, _searchOnly: true }));
+    setPage(1);
+  }, [searchTerm]);
 
-  // Sync filters.page with page on mount
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
+
+  // Sync filters.page với page khi mount
   useEffect(() => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const params = {
         ...filters,
         sortBy,
         sortDescending,
-        searchTerm: searchTerm || undefined,
+        searchTerm: filters.searchTerm || undefined,
       };
       const response = await getCategoriesWithFilter(params);
       setData(response.data);
+      // Không cập nhật filters ở đây nữa để tránh vòng lặp vô hạn
     } catch (error) {
       console.error('Error fetching categories:', error);
+      toast.error('Failed to fetch categories');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -132,7 +140,11 @@ export const CategoryList = () => {
     const newSortDescending = sortBy === field ? !sortDescending : true;
     setSortBy(field);
     setSortDescending(newSortDescending);
-    setFilters((prev) => ({ ...prev, page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, page: 1 };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(1);
   };
 
@@ -171,22 +183,22 @@ export const CategoryList = () => {
 
   return (
     <div className="p-6">
-      <SpinnerOverlay show={loading} />
-      {/* Modal tạo category */}
-      {editCategory && (
-        <EditCategoryModal
-          category={editCategory}
-          onClose={() => setEditCategory(null)}
-          onUpdated={reloadList}
+      <div className="overflow-x-auto ">
+        <SpinnerOverlay show={loading} />
+        {/* Modal tạo category */}
+        {editCategory && (
+          <EditCategoryModal
+            category={editCategory}
+            onClose={() => setEditCategory(null)}
+            onUpdated={reloadList}
+          />
+        )}
+        {viewCate && <CategoryDetailModal cate={viewCate} onClose={() => setViewCategory(null)} />}
+        <CreateCategoryModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={reloadList}
         />
-      )}
-      {viewCate && <CategoryDetailModal cate={viewCate} onClose={() => setViewCategory(null)} />}
-      <CreateCategoryModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
-      />
-      <div className="overflow-x-auto">
         <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}

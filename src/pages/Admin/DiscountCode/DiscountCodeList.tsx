@@ -85,6 +85,7 @@ export const DiscountCodeList = () => {
     pageSize: 5,
     sortBy: 'createdAt',
     sortDescending: true,
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -109,31 +110,39 @@ export const DiscountCodeList = () => {
     onEvent('OnDiscountCodeDeleted', reload);
   }, []);
 
+  // Tách riêng cập nhật filters.searchTerm khi searchTerm thay đổi
   useEffect(() => {
-    fetchData();
-  }, [filters, sortBy, sortDescending, searchTerm]);
+    setFilters((prev) => ({ ...prev, searchTerm }));
+    setPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
 
   // Sync filters.page with page on mount
   useEffect(() => {
     setFilters((prev) => ({ ...prev, page: page || 1 }));
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const params = {
         ...filters,
         sortBy,
         sortDescending,
-        searchTerm: searchTerm || undefined,
+        searchTerm: filters.searchTerm || undefined,
       };
       const response = await getDiscountCodesWithFilter(params);
       setData(response.data);
+      // Không cập nhật filters ở đây nữa để tránh vòng lặp vô hạn
     } catch (error) {
       console.error('Error fetching discount codes:', error);
       toast.error('Failed to fetch discount codes');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -173,11 +182,22 @@ export const DiscountCodeList = () => {
     );
   };
 
+  // Khi searchTerm thay đổi, cập nhật filters và đánh dấu là searchOnly
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, searchTerm, _searchOnly: true }));
+    setPage(1);
+  }, [searchTerm]);
+
+  // Khi các filter khác thay đổi (không phải search), bỏ _searchOnly
   const updateFilter = (
     key: keyof DiscountCodeFilterParams,
     value: string | string[] | boolean | number | undefined
   ) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value, page: 1 };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(1);
   };
 
@@ -198,25 +218,25 @@ export const DiscountCodeList = () => {
 
   return (
     <div className="p-6">
-      <SpinnerOverlay show={loading} />
-
-      {/* Modals */}
-      {editDiscount && (
-        <EditDiscountCodeModal
-          discount={editDiscount}
-          onClose={() => setEditDiscount(null)}
-          onUpdated={reloadList}
-        />
-      )}
-      {viewDiscount && (
-        <DiscountCodeDetailModal discount={viewDiscount} onClose={() => setViewDiscount(null)} />
-      )}
-      <CreateDiscountCodeModal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={reloadList}
-      />
       <div className="overflow-x-auto">
+        <SpinnerOverlay show={loading} />
+
+        {/* Modals */}
+        {editDiscount && (
+          <EditDiscountCodeModal
+            discount={editDiscount}
+            onClose={() => setEditDiscount(null)}
+            onUpdated={reloadList}
+          />
+        )}
+        {viewDiscount && (
+          <DiscountCodeDetailModal discount={viewDiscount} onClose={() => setViewDiscount(null)} />
+        )}
+        <CreateDiscountCodeModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={reloadList}
+        />
         <div className={`p-4 ${getAdminListCardClass()}`}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
             {/* Search input (left) */}
@@ -282,7 +302,7 @@ export const DiscountCodeList = () => {
                   align="end"
                   className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
                 >
-                  {/* Discount Type Filter */}
+                  {/* Discount Type Filter (radio) */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Discount Type
                   </div>
@@ -291,7 +311,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="discountTypeFilter"
                       checked={filters.discountType === undefined}
                       readOnly
                       className="mr-2"
@@ -303,7 +324,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="discountTypeFilter"
                       checked={filters.discountType === 0}
                       readOnly
                       className="mr-2"
@@ -315,7 +337,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="discountTypeFilter"
                       checked={filters.discountType === 1}
                       readOnly
                       className="mr-2"
@@ -324,7 +347,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
 
-                  {/* Expired Status Filter */}
+                  {/* Expired Status Filter (radio) */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Expired Status
                   </div>
@@ -333,7 +356,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="expiredStatusFilter"
                       checked={filters.isExpired === undefined}
                       readOnly
                       className="mr-2"
@@ -345,7 +369,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="expiredStatusFilter"
                       checked={filters.isExpired === true}
                       readOnly
                       className="mr-2"
@@ -357,7 +382,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="expiredStatusFilter"
                       checked={filters.isExpired === false}
                       readOnly
                       className="mr-2"
@@ -366,7 +392,7 @@ export const DiscountCodeList = () => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
 
-                  {/* Availability Filter */}
+                  {/* Availability Filter (radio) */}
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
                     Availability
                   </div>
@@ -375,7 +401,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="availabilityFilter"
                       checked={filters.isAvailable === undefined}
                       readOnly
                       className="mr-2"
@@ -387,7 +414,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="availabilityFilter"
                       checked={filters.isAvailable === true}
                       readOnly
                       className="mr-2"
@@ -399,7 +427,8 @@ export const DiscountCodeList = () => {
                     className={getAdminListDropdownItemClass()}
                   >
                     <input
-                      type="checkbox"
+                      type="radio"
+                      name="availabilityFilter"
                       checked={filters.isAvailable === false}
                       readOnly
                       className="mr-2"

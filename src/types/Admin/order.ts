@@ -102,6 +102,7 @@ export interface OrderFilterParams {
   DiscountCode?: string;
   SortBy?: string;
   SortDescending?: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 export enum PaymentMethod {
@@ -164,5 +165,6 @@ export interface PaymentFilterParams {
   TransactionCode?: string;
   SortBy?: string;
   SortDescending?: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 

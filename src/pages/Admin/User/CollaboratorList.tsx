@@ -79,8 +79,11 @@ export const CollaboratorList = () => {
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (isSearching = false) => {
+    // Chỉ hiển thị loading khi không phải đang search
+    if (!isSearching) {
+      setLoading(true);
+    }
     try {
       const params: Omit<UserFilterParams, 'role'> = {
         searchTerm: collaboratorSearch || filters.searchTerm,
@@ -136,7 +139,12 @@ export const CollaboratorList = () => {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
+    // Khi collaboratorSearch thay đổi, đây là search nên không hiển thị loading
+    if (collaboratorSearch !== filters.searchTerm) {
+      fetchUsers(true);
+    } else {
+      fetchUsers(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, collaboratorSearch, sortBy, sortDescending]);
 

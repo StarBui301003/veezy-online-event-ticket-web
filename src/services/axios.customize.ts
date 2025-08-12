@@ -65,8 +65,7 @@ const shouldRefreshToken = (): boolean => {
 
   // ✅ Chỉ refresh khi đã đủ thời gian từ lần refresh cuối
   if (timeSinceLastRefresh < REFRESH_INTERVAL) {
-    const timeUntilNextRefresh = REFRESH_INTERVAL - timeSinceLastRefresh;
-    const timeUntilNextRefreshMinutes = Math.floor(timeUntilNextRefresh / 60000);
+
 
     return false;
   }

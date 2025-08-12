@@ -61,6 +61,7 @@ export const CommentList = () => {
     pageSize: 5,
     sortBy: 'createdAt',
     sortDescending: true,
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -102,9 +103,16 @@ export const CommentList = () => {
     };
   }, []);
 
+  // Khi searchTerm thay đổi, cập nhật filters và đánh dấu là searchOnly
   useEffect(() => {
-    fetchData();
-  }, [filters, sortBy, sortDescending, searchTerm]);
+    setFilters((prev) => ({ ...prev, searchTerm, _searchOnly: true }));
+    setPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    // Nếu chỉ search thì không loading
+    fetchData(filters._searchOnly ? false : true);
+  }, [filters, sortBy, sortDescending]);
 
   // Sync filters.page with page on mount
   useEffect(() => {
@@ -147,8 +155,8 @@ export const CommentList = () => {
     loadEventsFromComments();
   }, []); // Only run once on mount, not dependent on data?.items
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       // Tách riêng pagination và filter parameters giống ApprovedEventList.tsx
       const paginationParams = {
@@ -156,19 +164,19 @@ export const CommentList = () => {
         pageSize: filters.pageSize,
       };
 
-      // Chuẩn hóa eventId filter thành dạng mảng (eventId[]=...) nếu là mảng
-      let eventIdParam: any = undefined;
+      // Chuẩn hóa eventId filter - chỉ lấy eventId đầu tiên nếu là mảng
+      let eventIdParam: string | undefined = undefined;
       if (Array.isArray(filters.eventId)) {
         if (filters.eventId.length > 0) {
-          eventIdParam = filters.eventId;
+          eventIdParam = filters.eventId[0]; // Chỉ lấy eventId đầu tiên
         }
       } else if (typeof filters.eventId === 'string' && filters.eventId) {
-        eventIdParam = [filters.eventId];
+        eventIdParam = filters.eventId;
       }
 
       const filterParams = {
-        searchTerm: searchTerm || undefined,
-        eventId: eventIdParam, // Đảm bảo truyền dạng mảng nếu có nhiều eventId
+        searchTerm: filters.searchTerm || undefined,
+        eventId: eventIdParam,
         userId: filters.userId,
         createdFrom: filters.createdFrom,
         createdTo: filters.createdTo,
@@ -183,9 +191,9 @@ export const CommentList = () => {
       console.log('🔍 Comment Search Parameters:', {
         pagination: paginationParams,
         filters: filterParams,
-        searchTerm: searchTerm,
+        searchTerm: filters.searchTerm,
         eventId: filterParams.eventId,
-        note: 'eventId filter is now properly passed to API as array (eventId[]=...)',
+        note: 'eventId filter is now properly passed to API as single string',
       });
 
       const response = await getCommentsWithFilter(params);
@@ -193,7 +201,7 @@ export const CommentList = () => {
     } catch (error) {
       console.error('Error fetching comments:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -202,12 +210,20 @@ export const CommentList = () => {
   };
 
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const next = { ...prev, page: newPage };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, pageSize: newPageSize, page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, pageSize: newPageSize, page: 1 };
+      delete next._searchOnly;
+      return next;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -217,7 +233,11 @@ export const CommentList = () => {
     const newSortDescending = sortBy === field ? !sortDescending : true;
     setSortBy(field);
     setSortDescending(newSortDescending);
-    setFilters((prev) => ({ ...prev, page: 1 }));
+    setFilters((prev) => {
+      const next = { ...prev, page: 1 };
+      delete next._searchOnly;
+      return next;
+    });
     setPage(1);
   };
 
@@ -240,6 +260,7 @@ export const CommentList = () => {
     console.log('🔧 Comment Filter update:', { key, value });
     setFilters((prev) => {
       const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly; // Bỏ _searchOnly flag khi filter thay đổi
       console.log('🔧 New comment filters state:', newFilters);
       return newFilters;
     });
@@ -252,6 +273,7 @@ export const CommentList = () => {
 
   return (
     <div className="p-6">
+      <SpinnerOverlay show={loading} />
       {viewComment && (
         <CommentDetailModal
           comment={viewComment}
@@ -262,7 +284,7 @@ export const CommentList = () => {
       )}
 
       <AnalyzeCommentModal open={showAnalyzeModal} onClose={() => setShowAnalyzeModal(false)} />
-      <SpinnerOverlay show={loading} />
+
       <div className="overflow-x-auto">
         <div className={`p-4 ${getAdminListCardClass()}`}>
           {/* Search input và nút Analyze cùng hàng */}

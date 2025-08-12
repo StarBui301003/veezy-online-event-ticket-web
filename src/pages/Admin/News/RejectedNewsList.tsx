@@ -64,6 +64,7 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     sortDescending: true,
     eventId: '',
     authorFullName: '',
+    searchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -104,6 +105,26 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     searchRef.current = rejectedNewsSearch;
   }, [rejectedNewsSearch]);
 
+  // Handle search term changes separately
+  useEffect(() => {
+    if (rejectedNewsSearch !== filters.searchTerm) {
+      setFilters((prev) => ({ ...prev, searchTerm: rejectedNewsSearch, _searchOnly: true }));
+    }
+  }, [rejectedNewsSearch, filters.searchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (activeTab === 'rejected') {
+      if (filters._searchOnly) {
+        // Search only - don't show loading
+        fetchData(page, pageSize, false);
+      } else {
+        // Other filters - show loading
+        fetchData(page, pageSize, true);
+      }
+    }
+  }, [filters, sortBy, sortDescending, activeTab]);
+
   // Connect hub chỉ 1 lần khi mount
   useEffect(() => {
     const NEWS_HUB_URL =
@@ -135,17 +156,19 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = (p = page, ps = pageSize) => {
-    setLoading(true);
+  const fetchData = (p = page, ps = pageSize, showLoading = true) => {
+    if (showLoading && !filters._searchOnly) {
+      setLoading(true);
+    }
 
     // Use current page and pageSize, but reset to page 1 when searching
-    const currentPage = rejectedNewsSearch ? 1 : p;
+    const currentPage = filters._searchOnly ? 1 : p;
     const currentPageSize = ps;
 
     const filterParams = {
       page: currentPage,
       pageSize: currentPageSize,
-      searchTerm: rejectedNewsSearch,
+      searchTerm: filters.searchTerm,
       authorFullName: filters.authorFullName,
       eventId: filters.eventId,
       authorId: filters.authorId,
@@ -178,28 +201,32 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
       });
   };
 
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, rejectedNewsSearch] đổi
-  useEffect(() => {
-    if (activeTab === 'rejected') {
-      fetchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, rejectedNewsSearch, activeTab]);
-
   // Filter handlers
   const updateFilter = (key: keyof NewsFilterParams, value: string | string[] | undefined) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value, page: 1 };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(1);
   };
 
   // Pagination handlers
   const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: newPage };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPage(newPage);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setFilters((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
+    setFilters((prev) => {
+      const newFilters = { ...prev, page: 1, pageSize: newPageSize };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
     setPageSize(newPageSize);
     setPage(1);
   };
@@ -212,6 +239,12 @@ export const RejectedNewsList = ({ activeTab }: { activeTab: string }) => {
       setSortBy(field);
       setSortDescending(true);
     }
+    // Remove searchOnly flag for sort changes
+    setFilters((prev) => {
+      const newFilters = { ...prev };
+      delete newFilters._searchOnly;
+      return newFilters;
+    });
   };
 
   const getSortIcon = (field: string) => {

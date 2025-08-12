@@ -60,6 +60,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     Page: 1,
     PageSize: 5,
     SortDescending: true,
+    SearchTerm: '',
   });
   const [sortBy, setSortBy] = useState<string>('createdAt');
   const [sortDescending, setSortDescending] = useState(true);
@@ -91,7 +92,7 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     const token = localStorage.getItem('access_token');
     connectFundHub('https://ticket.vezzy.site/fundHub', token);
     const reload = () => {
-      fetchData();
+      fetchData(false);
     };
     onFund('OnWithdrawalRequested', reload);
     onFund('OnWithdrawalStatusChanged', reload);
@@ -103,8 +104,26 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchData = () => {
-    setLoading(true);
+  // Handle search term changes separately
+  useEffect(() => {
+    if (withdrawalSearch !== filters.SearchTerm) {
+      setFilters((prev) => ({ ...prev, SearchTerm: withdrawalSearch, _searchOnly: true }));
+    }
+  }, [withdrawalSearch, filters.SearchTerm]);
+
+  // Handle other filter changes
+  useEffect(() => {
+    if (filters._searchOnly) {
+      // Search only - don't show loading
+      fetchData(false);
+    } else {
+      // Other filters - show loading
+      fetchData(true);
+    }
+  }, [filters, sortBy, sortDescending]);
+
+  const fetchData = (showLoading: boolean = true) => {
+    if (showLoading && !filters._searchOnly) setLoading(true);
 
     // Separate pagination parameters from filter parameters
     const paginationParams = {
@@ -165,12 +184,6 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
         setTimeout(() => setLoading(false), 500);
       });
   };
-
-  // Chỉ gọi fetchData khi [filters, sortBy, sortDescending, withdrawalSearch] đổi
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, sortBy, sortDescending, withdrawalSearch]);
 
   // Update amountRange when maxAmount changes (but not on initial load)
   useEffect(() => {

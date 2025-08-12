@@ -24,6 +24,7 @@ export interface ReportFilterParams {
   pageSize: number;
   sortBy?: string;
   sortDescending: boolean;
+  _searchOnly?: boolean; // Flag to indicate search-only operations (no loading)
 }
 
 export interface GetAllReportResponse {
