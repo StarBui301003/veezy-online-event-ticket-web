@@ -4,7 +4,7 @@ import { FiCamera } from 'react-icons/fi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { loginAPI, loginByFaceAPI } from '@/services/auth.service';
+import { loginAPI, loginByFaceAPI, requestResetPassword, resetPasswordWithCode } from '@/services/auth.service';
 import { toast } from 'react-toastify';
 
 import {
@@ -36,6 +36,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: email, 2: code & new password
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showFaceCapture, setShowFaceCapture] = useState(false);
@@ -166,6 +176,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
       // Close modal and trigger success callback
       onClose();
+      // onLoginSuccess will be called by the parent component (AuthModals)
+      // which handles the pending action execution
       onLoginSuccess();
     } catch (error: unknown) {
       // Parse backend errors
@@ -307,8 +319,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
-  const handleRegisterClick = () => {
-    onClose();
+  const handleRegisterClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (onRegisterRedirect) {
       onRegisterRedirect();
     }
@@ -424,7 +436,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 />
                 <span className="text-white/80 text-sm">{t('rememberMe')}</span>
               </div>
-              <button className="text-blue-300 hover:text-blue-200 text-sm transition-colors">
+              <button 
+                onClick={() => setShowForgotPassword(true)}
+                className="text-blue-300 hover:text-blue-200 text-sm transition-colors"
+              >
                 {t('forgotPassword')}
               </button>
             </div>
@@ -488,6 +503,213 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           onError={setFaceError}
           onCancel={() => setShowFaceCapture(false)}
         />
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div 
+            className="relative bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 text-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                setShowForgotPassword(false);
+                setResetStep(1);
+                setResetError('');
+                setResetMessage('');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {resetStep === 1 ? 'Reset Password' : 'Create New Password'}
+            </h2>
+            <p className="text-white/70 mb-6">
+              {resetStep === 1 
+                ? 'Enter your email to receive a verification code' 
+                : 'Enter the verification code sent to your email and create a new password'}
+            </p>
+
+            <div className="space-y-4">
+              {resetStep === 1 ? (
+                <>
+                  <div>
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={forgotPasswordEmail}
+                      onChange={(e) => {
+                        setForgotPasswordEmail(e.target.value);
+                        setResetError('');
+                      }}
+                      className="w-full rounded-xl border-0 bg-white/10 text-white placeholder:text-white/50 py-3 px-4 text-base focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        setResetError('');
+                        await requestResetPassword(forgotPasswordEmail);
+                        setResetStep(2);
+                        setResetMessage('A verification code has been sent to your email.');
+                      } catch (error: any) {
+                        const errorMessage = error.response?.data?.message || 'Failed to send verification code. Please try again.';
+                        setResetError(errorMessage);
+                        console.error('Password reset request failed:', error);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-xl font-semibold text-base transition-all shadow-lg"
+                    disabled={loading || !forgotPasswordEmail}
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="animate-spin w-5 h-5" />
+                        Sending...
+                      </span>
+                    ) : (
+                      'Send Verification Code'
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <Input
+                        type="text"
+                        placeholder="Verification Code"
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                        className="w-full rounded-xl border-0 bg-white/10 text-white placeholder:text-white/50 py-3 px-4 text-base focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <Input
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="New Password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full rounded-xl border-0 bg-white/10 text-white placeholder:text-white/50 py-3 px-4 pr-12 text-base focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirm New Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full rounded-xl border-0 bg-white/10 text-white placeholder:text-white/50 py-3 px-4 pr-12 text-base focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5" />
+                        ) : (
+                          <Eye className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    <Button
+                      onClick={async () => {
+                        if (newPassword !== confirmPassword) {
+                          setResetError('Passwords do not match');
+                          return;
+                        }
+                        if (newPassword.length < 6) {
+                          setResetError('Password must be at least 6 characters');
+                          return;
+                        }
+                        try {
+                          setLoading(true);
+                          setResetError('');
+                          await resetPasswordWithCode(forgotPasswordEmail, resetCode, newPassword);
+                          toast.success('Password has been reset successfully!', { position: 'top-right' });
+                          setShowForgotPassword(false);
+                          setResetStep(1);
+                          // Clear form
+                          setForgotPasswordEmail('');
+                          setResetCode('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                        } catch (error: any) {
+                          const errorMessage = error.response?.data?.message || 'Failed to reset password. Please check the code and try again.';
+                          setResetError(errorMessage);
+                          console.error('Password reset failed:', error);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white py-3 rounded-xl font-semibold text-base transition-all shadow-lg mt-2"
+                      disabled={loading || !resetCode || !newPassword || !confirmPassword}
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="animate-spin w-5 h-5" />
+                          Resetting...
+                        </span>
+                      ) : (
+                        'Reset Password'
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {resetMessage && (
+                <div className="text-green-400 text-sm text-center">
+                  {resetMessage}
+                </div>
+              )}
+
+              {resetError && (
+                <div className="text-red-400 text-sm text-center">
+                  {resetError}
+                </div>
+              )}
+
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => {
+                    if (resetStep === 1) {
+                      setShowForgotPassword(false);
+                    } else {
+                      setResetStep(1);
+                    }
+                    setResetError('');
+                    setResetMessage('');
+                  }}
+                  className="text-blue-300 hover:text-blue-200 text-sm transition-colors"
+                >
+                  {resetStep === 1 ? 'Back to Login' : 'Back to Email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

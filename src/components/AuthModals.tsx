@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
 import { AuthModalContext } from '@/contexts/AuthModalContext';
+import { useRequireLogin } from '@/hooks/useRequireLogin';
 
 interface AuthModalsProps {
   open: boolean;
@@ -33,6 +34,21 @@ const AuthModals: React.FC<AuthModalsProps> = ({
     if (onClose) onClose();
   };
 
+  // Handle login success - this will be called after login is successful
+  const handleLoginSuccess = useCallback(() => {
+    setShowLoginModal(false);
+    
+    // Call the original onLoginSuccess if provided
+    if (onLoginSuccess) {
+      onLoginSuccess();
+    }
+    
+    // Close the modal
+    if (onClose) {
+      onClose();
+    }
+  }, [onLoginSuccess, onClose]);
+
   return (
     <AuthModalContext.Provider value={{ setShowLoginModal }}>
       <LoginModal
@@ -41,11 +57,7 @@ const AuthModals: React.FC<AuthModalsProps> = ({
           setShowLoginModal(false);
           if (onClose) onClose();
         }}
-        onLoginSuccess={() => {
-          setShowLoginModal(false);
-          if (onLoginSuccess) onLoginSuccess();
-          if (onClose) onClose();
-        }}
+onLoginSuccess={handleLoginSuccess}
         onRegisterRedirect={() => {
           setShowLoginModal(false);
           setShowRegisterModal(true);

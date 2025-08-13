@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext, useCallback } from 'react';
 import { useRequireLogin } from '@/hooks/useRequireLogin';
 import { AuthContext } from '@/contexts/AuthContext';
 import AuthModals from '@/components/AuthModals';
@@ -101,11 +101,37 @@ interface EventData {
 }
 
 const EventDetail = () => {
-  const { requireLogin } = useRequireLogin();
+  const { requireLogin, handleLoginSuccess } = useRequireLogin();
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
+  
+  // State declarations
+  const [pendingReport, setPendingReport] = useState<ReportInfo | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  
+  // Handle login required for protected actions
+  const handleLoginRequired = useCallback(() => {
+    setShowLoginModal(true);
+  }, []);
+  
+  // Handle successful login
+  const onLoginSuccess = useCallback(() => {
+    if (typeof handleLoginSuccess === 'function') {
+      handleLoginSuccess();
+    }
+    // Execute any pending actions after successful login
+    const currentReport = pendingReport;
+    if (currentReport) {
+      if (currentReport.type === 'event' && eventId) {
+        setShowReportModal(true);
+      } else if (currentReport.type === 'comment') {
+        setShowReportModal(true);
+      }
+    }
+  }, [handleLoginSuccess, pendingReport, eventId]);
   const [event, setEvent] = useState<EventDetailData | null>(null);
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [selectedTickets, setSelectedTickets] = useState<Record<string, SelectedTicket>>({});
@@ -124,15 +150,13 @@ const EventDetail = () => {
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [pendingReport, setPendingReport] = useState<{
+  interface ReportInfo {
     type: 'event' | 'comment';
     id: string;
-  } | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  }
+
   const [isFollowingEvent, setIsFollowingEvent] = useState(false);
   const [loadingFollowEvent, setLoadingFollowEvent] = useState(false);
-  const [pendingFollow, setPendingFollow] = useState(false);
   const [showFaceModal, setShowFaceModal] = useState(false);
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceError, setFaceError] = useState('');
@@ -143,50 +167,6 @@ const EventDetail = () => {
 
   // NEW: Define maximum total tickets per order (if applicable, e.g., 10)
   const MAX_TOTAL_TICKETS_PER_ORDER = 10;
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      if (pendingReport) {
-        setShowReportModal(true);
-      } else if (pendingFollow) {
-        handleFollowEvent();
-      }
-    }
-  }, [isLoggedIn]);
-
-  const handleReportEvent = () => {
-    const reportInfo = { type: 'event' as const, id: eventId || '' };
-    if (!isLoggedIn) {
-      setPendingReport(reportInfo);
-      setShowLoginModal(true);
-    } else {
-      setPendingReport(reportInfo);
-      setShowReportModal(true);
-    }
-  };
-
-  const handleReportComment = (report: { type: 'comment'; id: string }) => {
-    if (!isLoggedIn) {
-      setPendingReport(report);
-      setShowLoginModal(true);
-    } else {
-      setPendingReport(report);
-      setShowReportModal(true);
-    }
-  };
-
-  const handleLoginRequired = () => {
-    setShowReportModal(false);
-    setShowLoginModal(true);
-  };
-
-  const handleLoginSuccess = () => {
-    setShowLoginModal(false);
-    setShowRegisterModal(false);
-    if (pendingFollow) {
-      handleFollowEvent();
-    }
-  };
 
   useEffect(() => {
     if (!eventId) {
@@ -598,7 +578,10 @@ const EventDetail = () => {
           setAppliedDiscount(0);
         }
       } else {
-        setDiscountValidation({ success: false, message: res.message || t('discountCodeInvalid') });
+        setDiscountValidation({
+          success: false,
+          message: res.message || t('discountCodeInvalid'),
+        });
         setAppliedDiscount(0);
       }
     } catch (err: any) {
@@ -765,34 +748,104 @@ const EventDetail = () => {
     }
   };
 
-  const handleFollowEvent = async () => {
-    if (!isLoggedIn) {
-      setPendingFollow(true);
-      setShowLoginModal(true);
-      return;
-    }
-    if (!eventId) return;
+  interface FollowError extends Error {
+    response?: {
+      data?: {
+        message?: string;
+      };
+    };
+  }
 
-    setLoadingFollowEvent(true);
-    try {
-      if (isFollowingEvent) {
-        await unfollowEvent(eventId);
-        toast.success(t('unfollowedEvent'));
-      } else {
-        await followEvent(eventId);
-        toast.success(t('followedEvent'));
+  const handleFollowEvent = async () => {
+    requireLogin(async () => {
+      if (!eventId) {
+        toast.error(t('eventNotFound'));
+        return;
       }
-      setIsFollowingEvent(!isFollowingEvent);
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || t('somethingWentWrong');
-      toast.error(errorMessage);
-      if (errorMessage.includes('Already following')) {
-        setIsFollowingEvent(true);
+
+      setLoadingFollowEvent(true);
+      try {
+        if (isFollowingEvent) {
+          await unfollowEvent(eventId);
+          toast.success(t('unfollowedEvent'));
+          setIsFollowingEvent(false);
+        } else {
+          await followEvent(eventId);
+          toast.success(t('followedEvent'));
+          setIsFollowingEvent(true);
+        }
+      } catch (err: unknown) {
+        const error = err as FollowError;
+        let errorMessage = t('somethingWentWrong');
+        
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+          if (errorMessage.toLowerCase().includes('already following')) {
+            setIsFollowingEvent(true);
+            return; // Don't show error if already following
+          } else if (errorMessage.toLowerCase().includes('not found')) {
+            errorMessage = t('eventNotFound');
+          } else if (errorMessage.toLowerCase().includes('unauthorized')) {
+            errorMessage = t('loginRequired');
+          }
+        }
+        
+        toast.error(errorMessage);
+      } finally {
+        setLoadingFollowEvent(false);
       }
-    } finally {
-      setLoadingFollowEvent(false);
-      setPendingFollow(false);
-    }
+    });
+  };
+
+  const [isReporting, setIsReporting] = useState(false);
+
+  const handleReportEvent = () => {
+    if (isReporting) return; // Prevent multiple clicks
+    
+    requireLogin(async () => {
+      if (!eventId) {
+        toast.error(t('eventNotFound'));
+        return;
+      }
+      
+      setIsReporting(true);
+      try {
+        const reportInfo = { type: 'event' as const, id: eventId };
+        setPendingReport(reportInfo);
+        // Don't show modal here - it will be handled by onLoginSuccess
+        // This ensures the modal shows after login if needed
+        if (isLoggedIn) {
+          setShowReportModal(true);
+        }
+      } catch (error) {
+        console.error('Error preparing report:', error);
+        toast.error(t('failedToPrepareReport'));
+      } finally {
+        setIsReporting(false);
+      }
+    });
+  };
+
+  const handleReportComment = (report: { type: 'comment'; id: string }) => {
+    if (isReporting) return; // Prevent multiple clicks
+    
+    requireLogin(async () => {
+      if (!report?.id) {
+        toast.error(t('commentNotFound'));
+        return;
+      }
+      
+      setIsReporting(true);
+      try {
+        setPendingReport(report as ReportInfo);
+        setShowReportModal(true);
+      } catch (error) {
+        console.error('Error preparing comment report:', error);
+        toast.error(t('failedToPrepareReport'));
+      } finally {
+        setIsReporting(false);
+      }
+    });
   };
 
   if (loadingEvent) {
@@ -895,10 +948,16 @@ const EventDetail = () => {
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="relative rounded-3xl shadow-2xl overflow-hidden mb-12 h-[300px] md:h-[400px] lg:h-[500px]"
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className={cn(
+            'relative rounded-3xl shadow-2xl overflow-hidden mb-12 h-[300px] md:h-[400px] lg:h-[500px]',
+            getThemeClass(
+              'bg-white/95 border border-gray-200 shadow-lg',
+              'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
+            )
+          )}
         >
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 right-4 z-10">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1692,9 +1751,8 @@ const EventDetail = () => {
           onClose={() => {
             setShowLoginModal(false);
             setPendingReport(null);
-            setPendingFollow(false);
           }}
-          onLoginSuccess={handleLoginSuccess}
+          onLoginSuccess={onLoginSuccess}
           onRegisterSuccess={() => {
             setShowLoginModal(false);
             setShowRegisterModal(true);
@@ -1707,9 +1765,8 @@ const EventDetail = () => {
           onClose={() => {
             setShowRegisterModal(false);
             setPendingReport(null);
-            setPendingFollow(false);
           }}
-          onRegisterSuccess={handleLoginSuccess}
+          onRegisterSuccess={onLoginSuccess}
           onLoginRedirect={() => {
             setShowRegisterModal(false);
             setShowLoginModal(true);
