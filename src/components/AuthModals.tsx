@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { LoginModal } from '@/components/common/LoginModal';
 import { RegisterModal } from '@/components/RegisterModal';
 import { AuthModalContext } from '@/contexts/AuthModalContext';
-import { useRequireLogin } from '@/hooks/useRequireLogin';
 
 interface AuthModalsProps {
   open: boolean;

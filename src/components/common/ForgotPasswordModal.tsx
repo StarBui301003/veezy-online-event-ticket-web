@@ -3,7 +3,6 @@ import { X, Mail, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { requestResetPassword } from '@/services/auth.service';
-import { toast } from 'react-toastify';
 
 interface ForgotPasswordModalProps {
   open: boolean;
