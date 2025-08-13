@@ -16,7 +16,6 @@ import {
 import {
   Send,
   Search,
-  Users,
   MessageCircle,
   Clock,
   AlertCircle,
@@ -45,9 +44,9 @@ import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
-import identityService from '@/services/identity.service';
-import { MdRefresh } from 'react-icons/md';
-import { getRoleDisplayName } from '@/utils/roleMapper';
+// import identityService from '@/services/identity.service';
+// import { MdRefresh } from 'react-icons/md';
+// import { getRoleDisplayName } from '@/utils/roleMapper';
 
 const ChatboxAdmin = () => {
   const { getProfileInputClass, getCardClass, getTextClass, theme } = useThemeClasses();
@@ -92,23 +91,12 @@ const ChatboxAdmin = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<
-    Array<{
-      userId: string;
-      userName: string;
-      fullName: string;
-      email: string;
-      role: string;
-      avatar: string;
-      isOnline: boolean;
-      lastActiveAt: string;
-    }>
-  >([]);
+  // Đã ẩn tab user online, không cần state allUsersFromIdentity
 
-  const onlineUsers = allUsersFromIdentity;
+  // const onlineUsers = allUsersFromIdentity;
   const [isConnected, setIsConnected] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [refreshingUsers, setRefreshingUsers] = useState(false);
+  // Đã ẩn tab user online, không cần state refreshingUsers
 
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -159,18 +147,9 @@ const ChatboxAdmin = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const users = await identityService.getAllUsersWithStatus();
-        const transformedUsers = users.map((user) => ({
-          userId: user.accountId,
-          userName: user.username,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatarUrl || '',
-          isOnline: user.isOnline,
-          lastActiveAt: user.lastActiveAt,
-        }));
-        setAllUsersFromIdentity(transformedUsers);
+  // const users = await identityService.getAllUsersWithStatus(); // Đã xoá vì không còn dùng
+  // const transformedUsers = users.map(...) // Đã xoá vì không còn dùng
+  // setAllUsersFromIdentity(transformedUsers); // Đã xoá state này
       } catch (error) {
         console.error('[ChatboxAdmin] Error loading users:', error);
       }
@@ -1001,31 +980,9 @@ const ChatboxAdmin = () => {
   };
 
   // Refresh all users from IdentityService
-  const refreshAllUsers = async () => {
-    // Prevent multiple calls while already refreshing
-    if (refreshingUsers) return;
-    setRefreshingUsers(true);
-    try {
-      const users = await identityService.getAllUsersWithStatus();
-      const transformedUsers = users.map((user) => ({
-        userId: user.accountId,
-        userName: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatarUrl || '',
-        isOnline: user.isOnline,
-        lastActiveAt: user.lastActiveAt,
-      }));
-      setAllUsersFromIdentity(transformedUsers);
-      toast.success(`Refreshed ${transformedUsers.length} users`);
-    } catch (error) {
-      console.error('[ChatboxAdmin] Error refreshing users:', error);
-      toast.error('Failed to refresh users');
-    } finally {
-      setRefreshingUsers(false);
-    }
-  };
+  // const refreshAllUsers = async () => {
+  //   ...đã ẩn cùng tab user online...
+  // };
 
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
