@@ -67,14 +67,15 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   // State management
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  // messagesLocal chỉ dùng cho AI/local, còn human sẽ đồng bộ với adminMessages
+  // messagesLocal: luôn là nguồn hiển thị, luôn merge/gộp từ server/local/stream
   const [messagesLocal, setMessagesLocal] = useState<UnifiedMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [aiFailureCount, setAiFailureCount] = useState(0);
   const [isSwitchingMode, setIsSwitchingMode] = useState(false); // Track mode switching state
-  const [localModeOverride, setLocalModeOverride] = useState<'ai' | 'human' | null>(null); // Local override for mode
+  // localModeOverride chỉ dùng khi đang chuyển mode, không phải source of truth
+  const [localModeOverride, setLocalModeOverride] = useState<'ai' | 'human' | null>(null);
 
   // Track current chat room id for mode switching
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -96,21 +97,20 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   // Use the chat mode from the hook (updated by SignalR events) with local override
   const chatMode = localModeOverride || currentChatMode;
 
-  // Debug: Log when chatMode changes
+  // Chỉ dùng localModeOverride khi đang chuyển mode, luôn ưu tiên currentChatMode làm source of truth
   useEffect(() => {
-    // Reset switching state when mode changes successfully
-    if (isSwitchingMode && chatMode === 'human') {
+    // Khi nhận event từ SignalR (currentChatMode thay đổi), reset switching/override ngay
+    if (isSwitchingMode && localModeOverride && currentChatMode === localModeOverride) {
       setIsSwitchingMode(false);
-    }
-
-    // Clear local override if hook mode matches what we expected
-    if (localModeOverride && currentChatMode === localModeOverride) {
       setLocalModeOverride(null);
     }
-
-    // Force re-render by updating a dummy state to ensure UI reflects new mode
-    setNewMessage((prev) => prev); // This will trigger a re-render without changing the actual message
-  }, [chatMode, currentChatMode, isSwitchingMode, localModeOverride]);
+    // Nếu isSwitchingMode chuyển về false (timeout hoặc user hủy), xóa override
+    if (!isSwitchingMode && localModeOverride) {
+      setLocalModeOverride(null);
+    }
+    // Force re-render để UI cập nhật
+    setNewMessage((prev) => prev);
+  }, [currentChatMode, isSwitchingMode, localModeOverride]);
 
   // Track chatRoom id for mode switching
   useEffect(() => {
@@ -148,11 +148,22 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     ): string => {
       const messageId = generateMessageId();
       const now = new Date();
+      // Lấy account thật từ localStorage hoặc util
+      let realUserId = '';
+      let realUserName = '';
+      try {
+        const accStr = localStorage.getItem('account');
+        if (accStr) {
+          const acc = JSON.parse(accStr);
+          realUserId = acc.userId || acc.accountId || acc.id || '';
+          realUserName = acc.username || acc.fullName || acc.name || '';
+        }
+      } catch {}
       const newMessage: UnifiedMessage = {
         id: messageId,
         roomId: '',
-        senderUserId: isUser ? 'me' : '',
-        senderUserName: senderName || (isUser ? 'You' : isAI ? 'AI Assistant' : 'Support Agent'),
+        senderUserId: isUser ? realUserId : '',
+        senderUserName: senderName || (isUser ? realUserName : isAI ? 'AI Assistant' : 'Support Agent'),
         content,
         type: 0,
         attachments: [],
@@ -169,7 +180,10 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
         replyToMessage,
         sources,
       };
-      setMessagesLocal((prev) => [...prev, newMessage]);
+      setMessagesLocal((prev) => {
+        if (prev.some(m => m.id === messageId)) return prev;
+        return [...prev, newMessage];
+      });
       scrollToBottom();
       return messageId;
     },
@@ -179,22 +193,67 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   // Khi mount: chỉ setup welcome message nếu ở chế độ AI, KHÔNG tạo chat room ngay
   useEffect(() => {
     if (chatMode === 'ai') {
-      setMessagesLocal([]);
-      addLocalMessage(
-        "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
-        false,
-        false,
-        true
-      );
+      // Không reset trắng, chỉ thêm welcome nếu trống
+      setMessagesLocal((prev) => {
+        if (prev.length === 0) {
+          addLocalMessage(
+            "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
+            false,
+            false,
+            true
+          );
+        }
+        return prev;
+      });
       setTimeout(() => {
         scrollToBottom();
       }, 400);
+      // Tải lịch sử AI từ server nếu cần (dùng getRoomMessages, có thể filter AI phía client nếu cần)
+      if (roomId) {
+        chatService.getRoomMessages(roomId, 1, 50).then((history) => {
+          if (Array.isArray(history)) {
+            setMessagesLocal((prev) => {
+              const map = new Map(prev.map(m => [m.id, m]));
+              for (const msg of history) {
+                if (!map.has(msg.messageId)) {
+                  map.set(msg.messageId, {
+                    id: msg.messageId,
+                    roomId: msg.roomId || '',
+                    senderUserId: msg.senderId,
+                    senderUserName: msg.senderName,
+                    content: msg.content,
+                    type: 0,
+                    createdAt: msg.createdAt || msg.timestamp,
+                    updatedAt: msg.createdAt || msg.timestamp,
+                    isUser: false,
+                    isAI: msg.senderId === 'system-ai-bot',
+                    isError: false,
+                    isStreaming: false,
+                    isEdited: msg.isEdited || false,
+                    isDeleted: msg.isDeleted || false,
+                    senderName: msg.senderName,
+                    sources: [],
+                    attachments: [],
+                    readByUserIds: [],
+                    mentionedUserIds: [],
+                    replyToMessageId: msg.replyToMessageId,
+                    replyToMessage: undefined,
+                  });
+                }
+              }
+              return Array.from(map.values());
+            });
+          }
+        });
+      }
     }
   }, [addLocalMessage, scrollToBottom, chatMode]);
 
   // Open chat - Tạo chat room khi user mở chat box
   const openChat = useCallback(async () => {
-    setIsOpen(true);
+  setIsOpen(true);
+  // Khi mở chat box, luôn reset localModeOverride để tránh giữ giá trị cũ
+  setLocalModeOverride(null);
 
     // Tạo chat room với admin khi user mở chat lần đầu
     if (!chatRoom && !roomId) {
@@ -211,52 +270,39 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
       }
     }
 
-    // Khi mở lại chatbox ở chế độ human, luôn đồng bộ lại messagesLocal từ adminMessages
+    // Khi mở lại chatbox ở chế độ human, luôn merge/gộp messagesLocal từ adminMessages
     if (chatMode === 'human') {
-      setMessagesLocal(adminMessages.map(msg => ({
-        id: msg.messageId,
-        roomId: msg.roomId || '',
-        senderUserId: msg.senderId,
-        senderUserName: msg.senderName,
-        content: msg.content,
-        type: 0,
-        createdAt: msg.createdAt || msg.timestamp,
-        updatedAt: msg.createdAt || msg.timestamp,
-        isUser: false, // Sẽ xác định lại bên dưới
-        isAI: msg.senderId === 'system-ai-bot',
-        isError: false,
-        isStreaming: false,
-        isEdited: msg.isEdited || false,
-        isDeleted: msg.isDeleted || false,
-        senderName: msg.senderName,
-        sources: [],
-        attachments: [],
-        readByUserIds: [],
-        mentionedUserIds: [],
-        replyToMessageId: msg.replyToMessageId,
-        replyToMessage: msg.replyToMessage
-          ? {
-              id: msg.replyToMessage.messageId,
+      setMessagesLocal((prev) => {
+        const map = new Map(prev.map(m => [m.id, m]));
+        for (const msg of adminMessages) {
+          if (!map.has(msg.messageId)) {
+            map.set(msg.messageId, {
+              id: msg.messageId,
               roomId: msg.roomId || '',
-              senderUserId: msg.replyToMessage.senderId,
-              senderUserName: msg.replyToMessage.senderName,
-              content: msg.replyToMessage.content,
+              senderUserId: msg.senderId,
+              senderUserName: msg.senderName,
+              content: msg.content,
               type: 0,
-              createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
-              updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              createdAt: msg.createdAt || msg.timestamp,
+              updatedAt: msg.createdAt || msg.timestamp,
               isUser: false,
-              isAI: msg.replyToMessage.senderId === 'system-ai-bot',
+              isAI: msg.senderId === 'system-ai-bot',
               isError: false,
               isStreaming: false,
-              isDeleted: false,
-              senderName: msg.replyToMessage.senderName,
+              isEdited: msg.isEdited || false,
+              isDeleted: msg.isDeleted || false,
+              senderName: msg.senderName,
               sources: [],
               attachments: [],
               readByUserIds: [],
               mentionedUserIds: [],
-            }
-          : undefined,
-      })));
+              replyToMessageId: msg.replyToMessageId,
+              replyToMessage: undefined,
+            });
+          }
+        }
+        return Array.from(map.values());
+      });
     }
 
     setTimeout(() => {
@@ -268,6 +314,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   const closeChat = useCallback(() => {
     setIsOpen(false);
     setIsMinimized(false);
+    setLocalModeOverride(null); // reset override khi đóng chat box
     // Chỉ reset messagesLocal nếu đang ở chế độ AI, còn human giữ nguyên để khi mở lại còn đồng bộ lại
     if (chatMode === 'ai') setMessagesLocal([]);
     // Abort any ongoing streaming
@@ -550,53 +597,40 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     };
   }, [isOpen, closeChat]);
 
-  // Luôn đồng bộ messagesLocal với adminMessages khi ở chế độ human (kể cả khi có event mới hoặc khi mở lại chatbox)
+  // Không ghi đè, chỉ merge/gộp khi có event mới từ server
   useEffect(() => {
     if (chatMode === 'human') {
-      setMessagesLocal(adminMessages.map(msg => ({
-        id: msg.messageId,
-        roomId: msg.roomId || '',
-        senderUserId: msg.senderId,
-        senderUserName: msg.senderName,
-        content: msg.content,
-        type: 0,
-        createdAt: msg.createdAt || msg.timestamp,
-        updatedAt: msg.createdAt || msg.timestamp,
-        isUser: false, // Sẽ xác định lại bên dưới
-        isAI: msg.senderId === 'system-ai-bot',
-        isError: false,
-        isStreaming: false,
-        isEdited: msg.isEdited || false,
-        isDeleted: msg.isDeleted || false,
-        senderName: msg.senderName,
-        sources: [],
-        attachments: [],
-        readByUserIds: [],
-        mentionedUserIds: [],
-        replyToMessageId: msg.replyToMessageId,
-        replyToMessage: msg.replyToMessage
-          ? {
-              id: msg.replyToMessage.messageId,
+      setMessagesLocal((prev) => {
+        const map = new Map(prev.map(m => [m.id, m]));
+        for (const msg of adminMessages) {
+          if (!map.has(msg.messageId)) {
+            map.set(msg.messageId, {
+              id: msg.messageId,
               roomId: msg.roomId || '',
-              senderUserId: msg.replyToMessage.senderId,
-              senderUserName: msg.replyToMessage.senderName,
-              content: msg.replyToMessage.content,
+              senderUserId: msg.senderId,
+              senderUserName: msg.senderName,
+              content: msg.content,
               type: 0,
-              createdAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
-              updatedAt: msg.replyToMessage.createdAt || msg.replyToMessage.timestamp,
+              createdAt: msg.createdAt || msg.timestamp,
+              updatedAt: msg.createdAt || msg.timestamp,
               isUser: false,
-              isAI: msg.replyToMessage.senderId === 'system-ai-bot',
+              isAI: msg.senderId === 'system-ai-bot',
               isError: false,
               isStreaming: false,
-              isDeleted: false,
-              senderName: msg.replyToMessage.senderName,
+              isEdited: msg.isEdited || false,
+              isDeleted: msg.isDeleted || false,
+              senderName: msg.senderName,
               sources: [],
               attachments: [],
               readByUserIds: [],
               mentionedUserIds: [],
-            }
-          : undefined,
-      })));
+              replyToMessageId: msg.replyToMessageId,
+              replyToMessage: undefined,
+            });
+          }
+        }
+        return Array.from(map.values());
+      });
     }
   }, [adminMessages, chatMode, isOpen]);
 
@@ -614,18 +648,20 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
       }
       return null;
     })();
+    // Không ghi đè isUser nếu đã true, chỉ xác định nếu chưa có
     const msgs = messagesLocal.map(msg => {
+      if (msg.isUser === true) return msg;
       if (currentUser) {
-        return {
-          ...msg,
-          isUser:
-            [currentUser.userId, currentUser.accountId, currentUser.id].includes(msg.senderUserId) ||
-            [currentUser.username, currentUser.fullName].includes(msg.senderUserName),
-        };
+        const isUser = [currentUser.userId, currentUser.accountId, currentUser.id].includes(msg.senderUserId) ||
+          [currentUser.username, currentUser.fullName].includes(msg.senderUserName);
+        return { ...msg, isUser };
       }
       return msg;
     });
-    return msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    // Chuẩn hóa createdAt ISO, sort ổn định
+    return msgs
+      .map(m => ({ ...m, createdAt: new Date(m.createdAt).toISOString() }))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [messagesLocal]);
 
   return (
@@ -774,10 +810,11 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
                   {/* Always show chat UI, no selection mode */}
                   <ScrollArea className="h-[400px] pt-12 pb-2 px-3">
                     <div className="space-y-3">
-                      {displayMessages.map((message, index) => (
+                      {displayMessages.map((message) => (
                         <div
-                          key={message.id || index}
+                          key={message.id}
                           className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                          data-messageid={message.id}
                         >
                           <div
                             className={`flex items-start space-x-2 max-w-[85%] ${
@@ -996,8 +1033,8 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
                             }
 
                             setIsSwitchingMode(true);
-
-                            // Call backend to switch mode - UI will update via SignalR event
+                            // Chỉ override mode tạm thời trong lúc chuyển, không đổi UI sang mode mới cho đến khi server xác nhận
+                            setLocalModeOverride('human');
                             addLocalMessage(
                               'You have requested to chat with a support agent. Please wait for a human to join the conversation.',
                               false,
@@ -1005,34 +1042,15 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
                               false,
                               'System'
                             );
-
                             try {
-                              const result = await chatService.switchRoomMode(roomId, 'Human');
-
-                              // Update mode immediately after successful API call (like ChatboxAdmin)
-                              if (result && result.mode !== undefined && result.mode !== null) {
-                                // Handle mode from backend - might be string or number
-                                let normalizedMode: 'ai' | 'human' = 'human';
-                                if (typeof result.mode === 'string') {
-                                  normalizedMode =
-                                    result.mode.toLowerCase() === 'human' ? 'human' : 'ai';
-                                } else if (typeof result.mode === 'number') {
-                                  normalizedMode = result.mode === 1 ? 'human' : 'ai';
-                                }
-
-                                setLocalModeOverride(normalizedMode);
-                              } else {
-                                // Fallback: assume switch to human mode was successful
-                                setLocalModeOverride('human');
-                              }
-
-                              setIsSwitchingMode(false);
+                              await chatService.switchRoomMode(roomId, 'Human');
+                              // Không đổi UI sang mode mới, chỉ chờ SignalR cập nhật currentChatMode
+                              // Nếu cần timeout, có thể setTimeout(() => setIsSwitchingMode(false), 10000);
                             } catch (err: unknown) {
                               const errorMessage = err instanceof Error ? err.message : String(err);
-
                               alert('Failed to switch to human support: ' + errorMessage);
                               setIsSwitchingMode(false);
-                              // Note: No need to revert UI - let SignalR handle mode updates
+                              setLocalModeOverride(null);
                             }
                           }}
                         >
