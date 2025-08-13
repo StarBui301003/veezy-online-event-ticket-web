@@ -1651,73 +1651,10 @@ const ChatboxAdmin = () => {
         )}
       </div>
 
-      {/* Right Sidebar - Online Users */}
-      <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
-              <Users className="h-5 w-5" />
-              Online Users ({onlineUsers.filter((u) => u.isOnline).length})
-            </CardTitle>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={refreshAllUsers}
-              disabled={refreshingUsers}
-              className="text-xs h-6 w-6 p-0 border-none"
-              title="Refresh users from IdentityService"
-            >
-              {refreshingUsers ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-              ) : (
-                <MdRefresh />
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-12rem)] custom-scrollbar">
-            <div className="space-y-2 p-2">
-              {onlineUsers
-                .filter((user) => user.isOnline)
-                .map((user, index) => (
-                  <div
-                    key={user.userId || `user-${index}`}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                      </Avatar>
-                      <OnlineStatusIndicator userId={user.userId} size="sm" showText={false} />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${getTextClass()}`}>
-                        {user.fullName}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className="text-xs rounded-full border border-blue-200 bg-white dark:text-black"
-                      >
-                        {getRoleDisplayName(Number(user.role))}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-
-              {onlineUsers.filter((u) => u.isOnline).length === 0 && (
-                <div className={`p-4 text-center text-sm ${getTextClass()}`}>
-                  <div className="mb-2">No users online</div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      {/* Right Sidebar - Online Users (Đã ẩn theo yêu cầu) */}
+      {/* <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
+        ...
+      </Card> */}
     </div>
   );
 };
