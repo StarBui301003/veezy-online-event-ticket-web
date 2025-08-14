@@ -120,7 +120,7 @@ const OrderListAdmin = () => {
       // Using large page size to get most events in one request
       const allOrdersResponse = await getOrdersAdmin({
         Page: 1,
-        PageSize: 1000, // Large page size to get most events
+        PageSize: 100, // Large page size to get most events
         SortDescending: false,
       });
 

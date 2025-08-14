@@ -27,7 +27,7 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+ 
 import { motion, AnimatePresence } from 'framer-motion';
 import { onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
@@ -228,10 +228,10 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
 
       await joinChatRoom(room.roomId);
 
-      toast.success(`Đã kết nối với nhóm quản lý sự kiện ${eventName}`);
+      
       scrollToBottom();
     } catch (error: any) {
-      toast.error('Không thể kết nối với nhóm quản lý sự kiện');
+      
     } finally {
       setIsLoading(false);
     }
@@ -276,7 +276,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
 
         // Show notification if not from current user
         if (message.senderId !== currentUser?.id) {
-          toast.info(`${message.senderName}: ${message.content.substring(0, 50)}...`);
+          
         }
       }
     };
@@ -304,14 +304,14 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
         )
       );
 
-      toast.info('Tin nhắn đã được cập nhật');
+      
     };
 
     // Handle message deletions
     const handleMessageDeleted = (messageDto: any) => {
       setMessages((prev) => prev.filter((msg) => msg.id !== (messageDto.Id || messageDto.id)));
 
-      toast.info('Tin nhắn đã được xóa');
+      
     };
 
     // Register listeners
@@ -405,7 +405,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
       setReplyingTo(null);
       scrollToBottom();
     } catch (error: any) {
-      toast.error('Không thể gửi tin nhắn');
+      
       setNewMessage(messageContent); // Restore message
     } finally {
       setIsSending(false);
@@ -457,9 +457,8 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
 
       setEditingMessage(null);
       setEditingContent('');
-      toast.success('Tin nhắn đã được cập nhật');
     } catch (error: any) {
-      toast.error('Không thể cập nhật tin nhắn');
+      
     }
   }, [editingMessage, editingContent, chatRoom]);
 
@@ -486,9 +485,9 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
         // Update local state
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
 
-        toast.success('Tin nhắn đã được xóa');
+        
       } catch (error: any) {
-        toast.error('Không thể xóa tin nhắn');
+        
       }
     },
     [chatRoom]

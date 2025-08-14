@@ -82,7 +82,7 @@ export const CreateDiscountCodeModal = ({ open, onClose, onCreated }: Props) => 
   useEffect(() => {
     // Gọi API lấy danh sách event khi mở modal
     if (open) {
-      getApprovedEvents({ page: 1, pageSize: 100 })
+      getApprovedEvents({ page: 1, pageSize: 5 })
         .then((res) => {
           setEvents(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

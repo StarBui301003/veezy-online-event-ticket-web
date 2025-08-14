@@ -70,9 +70,9 @@ export async function getEventById(eventId: string) {
 // === Get My Events ===
 export async function getMyEvents(page = 1, pageSize = 100) {
   // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
-    const response = await instance.get(
+  const response = await instance.get(
     `/api/Event/creatorApproved?page=${page}&pageSize=${pageSize}`
-    );
+  );
   return response.data?.data || response.data;
 }
 
@@ -130,9 +130,9 @@ export async function deleteEventImage(imageUrl: string) {
 
     const response = await instance.delete(
       `/api/Event/delete-image`,
-      { 
-        params: { 
-          imageUrl: fileName 
+      {
+        params: {
+          imageUrl: fileName
         },
         // Ensure params are properly encoded
         paramsSerializer: params => {
@@ -153,8 +153,8 @@ export async function deleteEventImage(imageUrl: string) {
     });
 
     // Return a resolved promise with error details
-    return { 
-      flag: false, 
+    return {
+      flag: false,
       message: error.response?.data?.message || 'Failed to delete image',
       status: error.response?.status
     };

@@ -16,7 +16,6 @@ import {
 import {
   Send,
   Search,
-  Users,
   MessageCircle,
   Clock,
   AlertCircle,
@@ -26,7 +25,7 @@ import {
   X,
   MoreVertical,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+ 
 import {
   connectChatHub,
   onChat,
@@ -45,9 +44,9 @@ import { isCurrentUserAdmin } from '@/utils/admin-utils';
 import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
-import identityService from '@/services/identity.service';
-import { MdRefresh } from 'react-icons/md';
-import { getRoleDisplayName } from '@/utils/roleMapper';
+// import identityService from '@/services/identity.service';
+// import { MdRefresh } from 'react-icons/md';
+// import { getRoleDisplayName } from '@/utils/roleMapper';
 
 const ChatboxAdmin = () => {
   const { getProfileInputClass, getCardClass, getTextClass, theme } = useThemeClasses();
@@ -92,23 +91,12 @@ const ChatboxAdmin = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [allUsersFromIdentity, setAllUsersFromIdentity] = useState<
-    Array<{
-      userId: string;
-      userName: string;
-      fullName: string;
-      email: string;
-      role: string;
-      avatar: string;
-      isOnline: boolean;
-      lastActiveAt: string;
-    }>
-  >([]);
+  // Đã ẩn tab user online, không cần state allUsersFromIdentity
 
-  const onlineUsers = allUsersFromIdentity;
+  // const onlineUsers = allUsersFromIdentity;
   const [isConnected, setIsConnected] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [refreshingUsers, setRefreshingUsers] = useState(false);
+  // Đã ẩn tab user online, không cần state refreshingUsers
 
   // Reply and Edit states
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -159,18 +147,9 @@ const ChatboxAdmin = () => {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const users = await identityService.getAllUsersWithStatus();
-        const transformedUsers = users.map((user) => ({
-          userId: user.accountId,
-          userName: user.username,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatarUrl || '',
-          isOnline: user.isOnline,
-          lastActiveAt: user.lastActiveAt,
-        }));
-        setAllUsersFromIdentity(transformedUsers);
+  // const users = await identityService.getAllUsersWithStatus(); // Đã xoá vì không còn dùng
+  // const transformedUsers = users.map(...) // Đã xoá vì không còn dùng
+  // setAllUsersFromIdentity(transformedUsers); // Đã xoá state này
       } catch (error) {
         console.error('[ChatboxAdmin] Error loading users:', error);
       }
@@ -244,12 +223,7 @@ const ChatboxAdmin = () => {
           })
         );
 
-        // Show toast notification
-        toast.success(
-          `Room mode changed to ${payload.mode === 'human' ? 'Human Support' : 'AI Support'} by ${
-            payload.changedBy || 'Admin'
-          }`
-        );
+        
       } else {
         console.warn('🔄 [OnModeChanged] Invalid payload received:', payload);
       }
@@ -439,7 +413,6 @@ const ChatboxAdmin = () => {
 
           // Show notification if message is not from current user
           if (message.senderId !== currentUser.userId) {
-            toast.info(`New message from ${message.senderName}`);
           }
         });
 
@@ -565,22 +538,18 @@ const ChatboxAdmin = () => {
             );
             return updatedRooms;
           });
-          toast.info(
-            `New support request from ${transformedRoom.participants?.[0]?.fullName || 'User'}`
-          );
+          
         });
 
         // Add error handler for SignalR errors
         onChat('Error', (errorMessage: string) => {
           console.error('❌ SignalR Error:', errorMessage);
-          toast.error(`Chat Error: ${errorMessage}`);
         });
 
         console.log('✅ Admin ChatHub event listeners setup complete');
       } catch (error) {
         console.error('Failed to connect to ChatHub:', error);
         setIsConnected(false);
-        toast.error('Failed to connect to chat service');
       }
     };
 
@@ -647,7 +616,6 @@ const ChatboxAdmin = () => {
       // Check if user is admin before fetching
       if (!isCurrentUserAdmin()) {
         console.warn('User is not admin, redirecting...');
-        toast.error('Bạn không có quyền truy cập trang này');
         setChatRooms([]);
         return;
       }
@@ -748,11 +716,11 @@ const ChatboxAdmin = () => {
 
       // Handle different error types
       if (error.response?.status === 403 || error.response?.status === 401) {
-        toast.error('Bạn không có quyền truy cập');
+        
       } else if (error.response?.status === 404) {
-        toast.warn('Không tìm thấy phòng chat nào');
+        
       } else {
-        toast.error('Không thể tải danh sách phòng chat');
+        
       }
 
       setChatRooms([]); // Set empty array on error
@@ -792,7 +760,6 @@ const ChatboxAdmin = () => {
       }, 200);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
       setMessages([]); // Set empty array on error
     } finally {
       setLoadingMessages(false);
@@ -805,7 +772,6 @@ const ChatboxAdmin = () => {
       // Validate room and roomId
       if (!room || !room.roomId || room.roomId === 'undefined') {
         console.error('Invalid room or roomId:', room);
-        toast.error('Invalid room selected');
         return;
       }
 
@@ -871,7 +837,6 @@ const ChatboxAdmin = () => {
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
       // Restore message content on error
       setNewMessage(messageContent);
     }
@@ -891,10 +856,10 @@ const ChatboxAdmin = () => {
         )
       );
 
-      toast.success('Message deleted successfully');
+      
     } catch (error) {
       console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
+      
     }
   };
 
@@ -931,10 +896,9 @@ const ChatboxAdmin = () => {
 
       setEditingMessage(null);
       setEditingContent('');
-      toast.success('Message updated successfully');
     } catch (error) {
       console.error('Error updating message:', error);
-      toast.error('Failed to update message');
+      
     }
   };
 
@@ -1001,31 +965,9 @@ const ChatboxAdmin = () => {
   };
 
   // Refresh all users from IdentityService
-  const refreshAllUsers = async () => {
-    // Prevent multiple calls while already refreshing
-    if (refreshingUsers) return;
-    setRefreshingUsers(true);
-    try {
-      const users = await identityService.getAllUsersWithStatus();
-      const transformedUsers = users.map((user) => ({
-        userId: user.accountId,
-        userName: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatarUrl || '',
-        isOnline: user.isOnline,
-        lastActiveAt: user.lastActiveAt,
-      }));
-      setAllUsersFromIdentity(transformedUsers);
-      toast.success(`Refreshed ${transformedUsers.length} users`);
-    } catch (error) {
-      console.error('[ChatboxAdmin] Error refreshing users:', error);
-      toast.error('Failed to refresh users');
-    } finally {
-      setRefreshingUsers(false);
-    }
-  };
+  // const refreshAllUsers = async () => {
+  //   ...đã ẩn cùng tab user online...
+  // };
 
   return (
     <div className="h-[calc(100vh-8rem)] w-full flex gap-5 justify-center mt-8">
@@ -1293,7 +1235,6 @@ const ChatboxAdmin = () => {
                             }}
                             onClick={async () => {
                               if (!activeRoom?.roomId) {
-                                toast.error('No active room ID');
                                 return;
                               }
                               const nextMode = activeRoom.mode === 'ai' ? 'Human' : 'AI';
@@ -1333,13 +1274,6 @@ const ChatboxAdmin = () => {
                                 // Toast sẽ được hiển thị từ SignalR event handler, không cần gửi ở đây
                               } catch (err: any) {
                                 console.error('[ModeSwitch] Error switching mode:', err);
-                                toast.error(
-                                  err && err.message
-                                    ? err.message
-                                    : nextMode === 'Human'
-                                    ? 'Failed to switch to human support'
-                                    : 'Failed to switch to AI support'
-                                );
                               }
                             }}
                           >
@@ -1651,73 +1585,10 @@ const ChatboxAdmin = () => {
         )}
       </div>
 
-      {/* Right Sidebar - Online Users */}
-      <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className={`flex items-center gap-2 ${getTextClass()}`}>
-              <Users className="h-5 w-5" />
-              Online Users ({onlineUsers.filter((u) => u.isOnline).length})
-            </CardTitle>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={refreshAllUsers}
-              disabled={refreshingUsers}
-              className="text-xs h-6 w-6 p-0 border-none"
-              title="Refresh users from IdentityService"
-            >
-              {refreshingUsers ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-              ) : (
-                <MdRefresh />
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          <ScrollArea className="h-[calc(100vh-12rem)] custom-scrollbar">
-            <div className="space-y-2 p-2">
-              {onlineUsers
-                .filter((user) => user.isOnline)
-                .map((user, index) => (
-                  <div
-                    key={user.userId || `user-${index}`}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                  >
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                      </Avatar>
-                      <OnlineStatusIndicator userId={user.userId} size="sm" showText={false} />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${getTextClass()}`}>
-                        {user.fullName}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className="text-xs rounded-full border border-blue-200 bg-white dark:text-black"
-                      >
-                        {getRoleDisplayName(Number(user.role))}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-
-              {onlineUsers.filter((u) => u.isOnline).length === 0 && (
-                <div className={`p-4 text-center text-sm ${getTextClass()}`}>
-                  <div className="mb-2">No users online</div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      {/* Right Sidebar - Online Users (Đã ẩn theo yêu cầu) */}
+      {/* <Card className={`w-64 rounded-2xl shadow-2xl border ${getCardClass()}`}>
+        ...
+      </Card> */}
     </div>
   );
 };
