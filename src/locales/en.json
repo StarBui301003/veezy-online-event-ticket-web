@@ -237,14 +237,16 @@
   "search_placeholder": "Search events...",
   "Home": "Home",
   "Event": "Event",
-  
-
+  "onlyCustomerCanBuyTicket": "Only customers can buy tickets",
+  "customerInfoNotFound": "Customer information not found",
+  "pleaseSelectAtLeastOneTicket": "Please select at least one ticket",
+ 
+  "comment": "Comment",
   "Terms of Use": "Terms Of Use",
   "termsSubtitle": "An integrated online platform for event organization, ticketing, and AI-based face recognition check-in",
   "latestNews": "News",
   "acceptanceTitle": "Acceptance of Terms",
   "contactTitle": "Contact Information",
-  "email": "Email",
   "website": "Website",
   "address": "Address",
   "hoChiMinhCity": "Ho Chi Minh City",

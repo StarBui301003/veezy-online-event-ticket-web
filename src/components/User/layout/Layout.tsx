@@ -25,12 +25,15 @@ export function Layout() {
               return;
             }
           }
-          // Không ép role 2 về /event-manager, cho phép họ ở lại Home
+          // Không ép role 2 về /event-manager vì trang đó không hỗ trợ responsive
           if (accObj.role === 2 && window.location.pathname === '/') {
-            return; // Nếu đang ở Home, không chuyển hướng
-          }
-          if (accObj.role === 2) {
-            window.location.replace('/event-manager');
+            // Kiểm tra nếu là mobile thì không chuyển hướng
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+              return; // Nếu là mobile, không chuyển hướng
+            }
+            // Nếu là desktop thì cũng không chuyển hướng vì trang Event Manager không responsive
+            // window.location.replace('/event-manager');
             return;
           }
         }

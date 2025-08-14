@@ -226,7 +226,7 @@ export const HomePage = () => {
               )
             )}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-6">
               <h2
                 className={cn('text-2xl font-bold', getThemeClass('text-gray-900', 'text-white'))}
               >
@@ -236,31 +236,25 @@ export const HomePage = () => {
                 type="button"
                 onClick={() => navigate('/events')}
                 className={cn(
-                  'flex justify-center gap-2 items-center shadow-xl text-lg backdrop-blur-md lg:font-semibold isolation-auto border-2 rounded-full group relative z-10 px-4 py-2 overflow-hidden',
+                  'flex justify-center gap-2 items-center px-4 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105',
                   getThemeClass(
-                    'bg-gray-50 border-gray-50 text-gray-800 before:bg-emerald-500 hover:text-gray-50 before:rounded-full before:aspect-square before:hover:scale-150 before:-z-10 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:hover:duration-700',
-                    'bg-slate-800/50 border-slate-600 text-white before:bg-purple-500 hover:text-white before:rounded-full before:aspect-square before:hover:scale-150 before:-z-10 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:hover:duration-700'
+                    'bg-blue-600 text-white hover:bg-blue-700 shadow-lg',
+                    'bg-purple-600 text-white hover:bg-purple-700 shadow-lg'
                   )
                 )}
               >
                 {t('viewMore')}
                 <svg
-                  className={cn(
-                    'w-6 h-6 justify-end group-hover:rotate-90 ease-linear duration-300 rounded-full border p-1.5 rotate-45',
-                    getThemeClass(
-                      'text-gray-800 group-hover:bg-gray-50 group-hover:text-gray-800 border-gray-700 group-hover:border-none',
-                      'text-white group-hover:bg-slate-800 group-hover:text-white border-slate-600 group-hover:border-none'
-                    )
-                  )}
-                  viewBox="0 0 16 19"
-                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <path
-                    d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658 -0.0976311 7.68342 -0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z"
-                    className={cn(
-                      'fill-current',
-                      getThemeClass('group-hover:fill-gray-800', 'group-hover:fill-white')
-                    )}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
                   />
                 </svg>
               </button>
@@ -418,31 +412,25 @@ export const HomePage = () => {
                 type="button"
                 onClick={() => navigate('/news')}
                 className={cn(
-                  'flex justify-center gap-2 items-center shadow-xl text-lg backdrop-blur-md lg:font-semibold isolation-auto border-2 rounded-full group relative z-10 px-4 py-2 overflow-hidden',
+                  'flex justify-center gap-2 items-center px-4 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105',
                   getThemeClass(
-                    'bg-gray-50 border-gray-50 text-gray-800 before:bg-emerald-500 hover:text-gray-50 before:rounded-full before:aspect-square before:hover:scale-150 before:-z-10 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:hover:duration-700',
-                    'bg-slate-800/50 border-slate-600 text-white before:bg-purple-500 hover:text-white before:rounded-full before:aspect-square before:hover:scale-150 before:-z-10 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:hover:duration-700'
+                    'bg-blue-600 text-white hover:bg-blue-700 shadow-lg',
+                    'bg-purple-600 text-white hover:bg-purple-700 shadow-lg'
                   )
                 )}
               >
                 {t('viewMore')}
                 <svg
-                  className={cn(
-                    'w-6 h-6 justify-end group-hover:rotate-90 ease-linear duration-300 rounded-full border p-1.5 rotate-45',
-                    getThemeClass(
-                      'text-gray-800 group-hover:bg-gray-50 group-hover:text-gray-800 border-gray-700 group-hover:border-none',
-                      'text-white group-hover:bg-slate-800 group-hover:text-white border-slate-600 group-hover:border-none'
-                    )
-                  )}
-                  viewBox="0 0 16 19"
-                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <path
-                    d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658 -0.0976311 7.68342 -0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z"
-                    className={cn(
-                      'fill-current',
-                      getThemeClass('group-hover:fill-gray-800', 'group-hover:fill-white')
-                    )}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 8l4 4m0 0l-4 4m4-4H3"
                   />
                 </svg>
               </button>
