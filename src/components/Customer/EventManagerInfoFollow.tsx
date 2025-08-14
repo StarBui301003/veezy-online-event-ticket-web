@@ -130,7 +130,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
       {/* Main Card */}
       <div
         className={cn(
-          'relative rounded-2xl p-6 shadow-2xl backdrop-blur-sm transform hover:scale-[1.02] transition-all duration-300 ease-out',
+          'relative rounded-2xl p-3 sm:p-4 md:p-6 shadow-2xl backdrop-blur-sm transform hover:scale-[1.02] transition-all duration-300 ease-out',
           getThemeClass(
             'bg-white/95 border border-gray-200/60',
             'bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700/50'
@@ -138,7 +138,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
         )}
       >
         {/* Header Label */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div
             className={cn(
               'w-2 h-2 rounded-full animate-pulse',
@@ -150,7 +150,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
           ></div>
           <span
             className={cn(
-              'text-sm font-medium text-transparent bg-clip-text uppercase tracking-wider',
+              'text-xs sm:text-sm font-medium text-transparent bg-clip-text uppercase tracking-wider',
               getThemeClass(
                 'bg-gradient-to-r from-blue-600 to-cyan-600',
                 'bg-gradient-to-r from-purple-400 to-pink-400'
@@ -170,7 +170,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
           ></div>
         </div>
         {/* Content */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4">
           {/* Avatar Container */}
           <div className="relative group/avatar">
             <div
@@ -186,7 +186,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               src={info.avatarUrl || NO_AVATAR}
               alt={info.fullName || 'avatar'}
               className={cn(
-                'relative w-16 h-16 rounded-full object-cover cursor-pointer border-2 backdrop-blur-sm transform hover:scale-110 transition-all duration-300 shadow-xl',
+                'relative w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover cursor-pointer border-2 backdrop-blur-sm transform hover:scale-110 transition-all duration-300 shadow-xl',
                 getThemeClass('border-white/20', 'border-white/20')
               )}
               onClick={handleNavigateToProfile}
@@ -194,10 +194,10 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300"></div>
           </div>
           {/* Info Section */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 text-center sm:text-left">
             <div
               className={cn(
-                'font-bold text-lg cursor-pointer truncate transition-all duration-300 transform hover:scale-105',
+                'font-bold text-base sm:text-lg cursor-pointer transition-all duration-300 transform hover:scale-105 break-words',
                 getThemeClass(
                   'text-gray-800 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600',
                   'text-white hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-purple-400 hover:to-pink-400'
@@ -209,7 +209,7 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             </div>
             <div
               className={cn(
-                'text-sm mt-1 opacity-0 animate-fade-in-up',
+                'text-xs sm:text-sm mt-1 opacity-0 animate-fade-in-up',
                 getThemeClass('text-gray-700', 'text-slate-400')
               )}
             >
@@ -217,11 +217,11 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
             </div>
           </div>
           {/* Follow Button */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Button
               variant={isFollowing ? 'secondary' : 'default'}
               className={cn(
-                'min-w-[120px] relative overflow-hidden font-medium transition-all duration-300 transform hover:scale-105 active:scale-95',
+                'w-full sm:min-w-[120px] relative overflow-hidden font-medium transition-all duration-300 transform hover:scale-105 active:scale-95 text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4',
                 isFollowing
                   ? getThemeClass(
                       'bg-gradient-to-r from-gray-200 to-gray-300 hover:from-gray-300 hover:to-gray-400 text-gray-700 border-gray-400',
@@ -240,14 +240,14 @@ const EventManagerInfoFollow: React.FC<EventManagerInfoFollowProps> = ({ eventMa
               {/* Button Content */}
               <span className="relative z-10">
                 {followLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>{t('processing')}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 justify-center">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span className="text-xs sm:text-sm">{t('processing')}</span>
                   </div>
                 ) : isFollowing ? (
-                  t('unfo')
+                  <span className="text-xs sm:text-sm">{t('unfo')}</span>
                 ) : (
-                  t('eventDetail.followevent')
+                  <span className="text-xs sm:text-sm">{t('eventDetail.followevent')}</span>
                 )}
               </span>
             </Button>

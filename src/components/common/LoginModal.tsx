@@ -4,7 +4,12 @@ import { FiCamera } from 'react-icons/fi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { loginAPI, loginByFaceAPI, requestResetPassword, resetPasswordWithCode } from '@/services/auth.service';
+import {
+  loginAPI,
+  loginByFaceAPI,
+  requestResetPassword,
+  resetPasswordWithCode,
+} from '@/services/auth.service';
 import { toast } from 'react-toastify';
 
 import {
@@ -89,6 +94,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         return;
       }
 
+      const { role } = apiResult.data.account;
+
+      // Chặn Event Manager đăng nhập trên mobile
+      const isMobile = window.innerWidth <= 768;
+      if (role === 2 && isMobile) {
+        toast.error(t('eventManagerMobileLoginBlocked'), {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
       // Set refresh token cookie (remove secure flag for development)
@@ -103,7 +121,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         email,
         gender,
         phone,
-        role,
         userId,
         username: accountUsername,
       } = apiResult.data.account;
@@ -436,7 +453,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 />
                 <span className="text-white/80 text-sm">{t('rememberMe')}</span>
               </div>
-              <button 
+              <button
                 onClick={() => setShowForgotPassword(true)}
                 className="text-blue-300 hover:text-blue-200 text-sm transition-colors"
               >
@@ -508,7 +525,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       {/* Forgot Password Modal */}
       {showForgotPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div 
+          <div
             className="relative bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 text-white"
             onClick={(e) => e.stopPropagation()}
           >
@@ -528,8 +545,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {resetStep === 1 ? 'Reset Password' : 'Create New Password'}
             </h2>
             <p className="text-white/70 mb-6">
-              {resetStep === 1 
-                ? 'Enter your email to receive a verification code' 
+              {resetStep === 1
+                ? 'Enter your email to receive a verification code'
                 : 'Enter the verification code sent to your email and create a new password'}
             </p>
 
@@ -558,7 +575,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         setResetStep(2);
                         setResetMessage('A verification code has been sent to your email.');
                       } catch (error: any) {
-                        const errorMessage = error.response?.data?.message || 'Failed to send verification code. Please try again.';
+                        const errorMessage =
+                          error.response?.data?.message ||
+                          'Failed to send verification code. Please try again.';
                         setResetError(errorMessage);
                         console.error('Password reset request failed:', error);
                       } finally {
@@ -647,7 +666,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           setLoading(true);
                           setResetError('');
                           await resetPasswordWithCode(forgotPasswordEmail, resetCode, newPassword);
-                          toast.success('Password has been reset successfully!', { position: 'top-right' });
+                          toast.success('Password has been reset successfully!', {
+                            position: 'top-right',
+                          });
                           setShowForgotPassword(false);
                           setResetStep(1);
                           // Clear form
@@ -656,7 +677,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           setNewPassword('');
                           setConfirmPassword('');
                         } catch (error: any) {
-                          const errorMessage = error.response?.data?.message || 'Failed to reset password. Please check the code and try again.';
+                          const errorMessage =
+                            error.response?.data?.message ||
+                            'Failed to reset password. Please check the code and try again.';
                           setResetError(errorMessage);
                           console.error('Password reset failed:', error);
                         } finally {
@@ -680,16 +703,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               )}
 
               {resetMessage && (
-                <div className="text-green-400 text-sm text-center">
-                  {resetMessage}
-                </div>
+                <div className="text-green-400 text-sm text-center">{resetMessage}</div>
               )}
 
-              {resetError && (
-                <div className="text-red-400 text-sm text-center">
-                  {resetError}
-                </div>
-              )}
+              {resetError && <div className="text-red-400 text-sm text-center">{resetError}</div>}
 
               <div className="text-center pt-2">
                 <button

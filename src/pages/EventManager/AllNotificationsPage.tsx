@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   CheckCircle,
   ArrowLeft,
@@ -41,6 +41,8 @@ export default function AllNotificationsPage() {
   const [markingRead, setMarkingRead] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [markingReadIds, setMarkingReadIds] = useState<Set<string>>(new Set());
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
@@ -155,11 +157,32 @@ export default function AllNotificationsPage() {
     }
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if not already read
-    if (!notification.isRead && userId) {
+  const handleNotificationClick = async (notification: Notification, event?: React.MouseEvent) => {
+    // Prevent event bubbling and default behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Clear any existing timeout
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+
+    // Mark as read if not already read and not currently being marked
+    if (!notification.isRead && userId && !markingReadIds.has(notification.notificationId)) {
       try {
-        await markNotificationRead(notification.notificationId, userId);
+        console.log('Starting to mark notification as read:', notification.notificationId);
+
+        // Add to marking set to prevent duplicate calls
+        setMarkingReadIds((prev) => new Set(prev).add(notification.notificationId));
+
+        // Set a timeout to prevent rapid clicks
+        clickTimeoutRef.current = setTimeout(() => {
+          // This will be cleared if another click happens
+        }, 1000);
+
+        // Optimistically update UI first
         setNotifications((prev) =>
           prev.map((n) =>
             n.notificationId === notification.notificationId
@@ -172,15 +195,33 @@ export default function AllNotificationsPage() {
               : n
           )
         );
+
+        // Then call API
+        console.log('Calling markNotificationRead API for:', notification.notificationId);
+        await markNotificationRead(notification.notificationId, userId);
+        console.log('Successfully marked notification as read:', notification.notificationId);
       } catch (error) {
         console.error('Error marking notification as read:', error);
+        // Revert optimistic update on error
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.notificationId === notification.notificationId
+              ? { ...n, isRead: false, readAt: undefined, readAtVietnam: undefined }
+              : n
+          )
+        );
+      } finally {
+        // Remove from marking set
+        setMarkingReadIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(notification.notificationId);
+          return newSet;
+        });
       }
     }
 
-    // Navigate to redirect URL if available
-    if (notification.redirectUrl) {
-      navigate(notification.redirectUrl);
-    }
+    // Don't navigate automatically - just mark as read
+    console.log('Notification marked as read, no automatic navigation');
   };
 
   const formatNotificationDate = (date: string) => {
@@ -228,9 +269,12 @@ export default function AllNotificationsPage() {
           if (!isMounted || data.userId !== userId) return;
 
           console.log('Notification marked as read via SignalR:', data);
+          // Only update if the notification is not already marked as read and not currently being marked
           setNotifications((prev) =>
             prev.map((n) =>
-              n.notificationId === data.notificationId
+              n.notificationId === data.notificationId &&
+              !n.isRead &&
+              !markingReadIds.has(n.notificationId)
                 ? { ...n, isRead: true, readAt: new Date().toISOString() }
                 : n
             )
@@ -312,6 +356,9 @@ export default function AllNotificationsPage() {
     // Cleanup function
     return () => {
       isMounted = false;
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
     };
   }, [userId, loadNotifications]);
 
@@ -336,7 +383,7 @@ export default function AllNotificationsPage() {
               )
             )}
           >
-            <div className="max-w-4xl mx-auto p-4 sm:p-6">
+            <div className="max-w-4xl mx-auto p-3 sm:p-6">
               <div className="flex justify-center items-center h-64">
                 <div className="text-center">
                   <Loader2
@@ -370,19 +417,19 @@ export default function AllNotificationsPage() {
       )}
     >
       {/* Main content with spacing for the fixed header */}
-      <div className="pt-20">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+      <div className="pt-16 sm:pt-20">
+        <div className="max-w-4xl mx-auto p-3 sm:p-6 w-full">
           {/* Header */}
           <div
             className={cn(
-              'flex items-center justify-between mb-6 p-4 rounded-xl sticky top-20 z-10',
+              'flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl sticky top-16 sm:top-20 z-10 w-full',
               getThemeClass(
                 'bg-white/95 border border-gray-200/60 shadow-xl',
                 'bg-gray-800 border border-gray-700'
               )
             )}
           >
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
               <button
                 onClick={() => navigate(-1)}
                 className={cn(
@@ -397,10 +444,15 @@ export default function AllNotificationsPage() {
               </button>
 
               <div className="flex items-center gap-2">
-                <Bell className={cn('w-6 h-6', getThemeClass('text-blue-600', 'text-blue-400'))} />
+                <Bell
+                  className={cn(
+                    'w-5 h-5 sm:w-6 sm:h-6',
+                    getThemeClass('text-blue-600', 'text-blue-400')
+                  )}
+                />
                 <h1
                   className={cn(
-                    'text-xl font-semibold',
+                    'text-lg sm:text-xl font-semibold',
                     getThemeClass('text-gray-900', 'text-white')
                   )}
                 >
@@ -411,7 +463,7 @@ export default function AllNotificationsPage() {
               {unreadCount > 0 && (
                 <span
                   className={cn(
-                    'px-3 py-1 text-xs rounded-full font-semibold border',
+                    'px-2 sm:px-3 py-1 text-xs rounded-full font-semibold border',
                     getThemeClass(
                       'bg-blue-100 text-blue-700 border-blue-300',
                       'bg-blue-900/50 text-blue-300 border-blue-700'
@@ -423,7 +475,7 @@ export default function AllNotificationsPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -444,7 +496,7 @@ export default function AllNotificationsPage() {
                   onClick={handleMarkAllAsRead}
                   disabled={markingRead || unreadCount === 0}
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm flex items-center gap-2 font-medium transition-all',
+                    'px-3 sm:px-4 py-2 rounded-lg text-sm flex items-center gap-2 font-medium transition-all',
                     unreadCount === 0
                       ? getThemeClass(
                           'bg-gray-200 text-gray-500 cursor-not-allowed',
@@ -463,9 +515,16 @@ export default function AllNotificationsPage() {
                   ) : (
                     <CheckCircle className="w-4 h-4" />
                   )}
-                  {unreadCount === 0
-                    ? t('allRead') || 'Đã đọc hết'
-                    : t('markAllAsRead') || 'Đọc tất cả'}
+                  <span className="hidden sm:inline">
+                    {unreadCount === 0
+                      ? t('allRead') || 'Đã đọc hết'
+                      : t('markAllAsRead') || 'Đọc tất cả'}
+                  </span>
+                  <span className="sm:hidden">
+                    {unreadCount === 0
+                      ? t('allRead') || 'Đã đọc'
+                      : t('markAllAsRead') || 'Đọc tất cả'}
+                  </span>
                 </button>
               )}
             </div>
@@ -475,7 +534,7 @@ export default function AllNotificationsPage() {
           {error && (
             <div
               className={cn(
-                'mb-4 p-4 rounded-xl border',
+                'mb-4 p-3 sm:p-4 rounded-xl border',
                 getThemeClass(
                   'bg-red-50/10 border-red-300 text-red-700',
                   'bg-red-900/20 border-red-700 text-red-300'
@@ -503,7 +562,7 @@ export default function AllNotificationsPage() {
           {/* Notifications List */}
           <div
             className={cn(
-              'rounded-xl overflow-hidden border',
+              'rounded-xl overflow-hidden border w-full',
               getThemeClass(
                 'bg-white/95 border-gray-200/60 shadow-xl',
                 'bg-gray-800 border border-gray-700'
@@ -511,21 +570,21 @@ export default function AllNotificationsPage() {
             )}
           >
             {notifications.length === 0 ? (
-              <div className="text-center py-16 px-4">
+              <div className="text-center py-12 sm:py-16 px-3 sm:px-4">
                 <div className="relative inline-block">
                   <BellOff
                     className={cn(
-                      'w-16 h-16 mx-auto mb-4',
+                      'w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4',
                       getThemeClass('text-gray-400', 'text-gray-600')
                     )}
                   />
                   {!error && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full animate-pulse"></div>
                   )}
                 </div>
                 <h3
                   className={cn(
-                    'text-lg font-medium mb-2',
+                    'text-base sm:text-lg font-medium mb-2',
                     getThemeClass('text-gray-800', 'text-gray-200')
                   )}
                 >
@@ -560,7 +619,7 @@ export default function AllNotificationsPage() {
                   <li
                     key={notification.notificationId}
                     className={cn(
-                      'p-4 cursor-pointer transition-all duration-200 relative',
+                      'p-3 sm:p-4 transition-all duration-200 relative overflow-hidden',
                       !notification.isRead
                         ? getThemeClass(
                             'bg-blue-50/50 border-l-4 border-blue-500',
@@ -568,18 +627,17 @@ export default function AllNotificationsPage() {
                           )
                         : getThemeClass('hover:bg-gray-50/50', 'hover:bg-gray-750')
                     )}
-                    onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 w-full">
                       {/* Unread indicator */}
                       {!notification.isRead && (
-                        <div className="absolute left-2 top-6 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <div className="absolute left-2 top-6 w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
                       )}
 
                       {/* Icon */}
                       <div
                         className={cn(
-                          'flex-shrink-0 p-2.5 rounded-full transition-all',
+                          'flex-shrink-0 p-2 sm:p-2.5 rounded-full transition-all',
                           !notification.isRead
                             ? getThemeClass(
                                 'bg-blue-100 text-blue-600',
@@ -594,15 +652,15 @@ export default function AllNotificationsPage() {
                         {getNotificationIcon ? (
                           getNotificationIcon(notification.notificationType)
                         ) : (
-                          <Bell className="w-5 h-5" />
+                          <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                         )}
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <p
                           className={cn(
-                            'text-sm font-medium mb-1',
+                            'text-sm font-medium mb-1 line-clamp-2 break-words',
                             !notification.isRead
                               ? getThemeClass('text-gray-900', 'text-white')
                               : getThemeClass('text-gray-700', 'text-gray-300')
@@ -612,16 +670,16 @@ export default function AllNotificationsPage() {
                         </p>
                         <p
                           className={cn(
-                            'text-sm mb-2 line-clamp-2',
+                            'text-sm mb-2 line-clamp-2 break-words',
                             getThemeClass('text-gray-600', 'text-gray-400')
                           )}
                         >
                           {notification.notificationMessage}
                         </p>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                           <span
                             className={cn(
-                              'text-xs',
+                              'text-xs break-words',
                               getThemeClass('text-gray-500', 'text-gray-500')
                             )}
                           >
@@ -630,7 +688,7 @@ export default function AllNotificationsPage() {
                           {!notification.isRead && (
                             <span
                               className={cn(
-                                'px-2 py-1 text-xs rounded-full font-medium border',
+                                'px-2 py-1 text-xs rounded-full font-medium border w-fit flex-shrink-0',
                                 getThemeClass(
                                   'bg-blue-100 text-blue-700 border-blue-300',
                                   'bg-blue-900/50 text-blue-300 border-blue-700'
@@ -640,6 +698,86 @@ export default function AllNotificationsPage() {
                               {t('new') || 'Mới'}
                             </span>
                           )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex gap-2">
+                            {/* Mark as read button */}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleNotificationClick(notification, e);
+                              }}
+                              disabled={
+                                notification.isRead ||
+                                markingReadIds.has(notification.notificationId)
+                              }
+                              className={cn(
+                                'flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
+                                notification.isRead ||
+                                  markingReadIds.has(notification.notificationId)
+                                  ? getThemeClass(
+                                      'bg-gray-200 text-gray-500 cursor-not-allowed',
+                                      'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                    )
+                                  : getThemeClass(
+                                      'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300',
+                                      'bg-blue-900/40 text-blue-200 hover:bg-blue-800/60 border border-blue-700/50'
+                                    )
+                              )}
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <CheckCircle className="w-3 h-3" />
+                                {notification.isRead
+                                  ? t('read') || 'Đã đọc'
+                                  : t('markAsRead') || 'Đánh dấu đã đọc'}
+                              </div>
+                            </button>
+
+                            {/* Delete button */}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (window.confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
+                                  // TODO: Implement delete notification functionality
+                                  console.log('Delete notification:', notification.notificationId);
+                                  // Remove from local state for now
+                                  setNotifications((prev) =>
+                                    prev.filter(
+                                      (n) => n.notificationId !== notification.notificationId
+                                    )
+                                  );
+                                }
+                              }}
+                              className={cn(
+                                'py-2 px-3 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
+                                getThemeClass(
+                                  'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300',
+                                  'bg-red-900/40 text-red-200 hover:bg-red-800/60 border border-red-700/50'
+                                )
+                              )}
+                              title="Xóa thông báo"
+                            >
+                              <div className="flex items-center justify-center">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </div>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

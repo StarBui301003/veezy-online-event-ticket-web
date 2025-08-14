@@ -109,7 +109,7 @@ interface EventData {
 
 const EventDetail = () => {
   const { requireLogin, handleLoginSuccess } = useRequireLogin();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
@@ -184,6 +184,8 @@ const EventDetail = () => {
   const [faceError, setFaceError] = useState('');
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
+  const [aiApiFailed, setAiApiFailed] = useState(false);
+
   const { isLoggedIn, user } = useContext(AuthContext);
   const customerId = user?.userId || user?.accountId || '';
 
@@ -307,31 +309,18 @@ const EventDetail = () => {
           );
           setEvents(aiEvents);
         } catch (error: unknown) {
-          let msg = t('failedToLoadRecommendedEvents');
-          if (typeof error === 'object' && error !== null) {
-            const errorObj = error as Record<string, unknown>;
-            if (
-              'response' in errorObj &&
-              typeof errorObj.response === 'object' &&
-              errorObj.response !== null
-            ) {
-              const response = errorObj.response as Record<string, unknown>;
-              if (
-                'data' in response &&
-                typeof response.data === 'object' &&
-                response.data !== null
-              ) {
-                const data = response.data as Record<string, unknown>;
-                if ('message' in data && typeof data.message === 'string') {
-                  msg = data.message;
-                }
-              }
-            } else if ('message' in errorObj && typeof errorObj.message === 'string') {
-              msg = errorObj.message;
-            }
+          console.error('AI API failed:', error);
+          // When AI API fails for logged-in users, fallback to regular events like guests
+          try {
+            const fetchedEvents = await getHomeEvents();
+            const activeEvents = (fetchedEvents || []).filter(
+              (eventItem: EventData) => eventItem.isActive === true && eventItem.eventId !== eventId
+            );
+            setEvents(activeEvents);
+          } catch (fallbackError) {
+            console.error('Fallback events also failed:', fallbackError);
+            setEvents([]);
           }
-          toast.error(msg);
-          setEvents([]);
         } finally {
           setLoadingEvent(false);
         }
@@ -475,22 +464,30 @@ const EventDetail = () => {
     if (quantity > ticket.quantityAvailable) {
       setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`,
+        [ticket.ticketId]: t('eventDetail.insufficientTickets', {
+          count: ticket.quantityAvailable,
+        }),
       }));
       return;
     } else if (quantity > maxPerOrder) {
       setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé/${
-          quantity > 1 ? 'lần' : 'lần'
-        } cho loại "${ticket.ticketName}".`,
+        [ticket.ticketId]: t('eventDetail.maxTicketsPerOrder', {
+          max: maxPerOrder,
+          ticketName: ticket.ticketName,
+        }),
       }));
       return;
     } else if (totalAfterPurchase > maxPerUser) {
       const remaining = Math.max(0, maxPerUser - userPurchased);
       setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `⚠️ Bạn đã mua ${userPurchased} vé "${ticket.ticketName}". Chỉ có thể mua thêm ${remaining} vé (tối đa ${maxPerUser} vé/người).`,
+        [ticket.ticketId]: t('eventDetail.maxTicketsPerUser', {
+          purchased: userPurchased,
+          ticketName: ticket.ticketName,
+          remaining: remaining,
+          max: maxPerUser,
+        }),
       }));
       return;
     }
@@ -581,14 +578,15 @@ const EventDetail = () => {
         if (selected) {
           const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
           if (selected.quantity > maxPerOrder) {
-            newErrors[
-              ticket.ticketId
-            ] = `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé loại "${ticket.ticketName}" cho sự kiện này.`;
+            newErrors[ticket.ticketId] = t('eventDetail.maxTicketsForEvent', {
+              max: maxPerOrder,
+              ticketName: ticket.ticketName,
+            });
             hasErrors = true;
           } else if (selected.quantity > ticket.quantityAvailable) {
-            newErrors[
-              ticket.ticketId
-            ] = `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`;
+            newErrors[ticket.ticketId] = t('eventDetail.insufficientTickets', {
+              count: ticket.quantityAvailable,
+            });
             hasErrors = true;
           }
         }
@@ -603,8 +601,14 @@ const EventDetail = () => {
         const checkoutData = {
           eventId,
           eventName: event?.eventName || '',
-          eventTime: `${event ? new Date(event.startAt).toLocaleString('vi-VN') : ''} - ${
-            event ? new Date(event.endAt).toLocaleString('vi-VN') : ''
+          eventTime: `${
+            event
+              ? new Date(event.startAt).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+              : ''
+          } - ${
+            event
+              ? new Date(event.endAt).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+              : ''
           }`,
           customerId: latestCustomerId,
           items: Object.values(selectedTickets).map((st) => ({
@@ -654,7 +658,7 @@ const EventDetail = () => {
 
           // Check for API error response
           if (orderRes && orderRes.success === false) {
-            const errorMessage = orderRes.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+            const errorMessage = orderRes.message || t('eventDetail.orderCreationFailed');
 
             if (
               errorMessage.includes('Bạn chỉ có thể mua tối đa') &&
@@ -1208,19 +1212,19 @@ const EventDetail = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.4 }}
           className={cn(
-            'relative rounded-3xl shadow-2xl overflow-hidden mb-12 h-[300px] md:h-[400px] lg:h-[500px]',
+            'relative rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl overflow-hidden mb-6 sm:mb-8 md:mb-10 lg:mb-12 h-[250px] sm:h-[300px] md:h-[400px] lg:h-[500px]',
             getThemeClass(
               'bg-white/95 border border-gray-200 shadow-lg',
               'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
             )
           )}
         >
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   className={cn(
-                    'p-1.5 rounded-full border transition-colors',
+                    'p-1.5 sm:p-2 rounded-full border transition-colors',
                     getThemeClass(
                       'bg-white/90 hover:bg-white border-gray-300 shadow-md',
                       'bg-slate-800 hover:bg-slate-700 border-slate-700'
@@ -1228,7 +1232,10 @@ const EventDetail = () => {
                   )}
                 >
                   <MoreVertical
-                    className={cn('w-5 h-5', getThemeClass('text-gray-700', 'text-white'))}
+                    className={cn(
+                      'w-4 h-4 sm:w-5 sm:h-5',
+                      getThemeClass('text-gray-700', 'text-white')
+                    )}
                   />
                 </button>
               </DropdownMenuTrigger>
@@ -1260,14 +1267,14 @@ const EventDetail = () => {
             className="w-full h-full object-cover "
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-          <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
+          <div className="absolute bottom-0 left-0 p-3 sm:p-4 md:p-6 lg:p-10 w-full">
             <div className="flex items-center justify-between">
               <motion.h1
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className={cn(
-                  'text-3xl md:text-5xl font-bold mb-2 shadow-text',
+                  'text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 shadow-text leading-tight',
                   getThemeClass('text-white', 'text-white')
                 )}
               >
@@ -1279,17 +1286,20 @@ const EventDetail = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.7 }}
               className={cn(
-                'flex flex-wrap items-center space-x-4 text-sm md:text-base mb-2',
+                'flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm md:text-base mb-2',
                 getThemeClass('text-blue-600', 'text-purple-300')
               )}
             >
               <span className="flex items-center">
-                <CalendarDays className="w-5 h-5 mr-2" />{' '}
-                {new Date(event.startAt).toLocaleDateString('vi-VN')} -{' '}
-                {new Date(event.endAt).toLocaleDateString('vi-VN')}
+                <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="text-xs sm:text-sm md:text-base">
+                  {new Date(event.startAt).toLocaleDateString('vi-VN')} -{' '}
+                  {new Date(event.endAt).toLocaleDateString('vi-VN')}
+                </span>
               </span>
               <span className="flex items-center">
-                <MapPin className="w-5 h-5 mr-2" /> {event.eventLocation}
+                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="text-xs sm:text-sm md:text-base">{event.eventLocation}</span>
               </span>
             </motion.div>
             {event.tags && event.tags.length > 0 && (
@@ -1297,14 +1307,14 @@ const EventDetail = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.9 }}
-                className="flex flex-wrap gap-2 mt-1 items-center"
+                className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-1.5 mt-1 items-start sm:items-center"
               >
                 {(showAllTags ? event.tags : event.tags.slice(0, 3)).map((tag, index) => (
                   <motion.span
                     key={index}
-                    whileHover={{ scale: 1.1, backgroundColor: '#a78bfa' }}
+                    whileHover={{ scale: 1.05, backgroundColor: '#a78bfa' }}
                     className={cn(
-                      'px-3 py-1 text-xs rounded-full shadow-md cursor-pointer transition-colors',
+                      'px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded-full shadow-md cursor-pointer transition-colors',
                       getThemeClass('bg-purple-600 text-white', 'bg-purple-600 text-white')
                     )}
                   >
@@ -1314,7 +1324,7 @@ const EventDetail = () => {
                 {event.tags.length > 3 && !showAllTags && (
                   <button
                     className={cn(
-                      'px-3 py-1 text-xs rounded-full shadow-md font-semibold transition-colors',
+                      'px-2 sm:px-3 py-1 text-[10px] sm:text-xs rounded-full shadow-md font-semibold transition-colors',
                       getThemeClass(
                         'bg-gray-200 text-gray-700 hover:bg-gray-300',
                         'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -1331,7 +1341,7 @@ const EventDetail = () => {
                     onClick={handleFollowEvent}
                     disabled={loadingFollowEvent}
                     className={cn(
-                      'sm:ml-4 ml-0  px-4 py-2 rounded-full font-semibold transition-all shadow flex items-center gap-2 whitespace-nowrap text-sm',
+                      'mt-3 sm:mt-0 block w-full sm:w-auto sm:ml-4 ml-0 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full font-semibold transition-all shadow flex items-center gap-1 sm:gap-1.5 md:gap-2 text-[10px] sm:text-xs md:text-sm min-w-0 flex-shrink-0 justify-center',
                       isFollowingEvent
                         ? getThemeClass(
                             'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300',
@@ -1342,23 +1352,26 @@ const EventDetail = () => {
                             'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-600'
                           )
                     )}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     {loadingFollowEvent ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {t('processing')}...
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                        <span className="hidden sm:inline">{t('processing')}...</span>
+                        <span className="sm:hidden">...</span>
                       </>
                     ) : isFollowingEvent ? (
                       <>
-                        <CheckCircle className="w-4 h-4" />
-                        {t('unfollowEvent')}
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{t('unfollowEvent')}</span>
+                        <span className="sm:hidden">Bỏ theo dõi</span>
                       </>
                     ) : (
                       <>
-                        <PlusCircle className="w-4 h-4" />
-                        {t('eventDetail.followEvent')}
+                        <PlusCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{t('eventDetail.followEvent')}</span>
+                        <span className="sm:hidden">Theo dõi</span>
                       </>
                     )}
                   </motion.button>
@@ -1368,13 +1381,13 @@ const EventDetail = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-12">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
             className={cn(
-              'lg:col-span-2 p-6 md:p-8 rounded-xl shadow-xl',
+              'lg:col-span-2 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl shadow-xl',
               getThemeClass(
                 'bg-white/95 border border-gray-200 shadow-lg',
                 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
@@ -1385,7 +1398,7 @@ const EventDetail = () => {
             <button
               onClick={() => setShowDetail((v) => !v)}
               className={cn(
-                'w-full flex justify-between items-center text-lg font-semibold mb-4 focus:outline-none px-4 py-2 rounded-lg transition-colors',
+                'w-full sm:flex block justify-between items-center text-lg font-semibold mb-4 focus:outline-none px-4 py-2 rounded-lg transition-colors',
                 getThemeClass(
                   'text-blue-600 bg-blue-50/50 border  hover:bg-blue-100 border-b border-blue-300',
                   'text-purple-300 bg-slate-900/60 hover:bg-slate-800  border-b border-purple-700'
@@ -1453,7 +1466,7 @@ const EventDetail = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.6 }}
-            className="lg:col-span-1 space-y-6"
+            className="lg:col-span-1 space-y-4 sm:space-y-6"
           >
             {isEventEnded && (
               <motion.div
@@ -1486,7 +1499,7 @@ const EventDetail = () => {
             )}
             <div
               className={cn(
-                'p-6 md:p-8 rounded-xl shadow-xl',
+                'p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl shadow-xl',
                 getThemeClass(
                   'bg-white/95 border border-gray-200 shadow-lg',
                   'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
@@ -1496,7 +1509,7 @@ const EventDetail = () => {
               <button
                 onClick={() => setShowTickets((v) => !v)}
                 className={cn(
-                  'w-full flex justify-between items-center text-2xl font-semibold mb-6 border-b-2 pb-3 focus:outline-none px-4 py-2 rounded-lg transition-colors',
+                  'w-full flex justify-between items-center text-lg sm:text-xl md:text-2xl font-semibold mb-4 sm:mb-6 border-b-2 pb-2 sm:pb-3 focus:outline-none px-3 sm:px-4 py-2 rounded-lg transition-colors',
                   getThemeClass(
                     'text-blue-600 border-blue-600 bg-blue-50/50 hover:bg-blue-100',
                     'text-teal-300 border-teal-700 bg-slate-900/60 hover:bg-slate-800'
@@ -1504,7 +1517,8 @@ const EventDetail = () => {
                 )}
               >
                 <span className="flex items-center">
-                  <Ticket className="w-7 h-7 mr-3" /> {t('eventDetail.buyTickets')}
+                  <Ticket className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 mr-2 sm:mr-3" />{' '}
+                  {t('eventDetail.buyTickets')}
                 </span>
                 <span>{showTickets ? '▲' : '▼'}</span>
               </button>
@@ -1528,10 +1542,10 @@ const EventDetail = () => {
                         getThemeClass('text-red-700', 'text-red-300')
                       )}
                     >
-                      Sự kiện đã kết thúc
+                      {t('eventDetail.eventEnded')}
                     </h3>
                     <p className={cn('text-sm', getThemeClass('text-red-600', 'text-red-400'))}>
-                      Không thể mua vé cho sự kiện đã kết thúc
+                      {t('eventDetail.eventEndedMessage')}
                     </p>
                   </motion.div>
                 ) : loadingTickets ? (
@@ -1592,18 +1606,18 @@ const EventDetail = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
                           className={cn(
-                            'p-5 rounded-lg shadow-lg transition-shadow duration-300',
+                            'p-3 sm:p-4 md:p-5 rounded-lg shadow-lg transition-shadow duration-300',
                             getThemeClass(
                               'bg-blue-50/75 border rounded-xl border-blue-300 hover:shadow-blue-500/30 shadow-sm',
                               'bg-slate-700 hover:shadow-purple-500/30'
                             )
                           )}
                         >
-                          <div className="flex justify-between items-center mb-2 gap-3">
-                            <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2 sm:gap-3">
+                            <div className="flex-1 min-w-0 w-full sm:w-auto">
                               <h3
                                 className={cn(
-                                  'text-lg font-semibold truncate w-[80px]',
+                                  'text-base sm:text-lg font-semibold break-words max-w-[140px] sm:max-w-[180px] md:max-w-[250px] lg:max-w-[300px]',
                                   getThemeClass('text-gray-900', 'text-white')
                                 )}
                                 title={ticket.ticketName}
@@ -1623,7 +1637,7 @@ const EventDetail = () => {
                                         )
                                       )}
                                     >
-                                      🔴 Hết vé
+                                      🔴 {t('eventDetail.soldOut')}
                                     </span>
                                   )}
                                   {isSaleEnded && !isSoldOut && (
@@ -1636,7 +1650,7 @@ const EventDetail = () => {
                                         )
                                       )}
                                     >
-                                      ⏰ Hết hạn bán
+                                      ⏰ {t('eventDetail.saleEnded')}
                                     </span>
                                   )}
                                   {isSaleNotStarted && (
@@ -1649,7 +1663,7 @@ const EventDetail = () => {
                                         )
                                       )}
                                     >
-                                      🕐 Chưa mở bán
+                                      🕐 {t('eventDetail.saleNotStarted')}
                                     </span>
                                   )}
                                 </div>
@@ -1657,13 +1671,17 @@ const EventDetail = () => {
                             </div>
                             <p
                               className={cn(
-                                'text-xl font-bold flex-shrink-0 text-right',
+                                'text-lg sm:text-xl font-bold flex-shrink-0 text-right w-full sm:w-auto',
                                 price === 0
                                   ? getThemeClass('text-green-600', 'text-green-400')
                                   : getThemeClass('text-blue-600', 'text-teal-300')
                               )}
                             >
-                              {price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} đ`}
+                              {price === 0
+                                ? t('eventDetail.free')
+                                : `${price.toLocaleString(
+                                    i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+                                  )} đ`}
                             </p>
                           </div>
                           <div className="space-y-1 mb-3">
@@ -1684,25 +1702,25 @@ const EventDetail = () => {
                                   getThemeClass('text-blue-600', 'text-blue-400')
                                 )}
                               >
-                                📝 Bạn đã mua: {ticketLimits[ticket.ticketId]?.userPurchased || 0}{' '}
-                                vé | Còn có thể mua:{' '}
-                                {Math.max(
-                                  0,
-                                  (ticketLimits[ticket.ticketId]?.maxPerUser || 0) -
-                                    (ticketLimits[ticket.ticketId]?.userPurchased || 0)
-                                )}{' '}
-                                vé
+                                {t('eventDetail.youHavePurchased', {
+                                  count: ticketLimits[ticket.ticketId]?.userPurchased || 0,
+                                  remaining: Math.max(
+                                    0,
+                                    (ticketLimits[ticket.ticketId]?.maxPerUser || 0) -
+                                      (ticketLimits[ticket.ticketId]?.userPurchased || 0)
+                                  ),
+                                })}
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center justify-between mt-2 gap-3">
-                            <div className="flex items-center space-x-3 flex-shrink-0">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-2 sm:gap-3">
+                            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 w-full sm:w-auto justify-center sm:justify-start">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleQuantityChange(ticket, quantity - 1)}
                                 disabled={quantity === 0}
                                 className={cn(
-                                  'p-2 rounded-full transition-colors',
+                                  'p-1.5 sm:p-2 rounded-full transition-colors',
                                   getThemeClass(
                                     'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
                                     'bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed'
@@ -1711,7 +1729,7 @@ const EventDetail = () => {
                               >
                                 <MinusCircle
                                   className={cn(
-                                    'w-5 h-5',
+                                    'w-4 h-4 sm:w-5 sm:h-5',
                                     getThemeClass('text-white', 'text-white')
                                   )}
                                 />
@@ -1722,7 +1740,7 @@ const EventDetail = () => {
                                 animate={{ scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                                 className={cn(
-                                  'text-lg font-medium w-10 text-center',
+                                  'text-base sm:text-lg font-medium w-8 sm:w-10 text-center',
                                   getThemeClass('text-gray-900', 'text-white')
                                 )}
                               >
@@ -1733,7 +1751,7 @@ const EventDetail = () => {
                                 onClick={() => handleQuantityChange(ticket, quantity + 1)}
                                 disabled={!canIncrease}
                                 className={cn(
-                                  'p-2 rounded-full transition-colors',
+                                  'p-1.5 sm:p-2 rounded-full transition-colors',
                                   getThemeClass(
                                     'bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed',
                                     'bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 disabled:cursor-not-allowed'
@@ -1742,7 +1760,7 @@ const EventDetail = () => {
                               >
                                 <PlusCircle
                                   className={cn(
-                                    'w-5 h-5',
+                                    'w-4 h-4 sm:w-5 sm:h-5',
                                     getThemeClass('text-white', 'text-white')
                                   )}
                                 />
@@ -1754,15 +1772,17 @@ const EventDetail = () => {
                               animate={{ scale: 1, color: '#a7f3d0' }}
                               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                               className={cn(
-                                'text-base font-semibold min-w-[90px] max-w-[120px] text-right flex-shrink-0',
+                                'text-sm sm:text-base font-semibold min-w-[100px] sm:min-w-[120px] max-w-[150px] sm:max-w-[180px] text-right flex-shrink-0 w-full sm:w-auto',
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
                               {quantity === 0
                                 ? ''
                                 : subtotal === 0
-                                ? 'Miễn phí'
-                                : `${subtotal.toLocaleString('vi-VN')} đ`}
+                                ? t('eventDetail.free')
+                                : `${subtotal.toLocaleString(
+                                    i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+                                  )} đ`}
                             </motion.div>
                           </div>
 
@@ -1814,7 +1834,7 @@ const EventDetail = () => {
                           )}
                         >
                           <ChevronLeft className="w-5 h-5" />
-                          <span className="text-sm font-medium">Trước</span>
+                          <span className="text-sm font-medium">{t('eventDetail.previous')}</span>
                         </button>
 
                         <button
@@ -1828,7 +1848,7 @@ const EventDetail = () => {
                             )
                           )}
                         >
-                          <span className="text-sm font-medium">Tiếp</span>
+                          <span className="text-sm font-medium">{t('eventDetail.next')}</span>
                           <ChevronRight className="w-5 h-5" />
                         </button>
                       </motion.div>
@@ -1845,7 +1865,7 @@ const EventDetail = () => {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.4 }}
                   className={cn(
-                    'p-6 rounded-xl shadow-xl overflow-hidden',
+                    'p-3 sm:p-4 md:p-6 rounded-xl shadow-xl overflow-hidden',
                     getThemeClass('bg-white border border-gray-200 shadow-lg', 'bg-slate-800')
                   )}
                 >
@@ -1879,8 +1899,10 @@ const EventDetail = () => {
                           </span>
                           <span>
                             {price === 0
-                              ? 'Miễn phí'
-                              : `${(price * item.quantity).toLocaleString('vi-VN')} đ`}
+                              ? t('eventDetail.free')
+                              : `${(price * item.quantity).toLocaleString(
+                                  i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+                                )} đ`}
                           </span>
                         </div>
                       );
@@ -1958,12 +1980,12 @@ const EventDetail = () => {
                         </span>
                       </div>
 
-                      <div className="flex gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3">
                         <div className="relative flex-1">
                           <input
                             type="text"
                             className={cn(
-                              'w-full border-2 rounded-lg px-4 py-3 text-sm font-medium placeholder:font-normal transition-all duration-300 focus:ring-2 focus:border-transparent',
+                              'w-full border-2 rounded-lg px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium placeholder:font-normal transition-all duration-300 focus:ring-2 focus:border-transparent',
                               discountValidation
                                 ? discountValidation.success
                                   ? getThemeClass(
@@ -2043,7 +2065,7 @@ const EventDetail = () => {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           className={cn(
-                            'px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-300 min-w-[100px] flex items-center justify-center',
+                            'px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all duration-300 min-w-[80px] sm:min-w-[100px] flex items-center justify-center',
                             validatingDiscount || !discountCode.trim()
                               ? getThemeClass(
                                   'bg-gray-200 text-gray-500 cursor-not-allowed',
@@ -2154,12 +2176,12 @@ const EventDetail = () => {
                     </div>
                   </motion.div>
                   <motion.button
-                    whileHover={{ scale: 1.03, boxShadow: '0px 0px 15px rgba(56, 189, 248, 0.5)' }}
+                    whileHover={{ scale: 1.02, boxShadow: '0px 0px 15px rgba(56, 189, 248, 0.5)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleCreateOrder}
                     disabled={isCreatingOrder || totalAmount === 0}
                     className={cn(
-                      'w-full mt-2 font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
+                      'w-full mt-2 font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
                       getThemeClass(
                         'bg-gradient-to-r from-sky-500 to-indigo-600 text-white hover:from-sky-600 hover:to-indigo-700',
                         'bg-gradient-to-r from-sky-500 to-indigo-600 text-white hover:from-sky-600 hover:to-indigo-700'
@@ -2176,7 +2198,7 @@ const EventDetail = () => {
                       : t('eventDetail.bookTickets', { count: selectedItemsCount })}
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.03, boxShadow: '0px 0px 15px rgba(168,85,247,0.5)' }}
+                    whileHover={{ scale: 1.02, boxShadow: '0px 0px 15px rgba(168,85,247,0.5)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       requireLogin(() => {
@@ -2186,7 +2208,7 @@ const EventDetail = () => {
                     }}
                     disabled={isCreatingOrder || faceLoading || totalAmount === 0}
                     className={cn(
-                      'w-full mt-3 font-semibold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
+                      'w-full mt-3 font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
                       getThemeClass(
                         'bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600',
                         'bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600'
@@ -2321,101 +2343,105 @@ const EventDetail = () => {
               </motion.div>
             )}
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className={cn(
-              'lg:col-span-4 p-6 md:p-8 rounded-xl shadow-xl',
-              getThemeClass(
-                'bg-white/95 border border-gray-200 shadow-lg',
-                'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
-              )
-            )}
-          >
-            <h2
+          {/* Only show Recommended Events section if AI API didn't fail */}
+          {!aiApiFailed && (
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
               className={cn(
-                'text-xl font-bold mb-4 text-center',
-                getThemeClass('text-gray-900', 'text-white')
+                'lg:col-span-4 p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl shadow-xl',
+                getThemeClass(
+                  'bg-white/95 border border-gray-200 shadow-lg',
+                  'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
+                )
               )}
             >
-              {t('recommendEvents')}
-            </h2>
-            {loadingEvent ? (
-              <div className="flex justify-center items-center h-60">
-                <Loader2
-                  className={cn(
-                    'animate-spin w-10 h-10',
-                    getThemeClass('text-gray-500', 'text-gray-400')
-                  )}
-                />
-              </div>
-            ) : events.length === 0 ? (
-              <div
+              <h2
                 className={cn(
-                  'text-center text-lg',
-                  getThemeClass('text-gray-500', 'text-gray-400')
+                  'text-xl font-bold mb-4 text-center',
+                  getThemeClass('text-gray-900', 'text-white')
                 )}
               >
-                {t('eventDetail.noEventsFound')}
-              </div>
-            ) : (
-              <Swiper
-                slidesPerView={1}
-                spaceBetween={24}
-                breakpoints={{
-                  320: { slidesPerView: 1.2 },
-                  640: { slidesPerView: 1.2 },
-                  768: { slidesPerView: 2 },
-                  1024: { slidesPerView: 3 },
-                  1440: { slidesPerView: 4 },
-                }}
-                pagination={{ clickable: true, type: 'fraction' }}
-                navigation={true}
-                modules={[Pagination, Navigation]}
-                className="event-card-slider"
-              >
-                {events.map((event) => (
-                  <SwiperSlide key={event.eventId}>
-                    <div
-                      className={cn(
-                        'group rounded-2xl shadow-xl hover:shadow-2xl hover:scale-95 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full',
-                        getThemeClass(
-                          'bg-white border border-gray-200 shadow-lg hover:shadow-xl',
-                          'bg-white/90 border border-gray-200'
-                        )
-                      )}
-                      onClick={() => navigate(`/event/${event.eventId}`)}
-                      title={t('clickToViewDetails')}
-                    >
-                      <div className="relative h-48 w-full overflow-hidden">
-                        <img
-                          src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
-                          alt={event.eventName}
-                          className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = NO_IMAGE;
-                          }}
-                        />
-                        <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-white/90 to-transparent" />
+                {t('recommendEvents')}
+              </h2>
+              {loadingEvent ? (
+                <div className="flex justify-center items-center h-60">
+                  <Loader2
+                    className={cn(
+                      'animate-spin w-10 h-10',
+                      getThemeClass('text-gray-500', 'text-gray-400')
+                    )}
+                  />
+                </div>
+              ) : events.length === 0 ? (
+                <div
+                  className={cn(
+                    'text-center text-lg',
+                    getThemeClass('text-gray-500', 'text-gray-400')
+                  )}
+                >
+                  {t('eventDetail.noEventsFound')}
+                </div>
+              ) : (
+                <Swiper
+                  slidesPerView={1}
+                  spaceBetween={16}
+                  breakpoints={{
+                    320: { slidesPerView: 1.1, spaceBetween: 12 },
+                    480: { slidesPerView: 1.2, spaceBetween: 16 },
+                    640: { slidesPerView: 1.5, spaceBetween: 20 },
+                    768: { slidesPerView: 2, spaceBetween: 24 },
+                    1024: { slidesPerView: 3, spaceBetween: 24 },
+                    1440: { slidesPerView: 4, spaceBetween: 24 },
+                  }}
+                  pagination={{ clickable: true, type: 'fraction' }}
+                  navigation={true}
+                  modules={[Pagination, Navigation]}
+                  className="event-card-slider"
+                >
+                  {events.map((event) => (
+                    <SwiperSlide key={event.eventId}>
+                      <div
+                        className={cn(
+                          'group rounded-2xl shadow-xl hover:shadow-2xl hover:scale-95 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col h-full',
+                          getThemeClass(
+                            'bg-white border border-gray-200 shadow-lg hover:shadow-xl',
+                            'bg-white/90 border border-gray-200'
+                          )
+                        )}
+                        onClick={() => navigate(`/event/${event.eventId}`)}
+                        title={t('clickToViewDetails')}
+                      >
+                        <div className="relative h-32 sm:h-40 md:h-48 w-full overflow-hidden">
+                          <img
+                            src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
+                            alt={event.eventName}
+                            className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = NO_IMAGE;
+                            }}
+                          />
+                          <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-white/90 to-transparent" />
+                        </div>
+                        <div className="p-2 sm:p-3 md:p-4 flex-1 flex flex-col">
+                          <h3
+                            className={cn(
+                              'text-sm sm:text-base md:text-lg font-bold mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1',
+                              getThemeClass('text-gray-900', 'text-white')
+                            )}
+                          >
+                            {event.eventName}
+                          </h3>
+                        </div>
                       </div>
-                      <div className="p-4 flex-1 flex flex-col">
-                        <h3
-                          className={cn(
-                            'text-lg font-bold mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1',
-                            getThemeClass('text-gray-900', 'text-white')
-                          )}
-                        >
-                          {event.eventName}
-                        </h3>
-                      </div>
-                    </div>
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            )}
-          </motion.div>
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              )}
+            </motion.div>
+          )}
         </div>
       </div>
       {showReportModal && pendingReport && (
@@ -2511,11 +2537,68 @@ const EventDetail = () => {
     margin-top: 24px;
     text-align: center;
     z-index: 10;
+    width: 100% !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+  .event-card-slider .swiper-pagination-fraction {
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
   }
   .event-card-slider .swiper-button-next,
   .event-card-slider .swiper-button-prev {
     top: 50%;
     transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .event-card-slider .swiper-button-next:after,
+  .event-card-slider .swiper-button-prev:after {
+    font-size: 16px;
+    font-weight: bold;
+    color: #374151;
+  }
+  .event-card-slider .swiper-button-next:hover,
+  .event-card-slider .swiper-button-prev:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .event-card-slider .swiper-pagination {
+      margin-top: 16px;
+      margin-bottom: 16px;
+    }
+    .event-card-slider .swiper-pagination-fraction {
+      font-size: 12px;
+    }
+    .event-card-slider .swiper-button-next,
+    .event-card-slider .swiper-button-prev {
+      width: 36px;
+      height: 36px;
+    }
+    .event-card-slider .swiper-button-next:after,
+    .event-card-slider .swiper-button-prev:after {
+      font-size: 14px;
+    }
+  }
+  
+  /* Small mobile */
+  @media (max-width: 480px) {
+    .event-card-slider .swiper-button-next,
+    .event-card-slider .swiper-button-prev {
+      width: 32px;
+      height: 32px;
+    }
+    .event-card-slider .swiper-button-next:after,
+    .event-card-slider .swiper-button-prev:after {
+      font-size: 12px;
+    }
   }
 `}</style>
     </motion.div>

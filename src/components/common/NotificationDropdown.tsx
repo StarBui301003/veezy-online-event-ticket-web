@@ -5,27 +5,48 @@ import type { Notification } from '@/hooks/useNotifications';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { useRef, useEffect } from 'react';
 
 interface NotificationDropdownProps {
   userId?: string;
   onViewAll: () => void;
   t: (key: string) => string;
   onRedirect?: (url: string) => void;
+  onClose?: () => void;
 }
 
-const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: NotificationDropdownProps) => {
+const NotificationDropdown = ({
+  userId,
+  onViewAll,
+  t,
+  onRedirect,
+  onClose,
+}: NotificationDropdownProps) => {
   const { getThemeClass } = useThemeClasses();
 
   // Use the hook for API and UI update
   const { notifications, markAsRead, markAllAsRead, refreshNotifications } =
     useRealtimeNotifications();
 
+  // Track notifications that are currently being clicked to prevent rapid clicks
+  const clickingNotificationsRef = useRef<Set<string>>(new Set());
+
+  // Track if component is mounted to prevent API calls from unmounted components
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Calculate unread count from notifications to ensure accuracy
   const actualUnreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Always call the hook's markAllAsRead(userId) which does both UI and API
   const handleMarkAllAsRead = async () => {
-    if (!userId) return;
+    if (!userId || !isMountedRef.current) return;
     try {
       await markAllAsRead(userId);
       await refreshNotifications();
@@ -35,33 +56,97 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (userId) {
-      try {
-        if (!notification.isRead) {
-          await markAsRead(notification.notificationId, userId);
-        }
-        if (notification.redirectUrl) {
-          onRedirect?.(notification.redirectUrl);
-        } else {
-          onViewAll();
-        }
-      } catch (error) {
-        /* empty */
+    if (userId && isMountedRef.current) {
+      if (clickingNotificationsRef.current.has(notification.notificationId)) {
+        console.log(
+          '[NotificationDropdown] Already processing click for notification:',
+          notification.notificationId
+        );
+        return;
       }
+
+      try {
+        // Add to clicking set to prevent duplicates
+        clickingNotificationsRef.current.add(notification.notificationId);
+        console.log(
+          '[NotificationDropdown] Starting to process notification click:',
+          notification.notificationId
+        );
+
+        if (!notification.isRead) {
+          console.log(
+            '[NotificationDropdown] Calling markAsRead for unread notification:',
+            notification.notificationId
+          );
+          await markAsRead(notification.notificationId, userId);
+          console.log(
+            '[NotificationDropdown] Successfully marked notification as read:',
+            notification.notificationId
+          );
+        } else {
+          console.log(
+            '[NotificationDropdown] Notification already read, skipping markAsRead:',
+            notification.notificationId
+          );
+        }
+
+        // Don't redirect automatically - just mark as read
+        console.log('[NotificationDropdown] Notification marked as read, no automatic redirect');
+      } catch (error) {
+        console.error('[NotificationDropdown] Error processing notification click:', error);
+      } finally {
+        // Only cleanup if component is still mounted
+        if (isMountedRef.current) {
+          // Remove from clicking set after a short delay to allow for navigation
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              clickingNotificationsRef.current.delete(notification.notificationId);
+              console.log(
+                '[NotificationDropdown] Cleaned up clicking state for notification:',
+                notification.notificationId
+              );
+            }
+          }, 1000);
+        }
+      }
+    }
+  };
+
+  // Separate function for handling redirects
+  const handleNotificationRedirect = (notification: Notification) => {
+    if (notification.redirectUrl) {
+      console.log('[NotificationDropdown] Redirecting to:', notification.redirectUrl);
+      onRedirect?.(notification.redirectUrl);
+    } else {
+      console.log('[NotificationDropdown] No redirect URL, calling onViewAll');
+      onViewAll();
     }
   };
 
   return (
     <div
       className={cn(
-        'absolute right-0 z-50 mt-2 w-96 rounded-2xl shadow-2xl border overflow-hidden animate-in slide-in-from-top-2 duration-200',
+        'absolute z-[10003] mt-2 w-80 sm:w-96 rounded-2xl shadow-2xl border overflow-hidden animate-in slide-in-from-top-2 duration-200 notification-dropdown',
+        'right-0 sm:right-0',
         getThemeClass('bg-white border-gray-200', 'bg-gray-900 border-gray-800')
       )}
+      style={{
+        maxWidth: 'calc(100vw - 2rem)',
+        right: '0',
+        left: 'auto',
+        pointerEvents: 'auto',
+        overscrollBehavior: 'contain',
+        touchAction: 'pan-y',
+        WebkitOverflowScrolling: 'touch',
+      }}
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div
         className={cn(
-          'relative p-4 text-white border-b',
+          'relative p-3 sm:p-4 text-white border-b',
           getThemeClass(
             'bg-gradient-to-r from-blue-600 to-purple-600 border-gray-200',
             'bg-gradient-to-r from-blue-800 to-purple-900 border-gray-800'
@@ -85,43 +170,6 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
             </span>
             <h3 className="font-bold text-lg text-white">{t('notifications') || 'Thông báo'}</h3>
           </div>
-          <button
-            onClick={() => {
-              if (userId && actualUnreadCount > 0) handleMarkAllAsRead();
-            }}
-            disabled={notifications.length === 0 || actualUnreadCount === 0}
-            className={cn(
-              'flex items-center gap-1 px-2 py-1 rounded-md transition-all text-xs font-medium shadow-sm',
-              notifications.length === 0 || actualUnreadCount === 0
-                ? getThemeClass(
-                    'text-gray-500 cursor-not-allowed bg-gray-200',
-                    'text-gray-500 cursor-not-allowed bg-gray-800'
-                  )
-                : getThemeClass(
-                    'text-blue-700 bg-blue-100/80 hover:bg-blue-200/90 active:bg-blue-300/90 hover:scale-105 active:scale-95 border border-blue-300/60',
-                    'text-blue-200 bg-blue-800/40 hover:bg-blue-700/60 active:bg-blue-900/60 hover:scale-105 active:scale-95 border border-blue-700/40'
-                  )
-            )}
-            style={{ fontSize: '12px', height: '28px', minHeight: 'unset' }}
-            title={
-              notifications.length === 0
-                ? t('noNotifications') || 'Không có thông báo'
-                : actualUnreadCount === 0
-                ? t('allRead') || 'Tất cả đã đọc'
-                : t('markAllAsRead') || 'Đánh dấu tất cả đã đọc'
-            }
-          >
-            {actualUnreadCount === 0 ? (
-              <CheckCheck className="w-4 h-4" />
-            ) : (
-              <Check className="w-4 h-4" />
-            )}
-            <span className="hidden sm:inline">
-              {actualUnreadCount === 0
-                ? t('allRead') || 'Đã đọc hết'
-                : t('markAllAsRead') || 'Đọc tất cả'}
-            </span>
-          </button>
         </div>
 
         {/* Decorative elements */}
@@ -132,9 +180,14 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
       {/* Notifications List */}
       <div
         className={cn(
-          'max-h-80 overflow-y-auto custom-scrollbar',
+          'max-h-80 overflow-y-auto custom-scrollbar relative z-0',
           getThemeClass('bg-white', 'bg-gray-900')
         )}
+        style={{
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+        }}
       >
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12">
@@ -167,7 +220,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
               <div
                 key={notification.notificationId}
                 className={cn(
-                  'group relative p-4 cursor-pointer transition-all duration-200',
+                  'group relative p-3 sm:p-4 cursor-pointer transition-all duration-200',
                   !notification.isRead
                     ? getThemeClass(
                         'bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500',
@@ -288,49 +341,84 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
       {/* Footer */}
       <div
         className={cn(
-          'p-4 border-t',
+          'p-3 sm:p-4 border-t',
           getThemeClass('border-gray-200 bg-white', 'border-gray-800 bg-gray-900')
         )}
       >
-        <button
-          className={cn(
-            'w-full py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
-            getThemeClass(
-              'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200',
-              'text-blue-200 bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50'
-            )
-          )}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onViewAll();
-          }}
-        >
-          {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
-        </button>
+        <div className="flex gap-2">
+          <button
+            className={cn(
+              'flex-1 py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
+              getThemeClass(
+                'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200',
+                'text-blue-200 bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50'
+              )
+            )}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onViewAll();
+            }}
+          >
+            {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
+          </button>
+          <button
+            className={cn(
+              'px-4 py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
+              getThemeClass(
+                'text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300',
+                'text-gray-300 bg-gray-800 hover:bg-gray-700 border border-gray-600'
+              )
+            )}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Chỉ gọi onClose, không gọi onViewAll
+              if (onClose) {
+                onClose();
+              }
+            }}
+          >
+            {t('close') || 'Đóng'}
+          </button>
+        </div>
       </div>
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgb(156 163 175 / 0.5);
-          border-radius: 2px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgb(156 163 175 / 0.7);
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgb(75 85 99 / 0.5);
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgb(75 85 99 / 0.7);
-        }
-      `}</style>
+         .custom-scrollbar::-webkit-scrollbar {
+           width: 4px;
+         }
+         .custom-scrollbar::-webkit-scrollbar-track {
+           background: transparent;
+         }
+         .custom-scrollbar::-webkit-scrollbar-thumb {
+           background: rgb(156 163 175 / 0.5);
+           border-radius: 2px;
+         }
+         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+           background: rgb(156 163 175 / 0.7);
+         }
+         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+           background: rgb(75 85 99 / 0.5);
+         }
+         .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+           background: rgb(75 85 99 / 0.7);
+         }
+         
+         /* Prevent page scroll when interacting with dropdown */
+         .notification-dropdown {
+           overscroll-behavior: contain;
+           touch-action: pan-y;
+           -webkit-overflow-scrolling: touch;
+         }
+         
+         /* Prevent body scroll when dropdown is open */
+         body.dropdown-open {
+           overflow: hidden;
+           position: fixed;
+           width: 100%;
+         }
+       `}</style>
     </div>
   );
 };

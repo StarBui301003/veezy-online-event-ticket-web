@@ -3,10 +3,12 @@ import { Separator } from '@/components/ui/separator';
 import { FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import { LOGO_RECTANGLE } from '@/assets/img';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export const Footer = () => {
   const { getThemeClass } = useThemeClasses();
+  const { t } = useTranslation();
 
   return (
     <footer
@@ -30,7 +32,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-800', 'text-white/80')
               )}
             >
-              Vezzy – Tap. Book. Rock On.
+              {t('footer.tagline')}
             </p>
           </div>
 
@@ -42,7 +44,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-900', 'text-white')
               )}
             >
-              Contact
+              {t('footer.contact')}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
               <div className="flex items-start gap-3 justify-start mx-20 sm:mx-0">
@@ -59,7 +61,7 @@ export const Footer = () => {
                       getThemeClass('text-gray-900', 'text-white')
                     )}
                   >
-                    Address
+                    {t('footer.address')}
                   </p>
                   <p
                     className={cn(
@@ -67,7 +69,7 @@ export const Footer = () => {
                       getThemeClass('text-gray-800', 'text-white/80')
                     )}
                   >
-                    600 Nguyen Van Cu Noi Dai Street, Binh Thuy Ward, Can Tho City
+                    {t('footer.addressValue')}
                   </p>
                 </div>
               </div>
@@ -86,10 +88,10 @@ export const Footer = () => {
                       getThemeClass('text-gray-900', 'text-white')
                     )}
                   >
-                    Email
+                    {t('footer.email')}
                   </p>
                   <p className={cn('text-sm', getThemeClass('text-gray-800', 'text-white/80'))}>
-                    support@vezzy.com
+                    {t('footer.emailValue')}
                   </p>
                 </div>
               </div>
@@ -110,7 +112,7 @@ export const Footer = () => {
               getThemeClass('text-gray-700', 'text-white/70')
             )}
           >
-            © 2025 VEZZY. All rights reserved.
+            {t('footer.copyright')}
           </p>
 
           <nav className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 lg:gap-x-8 gap-y-2 text-sm font-medium">
@@ -121,7 +123,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
               )}
             >
-              Home
+              {t('footer.home')}
             </Link>
             <Link
               to="/events"
@@ -130,7 +132,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
               )}
             >
-              Event
+              {t('footer.event')}
             </Link>
             <Link
               to="/news"
@@ -139,7 +141,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
               )}
             >
-              News
+              {t('footer.news')}
             </Link>
             <Link
               to="/terms-of-use"
@@ -148,7 +150,7 @@ export const Footer = () => {
                 getThemeClass('text-gray-800 hover:text-gray-900', 'text-white hover:text-white/80')
               )}
             >
-              Terms of Use
+              {t('footer.termsOfUse')}
             </Link>
           </nav>
         </div>

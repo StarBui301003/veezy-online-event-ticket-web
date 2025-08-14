@@ -137,7 +137,7 @@ export const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className={cn(
-        'min-h-screen pt-20 pb-12',
+        'min-h-screen sm:pt-20 pt-8 sm:pb-12 pb-2',
         getThemeClass(
           'bg-gradient-to-r from-blue-500 to-cyan-400',
           'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900'
@@ -194,7 +194,7 @@ export const HomePage = () => {
               {events.slice(0, 5).map((event) => (
                 <SwiperSlide key={event.eventId}>
                   <Link to={`/event/${event.eventId}`}>
-                    <div className="relative h-[400px] w-full overflow-hidden rounded-[16px] shadow-2xl">
+                    <div className="relative sm:h-[400px] h-[300px] w-full overflow-hidden rounded-[16px] shadow-2xl">
                       <img
                         src={event.eventCoverImageUrl ? event.eventCoverImageUrl : NO_IMAGE}
                         alt={event.eventName}

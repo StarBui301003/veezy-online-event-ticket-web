@@ -129,7 +129,7 @@ const NewsDetail: React.FC = () => {
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSuccess = (_email: string) => {
+  const handleRegisterSuccess = (email: string) => {
     setShowRegisterModal(false);
     if (news) setReportModal({ type: 'news', id: news.newsId });
   };
@@ -278,8 +278,8 @@ const NewsDetail: React.FC = () => {
       </div>
 
       {/* Content area with proper z-index */}
-      <div className="relative z-10 pt-16 pb-16">
-        <div className="container mx-auto px-6 py-12">
+      <div className="relative z-10 sm:pt-16 pt-0 pb-16">
+        <div className="container mx-auto px-6 sm:py-12 py-0">
           {/* Enhanced Breadcrumb */}
           <nav className="mb-8 mt-24 opacity-0 animate-fade-in">
             <div
@@ -567,11 +567,12 @@ const NewsDetail: React.FC = () => {
                       getThemeClass('border-gray-200/60', 'border-gray-700/50')
                     )}
                   >
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
+                    {/* Header Section - Responsive Layout */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                      <div className="flex-1">
                         <h2
                           className={cn(
-                            'text-3xl font-bold bg-clip-text text-transparent mb-2 font-playfair',
+                            'text-2xl sm:text-3xl font-bold bg-clip-text text-transparent mb-2 font-playfair',
                             getThemeClass(
                               'bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-600',
                               'bg-gradient-to-r from-white via-cyan-200 to-emerald-200'
@@ -582,7 +583,7 @@ const NewsDetail: React.FC = () => {
                         </h2>
                         <p
                           className={cn(
-                            'text-gray-400',
+                            'text-sm sm:text-base',
                             getThemeClass('text-gray-600', 'text-gray-300')
                           )}
                         >
@@ -591,13 +592,14 @@ const NewsDetail: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleNavigate('/news/all')}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-blue-600/25 hover:scale-105 transform"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-blue-600/25 hover:scale-105 transform text-sm sm:text-base whitespace-nowrap"
                       >
                         View All
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {/* News Grid - Responsive */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                       {relatedNews.slice(0, showCount).map((item, index) => (
                         <article
                           key={item.newsId}
@@ -615,15 +617,15 @@ const NewsDetail: React.FC = () => {
                             <img
                               src={item.imageUrl}
                               alt={item.newsTitle}
-                              className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="w-full h-40 sm:h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                           </div>
 
-                          <div className="p-6">
+                          <div className="p-4 sm:p-6">
                             <h3
                               className={cn(
-                                'font-bold text-xl mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors duration-200 font-playfair leading-tight',
+                                'font-bold text-lg sm:text-xl mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors duration-200 font-playfair leading-tight',
                                 getThemeClass('text-gray-900', 'text-white')
                               )}
                             >
@@ -632,7 +634,7 @@ const NewsDetail: React.FC = () => {
 
                             {item.eventId && (
                               <button
-                                className="text-blue-400 hover:text-blue-300 transition-colors duration-200 text-sm flex items-center gap-2 mb-3 bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20"
+                                className="text-blue-400 hover:text-blue-300 transition-colors duration-200 text-xs sm:text-sm flex items-center gap-2 mb-3 bg-blue-500/10 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-blue-500/20"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleNavigate(`/event/${item.eventId}`);
@@ -640,13 +642,14 @@ const NewsDetail: React.FC = () => {
                                 type="button"
                               >
                                 <ExternalLink className="w-3 h-3" />
-                                Related Event
+                                <span className="hidden sm:inline">Related Event</span>
+                                <span className="sm:hidden">Event</span>
                               </button>
                             )}
 
                             <div
                               className={cn(
-                                'text-xs mb-3 flex items-center gap-2 px-3 py-2 rounded-lg',
+                                'text-xs mb-3 flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg',
                                 getThemeClass(
                                   'bg-gray-100/50 text-gray-600',
                                   'bg-gray-700/30 text-gray-400'
@@ -661,7 +664,7 @@ const NewsDetail: React.FC = () => {
 
                             <p
                               className={cn(
-                                'text-sm line-clamp-3 leading-relaxed font-inter',
+                                'text-xs sm:text-sm line-clamp-3 leading-relaxed font-inter',
                                 getThemeClass('text-gray-600', 'text-gray-300')
                               )}
                             >
@@ -672,11 +675,12 @@ const NewsDetail: React.FC = () => {
                       ))}
                     </div>
 
+                    {/* Load More Button - Responsive */}
                     {relatedNews.length > showCount && (
-                      <div className="flex justify-center mt-10">
+                      <div className="flex justify-center mt-8 sm:mt-10">
                         <button
                           className={cn(
-                            'px-8 py-4 text-white rounded-xl transition-all duration-200 font-medium hover:scale-105 transform shadow-lg border',
+                            'px-6 sm:px-8 py-3 sm:py-4 text-white rounded-xl transition-all duration-200 font-medium hover:scale-105 transform shadow-lg border text-sm sm:text-base',
                             getThemeClass(
                               'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 border-gray-600/50',
                               'bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 border-gray-600/50'

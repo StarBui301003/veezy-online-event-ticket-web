@@ -4,7 +4,7 @@ export const ErrorPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-8 sm:py-12 sm:px-6 lg:px-8 relative">
       {/* Custom 404 TV Animation */}
       <style>
         {`
@@ -14,6 +14,7 @@ export const ErrorPage = () => {
           justify-content: center;
           width: 50em;
           height: 30em;
+          max-width: 100%;
         }
         .main {
           display: flex;
@@ -503,6 +504,11 @@ export const ErrorPage = () => {
           .text_404 {
             column-gap: 6em;
           }
+          .main_wrapper {
+            width: 100%;
+            height: auto;
+            min-height: 20em;
+          }
         }
         @media only screen and (max-width: 395px) {
           .text_404 {
@@ -517,10 +523,20 @@ export const ErrorPage = () => {
           .text_4043 {
             transform: scaleY(25) scaleX(8);
           }
+          .main_wrapper {
+            width: 100%;
+            height: auto;
+            min-height: 18em;
+          }
         }
         @media (max-width: 275px), (max-height: 520px) {
           .main {
             position: relative;
+          }
+          .main_wrapper {
+            width: 100%;
+            height: auto;
+            min-height: 15em;
           }
         }
         @media only screen and (max-width: 1024px) {
@@ -612,11 +628,13 @@ export const ErrorPage = () => {
           <div className="text_4043">4</div>
         </div>
       </div>
-      <div className="mx-auto max-w-md text-center mt-4 flex justify-center">
+
+      {/* Button Container - Fixed positioning for mobile */}
+      <div className="w-full max-w-md mx-auto text-center mt-4 sm:mt-6 flex justify-center z-10 relative">
         <button
           type="button"
-          className="cursor-pointer transition-all bg-blue-500 text-white px-6 py-2 rounded-[10px] border-blue-600 border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px] active:border-b-[2px] active:brightness-90 active:translate-y-[2px] w-full max-w-xs"
-          style={{ maxWidth: 220 }}
+          className="cursor-pointer transition-all bg-blue-500 text-white px-6 py-3 sm:py-2 rounded-[10px] border-blue-600 border-b-[4px] hover:brightness-110 hover:-translate-y-[1px] hover:border-b-[6px] active:border-b-[2px] active:brightness-90 active:translate-y-[2px] w-full max-w-xs touch-manipulation"
+          style={{ maxWidth: 220, minHeight: '44px' }}
           onClick={() => {
             const accStr = localStorage.getItem('account');
             if (!accStr) {
@@ -625,18 +643,24 @@ export const ErrorPage = () => {
             }
             try {
               const accObj = JSON.parse(accStr);
+              console.log('Account object:', accObj);
+              console.log('Role:', accObj.role, 'Type:', typeof accObj.role);
+
               if (accObj.role === 0) {
+                console.log('Navigating to admin');
                 navigate('/admin');
               } else if (accObj.role === 1) {
+                console.log('Navigating to customer home');
+                navigate('/');
+              } else if (accObj.role === 2) {
+                console.log('Navigating to event manager');
+                navigate('/event-manager');
+              } else {
+                console.log('Unknown role, navigating to customer home');
                 navigate('/');
               }
-              // } else if { accObj.role === 2 } {
-              //   navigate('/event-manager');
-              // }
-              // else{
-              //   navigate('/');
-              // }
-            } catch {
+            } catch (error) {
+              console.error('Error parsing account:', error);
               navigate('/');
             }
           }}

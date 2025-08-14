@@ -1,4 +1,5 @@
 import instance from '../axios.customize';
+import { markNotificationRead as mainMarkNotificationRead } from '../notification.service';
 import type {
     PaginatedAdminNotificationResponse,
     PaginatedPersonalNotificationResponse,
@@ -69,8 +70,24 @@ export async function markPersonalNotificationAsRead(
     notificationId: string,
     userId: string
 ): Promise<{ flag: boolean; code: number; message: string; data: boolean }> {
-    const res = await instance.put(`/api/Notification/${notificationId}/read?userId=${userId}`);
-    return res.data;
+    // Use the main service function to prevent duplicates and ensure consistency
+    try {
+        const result = await mainMarkNotificationRead(notificationId, userId);
+        return {
+            flag: result.flag,
+            code: result.code,
+            message: result.message,
+            data: result.data
+        };
+    } catch (error) {
+        console.error('Error in markPersonalNotificationAsRead:', error);
+        return {
+            flag: false,
+            code: 500,
+            message: 'Failed to mark notification as read',
+            data: false
+        };
+    }
 }
 
 // Đánh dấu tất cả thông báo cá nhân là đã đọc

@@ -333,7 +333,7 @@ export const Header = () => {
                   'body-bold-16 whitespace-nowrap transition-colors select-none',
                   getThemeClass(
                     'text-blue-900 hover:text-blue-700 border-b border-b-transparent hover:border-blue-700 ',
-                    'text-white hover:text-white border-b border-b-transparent hover:border-neutral-100 '
+                    'text-white hover:text-white border-b border-b-transparent hover:border-blue-700 '
                   )
                 )}
               >
@@ -419,11 +419,11 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex gap-x-6 ml-0 items-center">
-            {/* Nút chuyển sang event manager chỉ hiện với role 2 */}
+          <div className="flex gap-x-4 ml-0 items-center">
+            {/* Nút chuyển sang event manager chỉ hiện với role 2 và chỉ trên desktop */}
             {user?.role === 2 && (
               <Button
-                className="bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-full shadow hover:scale-105 transition-transform duration-200 my-2 ml-2"
+                className="hidden sm:block bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white px-5 py-2 font-bold rounded-full shadow hover:scale-105 transition-transform duration-200 my-2 ml-2"
                 onClick={() => navigate('/event-manager')}
               >
                 {t('eventManager')}
@@ -460,78 +460,42 @@ export const Header = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="sm:hidden p-2 rounded-full ml-1"
+                  className="sm:hidden rounded-full ml-2"
                   onClick={toggleMobileMenu}
                   aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                   title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                 >
                   {mobileMenuOpen ? (
-                    <X className={cn('w-6 h-6', getTextClass())} />
+                    <X className={cn('w-9 h-9', getTextClass())} />
                   ) : (
-                    <Menu className={cn('w-6 h-6', getTextClass())} />
+                    <Menu className={cn('w-9 h-9', getTextClass())} />
                   )}
                 </Button>
               </>
             ) : (
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:shadow',
-                      getThemeClass(
-                        'text-black hover:text-black hover:bg-gray-100',
-                        'text-white hover:bg-white/10'
-                      )
-                    )}
-                    style={{ minWidth: 0 }}
-                  >
-                    <Avatar
+              <>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
                       className={cn(
-                        'w-8 h-8 border rounded-full',
-                        getThemeClass('border-gray-300', 'border-white/30')
+                        'body-medium-16 px-[6px] rounded-xl hidden sm:flex bg-transparent light:text-blue-700 hover:text-white transition duration-300 hover:shadow',
+                        getThemeClass(
+                          'text-black hover:text-black hover:bg-gray-100',
+                          'text-white hover:bg-white/10'
+                        )
                       )}
+                      style={{ minWidth: 0 }}
                     >
-                      <AvatarImage src={avatar || AVATAR} alt="avatar" />
-                      <AvatarFallback
-                        className={cn('text-white', getThemeClass('bg-gray-100', 'bg-white/10'))}
-                      >
-                        {user?.fullName?.[0]?.toUpperCase() ||
-                          user?.fullname?.[0]?.toUpperCase() ||
-                          user?.username?.[0]?.toUpperCase() ||
-                          'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className={cn('hidden sm:inline whitespace-nowrap', getTextClass())}>
-                      {user?.fullName || user?.fullname || user?.username}
-                    </span>
-                    <IoIosArrowDown className={getTextClass()} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className={cn(
-                    'w-60 rounded-lg',
-                    getThemeClass(
-                      '!bg-white border-gray-200 text-gray-900',
-                      '!bg-gray-900 border-gray-700 text-white'
-                    )
-                  )}
-                >
-                  <DropdownMenuLabel className="p-0 font-normal">
-                    <div className="flex items-center gap-2 pl-2 py-2">
                       <Avatar
                         className={cn(
-                          'h-10 w-10 rounded-full border',
+                          'w-8 h-8 border rounded-full',
                           getThemeClass('border-gray-300', 'border-white/30')
                         )}
                       >
                         <AvatarImage src={avatar || AVATAR} alt="avatar" />
                         <AvatarFallback
-                          className={cn(
-                            'rounded-full text-white',
-                            getThemeClass('bg-gray-100', 'bg-white/10')
-                          )}
+                          className={cn('text-white', getThemeClass('bg-gray-100', 'bg-white/10'))}
                         >
                           {user?.fullName?.[0]?.toUpperCase() ||
                             user?.fullname?.[0]?.toUpperCase() ||
@@ -539,73 +503,131 @@ export const Header = () => {
                             'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col justify-center">
-                        <span
+                      <span className={cn('hidden sm:inline whitespace-nowrap', getTextClass())}>
+                        {user?.fullName || user?.fullname || user?.username}
+                      </span>
+                      <IoIosArrowDown className={getTextClass()} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className={cn(
+                      'w-60 rounded-lg',
+                      getThemeClass(
+                        '!bg-white border-gray-200 text-gray-900',
+                        '!bg-gray-900 border-gray-700 text-white'
+                      )
+                    )}
+                  >
+                    <DropdownMenuLabel className="p-0 font-normal">
+                      <div className="flex items-center gap-2 pl-2 py-2">
+                        <Avatar
                           className={cn(
-                            'font-semibold text-sm truncate max-w-[140px]',
-                            getTextClass()
+                            'h-10 w-10 rounded-full border',
+                            getThemeClass('border-gray-300', 'border-white/30')
                           )}
                         >
-                          {user?.username || user?.fullname}
-                        </span>
-                        <span
-                          className={cn(
-                            'text-xs truncate max-w-[180px]',
-                            getThemeClass('text-gray-600', 'text-gray-300')
-                          )}
-                        >
-                          {user?.email}
-                        </span>
+                          <AvatarImage src={avatar || AVATAR} alt="avatar" />
+                          <AvatarFallback
+                            className={cn(
+                              'rounded-full text-white',
+                              getThemeClass('bg-gray-100', 'bg-white/10')
+                            )}
+                          >
+                            {user?.fullName?.[0]?.toUpperCase() ||
+                              user?.fullname?.[0]?.toUpperCase() ||
+                              user?.username?.[0]?.toUpperCase() ||
+                              'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col justify-center">
+                          <span
+                            className={cn(
+                              'font-semibold text-sm truncate max-w-[140px]',
+                              getTextClass()
+                            )}
+                          >
+                            {user?.username || user?.fullname}
+                          </span>
+                          <span
+                            className={cn(
+                              'text-xs truncate max-w-[180px]',
+                              getThemeClass('text-gray-600', 'text-gray-300')
+                            )}
+                          >
+                            {user?.email}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className={getThemeClass('bg-gray-300', 'bg-gray-700')} />
-                  <DropdownMenuItem
-                    className={cn(
-                      'pl-5',
-                      getThemeClass(
-                        '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900 data-[highlighted]:!bg-gray-100 data-[highlighted]:text-gray-900',
-                        '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
-                      )
-                    )}
-                    onClick={() => {
-                      if (user?.role === 2) {
-                        navigate('/event-manager/profile');
-                      } else {
-                        navigate('/profile');
-                      }
-                    }}
-                  >
-                    <FiUser className="mr-2" />
-                    {t('profile')}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className={getThemeClass('bg-gray-300', 'bg-gray-700')} />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    disabled={loadingLogout}
-                    className={cn(
-                      'pl-5',
-                      getThemeClass(
-                        '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900',
-                        '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white'
-                      )
-                    )}
-                  >
-                    <LogOut className="mr-2" />
-                    {loadingLogout ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('logging_out')}
-                      </>
-                    ) : (
-                      t('logout')
-                    )}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator
+                      className={getThemeClass('bg-gray-300', 'bg-gray-700')}
+                    />
+                    <DropdownMenuItem
+                      className={cn(
+                        'pl-5',
+                        getThemeClass(
+                          '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900 data-[highlighted]:!bg-gray-100 data-[highlighted]:text-gray-900',
+                          '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white data-[highlighted]:!bg-gray-800 data-[highlighted]:text-white'
+                        )
+                      )}
+                      onClick={() => {
+                        if (user?.role === 2) {
+                          navigate('/event-manager/profile');
+                        } else {
+                          navigate('/profile');
+                        }
+                      }}
+                    >
+                      <FiUser className="mr-2" />
+                      {t('profile')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator
+                      className={getThemeClass('bg-gray-300', 'bg-gray-700')}
+                    />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      disabled={loadingLogout}
+                      className={cn(
+                        'pl-5',
+                        getThemeClass(
+                          '!bg-white text-gray-900 hover:!bg-gray-100 focus:!bg-gray-100 focus:text-gray-900',
+                          '!bg-gray-900 text-white hover:!bg-gray-800 focus:!bg-gray-800 focus:text-white'
+                        )
+                      )}
+                    >
+                      <LogOut className="mr-2" />
+                      {loadingLogout ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t('logging_out')}
+                        </>
+                      ) : (
+                        t('logout')
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Hamburger menu for logged-in users on mobile */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="sm:hidden p-3 rounded-full ml-2"
+                  onClick={toggleMobileMenu}
+                  aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                  title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                >
+                  {mobileMenuOpen ? (
+                    <X className={cn('w-9 h-10', getTextClass())} />
+                  ) : (
+                    <Menu className={cn('w-9 h-9', getTextClass())} />
+                  )}
+                </Button>
+              </>
             )}
-            {/* Notification Bell - Hidden for event managers (role 2) */}
-            {user && user.role !== 2 && (
+            {/* Notification Bell */}
+            {user && (
               <div className="relative">
                 <button
                   className={cn(
@@ -631,6 +653,9 @@ export const Header = () => {
                       navigate(url);
                       setNotifDropdown(false);
                     }}
+                    onClose={() => {
+                      setNotifDropdown(false);
+                    }}
                     t={t}
                   />
                 )}
@@ -641,23 +666,37 @@ export const Header = () => {
       </div>
 
       {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 sm:hidden">
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={closeMobileMenu} />
+      <div
+        className={cn(
+          'fixed inset-0 z-50 sm:hidden transition-all duration-300 ease-in-out',
+          mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+      >
+        {/* Backdrop */}
+        <div
+          className={cn(
+            'fixed inset-0 backdrop-blur-sm transition-all duration-300 ease-in-out',
+            mobileMenuOpen ? 'bg-black/50' : 'bg-black/0'
+          )}
+          onClick={closeMobileMenu}
+        />
 
-          {/* Menu Content */}
-          <div
-            className={cn(
-              'fixed top-0 right-0 h-full w-80 max-w-[85vw] p-6 shadow-xl transform transition-transform duration-300 ease-in-out',
-              getThemeClass(
-                'bg-white border-l border-gray-200',
-                'bg-gray-900 border-l border-gray-700'
-              )
-            )}
-          >
-            {/* Close Button */}
-            <div className="flex justify-end mb-6">
+        {/* Menu Content */}
+        <div
+          className={cn(
+            'fixed top-0 right-0 h-full w-80 max-w-[85vw] shadow-xl transform transition-all duration-300 ease-in-out flex flex-col',
+            getThemeClass(
+              'bg-white border-l border-gray-200',
+              'bg-gray-900 border-l border-gray-700'
+            ),
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          )}
+        >
+          {/* Mobile Menu Header - Fixed */}
+          <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <h2 className={cn('text-lg font-semibold', getTextClass())}>{t('menu')}</h2>
+            <div className="flex items-center gap-2">
+              {/* Close Button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -668,9 +707,12 @@ export const Header = () => {
                 <X className={cn('w-6 h-6', getTextClass())} />
               </Button>
             </div>
+          </div>
 
+          {/* Scrollable Content Container */}
+          <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-6">
             {/* Mobile Search */}
-            <div className="mb-6">
+            <div>
               <div
                 className={cn(
                   'flex items-center w-full border rounded-full relative',
@@ -746,7 +788,7 @@ export const Header = () => {
             </div>
 
             {/* Mobile Navigation */}
-            <nav className="space-y-4 mb-6">
+            <nav className="space-y-4">
               <Link
                 to="/"
                 className={cn(
@@ -790,12 +832,12 @@ export const Header = () => {
             </nav>
 
             {/* Mobile Theme Toggle */}
-            <div className="mb-6">
+            <div>
               <ThemeToggle />
             </div>
 
             {/* Mobile Language Toggle */}
-            <div className="mb-6">
+            <div>
               <div
                 className={cn(
                   'flex rounded-lg border overflow-hidden',
@@ -896,18 +938,6 @@ export const Header = () => {
                   </div>
                 </div>
 
-                {user?.role === 2 && (
-                  <Button
-                    className="w-full bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white py-3 font-bold rounded-lg"
-                    onClick={() => {
-                      navigate('/event-manager');
-                      closeMobileMenu();
-                    }}
-                  >
-                    {t('eventManager')}
-                  </Button>
-                )}
-
                 <Link
                   to={user?.role === 2 ? '/event-manager/profile' : '/profile'}
                   className={cn(
@@ -946,7 +976,7 @@ export const Header = () => {
             )}
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 };

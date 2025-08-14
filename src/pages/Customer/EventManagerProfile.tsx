@@ -130,27 +130,27 @@ const EventManagerProfile = () => {
   const totalPages = Math.ceil(events.length / EVENTS_PER_PAGE);
   const pagedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
 
+  const { getThemeClass } = useThemeClasses();
+
   if (loading) return <SpinnerOverlay show={true} />;
   if (!info)
     return <div className="text-center text-red-500 py-20">{t('eventManagerNotFound')}</div>;
 
-  const { getThemeClass } = useThemeClasses();
-
   return (
     <div
       className={cn(
-        'min-h-screen pt-24 pb-12',
+        'min-h-screen pt-16 sm:pt-20 md:pt-24 pb-8 sm:pb-12',
         getThemeClass(
           'bg-gradient-to-r from-blue-500 to-cyan-400 text-gray-900',
           'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white'
         )
       )}
     >
-      <div className="max-w-6xl mx-auto flex gap-8 px-4">
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8 px-3 sm:px-4 lg:px-6">
         {/* Sidebar Tabs */}
         <aside
           className={cn(
-            'w-64 rounded-2xl shadow-xl p-6 flex flex-col gap-2',
+            'w-full lg:w-64 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible',
             getThemeClass('bg-white/90 border border-blue-200', 'bg-slate-800/80')
           )}
         >
@@ -177,7 +177,7 @@ const EventManagerProfile = () => {
         {/* Main content */}
         <main
           className={cn(
-            'flex-1 rounded-2xl shadow-xl p-8 min-h-[500px]',
+            'flex-1 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 min-h-[400px] sm:min-h-[500px]',
             getThemeClass(
               'bg-white/90 border border-gray-200 text-gray-900',
               'bg-slate-800/70 text-white'
@@ -186,9 +186,12 @@ const EventManagerProfile = () => {
         >
           {tab === 'info' && (
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <h2
-                  className={cn('text-2xl font-bold', getThemeClass('text-gray-900', 'text-white'))}
+                  className={cn(
+                    'text-xl sm:text-2xl font-bold',
+                    getThemeClass('text-gray-900', 'text-white')
+                  )}
                 >
                   {t('personalInfo')}
                 </h2>
@@ -233,21 +236,21 @@ const EventManagerProfile = () => {
                   </DropdownMenu>
                 </div>
               </div>
-              <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
+              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8 mb-6 sm:mb-8">
                 <div className="relative">
                   <img
                     src={info.avatarUrl || NO_AVATAR}
                     alt={info.fullName || 'avatar'}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-purple-400 shadow-lg"
+                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-purple-400 shadow-lg"
                   />
                   <div className="absolute -bottom-2 -right-2">
                     <OnlineStatusIndicator userId={info.userId} size="lg" showText={false} />
                   </div>
                 </div>
-                <div className="flex-1 min-w-0 text-center md:text-left">
+                <div className="flex-1 min-w-0 text-center sm:text-left">
                   <div
                     className={cn(
-                      'font-bold text-3xl md:text-4xl mb-3',
+                      'font-bold text-2xl sm:text-3xl md:text-4xl mb-3',
                       getThemeClass(
                         'text-gray-900',
                         'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent'
@@ -263,11 +266,11 @@ const EventManagerProfile = () => {
                       userId={info.userId}
                       size="md"
                       showText={true}
-                      className="justify-center md:justify-start"
+                      className="justify-center sm:justify-start"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div className="flex items-center gap-2">
                       <span className={cn(getThemeClass('text-blue-700', 'text-purple-300'))}>
                         📧 {t('email')}:
@@ -286,7 +289,7 @@ const EventManagerProfile = () => {
                         {info.phone}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:col-span-2">
                       <span className={cn(getThemeClass('text-blue-700', 'text-purple-300'))}>
                         📍 {t('location')}:
                       </span>
@@ -304,10 +307,10 @@ const EventManagerProfile = () => {
           )}
           {tab === 'events' && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <h2
                   className={cn(
-                    'text-2xl font-bold bg-clip-text text-transparent',
+                    'text-xl sm:text-2xl font-bold bg-clip-text text-transparent',
                     getThemeClass(
                       'bg-gradient-to-r from-blue-600 to-cyan-600',
                       'bg-gradient-to-r from-purple-400 to-pink-400'
@@ -318,7 +321,7 @@ const EventManagerProfile = () => {
                 </h2>
                 <div
                   className={cn(
-                    'px-4 py-2 rounded-full border',
+                    'px-3 sm:px-4 py-2 rounded-full border text-center sm:text-left',
                     getThemeClass(
                       'bg-blue-100 border-blue-300',
                       'bg-purple-600/20 border-purple-500/30'
@@ -338,25 +341,33 @@ const EventManagerProfile = () => {
               {loadingEvents ? (
                 <SpinnerOverlay show={true} />
               ) : events.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4">🎪</div>
+                <div className="text-center py-12 sm:py-16">
+                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">🎪</div>
                   <div
-                    className={cn('text-lg mb-2', getThemeClass('text-gray-600', 'text-gray-400'))}
+                    className={cn(
+                      'text-base sm:text-lg mb-2',
+                      getThemeClass('text-gray-600', 'text-gray-400')
+                    )}
                   >
                     {t('noEventsYet')}
                   </div>
-                  <div className={cn('text-sm', getThemeClass('text-gray-500', 'text-gray-500'))}>
+                  <div
+                    className={cn(
+                      'text-xs sm:text-sm',
+                      getThemeClass('text-gray-500', 'text-gray-500')
+                    )}
+                  >
                     {t('eventManagerNoEvents')}
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {pagedEvents.map((event: EventItem) => (
                       <div
                         key={event.eventId}
                         className={cn(
-                          'group rounded-2xl p-6 shadow-lg border hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden relative',
+                          'group rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg border hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer overflow-hidden relative',
                           getThemeClass(
                             'bg-white border-gray-200',
                             'bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-purple-700/30 hover:border-purple-500/50'
@@ -375,10 +386,10 @@ const EventManagerProfile = () => {
                           )}
                         ></div>
                         {/* Event Title */}
-                        <div className="relative z-10 mb-4">
+                        <div className="relative z-10 mb-3 sm:mb-4">
                           <h3
                             className={cn(
-                              'font-bold text-xl mb-2 line-clamp-2 transition-colors',
+                              'font-bold text-lg sm:text-xl mb-2 line-clamp-2 transition-colors',
                               getThemeClass(
                                 'text-gray-900 group-hover:text-blue-700',
                                 'text-white group-hover:text-purple-300'
@@ -389,7 +400,7 @@ const EventManagerProfile = () => {
                           </h3>
                           <div
                             className={cn(
-                              'w-12 h-1 rounded-full',
+                              'w-8 sm:w-12 h-1 rounded-full',
                               getThemeClass(
                                 'bg-gradient-to-r from-blue-600 to-cyan-600',
                                 'bg-gradient-to-r from-purple-500 to-pink-500'
@@ -398,11 +409,11 @@ const EventManagerProfile = () => {
                           ></div>
                         </div>
                         {/* Event Details */}
-                        <div className="space-y-3 mb-4">
-                          <div className="flex items-start gap-3">
+                        <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <div
                               className={cn(
-                                'text-sm mt-1',
+                                'text-sm mt-1 flex-shrink-0',
                                 getThemeClass('text-blue-600', 'text-purple-400')
                               )}
                             >
@@ -410,20 +421,25 @@ const EventManagerProfile = () => {
                             </div>
                             <div
                               className={cn(
-                                'text-sm',
+                                'text-xs sm:text-sm min-w-0',
                                 getThemeClass('text-gray-700', 'text-gray-300')
                               )}
                             >
                               <div className="font-medium">{t('startAt')}:</div>
-                              <div className={getThemeClass('text-blue-700', 'text-purple-300')}>
+                              <div
+                                className={cn(
+                                  'truncate',
+                                  getThemeClass('text-blue-700', 'text-purple-300')
+                                )}
+                              >
                                 {new Date(event.startAt).toLocaleString('vi-VN')}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <div
                               className={cn(
-                                'text-sm mt-1',
+                                'text-sm mt-1 flex-shrink-0',
                                 getThemeClass('text-pink-600', 'text-pink-400')
                               )}
                             >
@@ -431,20 +447,25 @@ const EventManagerProfile = () => {
                             </div>
                             <div
                               className={cn(
-                                'text-sm',
+                                'text-xs sm:text-sm min-w-0',
                                 getThemeClass('text-gray-700', 'text-gray-300')
                               )}
                             >
                               <div className="font-medium">{t('endAt')}:</div>
-                              <div className={getThemeClass('text-pink-700', 'text-pink-300')}>
+                              <div
+                                className={cn(
+                                  'truncate',
+                                  getThemeClass('text-pink-700', 'text-pink-300')
+                                )}
+                              >
                                 {new Date(event.endAt).toLocaleString('vi-VN')}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-start gap-3">
+                          <div className="flex items-start gap-2 sm:gap-3">
                             <div
                               className={cn(
-                                'text-sm mt-1',
+                                'text-sm mt-1 flex-shrink-0',
                                 getThemeClass('text-yellow-600', 'text-yellow-400')
                               )}
                             >
@@ -452,7 +473,7 @@ const EventManagerProfile = () => {
                             </div>
                             <div
                               className={cn(
-                                'text-sm',
+                                'text-xs sm:text-sm min-w-0',
                                 getThemeClass('text-gray-700', 'text-gray-300')
                               )}
                             >
@@ -515,10 +536,10 @@ const EventManagerProfile = () => {
                   </div>
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="flex justify-center mt-8 gap-2">
+                    <div className="flex flex-col sm:flex-row justify-center items-center mt-6 sm:mt-8 gap-3 sm:gap-2">
                       <button
                         className={cn(
-                          'px-4 py-2 rounded-full font-semibold disabled:opacity-50',
+                          'px-3 sm:px-4 py-2 rounded-full font-semibold disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto',
                           getThemeClass('bg-blue-600 text-white', 'bg-slate-700 text-white')
                         )}
                         onClick={() => setPage(page - 1)}
@@ -528,7 +549,7 @@ const EventManagerProfile = () => {
                       </button>
                       <span
                         className={cn(
-                          'px-4 py-2 font-bold',
+                          'px-3 sm:px-4 py-2 font-bold text-center',
                           getThemeClass('text-blue-700', 'text-purple-300')
                         )}
                       >
@@ -536,7 +557,7 @@ const EventManagerProfile = () => {
                       </span>
                       <button
                         className={cn(
-                          'px-4 py-2 rounded-full font-semibold disabled:opacity-50',
+                          'px-3 sm:px-4 py-2 rounded-full font-semibold disabled:opacity-50 text-sm sm:text-base w-full sm:w-auto',
                           getThemeClass('bg-blue-600 text-white', 'bg-slate-700 text-white')
                         )}
                         onClick={() => setPage(page + 1)}
@@ -552,10 +573,10 @@ const EventManagerProfile = () => {
           )}
           {tab === 'news' && (
             <div>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
                 <h2
                   className={cn(
-                    'text-2xl font-bold bg-clip-text text-transparent',
+                    'text-xl sm:text-2xl font-bold bg-clip-text text-transparent',
                     getThemeClass(
                       'bg-gradient-to-r from-blue-600 to-cyan-600',
                       'bg-gradient-to-r from-purple-400 to-pink-400'
@@ -566,7 +587,7 @@ const EventManagerProfile = () => {
                 </h2>
                 <div
                   className={cn(
-                    'px-4 py-2 rounded-full border',
+                    'px-3 sm:px-4 py-2 rounded-full border text-center sm:text-left',
                     getThemeClass(
                       'bg-blue-100 border-blue-300',
                       'bg-purple-600/20 border-purple-500/30'
@@ -586,24 +607,32 @@ const EventManagerProfile = () => {
               {loadingNews ? (
                 <SpinnerOverlay show={true} />
               ) : news.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-4">📰</div>
+                <div className="text-center py-12 sm:py-16">
+                  <div className="text-4xl sm:text-6xl mb-3 sm:mb-4">📰</div>
                   <div
-                    className={cn('text-lg mb-2', getThemeClass('text-gray-600', 'text-gray-400'))}
+                    className={cn(
+                      'text-base sm:text-lg mb-2',
+                      getThemeClass('text-gray-600', 'text-gray-400')
+                    )}
                   >
                     {t('noNewsYet')}
                   </div>
-                  <div className={cn('text-sm', getThemeClass('text-gray-500', 'text-gray-500'))}>
+                  <div
+                    className={cn(
+                      'text-xs sm:text-sm',
+                      getThemeClass('text-gray-500', 'text-gray-500')
+                    )}
+                  >
                     {t('eventManagerNoNews')}
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {news.map((n, idx) => (
                     <div
                       key={n.newsId || idx}
                       className={cn(
-                        'rounded-xl p-6 shadow border relative group',
+                        'rounded-xl p-4 sm:p-6 shadow border relative group',
                         getThemeClass(
                           'bg-white border-gray-200',
                           'bg-slate-800/80 border-purple-700/30'
@@ -655,12 +684,12 @@ const EventManagerProfile = () => {
                         <img
                           src={n.imageUrl}
                           alt={n.newsTitle}
-                          className="w-full h-40 object-cover rounded mb-3"
+                          className="w-full h-32 sm:h-40 object-cover rounded mb-3"
                         />
                       )}
                       <div
                         className={cn(
-                          'font-bold text-lg mb-2 line-clamp-2',
+                          'font-bold text-base sm:text-lg mb-2 line-clamp-2',
                           getThemeClass('text-gray-900', 'text-white')
                         )}
                       >
@@ -668,7 +697,7 @@ const EventManagerProfile = () => {
                       </div>
                       <div
                         className={cn(
-                          'text-sm mb-2 line-clamp-3',
+                          'text-xs sm:text-sm mb-2 line-clamp-3',
                           getThemeClass('text-gray-700', 'text-slate-300')
                         )}
                       >
@@ -687,7 +716,7 @@ const EventManagerProfile = () => {
                       <a
                         href={`/news/${n.newsId}`}
                         className={cn(
-                          'text-sm',
+                          'text-xs sm:text-sm',
                           getThemeClass(
                             'text-blue-600 hover:underline',
                             'text-blue-400 hover:underline'

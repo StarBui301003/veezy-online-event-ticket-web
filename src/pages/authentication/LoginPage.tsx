@@ -143,6 +143,19 @@ export const LoginPage = () => {
         return;
       }
 
+      const { role } = apiResult.data.account;
+
+      // Chặn Event Manager đăng nhập trên mobile
+      const isMobile = window.innerWidth <= 768;
+      if (role === 2 && isMobile) {
+        toast.error(t('eventManagerMobileLoginBlocked'), {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
       // Set refresh token cookie (remove secure flag for development)
@@ -157,7 +170,6 @@ export const LoginPage = () => {
         email,
         gender,
         phone,
-        role,
         userId,
         username: accountUsername,
       } = apiResult.data.account;
@@ -253,6 +265,19 @@ export const LoginPage = () => {
         return;
       }
 
+      const { role } = apiResult.data.account;
+
+      // Chặn Event Manager face login trên mobile
+      const isMobile = window.innerWidth <= 768;
+      if (role === 2 && isMobile) {
+        toast.error(t('eventManagerMobileFaceLoginBlocked'), {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
       document.cookie = `refresh_token=${apiResult.data.refreshToken}; path=/; secure; samesite=strict`;
@@ -264,7 +289,6 @@ export const LoginPage = () => {
         email,
         gender,
         phone,
-        role,
         userId,
         username: accountUsername,
       } = apiResult.data.account;
@@ -521,8 +545,8 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-              <div className="flex gap-x-2 items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-6 w-full max-w-[280px] sm:max-w-[380px] mx-auto">
+              <div className="flex gap-x-2 items-center justify-start w-full sm:w-auto">
                 <Checkbox
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
@@ -532,7 +556,7 @@ export const LoginPage = () => {
               </div>
               <Link
                 to="/reset-password"
-                className="text-[#60A5FA] hover:underline text-sm sm:text-base"
+                className="text-[#60A5FA] hover:underline text-sm sm:text-base self-end sm:self-auto"
               >
                 {t('forgotPassword')}
               </Link>

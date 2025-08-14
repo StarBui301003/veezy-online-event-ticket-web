@@ -181,6 +181,7 @@ export default function EventManagerDashboard() {
         userId={userId}
         onViewAll={handleViewAll}
         onRedirect={handleRedirect}
+        onClose={() => {}}
         t={t}
       />
     ),

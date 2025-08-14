@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CiSearch, CiClose } from 'react-icons/ci';
+import { CiSearch } from 'react-icons/ci';
+import { IoIosClose } from 'react-icons/io';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,6 @@ export const MobileSearch = ({
   onSearch,
 }: MobileSearchProps) => {
   const { getThemeClass } = useThemeClasses();
-  const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -106,7 +105,7 @@ export const MobileSearch = ({
             )}
             aria-label="Close search"
           >
-            <CiClose className="w-6 h-6" />
+            <IoIosClose className="w-6 h-6" />
           </Button>
         </div>
 

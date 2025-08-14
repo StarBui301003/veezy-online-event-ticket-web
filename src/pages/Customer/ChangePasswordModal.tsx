@@ -119,7 +119,10 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
       const errorMessage = error?.response?.data?.message;
       if (errorMessage) {
         if (errorMessage.includes('Current password is incorrect')) {
-          setErrors((prev) => ({ ...prev, currentPassword: t('profileCustomer.currentPasswordIncorrect') }));
+          setErrors((prev) => ({
+            ...prev,
+            currentPassword: t('profileCustomer.currentPasswordIncorrect'),
+          }));
         } else if (errorMessage.includes('validation')) {
           setErrors((prev) => ({ ...prev, newPassword: errorMessage }));
         } else {
@@ -341,7 +344,7 @@ const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
               onClick={handleClose}
               disabled={loading}
             >
-              {t('common.cancel')}
+              {t('cancel')}
             </Button>
             <Button
               type="submit"

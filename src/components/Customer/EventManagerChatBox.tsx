@@ -27,7 +27,7 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
- 
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
@@ -228,10 +228,9 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
 
       await joinChatRoom(room.roomId);
 
-      
       scrollToBottom();
     } catch (error: any) {
-      
+      console.error('Failed to initialize chat room:', error);
     } finally {
       setIsLoading(false);
     }
@@ -276,7 +275,8 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
 
         // Show notification if not from current user
         if (message.senderId !== currentUser?.id) {
-          
+          // Optional: Show toast notification for new messages
+          console.log('New message received from:', message.senderName);
         }
       }
     };
@@ -304,14 +304,14 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
         )
       );
 
-      
+      console.log('Message updated:', messageDto);
     };
 
     // Handle message deletions
     const handleMessageDeleted = (messageDto: any) => {
       setMessages((prev) => prev.filter((msg) => msg.id !== (messageDto.Id || messageDto.id)));
 
-      
+      console.log('Message deleted:', messageDto);
     };
 
     // Register listeners
@@ -405,7 +405,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
       setReplyingTo(null);
       scrollToBottom();
     } catch (error: any) {
-      
+      console.error('Failed to send message:', error);
       setNewMessage(messageContent); // Restore message
     } finally {
       setIsSending(false);
@@ -458,7 +458,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
       setEditingMessage(null);
       setEditingContent('');
     } catch (error: any) {
-      
+      console.error('Failed to update message:', error);
     }
   }, [editingMessage, editingContent, chatRoom]);
 
@@ -485,9 +485,9 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
         // Update local state
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
 
-        
+        console.log('Message deleted successfully');
       } catch (error: any) {
-        
+        console.error('Failed to delete message:', error);
       }
     },
     [chatRoom]
@@ -499,25 +499,25 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
   ).length;
 
   return (
-    <div className={`fixed bottom-4 right-20 z-[9998] ${className}`}>
+    <div className={`fixed bottom-4 left-4 sm:left-6 z-[9998] ${className}`}>
       {/* Chat Toggle Button - Always visible, fixed position */}
-      <div className="relative z-10">
+      <div className="relative z-[10000]">
         <Button
           onClick={openChat}
           data-event-manager-chat-toggle
           className={cn(
-            'rounded-full h-14 w-14 px-0 shadow-lg aspect-square flex items-center justify-center',
+            'rounded-full h-14 w-14 sm:h-20 sm:w-20 px-0 shadow-lg aspect-square flex items-center justify-center touch-manipulation',
             getThemeClass(
-              'bg-green-600 hover:bg-green-700 text-white',
-              'bg-green-600 hover:bg-green-700 text-white'
+              'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white',
+              'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white'
             )
           )}
           size="lg"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" />
         </Button>
         {onlineManagersCount > 0 && (
-          <Badge className="absolute top-2 right-2 bg-orange-500 text-white min-w-[20px] h-5 rounded-full text-xs">
+          <Badge className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-orange-500 text-white min-w-[20px] h-5 sm:min-w-[22px] sm:h-6 rounded-full text-xs">
             {onlineManagersCount}
           </Badge>
         )}
@@ -527,12 +527,12 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={cn(
-              'w-96 z-[9999] absolute bottom-0 right-0 rounded-2xl shadow-2xl border',
+              'w-[calc(100vw-2rem)] sm:w-96 z-[10001] absolute bottom-0 left-0 sm:left-0 rounded-2xl shadow-2xl border max-h-[calc(100vh-2rem)]',
               getThemeClass('bg-white border-green-200', 'bg-slate-800 border-green-700')
             )}
             data-event-manager-chat-modal
@@ -540,15 +540,15 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
           >
             <Card
               className={cn(
-                'w-96 shadow-2xl border rounded-2xl transition-all duration-300',
+                'w-full sm:w-96 shadow-2xl border rounded-2xl transition-all duration-300 relative z-[10002]',
                 getThemeClass('bg-white border-green-200', 'bg-slate-800 border-green-700'),
-                isMinimized ? 'h-16' : 'h-[500px]'
+                isMinimized ? 'h-16' : 'h-[400px] sm:h-[500px] max-h-[calc(100vh-4rem)]'
               )}
             >
               {/* Header */}
               <CardHeader
                 className={cn(
-                  'p-4 text-white rounded-t-2xl',
+                  'p-3 sm:p-4 text-white rounded-t-2xl cursor-move select-none',
                   getThemeClass(
                     'bg-gradient-to-r from-green-500 to-green-600',
                     'bg-gradient-to-r from-green-600 to-green-700'
@@ -556,27 +556,34 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MessageCircle className="h-5 w-5" />
-                    <div>
-                      <CardTitle className="text-sm font-medium">Hỗ trợ sự kiện</CardTitle>
-                      <p className="text-xs text-green-100 truncate max-w-[200px]">{eventName}</p>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-sm font-medium truncate">Hỗ trợ sự kiện</CardTitle>
+                      <p className="text-xs text-green-100 truncate max-w-[150px] sm:max-w-[200px]">
+                        {eventName}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                     <div className="flex items-center gap-1">
                       <div
                         className={`w-2 h-2 rounded-full ${
                           isConnected ? 'bg-green-400' : 'bg-red-400'
                         }`}
                       />
-                      <span className="text-xs text-green-100">{onlineManagersCount} online</span>
+                      <span className="text-xs text-green-100 hidden sm:inline">
+                        {onlineManagersCount} online
+                      </span>
+                      <span className="text-xs text-green-100 sm:hidden">
+                        {onlineManagersCount}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setIsMinimized(!isMinimized)}
-                      className="text-white hover:bg-green-700 p-1 h-6 w-6"
+                      className="text-white hover:bg-green-700 active:bg-green-800 p-1 h-6 w-6 touch-manipulation"
                     >
                       {isMinimized ? (
                         <Maximize2 className="h-3 w-3" />
@@ -588,7 +595,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={closeChat}
-                      className="text-white hover:bg-green-700 p-1 h-6 w-6"
+                      className="text-white hover:bg-green-700 active:bg-green-800 p-1 h-6 w-6 touch-manipulation"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -597,7 +604,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
               </CardHeader>
 
               {!isMinimized && (
-                <CardContent className="flex-1 p-0 flex flex-col h-[calc(600px-4rem)]">
+                <CardContent className="flex-1 p-0 flex flex-col h-[calc(400px-4rem)] sm:h-[calc(500px-4rem)] max-h-[calc(100vh-8rem)]">
                   {isLoading ? (
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center">
@@ -627,7 +634,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                         <Button
                           onClick={initializeChatRoom}
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 active:bg-green-800 touch-manipulation"
                         >
                           Thử lại
                         </Button>
@@ -637,24 +644,27 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                     <>
                       {/* Participants bar */}
                       <div
-                        className={cn('p-3 border-b', getThemeClass('bg-gray-50', 'bg-slate-700'))}
+                        className={cn(
+                          'p-2 sm:p-3 border-b',
+                          getThemeClass('bg-gray-50', 'bg-slate-700')
+                        )}
                       >
                         <div className="flex items-center gap-2">
                           <Users
                             className={cn(
-                              'h-4 w-4',
+                              'h-4 w-4 flex-shrink-0',
                               getThemeClass('text-gray-500', 'text-slate-400')
                             )}
                           />
                           <span
                             className={cn(
-                              'text-xs',
+                              'text-xs flex-shrink-0',
                               getThemeClass('text-gray-600', 'text-slate-300')
                             )}
                           >
                             Nhóm quản lý:
                           </span>
-                          <div className="flex -space-x-1">
+                          <div className="flex -space-x-1 min-w-0 flex-1">
                             {onlineParticipants
                               .filter((p) => p.role === 'EventManager')
                               .slice(0, 3)
@@ -680,7 +690,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                             3 && (
                             <span
                               className={cn(
-                                'text-xs',
+                                'text-xs flex-shrink-0',
                                 getThemeClass('text-gray-500', 'text-slate-400')
                               )}
                             >
@@ -693,7 +703,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                       </div>
 
                       {/* Messages */}
-                      <ScrollArea className="flex-1 p-4">
+                      <ScrollArea className="flex-1 p-2 sm:p-4">
                         <AnimatePresence>
                           {messages.map((message) => (
                             <motion.div
@@ -702,16 +712,16 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -20 }}
                               transition={{ duration: 0.3 }}
-                              className={`mb-4 group ${
+                              className={`mb-3 sm:mb-4 group ${
                                 message.isMyMessage ? 'text-right' : 'text-left'
                               }`}
                             >
                               <div
-                                className={`inline-flex items-start gap-2 max-w-[85%] ${
+                                className={`inline-flex items-start gap-2 max-w-[90%] sm:max-w-[85%] ${
                                   message.isMyMessage ? 'flex-row-reverse' : 'flex-row'
                                 }`}
                               >
-                                <Avatar className="h-6 w-6 flex-shrink-0">
+                                <Avatar className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0">
                                   <AvatarImage
                                     src={message.isEventManager ? '/admin-avatar.png' : undefined}
                                   />
@@ -720,12 +730,12 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                   </AvatarFallback>
                                 </Avatar>
 
-                                <div className="relative">
+                                <div className="relative min-w-0 flex-1">
                                   {/* Reply preview */}
                                   {message.replyToMessage && (
                                     <div
                                       className={cn(
-                                        'mb-1 p-2 rounded-lg text-xs max-w-[200px] truncate',
+                                        'mb-1 p-2 rounded-lg text-xs max-w-[180px] sm:max-w-[200px] truncate',
                                         getThemeClass(
                                           'bg-gray-100 text-gray-600',
                                           'bg-slate-600 text-slate-300'
@@ -769,7 +779,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                         <Button
                                           size="sm"
                                           onClick={saveEditedMessage}
-                                          className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700"
+                                          className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 active:bg-green-800 touch-manipulation"
                                         >
                                           <Check className="h-3 w-3 mr-1" />
                                           Lưu
@@ -778,7 +788,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                           size="sm"
                                           variant="outline"
                                           onClick={cancelEdit}
-                                          className="h-6 px-2 text-xs"
+                                          className="h-6 px-2 text-xs touch-manipulation"
                                         >
                                           <X className="h-3 w-3 mr-1" />
                                           Hủy
@@ -789,7 +799,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                     /* Normal mode */
                                     <div
                                       className={cn(
-                                        'rounded-xl px-4 py-2 shadow-md',
+                                        'rounded-xl px-3 py-2 sm:px-4 shadow-md break-words',
                                         message.isMyMessage
                                           ? getThemeClass(
                                               'bg-green-600 text-white shadow-green-200',
@@ -810,19 +820,19 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                     </div>
                                   )}
 
-                                  {/* Message actions */}
+                                  {/* Message actions - Show on mobile touch */}
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         className={cn(
-                                          'absolute opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6 top-1 bg-black/20 backdrop-blur-sm rounded-full shadow-lg border border-white/30',
+                                          'absolute opacity-0 group-hover:opacity-100 group-focus:opacity-100 sm:group-hover:opacity-100 transition-opacity p-1 h-5 w-5 sm:h-6 sm:w-6 top-1 bg-black/20 backdrop-blur-sm rounded-full shadow-lg border border-white/30 touch-manipulation',
                                           message.isMyMessage
-                                            ? '-left-8 text-white hover:bg-green-700 hover:text-white'
+                                            ? '-left-6 sm:-left-8 text-white hover:bg-green-700 hover:text-white active:bg-green-800'
                                             : getThemeClass(
-                                                '-right-8 text-gray-600 hover:bg-gray-200 hover:text-gray-800',
-                                                '-right-8 text-slate-400 hover:bg-slate-600 hover:text-slate-200'
+                                                '-right-6 sm:-right-8 text-gray-600 hover:bg-gray-200 hover:text-gray-800 active:bg-gray-300',
+                                                '-right-6 sm:-right-8 text-slate-400 hover:bg-slate-600 hover:text-slate-200 active:bg-slate-500'
                                               )
                                         )}
                                       >
@@ -831,6 +841,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
                                       align={message.isMyMessage ? 'end' : 'start'}
+                                      className="min-w-[120px]"
                                     >
                                       <DropdownMenuItem onClick={() => handleReply(message)}>
                                         <Reply className="h-4 w-4 mr-2" />
@@ -849,7 +860,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                       {message.isMyMessage && (
                                         <DropdownMenuItem
                                           onClick={() => deleteMessage(message.id)}
-                                          className="text-red-600 hover:text-red-700"
+                                          className="text-red-600 hover:text-red-700 active:text-red-800"
                                         >
                                           <Trash2 className="h-4 w-4 mr-2" />
                                           Xóa
@@ -869,7 +880,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                       <Separator />
                       <div
                         className={cn(
-                          'p-4 border-t',
+                          'p-2 sm:p-4 border-t',
                           getThemeClass(
                             'bg-slate-50 border-slate-200',
                             'bg-slate-800 border-slate-700'
@@ -880,19 +891,19 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                         {replyingTo && (
                           <div
                             className={cn(
-                              'mb-3 p-3 rounded-lg border-l-4 shadow-sm',
+                              'mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg border-l-4 shadow-sm',
                               getThemeClass(
-                                'bg-green-100 border-green-500',
-                                'bg-green-900/20 border-green-600'
+                                'bg-purple-100 border-purple-500',
+                                'bg-purple-900/20 border-purple-600'
                               )
                             )}
                           >
                             <div className="flex justify-between items-start">
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <div
                                   className={cn(
-                                    'text-sm font-medium',
-                                    getThemeClass('text-green-800', 'text-green-200')
+                                    'text-sm font-medium truncate',
+                                    getThemeClass('text-purple-800', 'text-purple-200')
                                   )}
                                 >
                                   Trả lời {replyingTo.senderName}
@@ -900,7 +911,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                 <div
                                   className={cn(
                                     'text-sm truncate',
-                                    getThemeClass('text-green-700', 'text-green-300')
+                                    getThemeClass('text-purple-700', 'text-purple-300')
                                   )}
                                 >
                                   {replyingTo.content}
@@ -911,10 +922,10 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                                 size="sm"
                                 onClick={cancelReply}
                                 className={cn(
-                                  'p-1 h-6 w-6',
+                                  'p-1 h-6 w-6 flex-shrink-0 touch-manipulation',
                                   getThemeClass(
-                                    'text-green-700 hover:bg-green-200',
-                                    'text-green-300 hover:bg-green-700/30'
+                                    'text-purple-700 hover:bg-purple-200 active:bg-purple-300',
+                                    'text-purple-300 hover:bg-purple-700/30 active:bg-purple-700/50'
                                   )
                                 )}
                               >
@@ -932,7 +943,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                             onKeyPress={handleKeyPress}
                             placeholder="Nhập tin nhắn..."
                             className={cn(
-                              'flex-1 rounded-full border-2 transition-colors',
+                              'flex-1 rounded-full border-2 transition-colors text-sm touch-manipulation',
                               getThemeClass(
                                 'border-green-300 bg-green-50 focus:bg-white focus:border-green-500 text-gray-800 placeholder:text-gray-500',
                                 'border-green-600 bg-green-900/20 focus:bg-slate-700 focus:border-green-500 text-white placeholder:text-slate-400'
@@ -944,7 +955,7 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
                             onClick={sendMessage}
                             disabled={!newMessage.trim() || isSending || !isConnected}
                             size="sm"
-                            className="rounded-full bg-green-600 hover:bg-green-700 px-4 shadow-md border-2 border-green-700"
+                            className="rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 px-3 sm:px-4 shadow-md border-2 border-purple-700 flex-shrink-0 touch-manipulation"
                           >
                             {isSending ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
@@ -980,7 +991,10 @@ const AuthenticatedEventManagerChatBox: React.FC<EventManagerChatBoxProps> = (pr
     const isAuthenticated = !!localStorage.getItem('access_token');
     const currentAccount = getCurrentAccount();
     // Show for logged-in users with Customer (1) or Event Manager (2) roles
-    const shouldShow = isAuthenticated && !!currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    const shouldShow =
+      isAuthenticated &&
+      !!currentAccount &&
+      (currentAccount.role === 1 || currentAccount.role === 2);
     setIsVisible(shouldShow);
   }, []);
 

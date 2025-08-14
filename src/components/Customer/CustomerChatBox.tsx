@@ -97,8 +97,6 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
 
   // Realtime: Mode change events are handled by useCustomerChat hook
 
-  
-
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -106,12 +104,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     }, 100);
   }, []);
 
-  
-
   // Quản lý lịch sử chat và đồng bộ hóa
-  
-
-
 
   // Quản lý và đồng bộ lịch sử chat khi component mount hoặc room/mode thay đổi
   useEffect(() => {
@@ -164,7 +157,7 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     if (!newMessage.trim() || !chatRoom?.roomId) return;
     const messageContent = newMessage.trim();
     setNewMessage('');
-    
+
     try {
       if (chatMode === 'ai') {
         await chatService.processAIChat(chatRoom.roomId, messageContent);
@@ -853,9 +846,10 @@ const AuthenticatedCustomerChatBox: React.FC<UnifiedCustomerChatProps> = (props)
   const checkVisibility = useCallback(() => {
     const isAuthenticated = !!localStorage.getItem('access_token');
     const currentAccount = getCurrentAccount();
-    
+
     // Only show chatbox for logged in users with Customer (role 1) or Event Manager (role 2) roles
-    const shouldShow = isAuthenticated && currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    const shouldShow =
+      isAuthenticated && currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
     setIsVisible(shouldShow);
   }, []);
 

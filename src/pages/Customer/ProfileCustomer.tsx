@@ -47,14 +47,14 @@ import { setAccountAndUpdateTheme, updateUserConfigAndTriggerUpdate } from '@/ut
 
 const ProfileCustomer = () => {
   const { t, i18n } = useTranslation();
-  
+
   const TABS = [
     { key: 'info', label: t('profileCustomer.personalInformation') },
     { key: 'settings', label: t('profileCustomer.generalSettings') },
     { key: 'orders', label: t('profileCustomer.orderHistory') },
     { key: 'attendances', label: t('profileCustomer.attendanceHistory') },
   ];
-  
+
   const { theme, setTheme } = useTheme();
   const { getThemeClass } = useThemeClasses();
   const [account, setAccount] = useState<User | null>(null);
@@ -806,16 +806,16 @@ const ProfileCustomer = () => {
       >
         <div
           className={cn(
-            'w-full max-w-5xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border backdrop-blur-xl flex flex-row overflow-hidden mt-32 mb-16 p-0',
+            'w-full max-w-5xl mx-auto rounded-[2.5rem] shadow-[0_8px_32px_rgba(80,0,160,0.25)] border backdrop-blur-xl flex flex-col lg:flex-row overflow-hidden mt-16 sm:mt-20 lg:mt-32 mb-8 sm:mb-12 lg:mb-16 p-0',
             getThemeClass('bg-white/80 border-gray-200/40', 'bg-white/10 border-white/10')
           )}
         >
           <aside
             className={cn(
-              'w-32 md:w-36 flex flex-col gap-2 border-r justify-start py-6 px-4',
+              'w-full lg:w-32 xl:w-36 flex flex-row lg:flex-col gap-2 lg:border-r lg:border-b border-b lg:border-b-0 justify-center lg:justify-start py-4 lg:py-6 px-4 lg:px-4',
               getThemeClass(
-                'bg-gradient-to-b from-blue-200/90 to-cyan-100/90 border-blue-200/40',
-                'bg-gradient-to-b from-indigo-800/90 to-slate-800/90 border-indigo-700/30'
+                'bg-gradient-to-r lg:bg-gradient-to-b from-blue-200/90 to-cyan-100/90 border-blue-200/40',
+                'bg-gradient-to-r lg:bg-gradient-to-b from-indigo-800/90 to-slate-800/90 border-indigo-700/30'
               )
             )}
           >
@@ -823,7 +823,7 @@ const ProfileCustomer = () => {
               <button
                 key={t.key}
                 className={cn(
-                  'w-full text-left pl-3 py-2 rounded-xl font-semibold transition-all text-xs mb-2',
+                  'w-full lg:w-full text-center lg:text-left pl-0 lg:pl-3 py-2 lg:py-2 rounded-xl font-semibold transition-all text-xs lg:text-xs mb-0 lg:mb-2 mx-1 lg:mx-0',
                   tab === t.key
                     ? getThemeClass(
                         'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow',
@@ -845,7 +845,7 @@ const ProfileCustomer = () => {
           </aside>
           <main
             className={cn(
-              'flex-1 p-10 pt-12 flex flex-col justify-start min-h-[600px]',
+              'flex-1 p-4 sm:p-6 lg:p-10 pt-6 lg:pt-12 flex flex-col justify-start min-h-[600px]',
               getThemeClass('text-gray-900', 'text-white')
             )}
           >
@@ -853,7 +853,7 @@ const ProfileCustomer = () => {
               <div className="flex flex-col items-center justify-center w-full">
                 {/* Avatar Section */}
                 <div className="w-full flex flex-col items-center mb-4">
-                  <div className="w-28 h-28 rounded-full border-4 border-blue-400 bg-white/10 flex items-center justify-center overflow-hidden shadow-lg mb-3">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full border-4 border-blue-400 bg-white/10 flex items-center justify-center overflow-hidden shadow-lg mb-3">
                     {previewUrl ? (
                       <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
                     ) : (
@@ -867,17 +867,17 @@ const ProfileCustomer = () => {
                     className="hidden"
                     onChange={handleAvatarChange}
                   />
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex flex-col sm:flex-row gap-2 mb-2 w-full sm:w-auto">
                     <Button
                       type="button"
-                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-3 sm:px-4 py-1.5 text-xs sm:text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] w-full sm:w-auto"
                       onClick={() => document.getElementById('edit-avatar-input')?.click()}
                     >
                       {t('changeAvatar')}
                     </Button>
                     <Button
                       type="button"
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full px-3 sm:px-4 py-1.5 text-xs sm:text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)] w-full sm:w-auto"
                       onClick={() => setShowChangePasswordModal(true)}
                     >
                       {t('changePassword')}
@@ -887,7 +887,7 @@ const ProfileCustomer = () => {
                 {/* Personal Information */}
                 <div className="w-full flex flex-col items-center justify-center">
                   <div className="w-full flex flex-col mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
                       {/* Full Name */}
                       <div className="w-full">
                         <label className="block text-xs text-white/50 ml-1 mb-1">
@@ -899,7 +899,7 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterFullName')}
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-xs sm:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
                             !form.fullName && getThemeClass('text-gray-500', 'text-slate-400'),
                             hasFieldError(fieldErrors, 'fullname')
                               ? getThemeClass(
@@ -929,7 +929,7 @@ const ProfileCustomer = () => {
                           disabled={true}
                           placeholder={t('yourEmailAddress')}
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200 opacity-70',
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-xs sm:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200 opacity-70',
                             !form.email && getThemeClass('text-gray-500', 'text-slate-400'),
                             hasFieldError(fieldErrors, 'email')
                               ? getThemeClass(
@@ -959,7 +959,7 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterPhoneNumber')}
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-xs sm:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
                             !form.phone && getThemeClass('text-gray-500', 'text-slate-400'),
                             hasFieldError(fieldErrors, 'phone')
                               ? getThemeClass(
@@ -1001,7 +1001,7 @@ const ProfileCustomer = () => {
                         >
                           <SelectTrigger
                             className={cn(
-                              'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                              'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-xs sm:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
                               !form.gender && getThemeClass('text-gray-500', 'text-slate-400'),
                               hasFieldError(fieldErrors, 'gender')
                                 ? getThemeClass(
@@ -1080,7 +1080,7 @@ const ProfileCustomer = () => {
                           onChange={handleInputChange}
                           placeholder={t('enterLocation')}
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
+                            'w-full justify-start text-left font-normal rounded-full border transition-all py-2 px-3 h-auto text-xs sm:text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200',
                             !form.location && getThemeClass('text-gray-500', 'text-slate-400'),
                             hasFieldError(fieldErrors, 'location')
                               ? getThemeClass(
@@ -1139,7 +1139,7 @@ const ProfileCustomer = () => {
                 <div className="w-full flex flex-col gap-3 mt-2">
                   <Button
                     type="button"
-                    className="bg-gradient-to-r text-white from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    className="bg-gradient-to-r text-white from-blue-500 to-indigo-600 hover:brightness-110 transition rounded-full w-full py-2.5 text-sm sm:text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                     onClick={handleSave}
                     disabled={loading}
                   >
@@ -1148,7 +1148,7 @@ const ProfileCustomer = () => {
                   {/* Nút riêng Cập nhật khuôn mặt */}
                   <Button
                     type="button"
-                    className="bg-gradient-to-r text-white from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
+                    className="bg-gradient-to-r text-white from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full w-full py-2.5 text-sm sm:text-base font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                     onClick={() => setShowFaceModal(true)}
                   >
                     {account.avatarUrl ? t('updateFace') : t('registerFace')}
@@ -1162,7 +1162,7 @@ const ProfileCustomer = () => {
                 <div className="w-full max-w-2xl">
                   <h2
                     className={cn(
-                      'text-3xl font-bold mb-8 text-center',
+                      'text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center',
                       getThemeClass('text-gray-900', 'text-white')
                     )}
                   >
@@ -1171,7 +1171,7 @@ const ProfileCustomer = () => {
 
                   <div
                     className={cn(
-                      'space-y-6 p-6 rounded-2xl shadow-xl border',
+                      'space-y-4 sm:space-y-6 p-4 sm:p-6 rounded-2xl shadow-xl border',
                       getThemeClass(
                         'bg-white/95 border-gray-200 shadow-lg',
                         'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-purple-700'
@@ -1181,21 +1181,21 @@ const ProfileCustomer = () => {
                     {/* Language Selection */}
                     <div
                       className={cn(
-                        'p-4 rounded-xl border transition-all duration-200',
+                        'p-3 sm:p-4 rounded-xl border transition-all duration-200',
                         getThemeClass(
                           'bg-blue-50/50 border-blue-200 hover:bg-blue-50',
                           'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
                         )
                       )}
                     >
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                         <div
                           className={cn(
-                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            'w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center',
                             getThemeClass('bg-blue-100', 'bg-slate-600')
                           )}
                         >
-                          <span className="text-xl">🌐</span>
+                          <span className="text-lg sm:text-xl">🌐</span>
                         </div>
                         <div>
                           <label
@@ -1222,7 +1222,7 @@ const ProfileCustomer = () => {
                       >
                         <SelectTrigger
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-3 px-4 h-auto text-sm shadow-sm',
+                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-2 sm:py-3 px-3 sm:px-4 h-auto text-xs sm:text-sm shadow-sm',
                             getThemeClass(
                               'border-blue-300 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-blue-50',
                               'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
@@ -1269,21 +1269,21 @@ const ProfileCustomer = () => {
                     {/* Theme Selection */}
                     <div
                       className={cn(
-                        'p-4 rounded-xl border transition-all duration-200',
+                        'p-3 sm:p-4 rounded-xl border transition-all duration-200',
                         getThemeClass(
                           'bg-purple-50/50 border-purple-200 hover:bg-purple-50',
                           'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
                         )
                       )}
                     >
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
                         <div
                           className={cn(
-                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            'w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center',
                             getThemeClass('bg-purple-100', 'bg-slate-600')
                           )}
                         >
-                          <span className="text-xl">🎨</span>
+                          <span className="text-lg sm:text-xl">🎨</span>
                         </div>
                         <div>
                           <label
@@ -1307,7 +1307,7 @@ const ProfileCustomer = () => {
                       <Select value={String(userConfig.theme)} onValueChange={handleThemeChange}>
                         <SelectTrigger
                           className={cn(
-                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-3 px-4 h-auto text-sm shadow-sm',
+                            'w-full justify-start text-left font-normal rounded-lg border transition-all duration-200 py-2 sm:py-3 px-3 sm:px-4 h-auto text-xs sm:text-sm shadow-sm',
                             getThemeClass(
                               'border-purple-300 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-purple-50',
                               'border-purple-700 bg-slate-700/60 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-slate-700/80'
@@ -1354,22 +1354,22 @@ const ProfileCustomer = () => {
                     {/* Email Notifications Toggle */}
                     <div
                       className={cn(
-                        'p-4 rounded-xl border transition-all duration-200',
+                        'p-3 sm:p-4 rounded-xl border transition-all duration-200',
                         getThemeClass(
                           'bg-green-50/50 border-green-200 hover:bg-green-50',
                           'bg-slate-700/50 border-slate-600 hover:bg-slate-700'
                         )
                       )}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                           <div
                             className={cn(
-                              'w-10 h-10 rounded-full flex items-center justify-center',
+                              'w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center',
                               getThemeClass('bg-green-100', 'bg-slate-600')
                             )}
                           >
-                            <span className="text-xl">📧</span>
+                            <span className="text-lg sm:text-xl">📧</span>
                           </div>
                           <div>
                             <label
