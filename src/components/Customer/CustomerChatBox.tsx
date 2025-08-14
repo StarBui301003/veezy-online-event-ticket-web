@@ -94,23 +94,40 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     currentChatMode, // Get the current chat mode from the hook
   } = useCustomerChat({ autoConnect: false });
 
-  // Use the chat mode from the hook (updated by SignalR events) with local override
+  // Use the chat mode from the hook with smooth transition
   const chatMode = localModeOverride || currentChatMode;
 
-  // Chỉ dùng localModeOverride khi đang chuyển mode, luôn ưu tiên currentChatMode làm source of truth
+  // Handle mode switching and synchronization
   useEffect(() => {
-    // Khi nhận event từ SignalR (currentChatMode thay đổi), reset switching/override ngay
+    // Reset mode switching state when server confirms the change
     if (isSwitchingMode && localModeOverride && currentChatMode === localModeOverride) {
       setIsSwitchingMode(false);
       setLocalModeOverride(null);
+      
+      // Save current mode to localStorage
+      if (roomId) {
+        try {
+          const storageKey = `chat_history_${roomId}`;
+          const storedData = localStorage.getItem(storageKey);
+          if (storedData) {
+            const data = JSON.parse(storedData);
+            localStorage.setItem(storageKey, JSON.stringify({
+              ...data,
+              mode: currentChatMode,
+              timestamp: new Date().getTime()
+            }));
+          }
+        } catch (e) {
+          console.warn('Failed to update chat mode in storage:', e);
+        }
+      }
     }
-    // Nếu isSwitchingMode chuyển về false (timeout hoặc user hủy), xóa override
+    
+    // Clear override if switching is cancelled
     if (!isSwitchingMode && localModeOverride) {
       setLocalModeOverride(null);
     }
-    // Force re-render để UI cập nhật
-    setNewMessage((prev) => prev);
-  }, [currentChatMode, isSwitchingMode, localModeOverride]);
+  }, [currentChatMode, isSwitchingMode, localModeOverride, roomId]);
 
   // Track chatRoom id for mode switching
   useEffect(() => {
@@ -159,9 +176,11 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
           realUserName = acc.username || acc.fullName || acc.name || '';
         }
       } catch {}
+      // Lấy roomId thật nếu có
+      let currentRoomId = roomId || '';
       const newMessage: UnifiedMessage = {
         id: messageId,
-        roomId: '',
+        roomId: currentRoomId,
         senderUserId: isUser ? realUserId : '',
         senderUserName: senderName || (isUser ? realUserName : isAI ? 'AI Assistant' : 'Support Agent'),
         content,
@@ -190,124 +209,381 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     [generateMessageId, scrollToBottom]
   );
 
-  // Khi mount: chỉ setup welcome message nếu ở chế độ AI, KHÔNG tạo chat room ngay
+  // Quản lý lịch sử chat và đồng bộ hóa
+  const getStorageKey = useCallback((rid: string) => `veezy_chat_history_${rid}`, []);
+  
+  // Lưu lịch sử vào localStorage
+  const saveHistory = useCallback((messages: UnifiedMessage[]) => {
+    if (!roomId) return;
+    try {
+      const storageKey = getStorageKey(roomId);
+      localStorage.setItem(storageKey, JSON.stringify({
+        messages,
+        mode: chatMode,
+        timestamp: new Date().getTime()
+      }));
+    } catch (e) {
+      console.warn('Failed to save chat history:', e);
+    }
+  }, [roomId, chatMode, getStorageKey]);
+
+  // Khôi phục lịch sử từ localStorage
+  const restoreHistory = useCallback((): UnifiedMessage[] | null => {
+    if (!roomId) return null;
+    try {
+      const storageKey = getStorageKey(roomId);
+      const storedData = localStorage.getItem(storageKey);
+      if (storedData) {
+        const { messages, timestamp } = JSON.parse(storedData);
+        const isRecent = (new Date().getTime() - timestamp) < 24 * 60 * 60 * 1000;
+        if (isRecent && Array.isArray(messages) && messages.length > 0) {
+          return messages;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore chat history:', e);
+    }
+    return null;
+  }, [roomId, getStorageKey]);
+
+
+
+  // Quản lý và đồng bộ lịch sử chat khi component mount hoặc room/mode thay đổi
   useEffect(() => {
-    if (chatMode === 'ai') {
-      // Không reset trắng, chỉ thêm welcome nếu trống
-      setMessagesLocal((prev) => {
-        if (prev.length === 0) {
+    let isSubscribed = true;
+    let lastSyncTimestamp = 0;
+
+    const initializeChat = async () => {
+      if (!roomId || !isSubscribed) return;
+
+      try {
+        // 1. Try to restore from localStorage first
+        const storageKey = getStorageKey(roomId);
+        let currentMessages: UnifiedMessage[] = [];
+        
+        try {
+          const storedData = localStorage.getItem(storageKey);
+          if (storedData) {
+            const { messages, timestamp } = JSON.parse(storedData);
+            const isRecent = (new Date().getTime() - timestamp) < 24 * 60 * 60 * 1000;
+            if (isRecent && Array.isArray(messages)) {
+              currentMessages = messages;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to restore from localStorage:', e);
+        }
+
+        // 2. Load messages from server
+        if (isSubscribed) {
+          const serverMessages = await chatService.getRoomMessages(roomId, 1, 50);
+          
+          if (Array.isArray(serverMessages) && serverMessages.length > 0) {
+            const currentUserId = getCurrentAccount()?.userId || '';
+            const messageMap = new Map(currentMessages.map(m => [m.id, m]));
+
+            // Merge server messages with local messages
+            for (const msg of serverMessages) {
+              const localMsg = messageMap.get(msg.messageId);
+              if (localMsg?.isUser === true) continue;
+
+              const isUser = !!currentUserId && msg.senderId === currentUserId;
+              messageMap.set(msg.messageId, {
+                id: msg.messageId,
+                roomId: msg.roomId || roomId,
+                senderUserId: msg.senderId,
+                senderUserName: msg.senderName,
+                content: msg.content,
+                type: 0,
+                createdAt: msg.createdAt || msg.timestamp,
+                updatedAt: msg.createdAt || msg.timestamp,
+                isUser,
+                isAI: msg.senderId === 'system-ai-bot',
+                isError: false,
+                isStreaming: false,
+                isEdited: msg.isEdited || false,
+                isDeleted: msg.isDeleted || false,
+                senderName: msg.senderName,
+                attachments: [],
+                readByUserIds: [],
+                mentionedUserIds: [],
+                replyToMessageId: msg.replyToMessageId,
+                replyToMessage: undefined
+              });
+            }
+
+            const mergedMessages = Array.from(messageMap.values())
+              .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+            if (isSubscribed) {
+              setMessagesLocal(mergedMessages);
+              // Save to localStorage
+              try {
+                localStorage.setItem(storageKey, JSON.stringify({
+                  messages: mergedMessages,
+                  mode: chatMode,
+                  timestamp: new Date().getTime()
+                }));
+              } catch (e) {
+                console.warn('Failed to save to localStorage:', e);
+              }
+              lastSyncTimestamp = new Date().getTime();
+            }
+          }
+        }
+
+        // 3. Add welcome message for AI mode if no messages
+        if (isSubscribed && currentMessages.length === 0 && chatMode === 'ai') {
+          const welcomeMsg: UnifiedMessage = {
+            id: generateMessageId(),
+            roomId,
+            senderUserId: 'system-ai-bot',
+            senderUserName: 'AI Assistant',
+            content: "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
+            type: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isUser: false,
+            isAI: true,
+            isError: false,
+            isStreaming: false,
+            isEdited: false,
+            isDeleted: false,
+            senderName: 'AI Assistant',
+            attachments: [],
+            readByUserIds: [],
+            mentionedUserIds: [],
+          };
+          setMessagesLocal([welcomeMsg]);
+        }
+
+        // 4. Scroll to bottom after initialization
+        if (isSubscribed) {
+          setTimeout(scrollToBottom, 400);
+        }
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        if (isSubscribed) {
           addLocalMessage(
-            "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!",
+            'Failed to load chat history. Please try refreshing the page.',
             false,
+            true,
             false,
-            true
+            'System'
           );
         }
-        return prev;
-      });
-      setTimeout(() => {
-        scrollToBottom();
-      }, 400);
-      // Tải lịch sử AI từ server nếu cần (dùng getRoomMessages, có thể filter AI phía client nếu cần)
-      if (roomId) {
-        chatService.getRoomMessages(roomId, 1, 50).then((history) => {
-          if (Array.isArray(history)) {
-            setMessagesLocal((prev) => {
-              const map = new Map(prev.map(m => [m.id, m]));
-              for (const msg of history) {
-                if (!map.has(msg.messageId)) {
-                  map.set(msg.messageId, {
-                    id: msg.messageId,
-                    roomId: msg.roomId || '',
-                    senderUserId: msg.senderId,
-                    senderUserName: msg.senderName,
-                    content: msg.content,
-                    type: 0,
-                    createdAt: msg.createdAt || msg.timestamp,
-                    updatedAt: msg.createdAt || msg.timestamp,
-                    isUser: false,
-                    isAI: msg.senderId === 'system-ai-bot',
-                    isError: false,
-                    isStreaming: false,
-                    isEdited: msg.isEdited || false,
-                    isDeleted: msg.isDeleted || false,
-                    senderName: msg.senderName,
-                    sources: [],
-                    attachments: [],
-                    readByUserIds: [],
-                    mentionedUserIds: [],
-                    replyToMessageId: msg.replyToMessageId,
-                    replyToMessage: undefined,
-                  });
-                }
-              }
-              return Array.from(map.values());
-            });
-          }
-        });
       }
-    }
-  }, [addLocalMessage, scrollToBottom, chatMode]);
 
-  // Open chat - Tạo chat room khi user mở chat box
-  const openChat = useCallback(async () => {
-  setIsOpen(true);
-  // Khi mở chat box, luôn reset localModeOverride để tránh giữ giá trị cũ
-  setLocalModeOverride(null);
-
-    // Tạo chat room với admin khi user mở chat lần đầu
-    if (!chatRoom && !roomId) {
       try {
-        await openAdminChat();
-      } catch {
-        addLocalMessage(
-          'Failed to initialize chat. Please try again.',
-          false,
-          true,
-          false,
-          'System'
-        );
-      }
-    }
+        // 1. Khôi phục từ localStorage trước
+        let currentMessages = restoreHistory() || [];
+        
+        // 2. Kiểm tra và thêm welcome message cho AI mode
+        if (chatMode === 'ai' && currentMessages.length === 0) {
+          const welcomeMsg = "Hello! I am Veezy's AI Assistant. I can help you learn about events, tickets, and answer your questions. Ask me anything!";
+          currentMessages = [{
+            id: generateMessageId(),
+            roomId: roomId,
+            senderUserId: 'system-ai-bot',
+            senderUserName: 'AI Assistant',
+            content: welcomeMsg,
+            type: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isUser: false,
+            isAI: true,
+            isError: false,
+            isStreaming: false,
+            isEdited: false,
+            isDeleted: false,
+            attachments: [],
+            readByUserIds: [],
+            mentionedUserIds: [],
+            replyToMessageId: undefined,
+            replyToMessage: undefined
+          }, ...currentMessages];
+        }
+        
+        // 3. Cập nhật state với tin nhắn local trước
+        if (isSubscribed) {
+          setMessagesLocal(currentMessages);
+        }
 
-    // Khi mở lại chatbox ở chế độ human, luôn merge/gộp messagesLocal từ adminMessages
-    if (chatMode === 'human') {
-      setMessagesLocal((prev) => {
-        const map = new Map(prev.map(m => [m.id, m]));
-        for (const msg of adminMessages) {
-          if (!map.has(msg.messageId)) {
-            map.set(msg.messageId, {
+        // 4. Load tin nhắn từ server và merge
+        const serverHistory = await chatService.getRoomMessages(roomId, 1, 50);
+        if (Array.isArray(serverHistory) && serverHistory.length > 0) {
+          const currentUserId = getCurrentAccount()?.userId || '';
+          const messageMap = new Map(currentMessages.map(m => [m.id, m]));
+
+          // Merge tin nhắn server với local
+          for (const msg of serverHistory) {
+            // Bỏ qua nếu tin nhắn local đã có và đánh dấu là của user
+            const localMsg = messageMap.get(msg.messageId);
+            if (localMsg?.isUser === true) continue;
+
+            const isUser = !!currentUserId && msg.senderId === currentUserId;
+            messageMap.set(msg.messageId, {
               id: msg.messageId,
-              roomId: msg.roomId || '',
+              roomId: msg.roomId || roomId,
               senderUserId: msg.senderId,
               senderUserName: msg.senderName,
               content: msg.content,
               type: 0,
               createdAt: msg.createdAt || msg.timestamp,
               updatedAt: msg.createdAt || msg.timestamp,
-              isUser: false,
+              isUser,
               isAI: msg.senderId === 'system-ai-bot',
               isError: false,
               isStreaming: false,
               isEdited: msg.isEdited || false,
               isDeleted: msg.isDeleted || false,
               senderName: msg.senderName,
-              sources: [],
               attachments: [],
               readByUserIds: [],
               mentionedUserIds: [],
               replyToMessageId: msg.replyToMessageId,
-              replyToMessage: undefined,
+              replyToMessage: undefined
             });
           }
+
+          const mergedMessages = Array.from(messageMap.values())
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+          if (isSubscribed) {
+            setMessagesLocal(mergedMessages);
+            saveHistory(mergedMessages);
+            lastSyncTimestamp = new Date().getTime();
+          }
         }
-        return Array.from(map.values());
-      });
+
+        // 5. Scroll to bottom sau khi load xong
+        if (isSubscribed) {
+          setTimeout(scrollToBottom, 400);
+        }
+
+      } catch (error) {
+        console.error('Error initializing chat:', error);
+        if (isSubscribed) {
+          addLocalMessage(
+            'Failed to load chat history. Please try refreshing the page.',
+            false,
+            true,
+            false,
+            'System'
+          );
+        }
+      }
+    };
+
+    // Khởi tạo chat ngay khi component mount hoặc room/mode thay đổi
+    initializeChat();
+
+    // Auto-sync mỗi 30 giây nếu đang ở mode human
+    const syncInterval = setInterval(() => {
+      if (chatMode === 'human' && roomId && new Date().getTime() - lastSyncTimestamp > 30000) {
+        initializeChat();
+      }
+    }, 30000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(syncInterval);
+      if (roomId) {
+        saveHistory(messagesLocal);
+      }
+    };
+  }, [roomId, chatMode, addLocalMessage, generateMessageId, scrollToBottom, saveHistory, restoreHistory]); // Chỉ chạy lại khi roomId thay đổi
+
+  // Open chat - Khởi tạo và mở chat box
+  const openChat = useCallback(async () => {
+    setIsOpen(true);
+    setLocalModeOverride(null);
+
+    // Lấy history key
+    const getStorageKey = (rid: string) => `veezy_chat_history_${rid}`;
+
+    // Tạo chat room với admin khi user mở chat lần đầu
+    if (!chatRoom && !roomId) {
+      try {
+        await openAdminChat();
+      } catch (err) {
+        console.warn('Failed to initialize chat:', err);
+      }
     }
 
-    setTimeout(() => {
-      scrollToBottom();
-    }, 400);
+    // Xử lý tin nhắn khi mở lại chat
+    if (roomId) {
+      // 1. Thử lấy lịch sử từ localStorage
+      try {
+        const storageKey = getStorageKey(roomId);
+        const storedData = localStorage.getItem(storageKey);
+        if (storedData) {
+          const { messages, timestamp } = JSON.parse(storedData);
+          const isRecent = (new Date().getTime() - timestamp) < 24 * 60 * 60 * 1000;
+          if (isRecent && Array.isArray(messages) && messages.length > 0) {
+            setMessagesLocal(messages);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to restore chat history:', e);
+      }
+
+      // 2. Merge với tin nhắn server trong chế độ human
+      if (chatMode === 'human') {
+        const currentUserId = getCurrentAccount()?.userId || '';
+        
+        setMessagesLocal((prev) => {
+          const map = new Map(prev.map(m => [m.id, m]));
+          
+          for (const msg of adminMessages) {
+            const existed = map.get(msg.messageId);
+            if (existed?.isUser === true) continue;
+            
+            map.set(msg.messageId, {
+              id: msg.messageId,
+              roomId: msg.roomId || roomId,
+              senderUserId: msg.senderId,
+              senderUserName: msg.senderName,
+              content: msg.content,
+              type: 0,
+              createdAt: msg.createdAt || msg.timestamp,
+              updatedAt: msg.createdAt || msg.timestamp,
+              isUser: msg.senderId === currentUserId,
+              isAI: msg.senderId === 'system-ai-bot',
+              isError: false,
+              isStreaming: false,
+              isEdited: msg.isEdited || false,
+              isDeleted: msg.isDeleted || false,
+              senderName: msg.senderName,
+              attachments: [],
+              readByUserIds: [],
+              mentionedUserIds: [],
+              replyToMessageId: msg.replyToMessageId,
+              replyToMessage: undefined
+            });
+          }
+
+          const mergedMessages = Array.from(map.values());
+          
+          // Lưu vào localStorage sau khi merge
+          try {
+            const storageKey = getStorageKey(roomId);
+            localStorage.setItem(storageKey, JSON.stringify({
+              messages: mergedMessages,
+              mode: chatMode,
+              timestamp: new Date().getTime()
+            }));
+          } catch (e) {
+            console.warn('Failed to save merged messages:', e);
+          }
+
+          return mergedMessages;
+        });
+      }
+    }
+
+    // Scroll to bottom after opening
+    setTimeout(scrollToBottom, 400);
   }, [scrollToBottom, openAdminChat, chatRoom, roomId, addLocalMessage, chatMode, adminMessages]);
 
   // Close chat
@@ -361,17 +637,10 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
   const handleAIFailure = useCallback(() => {
     const newFailureCount = aiFailureCount + 1;
     setAiFailureCount(newFailureCount);
-    // Optionally, notify user if AI fails repeatedly
     if (newFailureCount >= 2) {
-      addLocalMessage(
-        'AI Assistant is currently unable to respond. Please try again later or contact a support agent.',
-        false,
-        false,
-        false,
-        'System'
-      );
+      console.warn('AI Assistant failure count:', newFailureCount);
     }
-  }, [aiFailureCount, addLocalMessage]);
+  }, [aiFailureCount]);
 
   // Send AI message (sử dụng endpoint /api/ChatMessage/ai-chat)
   const sendAIMessage = useCallback(
@@ -597,66 +866,98 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     };
   }, [isOpen, closeChat]);
 
-  // Không ghi đè, chỉ merge/gộp khi có event mới từ server
+  // Xử lý realtime updates từ SignalR
   useEffect(() => {
-    if (chatMode === 'human') {
+    if (!roomId || chatMode !== 'human') return;
+
+    // Debounce để tránh update quá nhiều
+    const timeoutId = setTimeout(() => {
+      const currentUserId = getCurrentAccount()?.userId || '';
+      
       setMessagesLocal((prev) => {
-        const map = new Map(prev.map(m => [m.id, m]));
+        const messageMap = new Map(prev.map(m => [m.id, m]));
+        let hasNewMessages = false;
+
+        // Chỉ merge tin nhắn mới từ server
         for (const msg of adminMessages) {
-          if (!map.has(msg.messageId)) {
-            map.set(msg.messageId, {
+          const localMsg = messageMap.get(msg.messageId);
+          // Skip nếu tin nhắn đã có và được đánh dấu là của user
+          if (localMsg?.isUser === true) continue;
+
+          if (!messageMap.has(msg.messageId)) {
+            hasNewMessages = true;
+            const isUser = !!currentUserId && msg.senderId === currentUserId;
+            messageMap.set(msg.messageId, {
               id: msg.messageId,
-              roomId: msg.roomId || '',
+              roomId: msg.roomId || roomId,
               senderUserId: msg.senderId,
               senderUserName: msg.senderName,
               content: msg.content,
               type: 0,
               createdAt: msg.createdAt || msg.timestamp,
               updatedAt: msg.createdAt || msg.timestamp,
-              isUser: false,
+              isUser,
               isAI: msg.senderId === 'system-ai-bot',
               isError: false,
               isStreaming: false,
               isEdited: msg.isEdited || false,
               isDeleted: msg.isDeleted || false,
               senderName: msg.senderName,
-              sources: [],
               attachments: [],
               readByUserIds: [],
               mentionedUserIds: [],
               replyToMessageId: msg.replyToMessageId,
-              replyToMessage: undefined,
+              replyToMessage: undefined
             });
           }
         }
-        return Array.from(map.values());
+
+        // Chỉ update state và lưu vào localStorage nếu có tin nhắn mới
+        if (hasNewMessages) {
+          const mergedMessages = Array.from(messageMap.values())
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+          // Lưu vào localStorage
+          try {
+            const storageKey = getStorageKey(roomId);
+            localStorage.setItem(storageKey, JSON.stringify({
+              messages: mergedMessages,
+              mode: chatMode,
+              timestamp: new Date().getTime()
+            }));
+          } catch (e) {
+            console.warn('Failed to save chat history:', e);
+          }
+
+          return mergedMessages;
+        }
+
+        return prev;
       });
-    }
-  }, [adminMessages, chatMode, isOpen]);
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [adminMessages, chatMode, roomId, getStorageKey]);
 
   // Chỉ dùng messagesLocal (AI/local) khi chatMode là 'ai', còn lại dùng messagesLocal đã đồng bộ với adminMessages
   const displayMessages = useMemo(() => {
-    // Đánh dấu isUser cho các tin nhắn của user hiện tại
-    const currentUser = (() => {
-      const accountStr = localStorage.getItem('account');
-      if (accountStr) {
-        try {
-          return JSON.parse(accountStr);
-        } catch {
-          return null;
-        }
+    // Lấy ID người dùng hiện tại một lần
+    const currentUserId = (() => {
+      try {
+        const account = getCurrentAccount();
+        return account?.userId || account?.accountId || account?.id || '';
+      } catch {
+        return '';
       }
-      return null;
     })();
-    // Không ghi đè isUser nếu đã true, chỉ xác định nếu chưa có
+    
+    // Map và sắp xếp messages dựa trên ID người dùng
     const msgs = messagesLocal.map(msg => {
+      // Nếu đã xác định isUser=true thì giữ nguyên
       if (msg.isUser === true) return msg;
-      if (currentUser) {
-        const isUser = [currentUser.userId, currentUser.accountId, currentUser.id].includes(msg.senderUserId) ||
-          [currentUser.username, currentUser.fullName].includes(msg.senderUserName);
-        return { ...msg, isUser };
-      }
-      return msg;
+      // Xác định isUser dựa trên ID người gửi
+      const isUser = !!currentUserId && !!msg.senderUserId && msg.senderUserId === currentUserId;
+      return { ...msg, isUser };
     });
     // Chuẩn hóa createdAt ISO, sort ổn định
     return msgs
@@ -1027,28 +1328,14 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
                           )}
                           disabled={isSwitchingMode}
                           onClick={async () => {
-                            if (!roomId) {
-                              alert('Chat room not ready. Please try again in a moment.');
-                              return;
-                            }
+                            if (!roomId) return;
 
                             setIsSwitchingMode(true);
-                            // Chỉ override mode tạm thời trong lúc chuyển, không đổi UI sang mode mới cho đến khi server xác nhận
                             setLocalModeOverride('human');
-                            addLocalMessage(
-                              'You have requested to chat with a support agent. Please wait for a human to join the conversation.',
-                              false,
-                              false,
-                              false,
-                              'System'
-                            );
                             try {
                               await chatService.switchRoomMode(roomId, 'Human');
-                              // Không đổi UI sang mode mới, chỉ chờ SignalR cập nhật currentChatMode
-                              // Nếu cần timeout, có thể setTimeout(() => setIsSwitchingMode(false), 10000);
-                            } catch (err: unknown) {
-                              const errorMessage = err instanceof Error ? err.message : String(err);
-                              alert('Failed to switch to human support: ' + errorMessage);
+                            } catch (err) {
+                              console.warn('Failed to switch chat mode:', err);
                               setIsSwitchingMode(false);
                               setLocalModeOverride(null);
                             }
