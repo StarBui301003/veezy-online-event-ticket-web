@@ -50,15 +50,16 @@ import {
   getCurrentUserId,
 } from '@/utils/account-utils';
 
-const TABS = [
-  { key: 'profile', label: 'Thông tin cá nhân' },
-  { key: 'settings', label: 'Cài đặt chung' },
-  { key: 'followers', label: 'Người theo dõi event của bạn' },
-  { key: 'managerFollowers', label: 'Người theo dõi bạn' },
-];
-
 export default function ProfileEventManager() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  
+  const TABS = [
+    { key: 'profile', label: t('profileEventManager.tabs.profile') },
+    { key: 'settings', label: t('profileEventManager.tabs.settings') },
+    { key: 'followers', label: t('profileEventManager.tabs.followers') },
+    { key: 'managerFollowers', label: t('profileEventManager.tabs.managerFollowers') },
+  ];
+  const { i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
   const { getThemeClass } = useThemeClasses();
   const [account, setAccount] = useState<User | null>(null);
@@ -120,7 +121,7 @@ export default function ProfileEventManager() {
           setTheme(themeMode);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Failed to load user config
       // Keep default values if API fails
     }
@@ -136,7 +137,7 @@ export default function ProfileEventManager() {
         if (userId) {
           loadUserConfig(userId);
         }
-      } catch (error) {
+      } catch (_error) {
         // Failed to parse account data
       }
     }
@@ -241,8 +242,15 @@ export default function ProfileEventManager() {
       setLoadingEventFollowers(true);
       try {
         // 1. Lấy danh sách event mà user này quản lý
-        const eventsRes = await getMyApprovedEvents();
-        const events = Array.isArray(eventsRes) ? eventsRes : eventsRes?.data?.items || [];
+        const eventsRes = await getMyApprovedEvents(1, 100);
+        let events = [];
+        if (eventsRes && typeof eventsRes === 'object' && 'items' in eventsRes) {
+          events = eventsRes.items || [];
+        } else if (Array.isArray(eventsRes)) {
+          events = eventsRes;
+        } else if (eventsRes?.items) {
+          events = Array.isArray(eventsRes.items) ? eventsRes.items : [];
+        }
         // 2. Lấy followers cho từng event
         const allFollowers = [];
         for (const event of events) {
@@ -334,7 +342,7 @@ export default function ProfileEventManager() {
   // User config handlers
   const handleLanguageChange = async (language: string) => {
     if (!account?.userId) {
-      toast.error('Account not loaded yet');
+      toast.error(t('profileEventManager.errors.accountNotLoaded'));
       return;
     }
 
@@ -369,7 +377,7 @@ export default function ProfileEventManager() {
       updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(t('languageChangedSuccessfully'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('languageChangeFailed'));
     } finally {
       setIsLanguageLoading(false);
@@ -395,7 +403,7 @@ export default function ProfileEventManager() {
       updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(checked ? t('emailNotificationsEnabled') : t('emailNotificationsDisabled'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('emailNotificationsUpdateFailed'));
     }
   };
@@ -432,7 +440,7 @@ export default function ProfileEventManager() {
       updateUserConfigAndTriggerUpdate(newConfig);
 
       toast.success(themeNumber === 0 ? t('lightThemeEnabled') : t('darkThemeEnabled'));
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('themeUpdateFailed'));
     } finally {
       setIsThemeLoading(false);
@@ -442,9 +450,9 @@ export default function ProfileEventManager() {
   const handleSave = async () => {
     setFieldErrors({});
     const newFieldErrors: FieldErrors = {};
-    if (!form.fullName?.trim()) newFieldErrors.fullname = ['Full name is required!'];
-    if (!form.email?.trim()) newFieldErrors.email = ['Email is required!'];
-    if (!form.phone?.trim()) newFieldErrors.phone = ['Phone number is required!'];
+    if (!form.fullName?.trim()) newFieldErrors.fullname = [t('profileEventManager.errors.fullNameRequired')];
+    if (!form.email?.trim()) newFieldErrors.email = [t('profileEventManager.errors.emailRequired')];
+    if (!form.phone?.trim()) newFieldErrors.phone = [t('profileEventManager.errors.phoneRequired')];
     if (form.dob) {
       const dobValidation = validateDateOfBirth(form.dob);
       if (!dobValidation.isValid) newFieldErrors.dob = [dobValidation.errorMessage!];
@@ -540,21 +548,21 @@ export default function ProfileEventManager() {
             updateUserConfigAndTriggerUpdate(newConfig);
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Failed to update user config
       }
 
       // Dispatch event để cập nhật layout ngay lập tức
       window.dispatchEvent(new Event('user-updated'));
       setFieldErrors({});
-      toast.success('Profile updated successfully!');
+      toast.success(t('profileEventManager.actions.profileUpdatedSuccessfully'));
     } catch (error: unknown) {
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(error);
       setFieldErrors(backendFieldErrors);
       if (generalErrors.length > 0) {
         toast.error(generalErrors[0]);
       } else if (Object.keys(backendFieldErrors).length === 0) {
-        toast.error('Failed to update profile. Please try again.');
+        toast.error(t('profileEventManager.errors.failedToUpdateProfile'));
       }
     } finally {
       setLoading(false);
@@ -669,14 +677,14 @@ export default function ProfileEventManager() {
                       className="bg-gradient-to-r from-green-500 to-blue-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                       onClick={() => document.getElementById('edit-avatar-input')?.click()}
                     >
-                      {t('Change Avatar')}
+                      {t('profileEventManager.avatar.changeAvatar')}
                     </Button>
                     <Button
                       type="button"
                       className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full px-4 py-1.5 text-sm text-white font-semibold shadow-[0_4px_4px_rgba(0,0,0,0.25)]"
                       onClick={() => setShowChangePasswordModal(true)}
                     >
-                      {t('Change Password')}
+                      {t('profileEventManager.avatar.changePassword')}
                     </Button>
                   </div>
                 </div>
@@ -692,13 +700,13 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Full Name')}
+                          {t('profileEventManager.form.fullName')}
                         </label>
                         <Input
                           name="fullName"
                           value={form.fullName || ''}
                           onChange={handleInputChange}
-                          placeholder={t('Enter your full name')}
+                          placeholder={t('profileEventManager.form.enterFullName')}
                           className={cn(
                             'rounded-full border transition-all duration-200 py-2 px-3 w-full h-auto text-sm',
                             !form.fullName && getThemeClass('text-gray-500', 'text-slate-400'),
@@ -727,13 +735,13 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Email Address')}
+                          {t('profileEventManager.form.emailAddress')}
                         </label>
                         <Input
                           name="email"
                           value={form.email || ''}
                           disabled={true}
-                          placeholder={t('Your email address')}
+                          placeholder={t('profileEventManager.form.yourEmailAddress')}
                           className={cn(
                             'rounded-full border transition-all duration-200 py-2 px-3 w-full h-auto text-sm opacity-70',
                             !form.email && getThemeClass('text-gray-500', 'text-slate-400'),
@@ -762,13 +770,13 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Phone Number')}
+                          {t('profileEventManager.form.phoneNumber')}
                         </label>
                         <Input
                           name="phone"
                           value={form.phone || ''}
                           onChange={handleInputChange}
-                          placeholder={t('Enter your phone number')}
+                          placeholder={t('profileEventManager.form.enterPhoneNumber')}
                           className={cn(
                             'rounded-full border transition-all duration-200 py-2 px-3 w-full h-auto text-sm',
                             !form.phone && getThemeClass('text-gray-500', 'text-slate-400'),
@@ -797,7 +805,7 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Gender')}
+                          {t('profileEventManager.form.gender')}
                         </label>
                         <Select
                           value={String(form.gender || '0')}
@@ -828,7 +836,7 @@ export default function ProfileEventManager() {
                             )}
                           >
                             <SelectValue
-                              placeholder={t('Select your gender')}
+                              placeholder={t('profileEventManager.form.selectGender')}
                               className={cn(
                                 getThemeClass('text-gray-500', 'text-[#A1A1AA]'),
                                 getThemeClass(
@@ -856,7 +864,7 @@ export default function ProfileEventManager() {
                                 )
                               )}
                             >
-                              {t('Male')}
+                              {t('profileEventManager.form.male')}
                             </SelectItem>
                             <SelectItem
                               value="1"
@@ -867,7 +875,7 @@ export default function ProfileEventManager() {
                                 )
                               )}
                             >
-                              {t('Female')}
+                              {t('profileEventManager.form.female')}
                             </SelectItem>
                             <SelectItem
                               value="2"
@@ -878,7 +886,7 @@ export default function ProfileEventManager() {
                                 )
                               )}
                             >
-                              {t('Other')}
+                              {t('profileEventManager.form.other')}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -896,13 +904,13 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Location')}
+                          {t('profileEventManager.form.location')}
                         </label>
                         <Input
                           name="location"
                           value={form.location || ''}
                           onChange={handleInputChange}
-                          placeholder={t('Enter your location')}
+                          placeholder={t('profileEventManager.form.enterLocation')}
                           className={cn(
                             'rounded-full border transition-all duration-200 py-2 px-3 w-full h-auto text-sm',
                             !form.location && getThemeClass('text-gray-500', 'text-slate-400'),
@@ -931,7 +939,7 @@ export default function ProfileEventManager() {
                             getThemeClass('text-gray-600', 'text-white/50')
                           )}
                         >
-                          {t('Day of Birth')}
+                          {t('profileEventManager.form.dayOfBirth')}
                         </label>
                         <DatePickerProfile
                           selectedDate={form.dob ? new Date(form.dob) : undefined}
@@ -978,14 +986,14 @@ export default function ProfileEventManager() {
                     onClick={handleSave}
                     disabled={loading}
                   >
-                    {loading ? t('Saving...') : t('Save Changes')}
+                    {loading ? t('profileEventManager.actions.saving') : t('profileEventManager.actions.saveChanges')}
                   </Button>
                   <Button
                     type="button"
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2 text-base font-semibold shadow text-white"
                     onClick={() => setShowFaceModal(true)}
                   >
-                    {account.avatarUrl ? t('Update Face') : t('Register Face')}
+                    {account.avatarUrl ? t('profileEventManager.avatar.updateFace') : t('profileEventManager.avatar.registerFace')}
                   </Button>
                 </div>
               </div>
@@ -1012,7 +1020,7 @@ export default function ProfileEventManager() {
                       )
                     )}
                   >
-                    👥 {t('Người theo dõi event của bạn')}
+                    👥 {t('profileEventManager.followers.eventFollowersTitle')}
                   </h2>
                   <div
                     className={cn(
@@ -1029,7 +1037,7 @@ export default function ProfileEventManager() {
                         getThemeClass('text-blue-700', 'text-purple-300')
                       )}
                     >
-                      {eventFollowers.length} {t('người')}
+                      {eventFollowers.length} {t('profileEventManager.followers.people')}
                     </span>
                   </div>
                 </div>
@@ -1041,10 +1049,10 @@ export default function ProfileEventManager() {
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
                     <div className="text-gray-400 text-lg mb-2">
-                      {t('Chưa có ai theo dõi event của bạn')}
+                      {t('profileEventManager.followers.noEventFollowers')}
                     </div>
                     <div className="text-gray-500 text-sm">
-                      {t('Chưa có người dùng nào follow event của bạn')}
+                                              {t('profileEventManager.followers.noEventFollowersDescription')}
                     </div>
                   </div>
                 ) : (
@@ -1067,9 +1075,9 @@ export default function ProfileEventManager() {
                             )
                           )}
                         >
-                          <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Tên sự kiện')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.avatar')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.name')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.eventName')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1133,7 +1141,7 @@ export default function ProfileEventManager() {
                       )
                     )}
                   >
-                    👤 {t('Người theo dõi event manager')}
+                    👤 {t('profileEventManager.followers.managerFollowersTitle')}
                   </h2>
                   <div
                     className={cn(
@@ -1150,7 +1158,7 @@ export default function ProfileEventManager() {
                         getThemeClass('text-blue-700', 'text-purple-300')
                       )}
                     >
-                      {managerFollowers.length} {t('người')}
+                      {managerFollowers.length} {t('profileEventManager.followers.people')}
                     </span>
                   </div>
                 </div>
@@ -1162,10 +1170,10 @@ export default function ProfileEventManager() {
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">🤷‍♂️</div>
                     <div className="text-gray-400 text-lg mb-2">
-                      {t('Chưa có ai theo dõi event manager này')}
+                      {t('profileEventManager.followers.noManagerFollowers')}
                     </div>
                     <div className="text-gray-500 text-sm">
-                      {t('Chưa có người dùng nào follow event manager này')}
+                                              {t('profileEventManager.followers.noManagerFollowersDescription')}
                     </div>
                   </div>
                 ) : (
@@ -1188,9 +1196,9 @@ export default function ProfileEventManager() {
                             )
                           )}
                         >
-                          <th className="px-4 py-3 font-semibold">{t('Avatar')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Tên')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('Username')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.avatar')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.name')}</th>
+                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.username')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1254,11 +1262,11 @@ export default function ProfileEventManager() {
               ×
             </button>
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              {account.avatarUrl ? t('Update Face') : t('Register Face')}
+              {account.avatarUrl ? t('profileEventManager.avatar.updateFace') : t('profileEventManager.avatar.registerFace')}
             </h2>
             <input
               type="password"
-              placeholder={t('Enter account password')}
+              placeholder={t('profileEventManager.faceModal.enterAccountPassword')}
               value={facePassword}
               onChange={(e) => setFacePassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1274,12 +1282,12 @@ export default function ProfileEventManager() {
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
                   await updateFaceAPI(account.accountId, file, [0], undefined, hasFaceAuth);
-                  toast.success(t('Face updated successfully!'));
+                  toast.success(t('profileEventManager.faceModal.faceUpdatedSuccessfully'));
                   setShowFaceModal(false);
                   // Refetch face auth status after successful update
                   await refetchFaceAuth();
                 } catch (e: unknown) {
-                  let msg = t('Face update failed!');
+                  let msg = t('profileEventManager.faceModal.faceUpdateFailed');
                   if ((e as any)?.response?.data?.message) {
                     const m = (e as any).response.data.message;
 

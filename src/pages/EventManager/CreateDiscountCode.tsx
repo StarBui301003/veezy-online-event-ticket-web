@@ -77,7 +77,7 @@ export default function CreateDiscountCode() {
         ...prev,
         [name]:
           name === 'value' || name === 'minimum' || name === 'maximum' || name === 'maxUsage'
-            ? Number(value)
+            ? value === '' ? '' : Number(value) // Cho phép giá trị rỗng và 0
             : value,
       }));
     }
@@ -378,7 +378,7 @@ export default function CreateDiscountCode() {
               type="number"
               min="0"
               step={formData.discountType === 0 ? '0.01' : '1'}
-              value={formData.value || ''}
+                             value={formData.value === 0 ? 0 : formData.value || ''} // Hiển thị 0 khi giá trị là 0
               onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
@@ -412,7 +412,7 @@ export default function CreateDiscountCode() {
               name="minimum"
               type="number"
               min="0"
-              value={formData.minimum || ''}
+                             value={formData.minimum === 0 ? 0 : formData.minimum || ''} // Hiển thị 0 khi giá trị là 0
               onChange={handleInputChange}
               className={cn(
                 'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
@@ -443,7 +443,8 @@ export default function CreateDiscountCode() {
                 name="maximum"
                 type="number"
                 min="0"
-                value={formData.maximum || ''}
+                step="0.01"
+                value={formData.maximum === 0 ? 0 : formData.maximum || ''} // Hiển thị 0 khi giá trị là 0
                 onChange={handleInputChange}
                 className={cn(
                   'border-2 focus:ring-2 focus:border-transparent transition-all duration-200',

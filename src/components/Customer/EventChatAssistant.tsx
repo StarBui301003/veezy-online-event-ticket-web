@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,53 @@ export const EventChatAssistant: React.FC<EventChatAssistantProps> = ({
 }) => {
   const { getThemeClass } = useThemeClasses();
   const [isOpen, setIsOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Check if user is EventManager (role 2) - if so, hide this component
+  const checkVisibility = useCallback(() => {
+    const isAuthenticated = !!localStorage.getItem('access_token');
+    if (!isAuthenticated) {
+      setIsVisible(false);
+      return;
+    }
+    
+    try {
+      const accountStr = localStorage.getItem('account');
+      if (accountStr) {
+        const accountObj = JSON.parse(accountStr);
+        // Hide for EventManager (role 2)
+        const shouldShow = accountObj.role !== 2;
+        setIsVisible(shouldShow);
+      } else {
+        setIsVisible(false);
+      }
+    } catch (error) {
+      setIsVisible(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkVisibility();
+    
+    // Listen for auth changes
+    const handleAuthChange = () => checkVisibility();
+    window.addEventListener('authChanged', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('login', handleAuthChange);
+    window.addEventListener('logout', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('authChanged', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('login', handleAuthChange);
+      window.removeEventListener('logout', handleAuthChange);
+    };
+  }, [checkVisibility]);
+
+  // Don't render if user is EventManager
+  if (!isVisible) {
+    return null;
+  }
 
   const openChat = () => {
     setIsOpen(true);

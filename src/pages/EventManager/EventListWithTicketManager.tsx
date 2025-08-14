@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
-  getMyEvents,
+  getMyApprovedEvents,
   getTicketsByEvent,
   deleteTicket,
 } from '@/services/Event Manager/event.service';
@@ -8,7 +8,6 @@ import { FaEdit, FaTrash, FaSearch, FaPlus, FaChevronLeft, FaChevronRight } from
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { onEvent, onTicket } from '@/services/signalr.service';
-
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
@@ -41,63 +40,77 @@ export default function EventListWithTicketManager() {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([]);
   const [searchEvent, setSearchEvent] = useState('');
   const [searchTicket, setSearchTicket] = useState('');
-  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [eventPage, setEventPage] = useState(1);
   const [totalEvents, setTotalEvents] = useState(0);
-  const [isSearching, setIsSearching] = useState(false);
+  const [totalEventPages, setTotalEventPages] = useState(1);
   const navigate = useNavigate();
 
-  // Load events with pagination
-  const loadEvents = async (page: number = eventPage) => {
+  // Optimized load events function
+  const loadEvents = useCallback(async (page: number = 1) => {
+    if (loadingEvents) return; // Prevent concurrent requests
+    
     setLoadingEvents(true);
     try {
-      const data = await getMyEvents(page, EVENTS_PER_PAGE);
-      const items = Array.isArray(data?.items) ? data.items : [];
-      const approved = items.filter((ev) => ev.isApproved === 1);
+      const data = await getMyApprovedEvents(page, EVENTS_PER_PAGE);
       
-      // Set total count từ API response
+      setEvents(data?.items || []);
       setTotalEvents(data?.totalCount || 0);
+      setTotalEventPages(Math.max(1, Math.ceil((data?.totalCount || 0) / EVENTS_PER_PAGE)));
+      setEventPage(page);
       
-      // Luôn luôn replace events cho từng page (không append)
-      setEvents(approved);
-      setFilteredEvents(approved);
+      console.log('Loaded events:', {
+        page,
+        totalEvents: data?.totalCount,
+        eventsCount: data?.items?.length,
+        totalPages: Math.ceil((data?.totalCount || 0) / EVENTS_PER_PAGE)
+      });
+    } catch (error) {
+      console.error('Error loading events:', error);
+      setEvents([]);
+      setTotalEvents(0);
+      setTotalEventPages(1);
     } finally {
       setLoadingEvents(false);
     }
-  };
+  }, [loadingEvents]);
 
   // Load tickets for selected event
-  const loadTicketsForEvent = async (eventId: string) => {
+  const loadTicketsForEvent = useCallback(async (eventId: string) => {
     setLoadingTickets(true);
     try {
       const data = await getTicketsByEvent(eventId);
       setTickets(data);
       setFilteredTickets(data);
+    } catch (error) {
+      console.error('Error loading tickets:', error);
+      setTickets([]);
+      setFilteredTickets([]);
     } finally {
       setLoadingTickets(false);
     }
-  };
+  }, []);
 
+  // Initial load
   useEffect(() => {
     loadEvents(1);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // SignalR real-time updates using global connections
+  // SignalR real-time updates
   useEffect(() => {
-    // Listen for real-time event updates using global connections managed by App.tsx
+    // Event updates
     onEvent('OnEventCreated', () => {
-      loadEvents(1);
+      loadEvents(1); // Go to first page when new event created
     });
 
     onEvent('OnEventUpdated', () => {
-      loadEvents(eventPage);
+      loadEvents(eventPage); // Reload current page
     });
 
     onEvent('OnEventDeleted', () => {
@@ -105,10 +118,10 @@ export default function EventListWithTicketManager() {
     });
 
     onEvent('OnEventApproved', () => {
-      loadEvents(1);
+      loadEvents(1); // Go to first page for new approved events
     });
 
-    // Listen for real-time ticket updates using global connections managed by App.tsx
+    // Ticket updates
     onTicket('TicketCreated', () => {
       if (selectedEvent) {
         loadTicketsForEvent(selectedEvent.eventId);
@@ -132,37 +145,14 @@ export default function EventListWithTicketManager() {
         loadTicketsForEvent(selectedEvent.eventId);
       }
     });
-  }, [selectedEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventPage, selectedEvent, loadEvents, loadTicketsForEvent]);
 
-  // Tìm kiếm sự kiện realtime
-  useEffect(() => {
-    if (!searchEvent.trim()) {
-      setIsSearching(false);
-      setFilteredEvents(events);
-    } else {
-      setIsSearching(true);
-      const filtered = events.filter((ev) =>
+  // Search events (client-side filtering of current page)
+  const filteredEvents = searchEvent.trim()
+    ? events.filter((ev) =>
         ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
-      );
-      setFilteredEvents(filtered);
-      setEventPage(1); // reset về trang 1 khi search khác
-    }
-  }, [searchEvent, events]);
-
-  // Phân trang sự kiện
-  const totalEventPages = isSearching 
-    ? Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
-    : Math.max(1, Math.ceil(totalEvents / EVENTS_PER_PAGE));
-    
-  const pagedEvents = isSearching 
-    ? filteredEvents.slice(
-        (eventPage - 1) * EVENTS_PER_PAGE,
-        eventPage * EVENTS_PER_PAGE
       )
-    : filteredEvents; // Khi không search, hiển thị tất cả events đã load
-
-  // Log số lượng sự kiện
-  // Pagination logging removed for production
+    : events;
 
   // Load tickets when event selected
   useEffect(() => {
@@ -171,19 +161,10 @@ export default function EventListWithTicketManager() {
       setFilteredTickets([]);
       return;
     }
-    (async () => {
-      setLoadingTickets(true);
-      try {
-        const data = await getTicketsByEvent(selectedEvent.eventId);
-        setTickets(data);
-        setFilteredTickets(data);
-      } finally {
-        setLoadingTickets(false);
-      }
-    })();
-  }, [selectedEvent]);
+    loadTicketsForEvent(selectedEvent.eventId);
+  }, [selectedEvent, loadTicketsForEvent]);
 
-  // Tìm kiếm vé realtime
+  // Search tickets (client-side filtering)
   useEffect(() => {
     if (!searchTicket.trim()) {
       setFilteredTickets(tickets);
@@ -198,38 +179,29 @@ export default function EventListWithTicketManager() {
     }
   }, [searchTicket, tickets]);
 
-  // Delete ticket
+  // Delete ticket handler
   const handleDelete = async (ticketId: string) => {
-    if (!window.confirm(t('confirm_delete_ticket'))) return;
-    await deleteTicket(ticketId);
-    if (selectedEvent) {
-      const data = await getTicketsByEvent(selectedEvent.eventId);
-      setTickets(data);
-      setFilteredTickets(data);
+    if (!window.confirm(t('eventListWithTicketManager.confirmDeleteTicket'))) return;
+    
+    try {
+      await deleteTicket(ticketId);
+      if (selectedEvent) {
+        await loadTicketsForEvent(selectedEvent.eventId);
+      }
+    } catch (error) {
+      console.error('Error deleting ticket:', error);
     }
   };
 
-  // Xử lý chuyển trang
+  // Page change handler
   const handlePageChange = async (newPage: number) => {
     if (newPage === eventPage || loadingEvents) return;
+    if (newPage < 1 || newPage > totalEventPages) return;
     
-    setEventPage(newPage);
-    
-    // Nếu đang search, chỉ cần update page state để show filtered results
-    if (isSearching) {
-      return;
-    }
-    
-    // Nếu không search, gọi API để load page mới
+    // Reset search when changing page
+    setSearchEvent('');
     await loadEvents(newPage);
   };
-
-  // Nếu chuyển trang mà không còn sự kiện, về trang 1
-  useEffect(() => {
-    if (eventPage > totalEventPages && totalEventPages > 0) {
-      setEventPage(1);
-    }
-  }, [totalEventPages, eventPage]);
 
   return (
     <div
@@ -247,7 +219,7 @@ export default function EventListWithTicketManager() {
           getThemeClass('bg-white/95 border border-gray-200 shadow-lg', 'bg-[#2d0036]/80')
         )}
       >
-        {/* Cột trái: Danh sách sự kiện */}
+        {/* Left Column: Event List */}
         <div className="w-full md:w-1/3">
           <h2
             className={cn(
@@ -258,13 +230,15 @@ export default function EventListWithTicketManager() {
               )
             )}
           >
-            {t('yourEvents')}
+            {t('eventListWithTicketManager.yourEvents')}
           </h2>
+          
+          {/* Search Input */}
           <input
             type="text"
             value={searchEvent}
             onChange={(e) => setSearchEvent(e.target.value)}
-            placeholder={t('searchEvents')}
+            placeholder={t('eventListWithTicketManager.searchEvents')}
             className={cn(
               'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-4',
               getThemeClass(
@@ -273,28 +247,34 @@ export default function EventListWithTicketManager() {
               )
             )}
           />
-          {loadingEvents ? (
+
+          {/* Loading State */}
+          {loadingEvents && (
             <div
               className={cn(
-                'text-base text-center',
+                'text-base text-center py-4',
                 getThemeClass('text-blue-600', 'text-pink-400')
               )}
             >
-              {t('loadingEvents')}
+              {t('eventListWithTicketManager.loadingEvents')}...
             </div>
-          ) : (
+          )}
+
+          {/* Events List */}
+          {!loadingEvents && (
             <div className="space-y-4">
-              {pagedEvents.length === 0 && (
+              {filteredEvents.length === 0 && (
                 <div
                   className={cn(
-                    'text-center text-base',
+                    'text-center text-base py-4',
                     getThemeClass('text-gray-600', 'text-slate-300')
                   )}
                 >
-                  {t('noEventsFound')}
+                  {searchEvent.trim() ? t('eventListWithTicketManager.noEventsFound') : t('eventListWithTicketManager.noEventsFound')}
                 </div>
               )}
-              {pagedEvents.map((event) => (
+              
+              {filteredEvents.map((event) => (
                 <div
                   key={event.eventId}
                   className={cn(
@@ -342,7 +322,7 @@ export default function EventListWithTicketManager() {
                       setSearchTicket('');
                     }}
                   >
-                    <FaSearch className="inline mr-2" /> {t('viewTickets')}
+                    <FaSearch className="inline mr-2" /> {t('eventListWithTicketManager.viewTickets')}
                   </button>
                   <button
                     className={cn(
@@ -357,52 +337,55 @@ export default function EventListWithTicketManager() {
                       navigate(`/event-manager/tickets/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> {t('createNewTicket')}
+                    <FaPlus className="inline mr-2" /> {t('eventListWithTicketManager.createNewTicket')}
                   </button>
                 </div>
               ))}
-              {/* Phân trang sự kiện */}
-              {totalEventPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-4">
-                  <button
-                    className={cn(
-                      'p-2 rounded-full text-white disabled:opacity-50',
-                      getThemeClass(
-                        'bg-blue-500 hover:bg-blue-600',
-                        'bg-pink-500 hover:bg-pink-600'
-                      )
-                    )}
-                    disabled={eventPage === 1 || loadingEvents}
-                    onClick={() => handlePageChange(Math.max(1, eventPage - 1))}
-                  >
-                    <FaChevronLeft />
-                  </button>
-                  <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
-                    {t('page')} {eventPage}/{totalEventPages}
-                    {loadingEvents && (
-                      <span className="ml-2 text-sm opacity-70">({t('loading')}...)</span>
-                    )}
-                  </span>
-                  <button
-                    className={cn(
-                      'p-2 rounded-full text-white disabled:opacity-50',
-                      getThemeClass(
-                        'bg-blue-500 hover:bg-blue-600',
-                        'bg-pink-500 hover:bg-pink-600'
-                      )
-                    )}
-                    disabled={eventPage === totalEventPages || loadingEvents}
-                    onClick={() => handlePageChange(Math.min(totalEventPages, eventPage + 1))}
-                  >
-                    <FaChevronRight />
-                  </button>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loadingEvents && !searchEvent.trim() && totalEventPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <button
+                className={cn(
+                  'p-3 rounded-full text-white disabled:opacity-50 transition-all',
+                  getThemeClass(
+                    'bg-blue-500 hover:bg-blue-600',
+                    'bg-pink-500 hover:bg-pink-600'
+                  )
+                )}
+                disabled={eventPage === 1 || loadingEvents}
+                onClick={() => handlePageChange(eventPage - 1)}
+              >
+                <FaChevronLeft />
+              </button>
+              
+              <div className={cn('px-4 py-2 font-bold text-center min-w-[120px]', getThemeClass('text-blue-600', 'text-white'))}>
+                <div>{t('eventListWithTicketManager.page')} {eventPage} / {totalEventPages}</div>
+                <div className="text-xs opacity-70">
+                  {t('eventListWithTicketManager.total')}: {totalEvents} {t('eventListWithTicketManager.events')}
                 </div>
-              )}
+              </div>
+              
+              <button
+                className={cn(
+                  'p-3 rounded-full text-white disabled:opacity-50 transition-all',
+                  getThemeClass(
+                    'bg-blue-500 hover:bg-blue-600',
+                    'bg-pink-500 hover:bg-pink-600'
+                  )
+                )}
+                disabled={eventPage === totalEventPages || loadingEvents}
+                onClick={() => handlePageChange(eventPage + 1)}
+              >
+                <FaChevronRight />
+              </button>
             </div>
           )}
         </div>
 
-        {/* Cột phải: Danh sách vé */}
+        {/* Right Column: Ticket List */}
         <div className="w-full md:w-2/3">
           {selectedEvent ? (
             <>
@@ -412,17 +395,18 @@ export default function EventListWithTicketManager() {
                   getThemeClass('text-blue-600', 'text-yellow-300')
                 )}
               >
-                {t('ticketsForEvent')}:{' '}
+                {t('eventListWithTicketManager.ticketsForEvent')}:{' '}
                 <span className={cn(getThemeClass('text-purple-600', 'text-pink-200'))}>
                   {selectedEvent.eventName}
                 </span>
               </h3>
-              {/* Tìm kiếm vé */}
+              
+              {/* Ticket Search */}
               <input
                 type="text"
                 value={searchTicket}
                 onChange={(e) => setSearchTicket(e.target.value)}
-                placeholder={t('searchTicketsByNameOrDescription')}
+                placeholder={t('eventListWithTicketManager.searchTicketsByNameOrDescription')}
                 className={cn(
                   'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-5',
                   getThemeClass(
@@ -431,14 +415,15 @@ export default function EventListWithTicketManager() {
                   )
                 )}
               />
+              
               {loadingTickets ? (
                 <div
                   className={cn(
-                    'text-base text-center',
+                    'text-base text-center py-8',
                     getThemeClass('text-blue-600', 'text-pink-400')
                   )}
                 >
-                  {t('loadingTickets')}
+                  {t('eventListWithTicketManager.loadingTickets')}...
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -469,7 +454,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            <span className="font-semibold">{t('price')}:</span>{' '}
+                            <span className="font-semibold">{t('eventListWithTicketManager.price')}:</span>{' '}
                             <span
                               className={cn(
                                 'font-bold',
@@ -485,7 +470,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            <span className="font-semibold">{t('available')}:</span>{' '}
+                            <span className="font-semibold">{t('eventListWithTicketManager.available')}:</span>{' '}
                             <span
                               className={cn(
                                 'font-bold',
@@ -502,7 +487,7 @@ export default function EventListWithTicketManager() {
                             getThemeClass('text-gray-600', 'text-slate-200')
                           )}
                         >
-                          <span className="font-semibold block">{t('sale_time')}:</span>
+                          <span className="font-semibold block">{t('eventListWithTicketManager.sale_time')}:</span>
                           <span
                             className={cn(
                               'font-bold block',
@@ -517,7 +502,6 @@ export default function EventListWithTicketManager() {
                               year: 'numeric',
                             })}
                           </span>
-                          <span className="font-bold block text-center"></span>
                           <span
                             className={cn(
                               'font-bold block',
@@ -540,7 +524,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            {t('status')}:
+                            {t('eventListWithTicketManager.status')}:
                           </span>{' '}
                           {ticket.quantityAvailable > 0 ? (
                             <span
@@ -549,7 +533,7 @@ export default function EventListWithTicketManager() {
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
-                              {t('availableTickets')}
+                              {t('eventListWithTicketManager.availableTickets')}
                             </span>
                           ) : (
                             <span
@@ -558,7 +542,7 @@ export default function EventListWithTicketManager() {
                                 getThemeClass('text-red-600', 'text-red-400')
                               )}
                             >
-                              {t('soldOutTickets')}
+                              {t('eventListWithTicketManager.soldOutTickets')}
                             </span>
                           )}
                         </div>
@@ -568,7 +552,7 @@ export default function EventListWithTicketManager() {
                             getThemeClass('text-gray-500', 'text-slate-400')
                           )}
                         >
-                          {t('description')}: {ticket.ticketDescription}
+                          {t('eventListWithTicketManager.description')}: {ticket.ticketDescription}
                         </div>
                       </div>
                       <div className="flex gap-2 mt-4">
@@ -586,7 +570,7 @@ export default function EventListWithTicketManager() {
                             )
                           }
                         >
-                          <FaEdit /> {t('edit')}
+                          <FaEdit /> {t('eventListWithTicketManager.edit')}
                         </button>
                         <button
                           className={cn(
@@ -598,7 +582,7 @@ export default function EventListWithTicketManager() {
                           )}
                           onClick={() => handleDelete(ticket.ticketId)}
                         >
-                          <FaTrash /> {t('delete')}
+                          <FaTrash /> {t('eventListWithTicketManager.delete')}
                         </button>
                       </div>
                     </div>
@@ -610,7 +594,7 @@ export default function EventListWithTicketManager() {
                         getThemeClass('text-gray-600', 'text-slate-300')
                       )}
                     >
-                      {t('no_tickets_for_this_event')}
+                      {t('eventListWithTicketManager.no_tickets_for_this_event')}
                     </div>
                   )}
                 </div>
@@ -623,7 +607,7 @@ export default function EventListWithTicketManager() {
                 getThemeClass('text-gray-600', 'text-slate-300')
               )}
             >
-              {t('please_select_an_event_to_view_tickets')}
+              {t('eventListWithTicketManager.please_select_an_event_to_view_tickets')}
             </div>
           )}
         </div>

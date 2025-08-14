@@ -40,8 +40,16 @@ const EventReviews = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await getMyApprovedEvents();
-        const myEvents = Array.isArray(res) ? res : res?.data || [];
+        // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
+        const res = await getMyApprovedEvents(1, 100);
+        let myEvents = [];
+        if (res && typeof res === 'object' && 'items' in res) {
+          myEvents = res.items || [];
+        } else if (Array.isArray(res)) {
+          myEvents = res;
+        } else if (res?.items) {
+          myEvents = Array.isArray(res.items) ? res.items : [];
+        }
         setEvents(myEvents);
       } catch {
         setEvents([]);
@@ -52,7 +60,7 @@ const EventReviews = () => {
     // Listen for analytics updates using global connections
     onAnalytics('SentimentAnalyzed', (data: { eventId: string }) => {
       if (data.eventId === selectedEvent) {
-        toast.success('Phân tích cảm xúc đã được cập nhật!');
+        toast.success(t('eventReviews.sentimentAnalysisUpdated'));
         // Optionally refresh the sentiment data
       }
     });
@@ -106,7 +114,7 @@ const EventReviews = () => {
       
       // Show notification if no comments found
       if (totalComments === 0) {
-        toast.info('Không tìm thấy bình luận nào để phân tích cho sự kiện này.');
+        toast.info(t('eventReviews.noCommentsToAnalyze'));
       }
     } catch (error) {
       console.error('[DEBUG] analyzeSentiment error:', error);
@@ -125,7 +133,7 @@ const EventReviews = () => {
           }
         });
       } else {
-        toast.error('Có lỗi xảy ra khi phân tích cảm xúc. Vui lòng thử lại.');
+        toast.error(t('eventReviews.errorAnalyzingSentiment'));
       }
     } finally {
       setLoading(false);
@@ -237,7 +245,7 @@ const EventReviews = () => {
                   )
                 )}
               >
-                {t('Event Reviews & AI Sentiment')}
+                {t('eventReviews.title')}
               </h1>
               <p
                 className={cn(
@@ -248,7 +256,7 @@ const EventReviews = () => {
                 <Sparkles
                   className={cn('w-5 h-5', getThemeClass('text-blue-500', 'text-yellow-400'))}
                 />
-                {t('Analyze attendee comments with AI')}
+                {t('eventReviews.subtitle')}
               </p>
             </div>
           </div>
@@ -260,15 +268,15 @@ const EventReviews = () => {
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              AI System Online
+              {t('eventReviews.aiSystemOnline')}
             </div>
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              Real-time Processing
+              {t('eventReviews.realTimeProcessing')}
             </div>
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
-              Deep Learning Analysis
+              {t('eventReviews.deepLearningAnalysis')}
             </div>
           </div>
         </div>
@@ -291,7 +299,7 @@ const EventReviews = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder={t('Search Event')}
+                    placeholder={t('eventReviews.searchEvent')}
                     value={eventSearch}
                     onChange={(e) => {
                       setEventSearch(e.target.value);
@@ -360,7 +368,7 @@ const EventReviews = () => {
                       </div>
                     ))}
                     {filteredEvents.length === 0 && (
-                      <div className="px-4 py-2 text-gray-400">{t('No Event Found')}</div>
+                      <div className="px-4 py-2 text-gray-400">{t('eventReviews.noEventFound')}</div>
                     )}
                   </div>
                 )}
@@ -379,7 +387,7 @@ const EventReviews = () => {
                   className="pl-10 pr-8 py-2 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 appearance-none"
                 >
                   <option value="" className="bg-[#2d0036] text-white">
-                    -- {t('Choose Event')} --
+                    -- {t('eventReviews.chooseEvent')} --
                   </option>
                   {filteredEvents.map((event) => (
                     <option
@@ -409,12 +417,12 @@ const EventReviews = () => {
               {loading ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  {t('Analyzing')}
+                  {t('eventReviews.analyzing')}
                 </>
               ) : (
                 <>
                   <Zap className="w-5 h-5" />
-                  {t('Analyze with AI')}
+                  {t('eventReviews.analyzeWithAI')}
                 </>
               )}
             </button>
@@ -424,7 +432,7 @@ const EventReviews = () => {
           {selectedEventData && (
             <div className="mt-4 p-4 bg-gradient-to-r from-green-900/60 to-blue-900/60 rounded-xl border-2 border-green-500/30">
               <p className="text-sm text-green-200">
-                <strong className="text-green-300">{t('Selected Event')}:</strong>{' '}
+                <strong className="text-green-300">{t('eventReviews.selectedEvent')}:</strong>{' '}
                 {selectedEventData.eventName}
               </p>
             </div>
@@ -441,14 +449,13 @@ const EventReviews = () => {
                   <div className="p-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
                     <MessageCircle className="w-12 h-12 text-white" />
                   </div>
-                  <h3 className="text-3xl font-bold text-white mb-4">Không có bình luận nào</h3>
+                  <h3 className="text-3xl font-bold text-white mb-4">{t('eventReviews.noCommentsFound')}</h3>
                   <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-                    Sự kiện "{selectedEventData?.eventName}" hiện tại chưa có bình luận nào từ người tham dự để phân tích. 
-                    Hãy khuyến khích khách tham dự để lại phản hồi để có thể thực hiện phân tích cảm xúc.
+                    {t('eventReviews.noCommentsDescription')}
                   </p>
                   <div className="mt-8 flex justify-center items-center gap-4 text-slate-400">
                     <Sparkles className="w-5 h-5" />
-                    <span>Chờ phản hồi từ người tham dự</span>
+                    <span>{t('eventReviews.waitingForFeedback')}</span>
                     <Sparkles className="w-5 h-5" />
                   </div>
                 </div>
@@ -461,21 +468,21 @@ const EventReviews = () => {
                     {
                       icon: TrendingUp,
                       value: `${sentimentData.data?.positivePercentage ?? 0}%`,
-                      label: t('Positive Sentiment'),
+                      label: t('eventReviews.positiveSentiment'),
                       gradient: 'from-emerald-500 to-green-500',
                       bgGradient: 'from-emerald-500/20 to-green-500/20',
                     },
                     {
                       icon: Minus,
                       value: `${sentimentData.data?.neutralPercentage ?? 0}%`,
-                      label: t('Neutral Sentiment'),
+                      label: t('eventReviews.neutralSentiment'),
                       gradient: 'from-amber-400 to-yellow-600',
                       bgGradient: 'from-amber-400/20 to-yellow-600/20',
                     },
                     {
                       icon: TrendingDown,
                       value: `${sentimentData.data?.negativePercentage ?? 0}%`,
-                      label: t('Negative Sentiment'),
+                      label: t('eventReviews.negativeSentiment'),
                       gradient: 'from-red-500 to-rose-500',
                       bgGradient: 'from-red-500/20 to-rose-500/20',
                     },
@@ -503,7 +510,7 @@ const EventReviews = () => {
                     <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl">
                       <Sparkles className="w-6 h-6 text-white" />
                     </div>
-                    Tổng quan cảm xúc
+                    {t('eventReviews.overallSentiment')}
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div>
@@ -513,12 +520,12 @@ const EventReviews = () => {
                         )} text-white font-semibold text-lg shadow-lg`}
                       >
                         {getSentimentIcon(sentimentData.data?.overallSentiment)}
-                        Tổng thể:{' '}
+                        {t('eventReviews.overallSentiment')}:{' '}
                         {sentimentData.data?.overallSentiment === 'positive'
-                          ? 'Rất tích cực'
+                          ? t('eventReviews.veryPositive')
                           : sentimentData.data?.overallSentiment === 'negative'
-                          ? 'Cần cải thiện'
-                          : 'Trung tính'}
+                          ? t('eventReviews.needsImprovement')
+                          : t('eventReviews.neutral')}
                       </div>
                     </div>
                     {(sentimentData.data?.positivePercentage > 0 ||
@@ -544,15 +551,15 @@ const EventReviews = () => {
                         <div className="flex justify-between text-sm text-slate-300">
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
-                            Tích cực ({sentimentData.data?.positivePercentage ?? 0}%)
+                            {t('eventReviews.positive')} ({sentimentData.data?.positivePercentage ?? 0}%)
                           </span>
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
-                            Trung tính ({sentimentData.data?.neutralPercentage ?? 0}%)
+                            {t('eventReviews.neutral')} ({sentimentData.data?.neutralPercentage ?? 0}%)
                           </span>
                           <span className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-rose-500 rounded-full"></div>
-                            Tiêu cực ({sentimentData.data?.negativePercentage ?? 0}%)
+                            <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-rose-500 rounded-full"></div>
+                            {t('eventReviews.negativeSentiment')} ({sentimentData.data?.negativePercentage ?? 0}%)
                           </span>
                         </div>
                       </div>
@@ -566,14 +573,14 @@ const EventReviews = () => {
                     <div className="p-2 bg-gradient-to-r from-red-500 to-rose-500 rounded-xl">
                       <MessageCircle className="w-6 h-6 text-white" />
                     </div>
-                    Bình luận tiêu cực
+                    {t('eventReviews.negativeComments')}
                   </h3>
                   <div className="space-y-4">
                     {comments.length === 0 && (
                       <div className="text-slate-400 text-center py-8">
                         <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-400" />
-                        <p className="text-green-300">Tuyệt vời! Không có bình luận tiêu cực nào được tìm thấy</p>
-                        <p className="text-slate-400 text-sm mt-2">Sự kiện này nhận được phản hồi rất tích cực từ người tham dự</p>
+                        <p className="text-green-300">{t('eventReviews.noNegativeComments')}</p>
+                        <p className="text-slate-400 text-sm mt-2">{t('eventReviews.noNegativeCommentsDescription')}</p>
                       </div>
                     )}
                     {comments.map((comment, index) => (
@@ -610,9 +617,9 @@ const EventReviews = () => {
                   <Brain className="w-8 h-8 text-purple-400 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">AI Neural Network Processing</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">{t('eventReviews.aiNeuralNetworkProcessing')}</h3>
               <p className="text-slate-300 text-lg">
-                Analyzing sentiment patterns with deep learning algorithms...
+                {t('eventReviews.analyzingSentimentPatterns')}
               </p>
               <div className="mt-6 flex justify-center space-x-2">
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
@@ -629,15 +636,13 @@ const EventReviews = () => {
               <div className="p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
                 <AlertCircle className="w-12 h-12 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">{t('Ready for AI Analysis')}</h3>
+              <h3 className="text-3xl font-bold text-white mb-4">{t('eventReviews.readyForAIAnalysis')}</h3>
               <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-                {t(
-                  'Select an event above to unleash the power of artificial intelligence. Our advanced neural networks will analyze every comment to provide deep insights into attendee sentiment and satisfaction levels.'
-                )}
+                {t('eventReviews.selectEventDescription')}
               </p>
               <div className="mt-8 flex justify-center items-center gap-4 text-slate-400">
                 <Sparkles className="w-5 h-5" />
-                <span>{t('Powered by Advanced Machine Learning')}</span>
+                <span>{t('eventReviews.poweredByAdvancedMachineLearning')}</span>
                 <Sparkles className="w-5 h-5" />
               </div>
             </div>

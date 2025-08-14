@@ -63,31 +63,31 @@ export default function EventManagerDashboard() {
 
   // Tab options with full API mapping
   const periodTabs = [
-    { id: TimePeriod.Today, label: 'Today', shortLabel: 'Today', icon: '📅' },
-    { id: TimePeriod.Yesterday, label: 'Yesterday', shortLabel: 'Yesterday', icon: '📅' },
-    { id: TimePeriod.ThisWeek, label: 'This Week', shortLabel: 'Week', icon: '📊' },
-    { id: TimePeriod.LastWeek, label: 'Last Week', shortLabel: 'Last Week', icon: '📊' },
-    { id: TimePeriod.ThisMonth, label: 'This Month', shortLabel: 'Month', icon: '📈' },
-    { id: TimePeriod.LastMonth, label: 'Last Month', shortLabel: 'Last Month', icon: '📈' },
-    { id: TimePeriod.ThisQuarter, label: 'This Quarter', shortLabel: 'Quarter', icon: '📊' },
-    { id: TimePeriod.LastQuarter, label: 'Last Quarter', shortLabel: 'Last Quarter', icon: '📊' },
-    { id: TimePeriod.ThisYear, label: 'This Year', shortLabel: 'Year', icon: '🎯' },
-    { id: TimePeriod.LastYear, label: 'Last Year', shortLabel: 'Last Year', icon: '🎯' },
-    { id: TimePeriod.Last7Days, label: 'Last 7 Days', shortLabel: '7 Days', icon: '📆' },
-    { id: TimePeriod.Last30Days, label: 'Last 30 Days', shortLabel: '30 Days', icon: '📉' },
-    { id: TimePeriod.Last90Days, label: 'Last 90 Days', shortLabel: '90 Days', icon: '📋' },
-    { id: TimePeriod.Last365Days, label: 'Last 365 Days', shortLabel: '365 Days', icon: '📅' },
-    { id: TimePeriod.AllTime, label: 'All Time', shortLabel: 'All', icon: '∞' },
-    { id: TimePeriod.Custom, label: 'Custom', shortLabel: 'Custom', icon: '⚙️' },
+    { id: TimePeriod.Today, label: t('dashboard.today'), shortLabel: t('dashboard.today'), icon: '📅' },
+    { id: TimePeriod.Yesterday, label: t('dashboard.yesterday'), shortLabel: t('dashboard.yesterday'), icon: '📅' },
+    { id: TimePeriod.ThisWeek, label: t('dashboard.thisWeek'), shortLabel: t('dashboard.week'), icon: '📊' },
+    { id: TimePeriod.LastWeek, label: t('dashboard.lastWeek'), shortLabel: t('dashboard.lastWeek'), icon: '📊' },
+    { id: TimePeriod.ThisMonth, label: t('dashboard.thisMonth'), shortLabel: t('dashboard.month'), icon: '📈' },
+    { id: TimePeriod.LastMonth, label: t('dashboard.lastMonth'), shortLabel: t('dashboard.lastMonth'), icon: '📈' },
+    { id: TimePeriod.ThisQuarter, label: t('dashboard.thisQuarter'), shortLabel: t('dashboard.quarter'), icon: '📊' },
+    { id: TimePeriod.LastQuarter, label: t('dashboard.lastQuarter'), shortLabel: t('dashboard.lastQuarter'), icon: '📊' },
+    { id: TimePeriod.ThisYear, label: t('dashboard.thisYear'), shortLabel: t('dashboard.year'), icon: '🎯' },
+    { id: TimePeriod.LastYear, label: t('dashboard.lastYear'), shortLabel: t('dashboard.lastYear'), icon: '🎯' },
+    { id: TimePeriod.Last7Days, label: t('dashboard.last7Days'), shortLabel: t('dashboard.last7Days'), icon: '📆' },
+    { id: TimePeriod.Last30Days, label: t('dashboard.last30Days'), shortLabel: t('dashboard.last30Days'), icon: '📉' },
+    { id: TimePeriod.Last90Days, label: t('dashboard.last90Days'), shortLabel: t('dashboard.last90Days'), icon: '📋' },
+    { id: TimePeriod.Last365Days, label: t('dashboard.last365Days'), shortLabel: t('dashboard.last365Days'), icon: '📅' },
+    { id: TimePeriod.AllTime, label: t('dashboard.allTime'), shortLabel: t('dashboard.all'), icon: '∞' },
+    { id: TimePeriod.Custom, label: t('dashboard.custom'), shortLabel: t('dashboard.custom'), icon: '⚙️' },
   ];
 
   const groupByOptions = [
-    { value: GroupBy.Hour, label: 'By Hour' },
-    { value: GroupBy.Day, label: 'By Day' },
-    { value: GroupBy.Week, label: 'By Week' },
-    { value: GroupBy.Month, label: 'By Month' },
-    { value: GroupBy.Quarter, label: 'By Quarter' },
-    { value: GroupBy.Year, label: 'By Year' },
+    { value: GroupBy.Hour, label: t('dashboard.byHour') },
+    { value: GroupBy.Day, label: t('dashboard.byDay') },
+    { value: GroupBy.Week, label: t('dashboard.byWeek') },
+    { value: GroupBy.Month, label: t('dashboard.byMonth') },
+    { value: GroupBy.Quarter, label: t('dashboard.byQuarter') },
+    { value: GroupBy.Year, label: t('dashboard.byYear') },
   ];
 
   const [dashboardData, setDashboardData] = useState(null);
@@ -131,7 +131,7 @@ export default function EventManagerDashboard() {
       setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Unable to load dashboard data');
+      toast.error(t('dashboard.unableToLoadData'));
     }
   }, [selectedPeriod, groupBy, customStartDate, customEndDate]);
 
@@ -357,7 +357,7 @@ export default function EventManagerDashboard() {
                 )}
               >
                 <Filter size={18} />
-                <span className="hidden sm:inline">Filters</span>
+                <span className="hidden sm:inline">{t('dashboard.filters')}</span>
               </button>
 
               {exportButtons}
@@ -430,14 +430,14 @@ export default function EventManagerDashboard() {
                 )
               )}
             >
-              <h3
-                className={cn(
-                  'text-lg font-semibold mb-4',
-                  getThemeClass('text-blue-700', 'text-purple-200')
-                )}
-              >
-                Select Custom Time Range
-              </h3>
+                              <h3
+                  className={cn(
+                    'text-lg font-semibold mb-4',
+                    getThemeClass('text-blue-700', 'text-purple-200')
+                  )}
+                >
+                  {t('dashboard.selectCustomTimeRange')}
+                </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label
@@ -446,7 +446,7 @@ export default function EventManagerDashboard() {
                       getThemeClass('text-blue-700', 'text-purple-200')
                     )}
                   >
-                    From Date
+                    {t('dashboard.fromDate')}
                   </label>
                   <input
                     type="date"
@@ -468,7 +468,7 @@ export default function EventManagerDashboard() {
                       getThemeClass('text-blue-700', 'text-purple-200')
                     )}
                   >
-                    To Date
+                    {t('dashboard.toDate')}
                   </label>
                   <input
                     type="date"
@@ -505,7 +505,7 @@ export default function EventManagerDashboard() {
                     getThemeClass('text-blue-700', 'text-purple-200')
                   )}
                 >
-                  Advanced Filters
+                  {t('dashboard.advancedFilters')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -515,7 +515,7 @@ export default function EventManagerDashboard() {
                         getThemeClass('text-blue-700', 'text-purple-200')
                       )}
                     >
-                      Group Data By
+                      {t('dashboard.groupDataBy')}
                     </label>
                     <select
                       value={groupBy}
@@ -560,7 +560,7 @@ export default function EventManagerDashboard() {
                   size={16}
                   className={cn(getThemeClass('text-blue-600', 'text-purple-300'))}
                 />
-                <span className={cn(getThemeClass('text-blue-700', 'text-purple-200'))}>Time:</span>
+                <span className={cn(getThemeClass('text-blue-700', 'text-purple-200'))}>{t('dashboard.time')}:</span>
                 <span className={cn('font-semibold', getThemeClass('text-gray-900', 'text-white'))}>
                   {periodTabs.find((tab) => tab.id === selectedPeriod)?.label}
                 </span>
@@ -578,7 +578,7 @@ export default function EventManagerDashboard() {
                   size={16}
                   className={cn(getThemeClass('text-cyan-600', 'text-blue-300'))}
                 />
-                <span className={cn(getThemeClass('text-cyan-700', 'text-blue-200'))}>Group:</span>
+                <span className={cn(getThemeClass('text-cyan-700', 'text-blue-200'))}>{t('dashboard.group')}:</span>
                 <span className={cn('font-semibold', getThemeClass('text-gray-900', 'text-white'))}>
                   {groupByOptions.find((opt) => opt.value === groupBy)?.label}
                 </span>
@@ -616,7 +616,7 @@ export default function EventManagerDashboard() {
                   )
                 )}
               >
-                Revenue
+                {t('dashboard.revenue')}
               </button>
               <button
                 onClick={() => setActiveTab('tickets')}
@@ -632,7 +632,7 @@ export default function EventManagerDashboard() {
                   )
                 )}
               >
-                Ticket Statistics
+                {t('dashboard.ticketStatistics')}
               </button>
             </div>
           </div>

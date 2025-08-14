@@ -847,9 +847,8 @@ const AuthenticatedCustomerChatBox: React.FC<UnifiedCustomerChatProps> = (props)
     const isAuthenticated = !!localStorage.getItem('access_token');
     const currentAccount = getCurrentAccount();
 
-    // Only show chatbox for logged in users with Customer (role 1) or Event Manager (role 2) roles
-    const shouldShow =
-      isAuthenticated && currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    // Only show chatbox for logged in users with Customer (role 1) - hide for Event Manager (role 2)
+    const shouldShow = isAuthenticated && currentAccount && currentAccount.role === 1;
     setIsVisible(shouldShow);
   }, []);
 

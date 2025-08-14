@@ -168,7 +168,7 @@ const NotificationDropdown = ({
                 </span>
               )}
             </span>
-            <h3 className="font-bold text-lg text-white">{t('notifications') || 'Thông báo'}</h3>
+            <h3 className="font-bold text-lg text-white">{t('notifications.title')}</h3>
           </div>
         </div>
 
@@ -203,7 +203,7 @@ const NotificationDropdown = ({
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
-              {t('noNotifications') || 'Không có thông báo mới'}
+              {t('notifications.noNotifications')}
             </p>
             <p
               className={cn(
@@ -211,7 +211,7 @@ const NotificationDropdown = ({
                 getThemeClass('text-gray-500', 'text-gray-400')
               )}
             >
-              {t('notificationHint') || 'Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới'}
+              {t('notifications.noNotificationsDescription')}
             </p>
           </div>
         ) : (
@@ -315,7 +315,7 @@ const NotificationDropdown = ({
                             )
                           )}
                         >
-                          {t('new') || 'Mới'}
+                          {t('notifications.new')}
                         </span>
                       )}
                     </div>

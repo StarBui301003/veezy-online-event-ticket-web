@@ -40,7 +40,16 @@ const NotificationManager = () => {
   // Fetch events on mount
   useEffect(() => {
     async function fetchEvents() {
-      const events = await getMyApprovedEvents();
+      // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
+      const eventsRes = await getMyApprovedEvents(1, 100);
+      let events = [];
+      if (eventsRes && typeof eventsRes === 'object' && 'items' in eventsRes) {
+        events = eventsRes.items || [];
+      } else if (Array.isArray(eventsRes)) {
+        events = eventsRes;
+      } else if (eventsRes?.items) {
+        events = Array.isArray(eventsRes.items) ? eventsRes.items : [];
+      }
       setMyEvents(events || []);
     }
     fetchEvents();

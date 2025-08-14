@@ -65,7 +65,7 @@ export default function AllNotificationsPage() {
     async (showLoader = true) => {
       if (!userId) {
         setLoading(false);
-        setError('User ID not found');
+        setError(t('notifications.userIdNotFound'));
         return;
       }
       if (showLoader) setLoading(true);
@@ -109,7 +109,7 @@ export default function AllNotificationsPage() {
           setNotifications([]);
         }
       } catch {
-        setError('Failed to fetch notifications');
+        setError(t('notifications.failedToFetchNotifications'));
         setNotifications([]);
       } finally {
         setLoading(false);
@@ -151,7 +151,9 @@ export default function AllNotificationsPage() {
       }
     } catch (error) {
       console.error('Error marking all as read:', error);
-      setError(error instanceof Error ? error.message : 'Failed to mark all as read');
+      setError(
+        error instanceof Error ? error.message : t('notifications.failedToFetchNotifications')
+      );
     } finally {
       setMarkingRead(false);
     }
@@ -393,7 +395,7 @@ export default function AllNotificationsPage() {
                     )}
                   />
                   <p className={cn(getThemeClass('text-gray-700', 'text-gray-300'))}>
-                    {t('loading') || 'Đang tải thông báo...'}
+                    {t('notifications.loadingNotifications')}
                   </p>
                 </div>
               </div>
@@ -456,7 +458,7 @@ export default function AllNotificationsPage() {
                     getThemeClass('text-gray-900', 'text-white')
                   )}
                 >
-                  {t('notifications') || 'Thông báo'}
+                  {t('notifications.title')}
                 </h1>
               </div>
 
@@ -470,7 +472,7 @@ export default function AllNotificationsPage() {
                     )
                   )}
                 >
-                  {unreadCount} {t('new') || 'mới'}
+                  {unreadCount} {t('notifications.new')}
                 </span>
               )}
             </div>
@@ -486,7 +488,7 @@ export default function AllNotificationsPage() {
                     'hover:bg-gray-700 text-gray-400 hover:text-white'
                   )
                 )}
-                title={t('refresh') || 'Làm mới'}
+                title={t('notifications.refresh')}
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
@@ -515,16 +517,9 @@ export default function AllNotificationsPage() {
                   ) : (
                     <CheckCircle className="w-4 h-4" />
                   )}
-                  <span className="hidden sm:inline">
-                    {unreadCount === 0
-                      ? t('allRead') || 'Đã đọc hết'
-                      : t('markAllAsRead') || 'Đọc tất cả'}
-                  </span>
-                  <span className="sm:hidden">
-                    {unreadCount === 0
-                      ? t('allRead') || 'Đã đọc'
-                      : t('markAllAsRead') || 'Đọc tất cả'}
-                  </span>
+                  {unreadCount === 0
+                    ? t('notifications.allRead')
+                    : t('notifications.markAllAsRead')}
                 </button>
               )}
             </div>
@@ -542,7 +537,7 @@ export default function AllNotificationsPage() {
               )}
             >
               <p className="text-sm">
-                <strong>{t('error') || 'Lỗi'}:</strong> {error}
+                <strong>{t('notifications.error')}:</strong> {error}
               </p>
               <button
                 onClick={() => loadNotifications()}
@@ -554,7 +549,7 @@ export default function AllNotificationsPage() {
                   )
                 )}
               >
-                {t('retry') || 'Thử lại'}
+                {t('notifications.retry')}
               </button>
             </div>
           )}
@@ -589,14 +584,13 @@ export default function AllNotificationsPage() {
                   )}
                 >
                   {error
-                    ? t('errorLoadingNotifications') || 'Không thể tải thông báo'
-                    : t('noNotifications') || 'Không có thông báo'}
+                    ? t('notifications.errorLoadingNotifications')
+                    : t('notifications.noNotifications')}
                 </h3>
                 <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-400'))}>
                   {error
-                    ? t('checkConnectionAndRetry') || 'Kiểm tra kết nối và thử lại'
-                    : t('noNotificationsDescription') ||
-                      'Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới'}
+                    ? t('notifications.checkConnectionAndRetry')
+                    : t('notifications.noNotificationsDescription')}
                 </p>
                 {error && (
                   <button
@@ -609,7 +603,7 @@ export default function AllNotificationsPage() {
                       )
                     )}
                   >
-                    {t('retry') || 'Thử lại'}
+                    {t('notifications.retry')}
                   </button>
                 )}
               </div>
@@ -695,7 +689,7 @@ export default function AllNotificationsPage() {
                                 )
                               )}
                             >
-                              {t('new') || 'Mới'}
+                              {t('notifications.new')}
                             </span>
                           )}
                         </div>

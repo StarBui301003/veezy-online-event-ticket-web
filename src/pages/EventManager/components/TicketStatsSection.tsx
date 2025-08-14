@@ -11,6 +11,7 @@ const formatNumber = (value: number) => {
   return new Intl.NumberFormat('en-US').format(value);
 };
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bar, Line, Doughnut, Radar } from 'react-chartjs-2';
 import {
   Chart,
@@ -73,6 +74,7 @@ interface FilterProps {
 }
 
 export default function TicketStatsSection({ filter }: { filter: FilterProps }) {
+  const { t } = useTranslation();
   const [ticketData, setTicketData] = useState<TicketStatsData>({
     eventStats: [],
     timeline: [],
@@ -144,7 +146,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
       });
     } catch (err) {
       console.error('Error fetching ticket stats:', err);
-      setError('Không thể tải dữ liệu thống kê vé. Vui lòng thử lại sau.');
+      setError(t('dashboard.ticketStats.errorLoadingData'));
 
       // Reset data on error
       setTicketData({
@@ -213,14 +215,14 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
 
   const getGroupByLabel = () => {
     const labels: { [key: number]: string } = {
-      0: 'giờ',
-      1: 'ngày',
-      2: 'tuần',
-      3: 'tháng',
-      4: 'quý',
-      5: 'năm',
+      0: t('dashboard.ticketStats.timeLabels.hour'),
+      1: t('dashboard.ticketStats.timeLabels.day'),
+      2: t('dashboard.ticketStats.timeLabels.week'),
+      3: t('dashboard.ticketStats.timeLabels.month'),
+      4: t('dashboard.ticketStats.timeLabels.quarter'),
+      5: t('dashboard.ticketStats.timeLabels.year'),
     };
-    return labels[filter.GroupBy] || 'thời gian';
+    return labels[filter.GroupBy] || t('dashboard.ticketStats.timeLabels.time');
   };
 
   if (loading) {
@@ -266,14 +268,14 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
             />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-red-300 mb-2">Đã xảy ra lỗi</h3>
+        <h3 className="text-xl font-semibold text-red-300 mb-2">{t('dashboard.ticketStats.title')}</h3>
         <p className="text-red-200 mb-4">{error}</p>
         <button
           onClick={fetchData}
           className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2 mx-auto"
         >
           <RefreshCw size={16} />
-          Thử lại
+          {t('dashboard.ticketStats.refresh')}
         </button>
       </div>
     );
@@ -289,14 +291,14 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
     return (
       <div className="text-center py-12 bg-gradient-to-br from-gray-500/20 to-gray-600/20 rounded-2xl border-2 border-gray-400/30">
         <Ticket size={48} className="mx-auto text-gray-400 mb-4" />
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">Không có dữ liệu vé</h3>
-        <p className="text-gray-400 mb-4">Chưa có dữ liệu bán vé trong khoảng thời gian đã chọn</p>
+        <h3 className="text-xl font-semibold text-gray-300 mb-2">{t('dashboard.ticketStats.noData')}</h3>
+        <p className="text-gray-400 mb-4">{t('dashboard.ticketStats.noDataDescription')}</p>
         <button
           onClick={fetchData}
           className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center gap-2 mx-auto"
         >
           <RefreshCw size={16} />
-          Làm mới
+          {t('dashboard.ticketStats.refresh')}
         </button>
       </div>
     );
@@ -339,7 +341,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
     }),
     datasets: [
       {
-        label: 'Vé đã bán',
+        label: t('dashboard.ticketStats.chartLabels.ticketsSold'),
         data: topEvents.map((e) => e.ticketsSold),
         backgroundColor: topEvents.map((_, index) => colors[index % colors.length]),
         borderColor: topEvents.map((_, index) => borderColors[index % borderColors.length]),
@@ -350,7 +352,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
       ...(viewMode === 'bar'
         ? [
             {
-              label: 'Tổng vé',
+              label: t('dashboard.ticketStats.chartLabels.totalTickets'),
               data: topEvents.map((e) => e.totalTickets),
               backgroundColor: 'rgba(150, 150, 150, 0.3)',
               borderColor: 'rgba(150, 150, 150, 0.8)',
@@ -371,7 +373,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
     }),
     datasets: [
       {
-        label: 'Tỷ lệ bán vé (%)',
+        label: t('dashboard.ticketStats.chartLabels.sellRatePercent'),
         data: topEvents.slice(0, 6).map((e) => e.sellRate),
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         borderColor: 'rgba(255, 99, 132, 1)',
@@ -403,7 +405,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
     }),
     datasets: [
       {
-        label: 'Vé đã bán',
+        label: t('dashboard.ticketStats.chartLabels.ticketsSold'),
         data: ticketData.timeline.map((item) => item.ticketsSold || 0),
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
@@ -416,7 +418,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         pointHoverRadius: 8,
       },
       {
-        label: 'Doanh thu (VNĐ)',
+        label: t('dashboard.ticketStats.chartLabels.revenueVND'),
         data: ticketData.timeline.map((item) => (item.revenue || 0) / 1000), // Convert to thousands for better scale
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -443,7 +445,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
       },
       title: {
         display: true,
-        text: `Vé bán theo sự kiện (Top ${showTop})`,
+        text: `${t('dashboard.ticketStats.ticketSalesByEvent')} (Top ${showTop})`,
         color: '#fff',
         font: { size: 18, weight: 'bold' as const },
       },
@@ -532,7 +534,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
       },
       title: {
         display: true,
-        text: `Xu hướng bán vé theo ${getGroupByLabel()}`,
+        text: `${t('dashboard.ticketStats.salesTrendBy')} ${getGroupByLabel()}`,
         color: '#fff',
         font: { size: 18, weight: 'bold' as const },
       },
@@ -545,7 +547,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         callbacks: {
           label: (ctx: any) => {
             if (ctx.datasetIndex === 0) {
-              return `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()} vé`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()} ${t('dashboard.ticketStats.chartLabels.ticketsSold').toLowerCase()}`;
             }
             return `${ctx.dataset.label}: ${(ctx.parsed.y * 1000)?.toLocaleString()} VNĐ`;
           },
@@ -603,7 +605,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         <div className="bg-gradient-to-br from-pink-500/20 to-pink-600/20 rounded-xl p-4 border border-pink-400/30">
           <div className="flex items-center gap-2 mb-2">
             <Ticket size={20} className="text-pink-400" />
-            <span className="text-sm text-pink-300">Vé đã bán</span>
+            <span className="text-sm text-pink-300">{t('dashboard.ticketStats.summaryCards.ticketsSold')}</span>
           </div>
           <div className="text-xl font-bold text-pink-400">
             {ticketData.summary.totalSold.toLocaleString()}
@@ -613,7 +615,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-4 border border-blue-400/30">
           <div className="flex items-center gap-2 mb-2">
             <Users size={20} className="text-blue-400" />
-            <span className="text-sm text-blue-300">Tổng vé tạo</span>
+            <span className="text-sm text-blue-300">{t('dashboard.ticketStats.summaryCards.totalTicketsCreated')}</span>
           </div>
           <div className="text-xl font-bold text-blue-400">
             {formatNumber(ticketData.summary.totalAvailable)}
@@ -623,7 +625,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl p-4 border border-green-400/30">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp size={20} className="text-green-400" />
-            <span className="text-sm text-green-300">Tỷ lệ bán</span>
+            <span className="text-sm text-green-300">{t('dashboard.ticketStats.summaryCards.sellRate')}</span>
           </div>
           <div className="text-xl font-bold text-green-400">
             {typeof ticketData.summary.sellRate === 'number'
@@ -636,7 +638,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-4 border border-purple-400/30">
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 size={20} className="text-purple-400" />
-            <span className="text-sm text-purple-300">Giá TB</span>
+            <span className="text-sm text-purple-300">{t('dashboard.ticketStats.summaryCards.averagePrice')}</span>
           </div>
           <div className="text-xl font-bold text-purple-400">
             {formatCurrency(ticketData.summary.avgPerEvent)}
@@ -650,7 +652,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-2">
             <Ticket size={20} className="text-pink-400" />
-            <span className="text-pink-300 font-medium">Thống kê bán vé</span>
+            <span className="text-pink-300 font-medium">{t('dashboard.ticketStats.title')}</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -669,7 +671,7 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
                   {mode === 'bar' && <BarChart3 size={14} />}
                   {mode === 'doughnut' && <PieChart size={14} />}
                   {mode === 'radar' && <Target size={14} />}
-                  {mode === 'bar' ? 'Cột' : mode === 'doughnut' ? 'Tròn' : 'Radar'}
+                  {mode === 'bar' ? t('dashboard.ticketStats.viewMode.bar') : mode === 'doughnut' ? t('dashboard.ticketStats.viewMode.doughnut') : t('dashboard.ticketStats.viewMode.radar')}
                 </button>
               ))}
             </div>
@@ -682,16 +684,16 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
                 className="bg-black/20 border border-pink-400/30 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
               >
                 <option value={5} className="bg-gray-800">
-                  Top 5
+                  {t('dashboard.ticketStats.topOptions.top5')}
                 </option>
                 <option value={10} className="bg-gray-800">
-                  Top 10
+                  {t('dashboard.ticketStats.topOptions.top10')}
                 </option>
                 <option value={15} className="bg-gray-800">
-                  Top 15
+                  {t('dashboard.ticketStats.topOptions.top15')}
                 </option>
                 <option value={20} className="bg-gray-800">
-                  Top 20
+                  {t('dashboard.ticketStats.topOptions.top20')}
                 </option>
               </select>
             )}
@@ -707,32 +709,31 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
         {/* Performance Indicators */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-black/20 rounded-lg p-4">
-            <div className="text-sm text-pink-300 mb-1">Sự kiện chính</div>
+            <div className="text-sm text-pink-300 mb-1">{t('dashboard.ticketStats.mainEvent')}</div>
             <div className="text-lg font-semibold text-white">
               {topEvents[0]?.eventName || 'N/A'}
             </div>
             <div className="text-sm text-pink-400">
-              {formatNumber(topEvents[0]?.ticketsSold || 0)} vé đã bán (
-              {topEvents[0]?.sellRate.toFixed(1)}% tỷ lệ)
+              {formatNumber(topEvents[0]?.ticketsSold || 0)} {t('dashboard.ticketStats.ticketsSoldWithRate', { rate: topEvents[0]?.sellRate.toFixed(1) })}
             </div>
           </div>
 
           <div className="bg-black/20 rounded-lg p-4">
-            <div className="text-sm text-blue-300 mb-1">Tổng doanh thu</div>
+            <div className="text-sm text-blue-300 mb-1">{t('dashboard.ticketStats.totalRevenue')}</div>
             <div className="text-lg font-semibold text-white">
               {formatCurrency(
                 ticketData.timeline.reduce((sum, item) => sum + (item.revenue || 0), 0)
               )}
             </div>
-            <div className="text-sm text-blue-400">Từ {ticketData.timeline.length} giai đoạn</div>
+            <div className="text-sm text-blue-400">{t('dashboard.ticketStats.fromPeriods', { count: ticketData.timeline.length })}</div>
           </div>
 
           <div className="bg-black/20 rounded-lg p-4">
-            <div className="text-sm text-green-300 mb-1">Vé còn lại</div>
+            <div className="text-sm text-green-300 mb-1">{t('dashboard.ticketStats.remainingTickets')}</div>
             <div className="text-lg font-semibold text-white">
               {formatNumber(ticketData.summary.totalAvailable - ticketData.summary.totalSold)}
             </div>
-            <div className="text-sm text-green-400">Có thể bán thêm</div>
+            <div className="text-sm text-green-400">{t('dashboard.ticketStats.canSellMore')}</div>
           </div>
         </div>
       </div>
@@ -743,10 +744,10 @@ export default function TicketStatsSection({ filter }: { filter: FilterProps }) 
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp size={20} className="text-indigo-400" />
             <span className="text-indigo-300 font-medium">
-              Xu hướng bán vé theo {getGroupByLabel()}
+              {t('dashboard.ticketStats.salesTrendBy')} {getGroupByLabel()}
             </span>
             <span className="text-sm bg-indigo-400/20 px-2 py-1 rounded-full text-indigo-200">
-              {ticketData.timeline.length} điểm dữ liệu
+              {ticketData.timeline.length} {t('dashboard.ticketStats.dataPoints')}
             </span>
           </div>
 

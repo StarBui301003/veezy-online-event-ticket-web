@@ -292,7 +292,7 @@ export default function TicketSalesDashboard() {
                   setSelectedStatus(e.target.value === 'all' ? 'all' : Number(e.target.value))
                 }
               >
-                <option value="all">All Statuses</option>
+                <option value="all">{t('ticketSalesDashboard.all')}</option>
                 <option value={4}>Active</option>
                 <option value={5}>Completed</option>
               </select>

@@ -104,14 +104,14 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
 
   const getGroupByLabel = () => {
     const labels = {
-      0: 'hour',
-      1: 'day',
-      2: 'week',
-      3: 'month',
-      4: 'quarter',
-      5: 'year',
+      0: t('dashboard.hour'),
+      1: t('dashboard.day'),
+      2: t('dashboard.week'),
+      3: t('dashboard.month'),
+      4: t('dashboard.quarter'),
+      5: t('dashboard.year'),
     };
-    return labels[filter.GroupBy as keyof typeof labels] || 'time';
+    return labels[filter.GroupBy as keyof typeof labels] || t('dashboard.time');
   };
 
   if (loading) {
@@ -167,10 +167,10 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
             getThemeClass('text-gray-800', 'text-gray-300')
           )}
         >
-          No Revenue Data
+          {t('dashboard.noRevenueData')}
         </h3>
         <p className={cn(getThemeClass('text-gray-600', 'text-gray-400'))}>
-          No revenue data available for the selected time period
+          {t('dashboard.noRevenueDataDescription')}
         </p>
       </div>
     );
@@ -184,7 +184,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     }),
     datasets: [
       {
-        label: t('revenue') || 'Doanh thu',
+        label: t('dashboard.revenue'),
         data: topEvents.map((e) => e.revenue),
         backgroundColor: topEvents.map((_, index) => {
           const colors = [
@@ -236,7 +236,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueByEvent') || 'Revenue by Event'} (Top ${showTop})`,
+        text: `${t('dashboard.revenueByEvent')} (Top ${showTop})`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -254,7 +254,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
           afterLabel: (ctx: TooltipItem<'bar'>) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
             const percentage = ((ctx.parsed.y / total) * 100).toFixed(1);
-            return `Proportion: ${percentage}%`;
+            return `${t('dashboard.proportion')}: ${percentage}%`;
           },
         },
       },
@@ -301,7 +301,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueByEvent') || 'Revenue by Event'} (Top ${showTop})`,
+        text: `${t('dashboard.revenueByEvent')} (Top ${showTop})`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -319,7 +319,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
           afterLabel: (ctx: any) => {
             const total = events.reduce((sum, e) => sum + e.revenue, 0);
             const percentage = ((ctx.parsed / total) * 100).toFixed(1);
-            return `Proportion: ${percentage}%`;
+            return `${t('dashboard.proportion')}: ${percentage}%`;
           },
         },
       },
@@ -344,7 +344,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
     }),
     datasets: [
       {
-        label: t('revenue') || 'Doanh thu',
+        label: t('dashboard.revenue'),
         data: timeline.map((item) => item.revenue || 0),
         borderColor: 'rgba(255, 206, 86, 1)',
         backgroundColor: 'rgba(255, 206, 86, 0.2)',
@@ -357,7 +357,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
         pointHoverRadius: 8,
       },
       {
-        label: t('transactionCount') || 'Transaction Count',
+        label: t('dashboard.transactionCount'),
         data: timeline.map((item) => item.transactionCount || 0),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -390,7 +390,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
       },
       title: {
         display: true,
-        text: `${t('revenueTimeline') || 'Revenue Trend'} theo ${getGroupByLabel()}`,
+        text: `${t('dashboard.revenueTimeline')} theo ${getGroupByLabel()}`,
         color: getThemeClass('#1f2937', '#fff'),
         font: { size: 18, weight: 'bold' as const },
       },
@@ -405,7 +405,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
             if (ctx.datasetIndex === 0) {
               return `${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`;
             }
-            return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} transactions`;
+            return `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} ${t('dashboard.transactions')}`;
           },
         },
       },
@@ -484,7 +484,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-blue-700 font-semibold', 'text-blue-300')
               )}
             >
-              Total Revenue
+              {t('dashboard.totalRevenue')}
             </span>
           </div>
           <div className={cn('text-xl font-bold', getThemeClass('text-blue-800', 'text-blue-400'))}>
@@ -509,7 +509,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-green-700 font-semibold', 'text-green-300')
               )}
             >
-              Avg/Event
+              {t('dashboard.avgPerEvent')}
             </span>
           </div>
           <div
@@ -536,7 +536,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-purple-700 font-semibold', 'text-purple-300')
               )}
             >
-              Highest
+              {t('dashboard.highest')}
             </span>
           </div>
           <div
@@ -566,7 +566,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-yellow-700 font-semibold', 'text-yellow-300')
               )}
             >
-              Growth
+              {t('dashboard.growth')}
             </span>
           </div>
           <div
@@ -597,7 +597,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-blue-800 font-semibold', 'text-blue-300')
               )}
             >
-              Revenue by Event
+              {t('dashboard.revenueByEventTitle')}
             </span>
           </div>
 
@@ -625,7 +625,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                     )
                   )}
                 >
-                  {mode === 'bar' ? 'Bar' : 'Doughnut'}
+                  {mode === 'bar' ? t('dashboard.bar') : t('dashboard.doughnut')}
                 </button>
               ))}
             </div>
@@ -646,25 +646,25 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 value={5}
                 className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
               >
-                Top 5
+                {t('dashboard.top5')}
               </option>
               <option
                 value={10}
                 className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
               >
-                Top 10
+                {t('dashboard.top10')}
               </option>
               <option
                 value={15}
                 className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
               >
-                Top 15
+                {t('dashboard.top15')}
               </option>
               <option
                 value={20}
                 className={cn(getThemeClass('bg-white text-blue-800', 'bg-gray-800'))}
               >
-                Top 20
+                {t('dashboard.top20')}
               </option>
             </select>
           </div>
@@ -695,7 +695,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 getThemeClass('text-yellow-800 font-semibold', 'text-yellow-300')
               )}
             >
-              Revenue Trend by {getGroupByLabel()}
+              {t('dashboard.revenueTrendBy')} {getGroupByLabel()}
             </span>
             <span
               className={cn(
@@ -706,7 +706,7 @@ export default function RevenueChartSection({ filter }: { filter: RevenueFilterP
                 )
               )}
             >
-              {timeline.length} data points
+              {timeline.length} {t('dashboard.dataPoints')}
             </span>
           </div>
 

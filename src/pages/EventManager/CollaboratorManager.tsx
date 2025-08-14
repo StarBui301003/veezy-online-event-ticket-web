@@ -7,7 +7,7 @@ import {
   removeCollaborator,
 } from '@/services/Event Manager/event.service';
 import { toast } from 'react-toastify';
-import { FaCalendarAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import noPicture from '@/assets/img/no-picture-available.png';
 import { useTranslation } from 'react-i18next';
@@ -45,10 +45,15 @@ export default function CollaboratorManager() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [searchEvent, setSearchEvent] = useState('');
+  const [eventPage, setEventPage] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
 
   const [assignedCollaborators, setAssignedCollaborators] = useState<Collaborator[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const COLLABS_PER_PAGE = 6;
+  const EVENTS_PER_PAGE = 3;
 
   const navigate = useNavigate();
 
@@ -65,13 +70,23 @@ export default function CollaboratorManager() {
     }
   };
 
-  const loadEvents = async () => {
+  const loadEvents = async (page: number = eventPage) => {
     setLoadingEvents(true);
     try {
-      const data = await getMyApprovedEvents(1, 100);
-      setEvents(Array.isArray(data) ? data : []);
+      const data = await getMyApprovedEvents(page, EVENTS_PER_PAGE);
+      
+      const items = Array.isArray(data?.items) ? data.items : [];
+      
+      // Set total count từ API response
+      setTotalEvents(data?.totalCount || 0);
+      
+      // Luôn luôn replace events cho từng page (không append)
+      setEvents(items);
+      setFilteredEvents(items);
     } catch {
       toast.error(t('errorLoadingEvents'));
+      setEvents([]);
+      setFilteredEvents([]);
     } finally {
       setLoadingEvents(false);
     }
@@ -91,8 +106,8 @@ export default function CollaboratorManager() {
   }, []);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    loadEvents(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // SignalR real-time updates
   useEffect(() => {
@@ -124,17 +139,17 @@ export default function CollaboratorManager() {
 
     // Listen for event updates
     onEvent('EventCreated', () => {
-      loadEvents();
+      loadEvents(1);
     });
 
     onEvent('EventUpdated', () => {
-      loadEvents();
+      loadEvents(eventPage);
     });
 
     onEvent('EventApproved', () => {
-      loadEvents();
+      loadEvents(1);
     });
-  }, [selectedEvent]);
+  }, [selectedEvent, eventPage]);
 
   useEffect(() => {
     if (!selectedEvent) {
@@ -152,9 +167,54 @@ export default function CollaboratorManager() {
       )
     : collaborators;
 
-  const filteredEvents = searchEvent.trim()
-    ? events.filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
-    : events;
+  // Tìm kiếm sự kiện realtime
+  useEffect(() => {
+    if (!searchEvent.trim()) {
+      setIsSearching(false);
+      setFilteredEvents(events);
+    } else {
+      setIsSearching(true);
+      const filtered = events.filter((ev) =>
+        ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
+      );
+      setFilteredEvents(filtered);
+      setEventPage(1); // reset về trang 1 khi search khác
+    }
+  }, [searchEvent, events]);
+
+  // Phân trang sự kiện
+  const totalEventPages = isSearching 
+    ? Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+    : Math.max(1, Math.ceil(totalEvents / EVENTS_PER_PAGE));
+    
+  const pagedEvents = isSearching 
+    ? filteredEvents.slice(
+        (eventPage - 1) * EVENTS_PER_PAGE,
+        eventPage * EVENTS_PER_PAGE
+      )
+    : filteredEvents; // Khi không search, hiển thị tất cả events đã load
+
+  // Xử lý chuyển trang events
+  const handleEventPageChange = async (newPage: number) => {
+    if (newPage === eventPage || loadingEvents) return;
+    
+    setEventPage(newPage);
+    
+    // Nếu đang search, chỉ cần update page state để show filtered results
+    if (isSearching) {
+      return;
+    }
+    
+    // Nếu không search, gọi API để load page mới
+    await loadEvents(newPage);
+  };
+
+  // Nếu chuyển trang mà không còn sự kiện, về trang 1
+  useEffect(() => {
+    if (eventPage > totalEventPages && totalEventPages > 0) {
+      setEventPage(1);
+    }
+  }, [totalEventPages, eventPage]);
 
   const handleAssign = async (collaborator: Collaborator) => {
     if (!selectedEvent) {
@@ -255,7 +315,7 @@ export default function CollaboratorManager() {
             >
               {t('loading.loading_events')}
             </div>
-          ) : filteredEvents.length === 0 ? (
+          ) : pagedEvents.length === 0 ? (
             <div
               className={cn(
                 'text-center text-base',
@@ -266,7 +326,7 @@ export default function CollaboratorManager() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredEvents.map((event) => (
+              {pagedEvents.map((event) => (
                 <div
                   key={event.eventId}
                   className={cn(
@@ -311,6 +371,44 @@ export default function CollaboratorManager() {
                   )}
                 </div>
               ))}
+
+              {/* Event Pagination */}
+              {totalEventPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-4">
+                  <button
+                    className={cn(
+                      'p-2 rounded-full text-white disabled:opacity-50',
+                      getThemeClass(
+                        'bg-blue-500 hover:bg-blue-600',
+                        'bg-pink-500 hover:bg-pink-600'
+                      )
+                    )}
+                    disabled={eventPage === 1 || loadingEvents}
+                    onClick={() => handleEventPageChange(Math.max(1, eventPage - 1))}
+                  >
+                    <FaChevronLeft />
+                  </button>
+                  <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
+                    {t('eventList.page_info', { current: eventPage, total: totalEventPages })}
+                    {loadingEvents && (
+                      <span className="ml-2 text-sm opacity-70">({t('loading.loading_events')}...)</span>
+                    )}
+                  </span>
+                  <button
+                    className={cn(
+                      'p-2 rounded-full text-white disabled:opacity-50',
+                      getThemeClass(
+                        'bg-blue-500 hover:bg-blue-600',
+                        'bg-pink-500 hover:bg-pink-600'
+                      )
+                    )}
+                    disabled={eventPage === totalEventPages || loadingEvents}
+                    onClick={() => handleEventPageChange(Math.min(totalEventPages, eventPage + 1))}
+                  >
+                    <FaChevronRight />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

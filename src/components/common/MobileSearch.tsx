@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CiSearch } from 'react-icons/ci';
-import { IoIosClose } from 'react-icons/io';
+import { IoClose } from 'react-icons/io5';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -105,7 +105,7 @@ export const MobileSearch = ({
             )}
             aria-label="Close search"
           >
-            <IoIosClose className="w-6 h-6" />
+            <IoClose className="w-6 h-6" />
           </Button>
         </div>
 
