@@ -20,11 +20,14 @@ import {
   MoreVertical,
   Flag,
   Camera,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   getEventById,
   getTicketsByEvent,
   validateDiscountCode,
+  createOrder,
   createOrderWithFace,
   getHomeEvents,
   getAIRecommendedEvents,
@@ -158,6 +161,15 @@ const EventDetail = () => {
   const [ticketLimits, setTicketLimits] = useState<Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }>>({});
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  
+  // Pagination states for tickets
+  const [currentTicketPage, setCurrentTicketPage] = useState(1);
+  const TICKETS_PER_PAGE = 5;
+
+  // Reset pagination when tickets change
+  useEffect(() => {
+    setCurrentTicketPage(1);
+  }, [tickets.length]);
   interface ReportInfo {
     type: 'event' | 'comment';
     id: string;
@@ -603,16 +615,87 @@ const EventDetail = () => {
           setIsCreatingOrder(false);
           return;
         }
-        // Check if this is a checkout creation (not actual order creation)
-        // We'll handle the actual order creation in ConfirmOrderPage
-        localStorage.setItem('checkout', JSON.stringify(checkoutData));
-        toast.success(
-          <>
-            {t('orderCreatedSuccessfully')} <CheckCircle className="inline w-5 h-5 ml-1" />
-          </>
-        );
-        localStorage.setItem('lastEventId', eventId);
-        navigate('/confirm-order');
+
+        // Pre-validate order by calling createOrder API to check for ticket limits
+        try {
+          const orderPayload = {
+            eventId,
+            customerId: latestCustomerId,
+            items: checkoutData.items.map(i => ({
+              ticketId: i.ticketId,
+              quantity: i.quantity,
+              price: i.ticketPrice || 0
+            })),
+            discountCode: checkoutData.discountCode || undefined,
+            discountAmount: checkoutData.discountAmount || 0,
+            orderAmount: calculateTotalAmount() - appliedDiscount
+          };
+
+          // Call createOrder to validate - if successful, we'll get orderId and can proceed
+          const orderRes = await createOrder(orderPayload);
+          
+          // Check for API error response
+          if (orderRes && orderRes.success === false) {
+            const errorMessage = orderRes.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+            
+            if (errorMessage.includes('Bạn chỉ có thể mua tối đa') && errorMessage.includes('vé loại')) {
+              // Extract ticket name and show inline error
+              const match = errorMessage.match(/tối đa (\d+) vé loại '([^']+)'/);
+              if (match) {
+                const maxTickets = match[1];
+                const ticketName = match[2];
+                
+                const targetTicket = tickets.find(t => t.ticketName === ticketName);
+                if (targetTicket) {
+                  setTicketErrors({
+                    [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+                  });
+                  return;
+                }
+              }
+            }
+            // For other API errors, show toast
+            toast.error(errorMessage);
+            return;
+          }
+
+          // If validation successful, store checkout data and orderId for ConfirmOrderPage
+          const enhancedCheckoutData = {
+            ...checkoutData,
+            orderId: orderRes?.orderId, // Store the created orderId
+          };
+          
+          localStorage.setItem('checkout', JSON.stringify(enhancedCheckoutData));
+          toast.success(
+            <>
+              {t('orderCreatedSuccessfully')} <CheckCircle className="inline w-5 h-5 ml-1" />
+            </>
+          );
+          localStorage.setItem('lastEventId', eventId);
+          navigate('/confirm-order');
+        } catch (apiError: any) {
+          // Handle API call errors
+          const msg = apiError?.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng.';
+          
+          if (msg.includes('Bạn chỉ có thể mua tối đa') && msg.includes('vé loại')) {
+            const match = msg.match(/tối đa (\d+) vé loại '([^']+)'/);
+            if (match) {
+              const maxTickets = match[1];
+              const ticketName = match[2];
+              
+              const targetTicket = tickets.find(t => t.ticketName === ticketName);
+              if (targetTicket) {
+                setTicketErrors({
+                  [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+                });
+                return;
+              }
+            }
+          }
+          
+          toast.error(msg);
+          return;
+        }
       } catch (error: any) {
         const msg = error?.response?.data?.message || t('failedToCreateOrder');
         
@@ -1066,6 +1149,21 @@ const EventDetail = () => {
     0
   );
 
+  // Pagination calculations for tickets
+  const totalTicketPages = Math.ceil(tickets.length / TICKETS_PER_PAGE);
+  const startTicketIndex = (currentTicketPage - 1) * TICKETS_PER_PAGE;
+  const endTicketIndex = startTicketIndex + TICKETS_PER_PAGE;
+  const currentTickets = tickets.slice(startTicketIndex, endTicketIndex);
+
+  const handleTicketPageChange = (page: number) => {
+    setCurrentTicketPage(page);
+    // Scroll to tickets section when changing page
+    const ticketsSection = document.getElementById('tickets-section');
+    if (ticketsSection) {
+      ticketsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1434,8 +1532,8 @@ const EventDetail = () => {
                     {t('noTicketsAvailableForThisEvent')}
                   </p>
                 ) : (
-                  <div className="space-y-5">
-                    {tickets.map((ticket, index) => {
+                  <div id="tickets-section" className="space-y-5">
+                    {currentTickets.map((ticket, index) => {
                       const quantity = selectedTickets[ticket.ticketId]?.quantity || 0;
                       const price =
                         typeof ticket.ticketPrice === 'number'
@@ -1473,19 +1571,20 @@ const EventDetail = () => {
                             )
                           )}
                         >
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex-1">
+                          <div className="flex justify-between items-center mb-2 gap-3">
+                            <div className="flex-1 min-w-0">
                               <h3
                                 className={cn(
-                                  'text-lg font-semibold',
+                                  'text-lg font-semibold truncate',
                                   getThemeClass('text-gray-900', 'text-white')
                                 )}
+                                title={ticket.ticketName}
                               >
                                 {ticket.ticketName}
                               </h3>
                               {/* Ticket Status */}
                               {(isSoldOut || isSaleEnded || isSaleNotStarted) && (
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   {isSoldOut && (
                                     <span className={cn(
                                       'text-xs px-2 py-1 rounded-full font-medium',
@@ -1515,7 +1614,7 @@ const EventDetail = () => {
                             </div>
                             <p
                               className={cn(
-                                'text-xl font-bold',
+                                'text-xl font-bold flex-shrink-0 text-right',
                                 price === 0 
                                   ? getThemeClass('text-green-600', 'text-green-400')
                                   : getThemeClass('text-blue-600', 'text-teal-300')
@@ -1546,8 +1645,8 @@ const EventDetail = () => {
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-between mt-2 gap-3">
+                            <div className="flex items-center space-x-3 flex-shrink-0">
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleQuantityChange(ticket, quantity - 1)}
@@ -1605,11 +1704,11 @@ const EventDetail = () => {
                               animate={{ scale: 1, color: '#a7f3d0' }}
                               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                               className={cn(
-                                'text-base font-semibold min-w-[90px] text-right',
+                                'text-base font-semibold min-w-[90px] max-w-[120px] text-right flex-shrink-0',
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
-                              {subtotal > 0 ? `${subtotal.toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                              {quantity === 0 ? '' : subtotal === 0 ? 'Miễn phí' : `${subtotal.toLocaleString('vi-VN')} đ`}
                             </motion.div>
                           </div>
                           
@@ -1641,6 +1740,45 @@ const EventDetail = () => {
                         </motion.div>
                       );
                     })}
+                    
+                    {/* Ticket Pagination */}
+                    {totalTicketPages > 1 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex justify-center items-center gap-6 mt-8 pt-6 border-t border-gray-200"
+                      >
+                        <button
+                          onClick={() => handleTicketPageChange(currentTicketPage - 1)}
+                          disabled={currentTicketPage === 1}
+                          className={cn(
+                            'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                            getThemeClass(
+                              'bg-blue-100 hover:bg-blue-200 text-blue-600',
+                              'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                            )
+                          )}
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                          <span className="text-sm font-medium">Trước</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleTicketPageChange(currentTicketPage + 1)}
+                          disabled={currentTicketPage === totalTicketPages}
+                          className={cn(
+                            'flex items-center gap-2 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                            getThemeClass(
+                              'bg-blue-100 hover:bg-blue-200 text-blue-600',
+                              'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                            )
+                          )}
+                        >
+                          <span className="text-sm font-medium">Tiếp</span>
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </motion.div>
+                    )}
                   </div>
                 ))}
             </div>
@@ -1686,9 +1824,9 @@ const EventDetail = () => {
                             {item.ticketName} (x{item.quantity})
                           </span>
                           <span>
-                            {price * item.quantity > 0
-                              ? `${(price * item.quantity).toLocaleString('vi-VN')} đ`
-                              : 'Miễn phí'}
+                            {price === 0
+                              ? 'Miễn phí'
+                              : `${(price * item.quantity).toLocaleString('vi-VN')} đ`}
                           </span>
                         </div>
                       );

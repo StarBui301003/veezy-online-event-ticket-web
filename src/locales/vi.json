@@ -1689,5 +1689,28 @@
     "previous": "Trước",
     "next": "Sau"
   },
-  "noTicketsAvailableForThisEvent": "Không có vé nào khả dụng cho sự kiện này"
+  "noTicketsAvailableForThisEvent": "Không có vé nào khả dụng cho sự kiện này",
+  
+  "loadingOrder": "Đang tải đơn hàng",
+  "pleaseWait": "Vui lòng chờ...",
+  "orderNotFound": "Không tìm thấy đơn hàng",
+  "waitingPayment": "Đang chờ thanh toán",
+  "completePaymentInNewTab": "Vui lòng hoàn tất thanh toán trong tab mới",
+  "ifPaymentNotCompletedReloadPage": "Nếu thanh toán không hoàn tất, vui lòng tải lại trang",
+  "paymentSuccessful": "Thanh toán thành công!",
+  "thankYouForOrder": "Cảm ơn bạn đã đặt hàng",
+  "discountCode": "Mã giảm giá",
+  "ticketList": "Danh sách vé",
+  "orderCode": "Mã đơn hàng",
+  "paymentFailed": "Thanh toán thất bại",
+  "paymentErrorMessage": "Đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+  "tryAgain": "Thử lại",
+  "contactSupport": "Liên hệ hỗ trợ",
+  "confirmOrder": "Xác nhận đơn hàng",
+  "faceOrderInvalidMessage": "Đơn hàng khuôn mặt không hợp lệ",
+  "pay": "Thanh toán",
+  "processing": "Đang xử lý",
+  "faceOrderInvalid": "Đơn hàng khuôn mặt không hợp lệ",
+  "facePhotoBlurry": "Ảnh khuôn mặt bị mờ",
+  "facePhotoNotBrightEnough": "Ảnh khuôn mặt không đủ sáng"
 }

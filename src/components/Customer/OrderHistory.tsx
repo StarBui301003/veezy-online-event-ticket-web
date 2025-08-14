@@ -1,17 +1,25 @@
 import { Button } from '@/components/ui/button';
-import { useTranslation } from 'react-i18next';
+
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
+interface Order {
+  orderId: string;
+  eventName: string;
+  totalAmount: number;
+  createdAt: string;
+  orderStatus: number;
+}
+
 interface OrderHistoryProps {
-  orders: any[];
+  orders: Order[];
   loading: boolean;
   error: string;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onSelectOrder: (order: any) => void;
+  onSelectOrder: (order: Order) => void;
 }
 
 const OrderHistory = ({
@@ -23,8 +31,23 @@ const OrderHistory = ({
   onPageChange,
   onSelectOrder,
 }: OrderHistoryProps) => {
-  const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
+
+  // Sort orders by createdAt (newest first)
+  const sortedOrders = [...orders].sort((a, b) => {
+    const dateA = new Date(a.createdAt || 0);
+    const dateB = new Date(b.createdAt || 0);
+    return dateB.getTime() - dateA.getTime(); // Newest first
+  });
+
+  // Check if order is new (within 24 hours)
+  const isNewOrder = (createdAt: string) => {
+    if (!createdAt) return false;
+    const orderDate = new Date(createdAt);
+    const now = new Date();
+    const diffInHours = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+    return diffInHours <= 24;
+  };
 
   return (
     <div
@@ -39,7 +62,7 @@ const OrderHistory = ({
           getThemeClass('text-gray-900', 'text-slate-100')
         )}
       >
-        {t('titleOrder')}
+        Lịch sử mua vé
       </h2>
 
       {loading ? (
@@ -51,7 +74,7 @@ const OrderHistory = ({
             )}
           />
           <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-slate-400'))}>
-            {t('loadingOrders') || 'Đang tải lịch sử mua vé...'}
+            Đang tải lịch sử mua vé...
           </p>
         </div>
       ) : error ? (
@@ -74,7 +97,7 @@ const OrderHistory = ({
           )}
         >
           <div className="text-4xl mb-4 opacity-50">📋</div>
-          <p>{t('noOrders')}</p>
+          <p>Bạn chưa có đơn hàng nào</p>
         </div>
       ) : (
         <div className="w-full overflow-x-auto animate-in slide-in-from-bottom duration-500 delay-100">
@@ -97,23 +120,26 @@ const OrderHistory = ({
                   )
                 )}
               >
-                <th className="px-4 py-3 font-medium">{t('orderHistory.orderId')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderHistory.eventName')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderHistory.totalAmount')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderHistory.createdAt')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderHistory.orderStatus')}</th>
-                <th className="px-4 py-3 font-medium">{t('orderHistory.action')}</th>
+                <th className="px-4 py-3 font-medium">Mã đơn hàng</th>
+                <th className="px-4 py-3 font-medium">Tên sự kiện</th>
+                <th className="px-4 py-3 font-medium">Tổng tiền</th>
+                <th className="px-4 py-3 font-medium">Ngày mua</th>
+                <th className="px-4 py-3 font-medium">Trạng thái</th>
+                <th className="px-4 py-3 font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order, index) => (
+              {sortedOrders.map((order, index) => {
+                const isNew = isNewOrder(order.createdAt);
+                return (
                 <tr
                   key={order.orderId}
                   className={cn(
-                    'border-b transition-all duration-200 hover:shadow-lg hover:scale-[1.01] animate-in fade-in duration-300',
+                    'border-b transition-all duration-300 hover:shadow-lg hover:scale-[1.01] animate-in fade-in',
+                    isNew && 'ring-2 ring-blue-200/50',
                     getThemeClass(
-                      'border-gray-100 hover:bg-gray-50',
-                      'border-slate-600/30 hover:bg-slate-700/50'
+                      isNew ? 'border-blue-100 hover:bg-blue-50/50' : 'border-gray-100 hover:bg-gray-50',
+                      isNew ? 'border-blue-500/30 hover:bg-blue-900/20' : 'border-slate-600/30 hover:bg-slate-700/50'
                     )
                   )}
                   style={{ animationDelay: `${index * 50}ms` }}
@@ -132,7 +158,20 @@ const OrderHistory = ({
                       getThemeClass('text-gray-900', 'text-slate-200')
                     )}
                   >
-                    {order.eventName}
+                    <div className="flex items-center gap-2">
+                      <span>{order.eventName}</span>
+                      {isNew && (
+                        <span className={cn(
+                          'px-2 py-1 text-xs font-bold rounded-full animate-pulse',
+                          getThemeClass(
+                            'bg-blue-100 text-blue-600 border border-blue-200',
+                            'bg-blue-500/20 text-blue-300 border border-blue-400/30'
+                          )
+                        )}>
+                          MỚI
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td
                     className={cn(
@@ -140,7 +179,7 @@ const OrderHistory = ({
                       getThemeClass('text-gray-900', 'text-slate-200')
                     )}
                   >
-                    {order.totalAmount?.toLocaleString()} {t('orderHistory.currency')}
+                    {order.totalAmount > 0 ? `${order.totalAmount?.toLocaleString()} VNĐ` : 'Miễn phí'}
                   </td>
                   <td
                     className={cn(
@@ -148,7 +187,7 @@ const OrderHistory = ({
                       getThemeClass('text-gray-600', 'text-slate-400')
                     )}
                   >
-                    {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : t('orderHistory.unknownDate')}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'Không rõ'}
                   </td>
                   <td className="px-4 py-3">
                     {order.orderStatus === 1 ? (
@@ -167,7 +206,7 @@ const OrderHistory = ({
                             getThemeClass('bg-green-600', 'bg-green-400')
                           )}
                         ></span>
-                        {t('orderHistory.status.paid')}
+                        Đã thanh toán
                       </span>
                     ) : (
                       <span
@@ -185,7 +224,7 @@ const OrderHistory = ({
                             getThemeClass('bg-yellow-600', 'bg-yellow-400')
                           )}
                         ></span>
-                        {t('orderHistory.status.pendingPayment')}
+                        Chờ thanh toán
                       </span>
                     )}
                   </td>
@@ -202,11 +241,12 @@ const OrderHistory = ({
                         )
                       )}
                     >
-                      {t('orderHistory.viewTickets')}
+                      Xem vé
                     </Button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
 
@@ -226,7 +266,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                {t('orderHistory.previous')}
+                Trước
               </Button>
               <div
                 className={cn(
@@ -254,7 +294,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                {t('orderHistory.next')}
+                Tiếp
               </Button>
             </div>
           )}
