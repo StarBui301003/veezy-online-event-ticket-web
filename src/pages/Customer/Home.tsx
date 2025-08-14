@@ -9,6 +9,7 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import 'swiper/css/autoplay';
+import './Home.css';
 import SpinnerOverlay from '@/components/SpinnerOverlay';
 import { NO_IMAGE } from '@/assets/img';
 import { onEvent } from '@/services/signalr.service';
@@ -99,7 +100,7 @@ export const HomePage = () => {
     onEvent('OnNewsDeleted', reloadNews);
     onEvent('OnNewsApproved', reloadNews);
     onEvent('OnNewsUnhidden', reloadNews);
-    
+
     // Listen for event updates
     onEvent('OnEventCreated', reloadEvents);
     onEvent('OnEventUpdated', reloadEvents);
@@ -113,6 +114,17 @@ export const HomePage = () => {
   // Swiper settings
   const swiperModules = [Autoplay, Pagination, Navigation];
 
+  // Force Swiper reinitialization when events change
+  useEffect(() => {
+    if (events.length > 0) {
+      // Trigger a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [events.length]);
+
   // Xử lý fallback ảnh: chỉ hiện NO_IMAGE nếu không có hoặc lỗi
   const handleImgError = (e: React.SyntheticEvent<HTMLImageElement, globalThis.Event>) => {
     e.currentTarget.onerror = null;
@@ -125,7 +137,7 @@ export const HomePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className={cn(
-        'min-h-screen pt-28 pb-12',
+        'min-h-screen pt-20 pb-12',
         getThemeClass(
           'bg-gradient-to-r from-blue-500 to-cyan-400',
           'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900'
@@ -160,14 +172,23 @@ export const HomePage = () => {
             >
               {t('noApprovedEvents')}
             </div>
-          ) : (
+          ) : events.length > 0 ? (
             <Swiper
+              key={events.length}
               modules={swiperModules}
               slidesPerView={1}
               loop={events.length > 1}
-              pagination={{ clickable: true, dynamicBullets: true }}
+              pagination={{ clickable: true }}
               navigation={true}
-              autoplay={{ delay: 4000, disableOnInteraction: false }}
+              autoplay={{
+                delay: 4000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true,
+                waitForTransition: false,
+              }}
+              speed={800}
+              effect="slide"
+              grabCursor={true}
               className="w-full rounded-[16px]"
             >
               {events.slice(0, 5).map((event) => (
@@ -187,7 +208,7 @@ export const HomePage = () => {
                 </SwiperSlide>
               ))}
             </Swiper>
-          )}
+          ) : null}
         </motion.div>
 
         {/* Sự kiện nổi bật + Tin tức */}
