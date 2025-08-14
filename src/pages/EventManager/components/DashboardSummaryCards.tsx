@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Ticket, Users, DollarSign, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +53,17 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Track previous filter values to prevent unnecessary API calls
+  const prevFilterRef = useRef({
+    period: filter.period,
+    customStartDate: filter.customStartDate,
+    customEndDate: filter.customEndDate,
+    groupBy: filter.groupBy,
+    includeComparison: filter.includeComparison,
+    comparisonPeriod: filter.comparisonPeriod,
+    includeRealtimeData: filter.includeRealtimeData,
+  });
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -68,9 +79,57 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(1)}%`;
   };
 
-  // Shared function for fetching dashboard data
-  const fetchDashboardData = async () => {
+  const getDefaultComparisonPeriod = (currentPeriod: number): number => {
+    const comparisonMap: Record<number, number> = {
+      1: 2, // Today -> Yesterday
+      2: 1, // Yesterday -> Today
+      3: 4, // This Week -> Last Week
+      4: 3, // Last Week -> This Week
+      5: 6, // This Month -> Last Month
+      6: 5, // Last Month -> This Month
+      7: 8, // This Quarter -> Last Quarter
+      8: 7, // Last Quarter -> This Quarter
+      9: 10, // This Year -> Last Year
+      10: 9, // Last Year -> This Year
+      11: 11, // Last 7 Days -> Last 7 Days
+      12: 12, // Last 30 Days -> Last 30 Days
+      13: 13, // Last 90 Days -> Last 90 Days
+      14: 14, // Last 365 Days -> Last 365 Days
+      15: 15, // All Time -> All Time
+      16: 16, // Custom -> Custom
+    };
+    return comparisonMap[currentPeriod] || currentPeriod;
+  };
+
+  // Stable function that only runs when filters actually change
+  const fetchDashboardData = useCallback(async () => {
+    const currentFilter = {
+      period: filter.period,
+      customStartDate: filter.customStartDate,
+      customEndDate: filter.customEndDate,
+      groupBy: filter.groupBy,
+      includeComparison: filter.includeComparison,
+      comparisonPeriod: filter.comparisonPeriod,
+      includeRealtimeData: filter.includeRealtimeData,
+    };
+
+    // Check if filters have actually changed
+    const hasFilterChanged = Object.keys(currentFilter).some(
+      (key) => prevFilterRef.current[key as keyof typeof currentFilter] !== currentFilter[key as keyof typeof currentFilter]
+    );
+
+    // Skip fetch if filters haven't changed and we already have data
+    if (!hasFilterChanged && dashboardData) {
+      console.log('Skipping dashboard API call - filters unchanged');
+      return;
+    }
+
+    // Update previous filter values
+    prevFilterRef.current = { ...currentFilter };
+
+    console.log('Fetching dashboard data with filters:', currentFilter);
     setLoading(true);
+    
     try {
       const params: any = {
         Period: filter.period,
@@ -125,23 +184,42 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    filter.period,
+    filter.customStartDate,
+    filter.customEndDate,
+    filter.groupBy,
+    filter.includeComparison,
+    filter.comparisonPeriod,
+    filter.includeRealtimeData,
+    dashboardData // Add dashboardData as dependency to check if we already have data
+  ]);
 
+  // Initial data fetch
   useEffect(() => {
     fetchDashboardData();
-  }, [filter]);
+  }, [fetchDashboardData]);
 
-  // Add realtime update listeners
+  // Add realtime update listeners - but throttle them to prevent too many calls
   useEffect(() => {
+    let updateTimeout: NodeJS.Timeout;
+
+    const throttledRefresh = () => {
+      if (updateTimeout) clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        console.log('Refreshing dashboard due to realtime update');
+        fetchDashboardData();
+      }, 2000); // Throttle updates to max once every 2 seconds
+    };
+
     const handleDashboardUpdate = (event: CustomEvent) => {
       console.log('Dashboard data update received:', event.detail);
-      // Refresh dashboard data when realtime update received
-      fetchDashboardData();
+      throttledRefresh();
     };
 
     const handleRevenueUpdate = (event: CustomEvent) => {
       console.log('Revenue update received:', event.detail);
-      // Update revenue data in dashboard
+      // Update revenue data in dashboard without full refresh
       setDashboardData((prev) => {
         if (!prev) return prev;
         return {
@@ -159,7 +237,7 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
 
     const handleTicketSalesUpdate = (event: CustomEvent) => {
       console.log('Ticket sales update received:', event.detail);
-      // Update ticket sales data
+      // Update ticket sales data without full refresh
       setDashboardData((prev) => {
         if (!prev) return prev;
         return {
@@ -181,8 +259,7 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
 
     const handleOrderUpdate = (event: CustomEvent) => {
       console.log('Order update received:', event.detail);
-      // Refresh data when new orders come in
-      fetchDashboardData();
+      throttledRefresh();
     };
 
     // Add event listeners
@@ -192,37 +269,16 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
     window.addEventListener('orderUpdate', handleOrderUpdate as EventListener);
     window.addEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
 
-    // Cleanup event listeners
+    // Cleanup event listeners and timeout
     return () => {
+      if (updateTimeout) clearTimeout(updateTimeout);
       window.removeEventListener('dashboardDataUpdate', handleDashboardUpdate as EventListener);
       window.removeEventListener('revenueDataUpdate', handleRevenueUpdate as EventListener);
       window.removeEventListener('ticketSalesUpdate', handleTicketSalesUpdate as EventListener);
       window.removeEventListener('orderUpdate', handleOrderUpdate as EventListener);
       window.removeEventListener('orderStatusUpdate', handleOrderUpdate as EventListener);
     };
-  }, []);
-
-  const getDefaultComparisonPeriod = (currentPeriod: number): number => {
-    const comparisonMap: Record<number, number> = {
-      1: 2, // Today -> Yesterday
-      2: 1, // Yesterday -> Today
-      3: 4, // This Week -> Last Week
-      4: 3, // Last Week -> This Week
-      5: 6, // This Month -> Last Month
-      6: 5, // Last Month -> This Month
-      7: 8, // This Quarter -> Last Quarter
-      8: 7, // Last Quarter -> This Quarter
-      9: 10, // This Year -> Last Year
-      10: 9, // Last Year -> This Year
-      11: 11, // Last 7 Days -> Last 7 Days
-      12: 12, // Last 30 Days -> Last 30 Days
-      13: 13, // Last 90 Days -> Last 90 Days
-      14: 14, // Last 365 Days -> Last 365 Days
-      15: 15, // All Time -> All Time
-      16: 16, // Custom -> Custom
-    };
-    return comparisonMap[currentPeriod] || currentPeriod;
-  };
+  }, [fetchDashboardData]);
 
   if (loading) {
     return (

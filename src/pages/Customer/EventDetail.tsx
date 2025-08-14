@@ -30,6 +30,8 @@ import {
   getAIRecommendedEvents,
   getOrderById,
 } from '@/services/Event Manager/event.service';
+import { getTicketLimits } from '@/services/ticket.service';
+import { getOrderHistoryByCustomerId } from '@/services/order.service';
 import { toast } from 'react-toastify';
 import CommentSection from '@/components/Customer/CommentSection';
 import {
@@ -76,6 +78,8 @@ interface TicketData {
   ticketPrice: number;
   quantityAvailable: number;
   maxTicketsPerOrder?: number;
+  saleStartTime?: string;
+  saleEndTime?: string;
 }
 
 interface SelectedTicket {
@@ -150,6 +154,10 @@ const EventDetail = () => {
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [ticketErrors, setTicketErrors] = useState<Record<string, string>>({});
+  const [ticketLimits, setTicketLimits] = useState<Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }>>({});
+  const [userOrders, setUserOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   interface ReportInfo {
     type: 'event' | 'comment';
     id: string;
@@ -200,6 +208,28 @@ const EventDetail = () => {
       try {
         const ticketData = await getTicketsByEvent(eventId);
         setTickets(ticketData || []);
+        
+        // Load ticket limits for each ticket
+        const limits: Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }> = {};
+        for (const ticket of ticketData || []) {
+          try {
+            const limitInfo = await getTicketLimits(ticket.ticketId);
+            limits[ticket.ticketId] = {
+              maxPerOrder: limitInfo.maxTicketsPerOrder,
+              userPurchased: limitInfo.userPurchasedCount || 0,
+              maxPerUser: limitInfo.maxTicketsPerUser || limitInfo.maxTicketsPerOrder
+            };
+          } catch (error) {
+            console.error(`Error fetching limits for ticket ${ticket.ticketId}:`, error);
+            // Fallback to ticket data
+            limits[ticket.ticketId] = {
+              maxPerOrder: ticket.maxTicketsPerOrder || 5,
+              userPurchased: 0,
+              maxPerUser: ticket.maxTicketsPerOrder || 5
+            };
+          }
+        }
+        setTicketLimits(limits);
       } catch {
         setTickets([]);
       } finally {
@@ -207,9 +237,31 @@ const EventDetail = () => {
       }
     };
 
+    const fetchUserOrders = async () => {
+      if (!customerId) return;
+      
+      setLoadingOrders(true);
+      try {
+        const orderHistory = await getOrderHistoryByCustomerId(customerId, 1, 50);
+        // Filter orders for this event
+        const eventOrders = (orderHistory?.items || []).filter((order: any) => 
+          order.eventId === eventId && order.orderStatus === 'Success'
+        );
+        setUserOrders(eventOrders);
+      } catch (error) {
+        console.error('Error fetching user orders:', error);
+        setUserOrders([]);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
     fetchEventData();
     fetchTicketData();
-  }, [eventId, t]);
+    if (customerId) {
+      fetchUserOrders();
+    }
+  }, [eventId, customerId, t]);
 
   useEffect(() => {
     if (!eventId || !customerId) return;
@@ -387,24 +439,44 @@ const EventDetail = () => {
   }, [eventId, selectedTickets, t]);
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
-    const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
-    const newQuantity = Math.max(0, Math.min(quantity, Math.min(ticket.quantityAvailable, maxPerOrder)));
+    const ticketLimit = ticketLimits[ticket.ticketId];
+    const maxPerOrder = ticketLimit?.maxPerOrder || ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+    const userPurchased = ticketLimit?.userPurchased || 0;
+    const maxPerUser = ticketLimit?.maxPerUser || maxPerOrder;
+    
+    // Clear previous error for this ticket
+    setTicketErrors(prev => ({
+      ...prev,
+      [ticket.ticketId]: ''
+    }));
+    
+    // Calculate total user would have after this purchase
+    const totalAfterPurchase = userPurchased + quantity;
+    
+    // Validate quantity
     if (quantity > ticket.quantityAvailable) {
-      toast.error(
-        t('notEnoughTicketsAvailable', {
-          ticketName: ticket.ticketName,
-          available: ticket.quantityAvailable,
-          requested: quantity,
-        })
-      );
+      setTicketErrors(prev => ({
+        ...prev,
+        [ticket.ticketId]: `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`
+      }));
+      return;
     } else if (quantity > maxPerOrder) {
-      toast.error(
-        t('maxTicketsPerOrderError', {
-          maxPerOrder,
-          ticketName: ticket.ticketName,
-        })
-      );
+      setTicketErrors(prev => ({
+        ...prev,
+        [ticket.ticketId]: `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé/${quantity > 1 ? 'lần' : 'lần'} cho loại "${ticket.ticketName}".`
+      }));
+      return;
+    } else if (totalAfterPurchase > maxPerUser) {
+      const remaining = Math.max(0, maxPerUser - userPurchased);
+      setTicketErrors(prev => ({
+        ...prev,
+        [ticket.ticketId]: `⚠️ Bạn đã mua ${userPurchased} vé "${ticket.ticketName}". Chỉ có thể mua thêm ${remaining} vé (tối đa ${maxPerUser} vé/người).`
+      }));
+      return;
     }
+    
+    const newQuantity = Math.max(0, Math.min(quantity, Math.min(ticket.quantityAvailable, maxPerOrder, maxPerUser - userPurchased)));
+    
     setSelectedTickets((prev) => {
       const updated = { ...prev };
       if (newQuantity === 0) {
@@ -455,6 +527,10 @@ const EventDetail = () => {
       toast.warn(t('pleaseSelectAtLeastOneTicket'));
       return;
     }
+    
+    // Clear all ticket errors
+    setTicketErrors({});
+    
     // NEW: Validate total tickets
     if (!validateTotalTickets()) {
       return;
@@ -470,30 +546,27 @@ const EventDetail = () => {
         toast.error(t('customerInfoNotFound'));
         return;
       }
+      // Validate tickets with inline errors
+      let hasErrors = false;
+      const newErrors: Record<string, string> = {};
+      
       for (const ticket of tickets) {
         const selected = selectedTickets[ticket.ticketId];
         if (selected) {
           const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
           if (selected.quantity > maxPerOrder) {
-            toast.error(
-              t('maxTicketsPerOrderError', {
-                maxPerOrder,
-                ticketName: ticket.ticketName,
-              })
-            );
-            return;
-          }
-          if (selected.quantity > ticket.quantityAvailable) {
-            toast.error(
-              t('notEnoughTicketsAvailable', {
-                ticketName: ticket.ticketName,
-                available: ticket.quantityAvailable,
-                requested: selected.quantity,
-              })
-            );
-            return;
+            newErrors[ticket.ticketId] = `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé loại "${ticket.ticketName}" cho sự kiện này.`;
+            hasErrors = true;
+          } else if (selected.quantity > ticket.quantityAvailable) {
+            newErrors[ticket.ticketId] = `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`;
+            hasErrors = true;
           }
         }
+      }
+      
+      if (hasErrors) {
+        setTicketErrors(newErrors);
+        return;
       }
       setIsCreatingOrder(true);
       try {
@@ -530,6 +603,8 @@ const EventDetail = () => {
           setIsCreatingOrder(false);
           return;
         }
+        // Check if this is a checkout creation (not actual order creation)
+        // We'll handle the actual order creation in ConfirmOrderPage
         localStorage.setItem('checkout', JSON.stringify(checkoutData));
         toast.success(
           <>
@@ -540,6 +615,26 @@ const EventDetail = () => {
         navigate('/confirm-order');
       } catch (error: any) {
         const msg = error?.response?.data?.message || t('failedToCreateOrder');
+        
+        // Handle specific ticket limit errors
+        if (msg.includes('Bạn chỉ có thể mua tối đa') && msg.includes('vé loại')) {
+          // Extract ticket name and limits from error message
+          const match = msg.match(/tối đa (\d+) vé loại '([^']+)'/);
+          if (match) {
+            const maxTickets = match[1];
+            const ticketName = match[2];
+            
+            // Find the ticket ID for this ticket name
+            const targetTicket = tickets.find(t => t.ticketName === ticketName);
+            if (targetTicket) {
+              setTicketErrors({
+                [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+              });
+              return;
+            }
+          }
+        }
+        
         toast.error(msg);
       } finally {
         setIsCreatingOrder(false);
@@ -549,7 +644,21 @@ const EventDetail = () => {
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) {
-      setDiscountValidation({ success: false, message: t('pleaseEnterDiscountCode') });
+      setDiscountValidation({ 
+        success: false, 
+        message: 'Vui lòng nhập mã giảm giá' 
+      });
+      setAppliedDiscount(0);
+      return;
+    }
+
+    // Basic format validation
+    const codePattern = /^[A-Z0-9]{6,12}$/;
+    if (!codePattern.test(discountCode.trim())) {
+      setDiscountValidation({
+        success: false,
+        message: 'Mã giảm giá phải từ 6-12 ký tự, chỉ bao gồm chữ cái và số'
+      });
       setAppliedDiscount(0);
       return;
     }
@@ -566,30 +675,56 @@ const EventDetail = () => {
         if (res.data.isValid) {
           setDiscountValidation({
             success: true,
-            message: res.data.message || t('discountCodeValid'),
+            message: res.data.message || 'Mã giảm giá hợp lệ cho sự kiện này',
             discountAmount: res.data.discountAmount,
           });
           setAppliedDiscount(res.data.discountAmount || 0);
+          
+          // Show success toast
+          toast.success(`🎉 Áp dụng mã giảm giá thành công! Tiết kiệm ${(res.data.discountAmount || 0).toLocaleString('vi-VN')} VNĐ`);
         } else {
+          const errorMessage = res.data.message || 'Mã giảm giá không hợp lệ';
           setDiscountValidation({
             success: false,
-            message: res.data.message || t('discountCodeInvalid'),
+            message: errorMessage,
           });
           setAppliedDiscount(0);
+          
+          // Enhanced error messages
+          if (errorMessage.includes('used') || errorMessage.includes('đã sử dụng')) {
+            setDiscountValidation({
+              success: false,
+              message: '❌ Mã giảm giá này đã được sử dụng. Mỗi mã chỉ sử dụng được 1 lần.',
+            });
+          } else if (errorMessage.includes('event') || errorMessage.includes('sự kiện')) {
+            setDiscountValidation({
+              success: false,
+              message: '🎯 Mã giảm giá này không áp dụng cho sự kiện hiện tại.',
+            });
+          } else if (errorMessage.includes('expired') || errorMessage.includes('hết hạn')) {
+            setDiscountValidation({
+              success: false,
+              message: '⏰ Mã giảm giá đã hết hạn sử dụng.',
+            });
+          }
         }
       } else {
         setDiscountValidation({
           success: false,
-          message: res.message || t('discountCodeInvalid'),
+          message: res.message || '❌ Mã giảm giá không tồn tại hoặc không hợp lệ',
         });
         setAppliedDiscount(0);
       }
     } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || 'Có lỗi xảy ra khi kiểm tra mã giảm giá';
       setDiscountValidation({
         success: false,
-        message: err?.response?.data?.message || t('discountCodeInvalid'),
+        message: errorMsg,
       });
       setAppliedDiscount(0);
+      
+      // Show error toast
+      toast.error('❌ Không thể kiểm tra mã giảm giá. Vui lòng thử lại!');
     } finally {
       setValidatingDiscount(false);
     }
@@ -1198,14 +1333,36 @@ const EventDetail = () => {
             className="lg:col-span-1 space-y-6"
           >
             {isEventEnded && (
-              <div
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
                 className={cn(
-                  'text-center font-bold text-lg my-4',
-                  getThemeClass('text-red-600', 'text-red-500')
+                  'rounded-xl p-6 text-center border-2 mb-6',
+                  getThemeClass(
+                    'bg-gradient-to-br from-red-50 to-pink-50 border-red-300',
+                    'bg-gradient-to-br from-red-900/20 to-pink-900/20 border-red-500/50'
+                  )
                 )}
               >
-                {t('eventEndedCannotBuyTickets')}
-              </div>
+                <div className={cn(
+                  'text-4xl mb-3',
+                  getThemeClass('text-red-500', 'text-red-400')
+                )}>
+                  ⏰
+                </div>
+                <h3 className={cn(
+                  'text-xl font-bold mb-2',
+                  getThemeClass('text-red-700', 'text-red-300')
+                )}>
+                  Sự kiện đã kết thúc
+                </h3>
+                <p className={cn(
+                  'text-sm',
+                  getThemeClass('text-red-600', 'text-red-400')
+                )}>
+                  Cảm ơn bạn đã quan tâm đến sự kiện này. Hãy theo dõi các sự kiện sắp tới của chúng tôi!
+                </p>
+              </motion.div>
             )}
             <div
               className={cn(
@@ -1233,14 +1390,31 @@ const EventDetail = () => {
               </button>
               {showTickets &&
                 (isEventEnded ? (
-                  <div
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className={cn(
-                      'text-center py-8 font-semibold',
-                      getThemeClass('text-red-600', 'text-red-400')
+                      'text-center py-8 rounded-xl border-2',
+                      getThemeClass(
+                        'bg-gradient-to-br from-red-50 to-orange-50 border-red-200',
+                        'bg-gradient-to-br from-red-900/20 to-orange-900/20 border-red-500/30'
+                      )
                     )}
                   >
-                    {t('cannotBuyTicketsEventEnded')}
-                  </div>
+                    <div className="text-5xl mb-4">🎭</div>
+                    <h3 className={cn(
+                      'text-xl font-bold mb-2',
+                      getThemeClass('text-red-700', 'text-red-300')
+                    )}>
+                      Sự kiện đã kết thúc
+                    </h3>
+                    <p className={cn(
+                      'text-sm',
+                      getThemeClass('text-red-600', 'text-red-400')
+                    )}>
+                      Không thể mua vé cho sự kiện đã kết thúc
+                    </p>
+                  </motion.div>
                 ) : loadingTickets ? (
                   <div className="flex justify-center items-center py-8">
                     <Loader2
@@ -1268,9 +1442,23 @@ const EventDetail = () => {
                           ? ticket.ticketPrice
                           : Number(ticket.ticketPrice) || 0;
                       const subtotal = price * quantity;
-                      const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+                      const ticketLimit = ticketLimits[ticket.ticketId];
+                      const maxPerOrder = ticketLimit?.maxPerOrder || ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+                      const userPurchased = ticketLimit?.userPurchased || 0;
+                      const maxPerUser = ticketLimit?.maxPerUser || maxPerOrder;
+                      const remainingCanBuy = Math.max(0, maxPerUser - userPurchased);
+                      
+                      // Check if ticket sale has ended
+                      const saleEndTime = ticket.saleEndTime ? new Date(ticket.saleEndTime) : null;
+                      const saleStartTime = ticket.saleStartTime ? new Date(ticket.saleStartTime) : null;
+                      const now = new Date();
+                      const isSaleEnded = saleEndTime && now > saleEndTime;
+                      const isSaleNotStarted = saleStartTime && now < saleStartTime;
+                      const isSoldOut = ticket.quantityAvailable <= 0;
+                      
                       const canIncrease =
-                        quantity < Math.min(ticket.quantityAvailable, maxPerOrder);
+                        !isSaleEnded && !isSaleNotStarted && !isSoldOut &&
+                        quantity < Math.min(ticket.quantityAvailable, maxPerOrder, remainingCanBuy);
                       return (
                         <motion.div
                           key={ticket.ticketId}
@@ -1286,33 +1474,78 @@ const EventDetail = () => {
                           )}
                         >
                           <div className="flex justify-between items-center mb-2">
-                            <h3
-                              className={cn(
-                                'text-lg font-semibold',
-                                getThemeClass('text-gray-900', 'text-white')
+                            <div className="flex-1">
+                              <h3
+                                className={cn(
+                                  'text-lg font-semibold',
+                                  getThemeClass('text-gray-900', 'text-white')
+                                )}
+                              >
+                                {ticket.ticketName}
+                              </h3>
+                              {/* Ticket Status */}
+                              {(isSoldOut || isSaleEnded || isSaleNotStarted) && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {isSoldOut && (
+                                    <span className={cn(
+                                      'text-xs px-2 py-1 rounded-full font-medium',
+                                      getThemeClass('bg-red-100 text-red-700', 'bg-red-900/30 text-red-300')
+                                    )}>
+                                      🔴 Hết vé
+                                    </span>
+                                  )}
+                                  {isSaleEnded && !isSoldOut && (
+                                    <span className={cn(
+                                      'text-xs px-2 py-1 rounded-full font-medium',
+                                      getThemeClass('bg-orange-100 text-orange-700', 'bg-orange-900/30 text-orange-300')
+                                    )}>
+                                      ⏰ Hết hạn bán
+                                    </span>
+                                  )}
+                                  {isSaleNotStarted && (
+                                    <span className={cn(
+                                      'text-xs px-2 py-1 rounded-full font-medium',
+                                      getThemeClass('bg-blue-100 text-blue-700', 'bg-blue-900/30 text-blue-300')
+                                    )}>
+                                      🕐 Chưa mở bán
+                                    </span>
+                                  )}
+                                </div>
                               )}
-                            >
-                              {ticket.ticketName}
-                            </h3>
+                            </div>
                             <p
                               className={cn(
                                 'text-xl font-bold',
-                                getThemeClass('text-blue-600', 'text-teal-300')
+                                price === 0 
+                                  ? getThemeClass('text-green-600', 'text-green-400')
+                                  : getThemeClass('text-blue-600', 'text-teal-300')
                               )}
                             >
-                              {price.toLocaleString('vi-VN')} đ
+                              {price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')} đ`}
                             </p>
                           </div>
-                          <p
-                            className={cn(
-                              'text-xs mb-3',
-                              getThemeClass('text-gray-500', 'text-slate-400')
+                          <div className="space-y-1 mb-3">
+                            <p
+                              className={cn(
+                                'text-xs',
+                                getThemeClass('text-gray-500', 'text-slate-400')
+                              )}
+                            >
+                              {t('eventDetail.remainingTickets', {
+                                count: ticket.quantityAvailable - quantity,
+                              })}
+                            </p>
+                            {ticketLimits[ticket.ticketId]?.userPurchased > 0 && (
+                              <p
+                                className={cn(
+                                  'text-xs font-medium',
+                                  getThemeClass('text-blue-600', 'text-blue-400')
+                                )}
+                              >
+                                📝 Bạn đã mua: {ticketLimits[ticket.ticketId]?.userPurchased || 0} vé | Còn có thể mua: {Math.max(0, (ticketLimits[ticket.ticketId]?.maxPerUser || 0) - (ticketLimits[ticket.ticketId]?.userPurchased || 0))} vé
+                              </p>
                             )}
-                          >
-                            {t('eventDetail.remainingTickets', {
-                              count: ticket.quantityAvailable - quantity,
-                            })}
-                          </p>
+                          </div>
                           <div className="flex items-center justify-between mt-2">
                             <div className="flex items-center space-x-3">
                               <motion.button
@@ -1376,25 +1609,35 @@ const EventDetail = () => {
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
-                              {subtotal > 0 ? `${subtotal.toLocaleString('vi-VN')} đ` : ''}
+                              {subtotal > 0 ? `${subtotal.toLocaleString('vi-VN')} đ` : 'Miễn phí'}
                             </motion.div>
                           </div>
-                          {!canIncrease && (
-                            <div
-                              className={cn(
-                                'text-xs mt-1',
-                                getThemeClass('text-red-600', 'text-red-400')
-                              )}
-                            >
-                              {quantity >= ticket.quantityAvailable
-                                ? t('notEnoughTicketsAvailable', {
-                                    ticketName: ticket.ticketName,
-                                    available: ticket.quantityAvailable,
-                                    requested: quantity,
-                                  })
-                                : t('maxTicketsPerOrderError', { max: maxPerOrder })}
-                            </div>
-                          )}
+                          
+                          {/* Ticket Error Message */}
+                          <AnimatePresence>
+                            {ticketErrors[ticket.ticketId] && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0, y: -10 }}
+                                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                exit={{ opacity: 0, height: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className={cn(
+                                  'mt-3 p-3 rounded-lg border-l-4',
+                                  getThemeClass(
+                                    'bg-red-50 border-red-400 text-red-700',
+                                    'bg-red-900/30 border-red-400 text-red-200'
+                                  )
+                                )}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div className="text-sm font-medium">
+                                    {ticketErrors[ticket.ticketId]}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </motion.div>
                       );
                     })}
@@ -1444,9 +1687,8 @@ const EventDetail = () => {
                           </span>
                           <span>
                             {price * item.quantity > 0
-                              ? (price * item.quantity).toLocaleString('vi-VN')
-                              : 0}{' '}
-                            đ
+                              ? `${(price * item.quantity).toLocaleString('vi-VN')} đ`
+                              : 'Miễn phí'}
                           </span>
                         </div>
                       );
@@ -1481,109 +1723,236 @@ const EventDetail = () => {
                       </span>
                     </motion.div>
                   </div>
-                  <div className="mb-4">
-                    <div className="flex gap-2 mb-1">
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          className={cn(
-                            'w-full border rounded px-3 py-2 text-sm transition-colors',
-                            discountValidation
-                              ? discountValidation.success
-                                ? getThemeClass(
-                                    'border-green-500 bg-green-50 text-green-700',
-                                    'border-green-500 bg-green-50 text-green-700'
-                                  )
+                  {/* Enhanced Discount Code Section */}
+                  <motion.div 
+                    className="mb-6"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className={cn(
+                      'rounded-xl border-2 p-4 transition-all duration-300',
+                      discountValidation?.success
+                        ? getThemeClass(
+                            'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50',
+                            'border-green-400 bg-gradient-to-br from-green-900/20 to-emerald-900/20'
+                          )
+                        : discountValidation && !discountValidation.success
+                        ? getThemeClass(
+                            'border-red-300 bg-gradient-to-br from-red-50 to-pink-50',
+                            'border-red-400 bg-gradient-to-br from-red-900/20 to-pink-900/20'
+                          )
+                        : getThemeClass(
+                            'border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 hover:border-purple-300',
+                            'border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 hover:border-purple-400/50'
+                          )
+                    )}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Ticket className={cn(
+                          'w-5 h-5',
+                          getThemeClass('text-purple-600', 'text-purple-400')
+                        )} />
+                        <span className={cn(
+                          'font-semibold text-sm',
+                          getThemeClass('text-purple-700', 'text-purple-300')
+                        )}>
+                          Mã giảm giá cho sự kiện này
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-3 mb-3">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            className={cn(
+                              'w-full border-2 rounded-lg px-4 py-3 text-sm font-medium placeholder:font-normal transition-all duration-300 focus:ring-2 focus:border-transparent',
+                              discountValidation
+                                ? discountValidation.success
+                                  ? getThemeClass(
+                                      'border-green-400 bg-white text-green-700 placeholder:text-green-500 focus:ring-green-200',
+                                      'border-green-400 bg-green-900/10 text-green-300 placeholder:text-green-400 focus:ring-green-200'
+                                    )
+                                  : getThemeClass(
+                                      'border-red-400 bg-white text-red-700 placeholder:text-red-500 focus:ring-red-200',
+                                      'border-red-400 bg-red-900/10 text-red-300 placeholder:text-red-400 focus:ring-red-200'
+                                    )
                                 : getThemeClass(
-                                    'border-red-500 bg-red-50 text-red-700',
-                                    'border-red-500 bg-red-50 text-red-700'
+                                    'border-purple-300 bg-white text-gray-900 placeholder:text-purple-400 focus:ring-purple-200 hover:border-purple-400',
+                                    'border-purple-500/50 bg-purple-900/10 text-white placeholder:text-purple-300 focus:ring-purple-200 hover:border-purple-400'
                                   )
+                            )}
+                            placeholder="Nhập mã giảm giá (chỉ dùng 1 lần)"
+                            value={discountCode}
+                            onChange={(e) => {
+                              setDiscountCode(e.target.value.toUpperCase());
+                              if (discountValidation) {
+                                setDiscountValidation(null);
+                                setAppliedDiscount(0);
+                              }
+                            }}
+                            disabled={validatingDiscount}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && discountCode.trim() && !validatingDiscount) {
+                                requireLogin(() => {
+                                  handleValidateDiscount();
+                                });
+                              }
+                            }}
+                          />
+                          {discountValidation && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                                discountValidation.success ? 'text-green-500' : 'text-red-500'
+                              }`}
+                            >
+                              {discountValidation.success ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <AlertCircle className="w-5 h-5" />
+                              )}
+                            </motion.div>
+                          )}
+                          {validatingDiscount && (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-500"
+                            >
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            </motion.div>
+                          )}
+                          {discountCode && !validatingDiscount && !discountValidation && (
+                            <motion.button
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              type="button"
+                              onClick={() => {
+                                setDiscountCode('');
+                                setDiscountValidation(null);
+                                setAppliedDiscount(0);
+                              }}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <MinusCircle className="w-5 h-5" />
+                            </motion.button>
+                          )}
+                        </div>
+                        
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={cn(
+                            'px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-300 min-w-[100px] flex items-center justify-center',
+                            validatingDiscount || !discountCode.trim()
+                              ? getThemeClass(
+                                  'bg-gray-200 text-gray-500 cursor-not-allowed',
+                                  'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                )
                               : getThemeClass(
-                                  'border-purple-300 text-gray-900 bg-white',
-                                  'border-purple-300 text-gray-900 bg-white'
+                                  'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl',
+                                  'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl'
                                 )
                           )}
-                          placeholder={t('eventDetail.discountCodePlaceholder')}
-                          value={discountCode}
-                          onChange={(e) => {
-                            setDiscountCode(e.target.value);
-                            if (discountValidation) {
-                              setDiscountValidation(null);
-                              setAppliedDiscount(0);
-                            }
+                          onClick={() => {
+                            requireLogin(() => {
+                              handleValidateDiscount();
+                            });
                           }}
-                          disabled={validatingDiscount}
-                        />
-                        {discountValidation && (
-                          <div
-                            className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                              discountValidation.success ? 'text-green-500' : 'text-red-500'
-                            }`}
-                          >
-                            {discountValidation.success ? (
-                              <CheckCircle className="w-5 h-5" />
-                            ) : (
-                              <AlertCircle className="w-5 h-5" />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        className={cn(
-                          'px-4 py-2 rounded font-medium transition-colors',
-                          validatingDiscount || !discountCode.trim()
-                            ? getThemeClass(
-                                'bg-gray-300 cursor-not-allowed',
-                                'bg-gray-300 cursor-not-allowed'
-                              )
-                            : getThemeClass(
-                                'bg-purple-600 hover:bg-purple-700 text-white',
-                                'bg-purple-600 hover:bg-purple-700 text-white'
-                              )
-                        )}
-                        onClick={() => {
-                          requireLogin(() => {
-                            handleValidateDiscount();
-                          });
-                        }}
-                        disabled={validatingDiscount || !discountCode.trim()}
-                      >
-                        {validatingDiscount ? (
-                          <Loader2 className="w-4 h-4 animate-spin mx-2" />
-                        ) : (
-                          t('eventDetail.applyDiscount')
-                        )}
-                      </button>
-                    </div>
-                    {discountValidation && (
-                      <div
-                        className={cn(
-                          'text-sm mt-1 px-2 py-1 rounded',
-                          getThemeClass(
-                            'text-green-700 bg-green-100',
-                            'text-green-700 bg-green-100'
-                          )
-                        )}
-                      >
-                        <div className="flex items-start">
-                          {discountValidation.success ? (
-                            <CheckCircle className="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" />
+                          disabled={validatingDiscount || !discountCode.trim()}
+                        >
+                          {validatingDiscount ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <AlertCircle className="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" />
+                            'Áp dụng'
                           )}
-                          <span>
-                            {discountValidation.message}
-                            {discountValidation.success && appliedDiscount > 0 && (
-                              <span className="font-semibold ml-1">
-                                (-{appliedDiscount.toLocaleString('vi-VN')} VNĐ)
-                              </span>
-                            )}
-                          </span>
-                        </div>
+                        </motion.button>
                       </div>
-                    )}
-                  </div>
+
+                      <AnimatePresence>
+                        {discountValidation && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, y: -10 }}
+                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className={cn(
+                              'rounded-lg px-4 py-3 border-l-4',
+                              discountValidation.success
+                                ? getThemeClass(
+                                    'bg-green-100 border-green-500 text-green-800',
+                                    'bg-green-900/30 border-green-400 text-green-200'
+                                  )
+                                : getThemeClass(
+                                    'bg-red-100 border-red-500 text-red-800',
+                                    'bg-red-900/30 border-red-400 text-red-200'
+                                  )
+                            )}
+                          >
+                            <div className="flex items-start gap-2">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.1 }}
+                              >
+                                {discountValidation.success ? (
+                                  <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                                ) : (
+                                  <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                                )}
+                              </motion.div>
+                              <div className="flex-1">
+                                <div className="text-sm font-medium">
+                                  {discountValidation.success ? '✨ Mã giảm giá hợp lệ!' : '❌ Mã giảm giá không hợp lệ'}
+                                </div>
+                                <div className="text-sm mt-1">
+                                  {discountValidation.message}
+                                  {discountValidation.success && appliedDiscount > 0 && (
+                                    <motion.span 
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="font-bold ml-2 text-lg"
+                                    >
+                                      🎉 Giảm {appliedDiscount.toLocaleString('vi-VN')} VNĐ
+                                    </motion.span>
+                                  )}
+                                </div>
+                                {discountValidation.success && (
+                                  <div className="flex items-center justify-between mt-2">
+                                    <div className="text-xs opacity-75">
+                                      💡 Mã này chỉ sử dụng được 1 lần cho sự kiện này
+                                    </div>
+                                    <motion.button
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      type="button"
+                                      onClick={() => {
+                                        setDiscountCode('');
+                                        setDiscountValidation(null);
+                                        setAppliedDiscount(0);
+                                        toast.info('🗑️ Đã hủy mã giảm giá');
+                                      }}
+                                      className={cn(
+                                        'px-3 py-1 rounded-full text-xs font-medium transition-all duration-200',
+                                        getThemeClass(
+                                          'bg-red-100 text-red-600 hover:bg-red-200',
+                                          'bg-red-900/30 text-red-300 hover:bg-red-800/40'
+                                        )
+                                      )}
+                                    >
+                                      🗑️ Hủy mã
+                                    </motion.button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
                   <motion.button
                     whileHover={{ scale: 1.03, boxShadow: '0px 0px 15px rgba(56, 189, 248, 0.5)' }}
                     whileTap={{ scale: 0.98 }}
@@ -1635,6 +2004,114 @@ const EventDetail = () => {
                   </motion.button>
                 </motion.div>
               </AnimatePresence>
+            )}
+
+            {/* User Orders Section */}
+            {userOrders.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className={cn(
+                  'p-6 rounded-xl shadow-xl mt-6',
+                  getThemeClass(
+                    'bg-white/95 border border-gray-200 shadow-lg',
+                    'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800'
+                  )
+                )}
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <ShoppingCart className={cn(
+                    'w-6 h-6',
+                    getThemeClass('text-green-600', 'text-green-400')
+                  )} />
+                  <h3 className={cn(
+                    'text-xl font-bold',
+                    getThemeClass('text-green-700', 'text-green-300')
+                  )}>
+                    Vé đã mua cho sự kiện này
+                  </h3>
+                </div>
+                
+                {loadingOrders ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className={cn(
+                      'w-6 h-6 animate-spin',
+                      getThemeClass('text-green-600', 'text-green-400')
+                    )} />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userOrders.map((order, index) => (
+                      <motion.div
+                        key={order.orderId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={cn(
+                          'p-4 rounded-lg border-l-4',
+                          getThemeClass(
+                            'bg-green-50 border-green-400 text-green-800',
+                            'bg-green-900/20 border-green-400 text-green-200'
+                          )
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5" />
+                            <span className="font-semibold">
+                              Đơn hàng #{order.orderId.slice(-8)}
+                            </span>
+                          </div>
+                          <span className={cn(
+                            'text-sm px-2 py-1 rounded-full font-medium',
+                            getThemeClass('bg-green-200 text-green-800', 'bg-green-800 text-green-200')
+                          )}>
+                            Thành công
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-1 text-sm">
+                          <p>
+                            <span className="font-medium">Ngày mua:</span>{' '}
+                            {new Date(order.createdAt).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                          <p>
+                            <span className="font-medium">Tổng tiền:</span>{' '}
+                            {order.totalAmount > 0 
+                              ? `${order.totalAmount.toLocaleString('vi-VN')} VNĐ`
+                              : 'Miễn phí'
+                            }
+                          </p>
+                          {order.orderDetails && order.orderDetails.length > 0 && (
+                            <div className="mt-2">
+                              <span className="font-medium">Vé đã mua:</span>
+                              <div className="ml-4 mt-1 space-y-1">
+                                {order.orderDetails.map((detail: any, detailIndex: number) => (
+                                  <div key={detailIndex} className="text-xs opacity-90">
+                                    • {detail.ticketName || 'Vé'} x{detail.quantity}
+                                    {detail.pricePerTicket > 0 && (
+                                      <span className="ml-2">
+                                        ({detail.pricePerTicket.toLocaleString('vi-VN')} VNĐ/vé)
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
             )}
           </motion.div>
           <motion.div

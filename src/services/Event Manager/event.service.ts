@@ -384,6 +384,9 @@ interface OrderResponseItem {
 }
 
 export interface Order {
+  data: any;
+  message: string;
+  success: any;
   orderId: string;
   customerId: string;
   eventId: string;
@@ -432,9 +435,9 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
       return sum + (price * quantity);
     }, 0);
 
-    // Ensure we have a valid order amount
-    if (baseOrderAmount <= 0) {
-      throw new Error('Tổng tiền đơn hàng phải lớn hơn 0');
+    // Allow zero amount for free tickets, only validate if amount is negative
+    if (baseOrderAmount < 0) {
+      throw new Error('Tổng tiền đơn hàng không hợp lệ');
     }
 
     // Create the final payload with the correct orderAmount (before discount)

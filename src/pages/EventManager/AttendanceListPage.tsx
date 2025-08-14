@@ -125,17 +125,50 @@ const AttendanceListPage = () => {
     loadEvents();
   }, [t]);
 
+  // Map role string to numeric value for the UI
+  const mapRoleToNumeric = (roleString) => {
+    switch(roleString?.toLowerCase()) {
+      case 'eventmanager': return 2;
+      case 'collaborator': return 3;
+      case 'customer': 
+      default: return 1;
+    }
+  };
+
   // Load attendances when event is selected
   const loadAttendances = useCallback(async () => {
     if (!selectedEvent) return;
 
     setLoading(true);
+    console.log('Loading attendances for event:', selectedEvent);
     try {
       const response = await getAttendanceByEvent(selectedEvent, pageNumber, pageSize);
-      if (response && response.items) {
-        setAttendances(response.items);
-        setTotalAttendees(response.totalItems || 0);
-        setTotalPages(response.totalPages || 1);
+      console.log('API Response:', response);
+      
+      if (response?.success && response.data) {
+        const { items = [], totalItems = 0, totalPages = 1 } = response.data;
+        console.log('Processed data:', { items, totalItems, totalPages });
+        
+        // Map the API response to match the expected format
+        const formattedItems = items.map(item => ({
+          ...item,
+          customerName: item.fullName || t('unknownCustomer'),
+          email: item.email || '-',
+          phone: item.phone || '-',
+          role: mapRoleToNumeric(item.role),
+          checkInTime: item.joinedAt, // Using joinedAt as checkInTime
+          // Add any other required fields with defaults
+          id: item.id || `attendee-${Math.random().toString(36).substr(2, 9)}`
+        }));
+        
+        setAttendances(formattedItems);
+        setTotalAttendees(totalItems);
+        setTotalPages(totalPages);
+      } else {
+        console.warn('Unexpected API response format:', response);
+        setAttendances([]);
+        setTotalAttendees(0);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('Failed to load attendances:', error);
@@ -194,7 +227,7 @@ const AttendanceListPage = () => {
       case 2:
         return t('eventManager');
       case 3:
-        return t('admin');
+        return t('collaborator');
       default:
         return t('unknown');
     }
@@ -213,9 +246,11 @@ const AttendanceListPage = () => {
     }
   };
 
+  const { i18n } = useTranslation();
+  
   const formatDateTime = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('vi-VN');
+    if (!dateString) return t('notAvailable');
+    return new Date(dateString).toLocaleString(i18n.language);
   };
 
   return (
@@ -363,16 +398,22 @@ const AttendanceListPage = () => {
                 )
               )}
             >
-              <div className="flex items-center gap-4">
-                <Users
-                  className={cn(getThemeClass('text-blue-600', 'text-purple-400'))}
-                  size={24}
-                />
-                <span
-                  className={cn('font-semibold', getThemeClass('text-blue-800', 'text-purple-200'))}
-                >
-                  {t('totalAttendees')}: {totalAttendees}
-                </span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={cn("p-4 rounded-lg", getThemeClass("bg-white/50 border border-gray-200", "bg-purple-900/30 border border-purple-500/30"))}>
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-3 rounded-full", getThemeClass("bg-blue-100 text-blue-600", "bg-purple-900/50 text-purple-300"))}>
+                      <Users size={24} />
+                    </div>
+                    <div>
+                      <p className={cn("text-sm font-medium", getThemeClass("text-gray-500", "text-gray-300"))}>
+                        {t('totalAttendees')}
+                      </p>
+                      <p className={cn("text-2xl font-bold", getThemeClass("text-gray-800", "text-white"))}>
+                        {totalAttendees}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -416,14 +457,6 @@ const AttendanceListPage = () => {
                       >
                         {t('checkInTime')}
                       </th>
-                      <th
-                        className={cn(
-                          'px-4 py-3 text-left text-sm font-medium',
-                          getThemeClass('text-gray-700', 'text-purple-200')
-                        )}
-                      >
-                        {t('status')}
-                      </th>
                     </tr>
                   </thead>
                   <tbody
@@ -443,7 +476,7 @@ const AttendanceListPage = () => {
                         <td
                           className={cn('px-4 py-3', getThemeClass('text-gray-900', 'text-white'))}
                         >
-                          {attendance.customerName || attendance.userName || t('unknown')}
+                          {attendance.customerName}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -461,26 +494,9 @@ const AttendanceListPage = () => {
                             getThemeClass('text-gray-600', 'text-gray-300')
                           )}
                         >
-                          {formatDateTime(attendance.checkInTime)}
+                          {attendance.checkInTime ? formatDateTime(attendance.checkInTime) : t('notAvailable')}
                         </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={cn(
-                              'px-2 py-1 text-xs font-medium rounded-full',
-                              attendance.status === 'CheckedIn'
-                                ? getThemeClass(
-                                    'bg-green-100 text-green-800',
-                                    'bg-green-100 text-green-800'
-                                  )
-                                : getThemeClass(
-                                    'bg-yellow-100 text-yellow-800',
-                                    'bg-yellow-100 text-yellow-800'
-                                  )
-                            )}
-                          >
-                            {attendance.status === 'CheckedIn' ? t('checkedIn') : t('pending')}
-                          </span>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>

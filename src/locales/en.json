@@ -1,4 +1,24 @@
 {
+  "claimFreeTickets": " Claim Free Tickets",
+
+ "faceVerification": "Face Verification",
+    "startVerification": "Start Verification",
+    "faceDetected": "Face Detected",
+    "detectingFace": "Detecting Face",
+    "capturePhoto": "Capture Photo",
+    "verificationSuccess": "Verification Success",
+    "faceVerified": "Face Verified",
+    "identityVerified": "Identity Verified",
+    "identityId": "Identity ID",
+    "confirm": "Confirm",
+    "retake": "Retake",
+    "capturing": "Capturing...",
+    "verifying": "Verifying...",
+    "verificationProgress": "Verification in progress...",
+    "Face Detected": "Face Detected",
+    "analyzeFeatures": "Analyzing facial features",
+    "identityVerification": "Identity Verification",
+
   "paymentSuccessTitle": "Payment Successful!",
   "paymentSuccessMessage": "Your payment has been processed successfully. A confirmation has been sent to your email.",
   "orderIdLabel": "Order ID",
@@ -38,7 +58,6 @@
     }
   },
   "orderHistory": {
-    
     "orderId": "Order ID",
     "eventName": "Event Name",
     "totalAmount": "Total Amount",
@@ -49,9 +68,49 @@
       "paid": "Paid",
       "pendingPayment": "Pending Payment"
     },
-    "viewTickets": "View Tickets"
+    "viewTickets": "View Tickets",
+    "currency": "đ"
   },
   "noTicketsAvailableForThisEvent": "No tickets available for this event",
+  "pleaseSelectEvent": "Please select an event first",
+  
+  "attendanceList": {
+    "title": "Attendance List",
+    "manageEventAttendance": "Manage Event Attendance",
+    "selectEvent": "Select Event",
+    "pleaseSelectEventToViewAttendance": "Please select an event to view attendance list",
+    "searchEvents": "Search events...",
+    "exporting": "Exporting...",
+    "exportAttendance": "Export Attendance List",
+    "totalAttendees": "Total Attendees: {{count}}",
+    "customerName": "Customer Name",
+    "role": "Role",
+    "checkInTime": "Check-in Time",
+    "attendanceExportedSuccessfully": "Attendance list exported successfully",
+    "exportFailed": "Failed to export attendance list",
+    "customer": "Customer",
+    "eventManager": "Event Manager",
+    "collaborator": "Collaborator",
+    "unknown": "Unknown",
+    "notAvailable": "Not Available",
+    "page": "Page",
+    "of": "of",
+    "previous": "Previous",
+    "next": "Next",
+    "noAttendancesFound": "No attendance records found",
+    "loadingAttendees": "Loading attendees...",
+    "noAttendees": "No attendees found",
+    "noEventSelected": "Please select an event to view attendance list",
+    "attendee": "Attendee",
+    "organizer": "Organizer",
+    "unknownCustomer": "Anonymous Customer",
+    "noCheckInTime": "Not Checked In",
+    "errorLoadingEvents": "Error loading events",
+    "errorLoadingAttendance": "Error loading attendance data",
+    "eventId": "Event ID",
+    "loadingEvents": "Loading events...",
+    "noEventsFound": "No events found"
+  },
   "send": "Send",
   "sending": "Sending...",
   "news":"News",
@@ -1139,8 +1198,6 @@
   "collaboratorForm_password": "Password",
   "collaboratorForm_fullName": "Full Name",
   "collaboratorForm_dateOfBirth": "Date of Birth",
-  "collaboratorForm_showPassword": "Show password",
-  "collaboratorForm_hidePassword": "Hide password",
   "errorLoadingCollaborators": "Error loading collaborators",
   "errorLoadingEvents": "Error loading events",
   "warningSelectEventBeforeAdd": "Please select an event before adding a collaborator",
@@ -1389,6 +1446,9 @@
   "enableFaceAuth": "Enable Face Authentication",
   "disableFaceAuth": "Disable Face Authentication",
   "faceAuthDescription": "Use your face to log in faster and more securely.",
+  "previous": "Previous",
+  "next": "Next",
+  "pageOf": "Page {{current}} of {{total}}",
   "enterPasswordToDisable": "Enter Your Password To Disable Face Authentication",
   "enterPasswordToEnable": "Enter Your Password To Enable Face Authentication",
   "password": "Password",
@@ -1417,7 +1477,15 @@
   "selectGender": "Select gender",
   "enterLocation": "Enter your location",
   "saving": "Saving...",
-  "saveChanges": "Save Changes"
+  "saveChanges": "Save Changes",
+  "pleaseSelectEvent": "Please select an event first",
+  "pleaseSelectEventToViewAttendance": "Please select an event to view attendance",
+  "noAttendancesFound": "No attendance records found",
+  "customerName": "Customer Name",
+  "role": "Role",
+  "checkInTime": "Check-in Time",
+  "unknownCustomer": "Unknown Customer",
+  "pleaseSelectEvent": "Please select an event first"
 },
 
   
@@ -1450,5 +1518,6 @@
     "orderSummary": "Order Summary",
     "send": "Send"
   }
+  
 
 
