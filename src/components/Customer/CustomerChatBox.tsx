@@ -320,10 +320,15 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
           })
         : undefined,
     });
-    return (adminMessages || [])
+    const messagesForActiveRoom = (adminMessages || []).filter((m: any) => {
+      const rid = m.roomId || m.RoomId;
+      return chatRoom?.roomId ? rid === chatRoom.roomId : true;
+    });
+
+    return messagesForActiveRoom
       .map(normalize)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [adminMessages]);
+  }, [adminMessages, chatRoom?.roomId]);
 
   return (
     <div className={`fixed bottom-4 right-4 z-[9998] ${className}`}>
