@@ -83,7 +83,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
                 </span>
               )}
             </span>
-            <h3 className="font-bold text-lg text-white">{t('notifications') || 'Thông báo'}</h3>
+            <h3 className="font-bold text-lg text-white">{t('notifications.title')}</h3>
           </div>
           <button
             onClick={() => {
@@ -105,10 +105,10 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
             style={{ fontSize: '12px', height: '28px', minHeight: 'unset' }}
             title={
               notifications.length === 0
-                ? t('noNotifications') || 'Không có thông báo'
+                ? t('notifications.noNotifications')
                 : actualUnreadCount === 0
-                ? t('allRead') || 'Tất cả đã đọc'
-                : t('markAllAsRead') || 'Đánh dấu tất cả đã đọc'
+                ? t('notifications.allRead')
+                : t('notifications.markAllAsRead')
             }
           >
             {actualUnreadCount === 0 ? (
@@ -118,8 +118,8 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
             )}
             <span className="hidden sm:inline">
               {actualUnreadCount === 0
-                ? t('allRead') || 'Đã đọc hết'
-                : t('markAllAsRead') || 'Đọc tất cả'}
+                ? t('notifications.allRead')
+                : t('notifications.markAllAsRead')}
             </span>
           </button>
         </div>
@@ -150,7 +150,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
                 getThemeClass('text-gray-700', 'text-gray-300')
               )}
             >
-              {t('noNotifications') || 'Không có thông báo mới'}
+              {t('notifications.noNotifications')}
             </p>
             <p
               className={cn(
@@ -158,7 +158,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
                 getThemeClass('text-gray-500', 'text-gray-400')
               )}
             >
-              {t('notificationHint') || 'Các thông báo sẽ xuất hiện ở đây khi có cập nhật mới'}
+              {t('notifications.noNotificationsDescription')}
             </p>
           </div>
         ) : (
@@ -262,7 +262,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
                             )
                           )}
                         >
-                          {t('new') || 'Mới'}
+                          {t('notifications.new')}
                         </span>
                       )}
                     </div>
@@ -306,7 +306,7 @@ const NotificationDropdown = ({ userId, onViewAll, t, onRedirect }: Notification
             onViewAll();
           }}
         >
-          {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
+          {t('notifications.viewAllNotifications')} →
         </button>
       </div>
 

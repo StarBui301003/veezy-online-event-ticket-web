@@ -18,102 +18,6 @@ import { useTranslation } from 'react-i18next';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 
-// CancelEventConfirmation mockup modal
-function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative animate-in zoom-in-95 duration-300">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X size={24} />
-        </button>
-        <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse">
-            <AlertTriangle size={40} className="text-white" />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
-          ⚠️ Xác nhận hủy sự kiện
-        </h2>
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-          <p className="text-red-800 font-medium">Bạn có chắc chắn muốn hủy sự kiện này không?</p>
-          <p className="text-red-600 text-sm mt-1">
-            ⚠️ Hành động này không thể hoàn tác và sẽ thông báo đến tất cả người tham gia.
-          </p>
-        </div>
-        <div className="bg-gray-50 rounded-xl p-4 mb-6 border-l-4 border-red-500">
-          <h3 className="font-semibold text-gray-800 text-lg mb-3 flex items-center gap-2">
-            🎉 {event?.eventName || 'Tên sự kiện'}
-          </h3>
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-red-500" />
-              <span>
-                {event?.startAt
-                  ? new Date(event.startAt).toLocaleDateString('vi-VN')
-                  : '--/--/----'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock size={16} className="text-red-500" />
-              <span>
-                {event?.startAt
-                  ? new Date(event.startAt).toLocaleTimeString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : '--:--'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-red-500" />
-              <span>{event?.eventLocation || 'Địa điểm chưa cập nhật'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users size={16} className="text-red-500" />
-              <span>{event?.attendees || 0} người tham gia</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={onConfirm}
-            disabled={isConfirming}
-            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none transition-all duration-300 flex items-center gap-2 min-w-[140px] justify-center"
-          >
-            {isConfirming ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Đang hủy...
-              </>
-            ) : (
-              <>
-                <AlertTriangle size={18} />
-                Xác nhận hủy
-              </>
-            )}
-          </button>
-          <button
-            onClick={onClose}
-            disabled={isConfirming}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none transition-all duration-300 min-w-[140px]"
-          >
-            Giữ sự kiện
-          </button>
-        </div>
-        <div className="mt-4 text-center">
-          <p className="text-xs text-gray-500">
-            💡 Lưu ý: Email thông báo hủy sẽ được gửi tự động đến tất cả người tham gia
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const EVENTS_PER_PAGE = 5;
 
 const PendingEventsManager = () => {
@@ -126,6 +30,102 @@ const PendingEventsManager = () => {
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // CancelEventConfirmation modal component
+  function CancelEventConfirmation({ event, open, onClose, onConfirm, isConfirming }) {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 relative animate-in zoom-in-95 duration-300">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={24} />
+          </button>
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center animate-pulse">
+              <AlertTriangle size={40} className="text-white" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
+            {t('cancelEventConfirmation.title')}
+          </h2>
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+            <p className="text-red-800 font-medium">{t('cancelEventConfirmation.confirmMessage')}</p>
+            <p className="text-red-600 text-sm mt-1">
+              {t('cancelEventConfirmation.warningMessage')}
+            </p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-4 mb-6 border-l-4 border-red-500">
+            <h3 className="font-semibold text-gray-800 text-lg mb-3 flex items-center gap-2">
+              🎉 {event?.eventName || t('cancelEventConfirmation.eventName')}
+            </h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-red-500" />
+                <span>
+                  {event?.startAt
+                    ? new Date(event.startAt).toLocaleDateString('vi-VN')
+                    : '--/--/----'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-red-500" />
+                <span>
+                  {event?.startAt
+                    ? new Date(event.startAt).toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : '--:--'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin size={16} className="text-red-500" />
+                <span>{event?.eventLocation || t('cancelEventConfirmation.locationNotUpdated')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-red-500" />
+                <span>{event?.attendees || 0} {t('cancelEventConfirmation.participants')}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onConfirm}
+              disabled={isConfirming}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none transition-all duration-300 flex items-center gap-2 min-w-[140px] justify-center"
+            >
+              {isConfirming ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  {t('cancelEventConfirmation.canceling')}
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={18} />
+                  {t('cancelEventConfirmation.confirmCancel')}
+                </>
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              disabled={isConfirming}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none transition-all duration-300 min-w-[140px]"
+            >
+              {t('cancelEventConfirmation.keepEvent')}
+            </button>
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              {t('cancelEventConfirmation.note')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const fetchEvents = async () => {
     try {
@@ -198,7 +198,7 @@ const PendingEventsManager = () => {
       setCancelModal({ open: false, event: null, isConfirming: false });
     } catch {
       setCancelModal((prev) => ({ ...prev, isConfirming: false }));
-      alert('Hủy sự kiện thất bại!');
+      alert(t('cancelEventFailed'));
     }
   };
 
@@ -253,7 +253,7 @@ const PendingEventsManager = () => {
           )}
         ></div>
         <span className={cn('ml-3', getThemeClass('text-blue-600', 'text-pink-500'))}>
-          Loading event...
+          {t('loadingEvent')}
         </span>
       </div>
     );
@@ -272,14 +272,14 @@ const PendingEventsManager = () => {
       >
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-red-900 mb-2">Có lỗi xảy ra</h3>
+          <h3 className="text-xl font-medium text-red-900 mb-2">{t('errorOccurred')}</h3>
           <p className="text-red-700 mb-4">{error}</p>
           <button
             onClick={fetchEvents}
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors flex items-center justify-center mx-auto font-semibold shadow"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Thử lại
+            {t('tryAgain')}
           </button>
         </div>
       </div>
@@ -299,14 +299,14 @@ const PendingEventsManager = () => {
       >
         <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-6 text-center">
           <CheckCircle className="w-16 h-16 text-pink-500 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-pink-900 mb-2">Không có sự kiện đang chờ</h3>
-          <p className="text-pink-700 mb-4">Hiện không có sự kiện nào đang chờ phê duyệt.</p>
+          <h3 className="text-xl font-medium text-pink-900 mb-2">{t('noPendingEventsTitle')}</h3>
+          <p className="text-pink-700 mb-4">{t('noPendingEventsDescription')}</p>
           <button
             onClick={fetchEvents}
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors flex items-center justify-center mx-auto font-semibold shadow"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
-            Làm mới
+            {t('refresh')}
           </button>
         </div>
       </div>

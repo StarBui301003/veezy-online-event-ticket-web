@@ -91,7 +91,7 @@ export default function FundManagement() {
         setSelectedEvent(eventsData[0]);
       }
     } catch {
-      toast.error(t('errorLoadingEvents'));
+      toast.error(t('fundManagement.errorLoadingEvents'));
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ export default function FundManagement() {
         setTransactions(Array.isArray(tx) ? tx : Array.isArray(tx?.items) ? tx.items : []);
       } catch (error) {
         console.error('Error fetching fund data:', error);
-        toast.error(t('errorLoadingFundData'));
+        toast.error(t('fundManagement.errorLoadingFundData'));
       }
     },
     [t]
@@ -156,7 +156,7 @@ export default function FundManagement() {
         onEvent('OnEventCancelled', (data) => {
           if (data.createdBy === userId || data.CreatedBy === userId) {
             console.log('Event cancelled - fund management update:', data);
-            toast.warning(t('eventCancelledFundsAffected'));
+            toast.warning(t('fundManagement.eventCancelledFundsAffected'));
             window.dispatchEvent(new CustomEvent('refreshFundEvents'));
           }
         });
@@ -164,7 +164,7 @@ export default function FundManagement() {
         onEvent('OnEventApproved', (data) => {
           if (data.createdBy === userId || data.CreatedBy === userId) {
             console.log('Event approved - fund management update:', data);
-            toast.success(t('eventApprovedFundsAvailable'));
+            toast.success(t('fundManagement.eventApprovedFundsAvailable'));
             window.dispatchEvent(new CustomEvent('refreshFundEvents'));
           }
         });
@@ -180,15 +180,15 @@ export default function FundManagement() {
               [data.eventId]: currentRevenue + (data.totalAmount || 0),
             };
           });
-          toast.success(t('newOrderReceived', { amount: data.totalAmount }));
+          toast.success(t('fundManagement.newOrderReceived', { amount: data.totalAmount }));
         });
 
         onTicket('OrderStatusChanged', (data) => {
           console.log('Order status changed - fund update:', data);
           if (data.status === 'Confirmed' || data.status === 'Completed') {
-            toast.success(t('orderConfirmedRevenueUpdated'));
+            toast.success(t('fundManagement.orderConfirmedRevenueUpdated'));
           } else if (data.status === 'Cancelled' || data.status === 'Refunded') {
-            toast.warning(t('orderRefundedRevenueAdjusted'));
+                          toast.warning(t('fundManagement.orderRefundedRevenueAdjusted'));
           }
         });
 
@@ -214,18 +214,18 @@ export default function FundManagement() {
             console.log('Fund notification:', notification);
 
             if (notification.type === 'WithdrawalApproved') {
-              toast.success(notification.message || t('withdrawalApproved'));
+              toast.success(notification.message || t('fundManagement.withdrawalApproved'));
             } else if (notification.type === 'WithdrawalRejected') {
-              toast.error(notification.message || t('withdrawalRejected'));
+              toast.error(notification.message || t('fundManagement.withdrawalRejected'));
             } else if (notification.type === 'PaymentReceived') {
-              toast.success(notification.message || t('paymentReceived'));
+              toast.success(notification.message || t('fundManagement.paymentReceived'));
             }
           }
         });
 
         onNotification('TransactionStatusChanged', (data) => {
           console.log('Transaction status changed:', data);
-          toast.info(t('transactionStatusUpdated'));
+          toast.info(t('fundManagement.transactionStatusUpdated'));
         });
       } catch (error) {
         console.error('Failed to setup realtime fund management:', error);
@@ -285,20 +285,20 @@ export default function FundManagement() {
     setWithdrawalError(null); // Reset error state
     if (isSubmitting) return;
     if (!selectedEvent || !withdrawalAmount) {
-      setWithdrawalError(t('pleaseEnterAmount'));
+      setWithdrawalError(t('fundManagement.pleaseEnterAmount'));
       setShowWithdrawalModal(false); // Close modal on error
       return;
     }
 
     const amount = parseFloat(withdrawalAmount);
     if (amount <= 0 || amount > balance) {
-      setWithdrawalError(t('invalidAmount'));
+      setWithdrawalError(t('fundManagement.invalidAmount'));
       setShowWithdrawalModal(false); // Close modal on error
       return;
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading(t('processingWithdrawal'), {
+          const loadingToast = toast.loading(t('fundManagement.processingWithdrawal'), {
       position: 'top-center',
       autoClose: false,
       closeOnClick: false,
@@ -317,7 +317,7 @@ export default function FundManagement() {
 
       // Update loading toast to success
       toast.update(loadingToast, {
-        render: t('withdrawalRequestSent'),
+        render: t('fundManagement.withdrawalRequestSent'),
         type: 'success',
         isLoading: false,
         autoClose: 3000,
@@ -328,22 +328,22 @@ export default function FundManagement() {
       setWithdrawalAmount('');
       setWithdrawalNotes('');
       fetchFundData(selectedEvent.eventId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Dismiss loading toast if it exists
       toast.dismiss(loadingToast);
 
       setShowWithdrawalModal(false); // Close modal on error
       
-      if (error?.response?.data?.message === 'Withdrawal is not enabled for this event' || 
-          error?.message === 'Withdrawal is not enabled for this event') {
-        setWithdrawalError(t('withdrawalNotEnabled'));
+      if ((error as any)?.response?.data?.message === 'Withdrawal is not enabled for this event' || 
+          (error as any)?.message === 'Withdrawal is not enabled for this event') {
+        setWithdrawalError(t('fundManagement.withdrawalNotEnabled'));
         // Show error toast
-        toast.error(t('withdrawalNotEnabled'), {
+                  toast.error(t('fundManagement.withdrawalNotEnabled'), {
           position: 'top-center',
           autoClose: 5000,
         });
       } else {
-        toast.error(t('errorSendingWithdrawalRequest'), {
+        toast.error(t('fundManagement.errorSendingWithdrawalRequest'), {
           position: 'top-center',
           autoClose: 3000,
         });
@@ -369,8 +369,8 @@ export default function FundManagement() {
   };
 
   const getTransactionStatusText = (status: number) => {
-    if (status === 0) return t('transactionSuccess');
-    if (status === 1) return t('transactionFailed');
+    if (status === 0) return t('fundManagement.success');
+    if (status === 1) return t('fundManagement.failed');
     return '';
   };
 
@@ -434,7 +434,7 @@ export default function FundManagement() {
             )}
           ></div>
           <p className={cn('text-xl', getThemeClass('text-blue-600', 'text-green-300'))}>
-            {t('loadingFundData')}
+            {t('fundManagement.loadingFundData')}
           </p>
         </div>
       </div>
@@ -476,10 +476,10 @@ export default function FundManagement() {
                   )
                 )}
               >
-                {t('fundManagement')}
+                {t('fundManagement.fundManagement')}
               </h1>
               <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-gray-300'))}>
-                {t('trackRevenueAndManageWithdrawals')}
+                {t('fundManagement.trackRevenueAndManageWithdrawals')}
               </p>
             </div>
           </div>
@@ -499,11 +499,11 @@ export default function FundManagement() {
                 getThemeClass('text-blue-600', 'text-green-300')
               )}
             >
-              {t('selectEvent')}:
+              {t('fundManagement.selectEvent')}:
             </label>
             <input
               type="text"
-              placeholder={t('searchEvents')}
+                              placeholder={t('fundManagement.searchEvents')}
               value={searchEvent}
               onChange={(e) => setSearchEvent(e.target.value)}
               className={cn(
@@ -521,7 +521,7 @@ export default function FundManagement() {
                 className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={() => setCarouselIndex((prev) => (prev - 1 + total) % total)}
                 disabled={total <= visibleCount}
-                aria-label={t('previous')}
+                aria-label={t('fundManagement.previous')}
               >
                 <ChevronLeft size={28} />
               </button>
@@ -564,7 +564,7 @@ export default function FundManagement() {
                 className="p-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 text-white shadow-lg hover:scale-110 transition disabled:opacity-40 disabled:cursor-not-allowed"
                 onClick={() => setCarouselIndex((prev) => (prev + 1) % total)}
                 disabled={total <= visibleCount}
-                aria-label={t('next')}
+                                  aria-label={t('fundManagement.next')}
               >
                 <ChevronRight size={28} />
               </button>
@@ -578,7 +578,7 @@ export default function FundManagement() {
                     carouselIndex === idx ? 'bg-green-400' : 'bg-gray-400'
                   }`}
                   onClick={() => setCarouselIndex(idx)}
-                  aria-label={t('selectCard', { card: idx + 1 })}
+                  aria-label={t('fundManagement.selectCard', { card: idx + 1 })}
                 />
               ))}
             </div>
@@ -611,7 +611,7 @@ export default function FundManagement() {
                         getThemeClass('text-green-600', 'text-green-300')
                       )}
                     >
-                      {t('totalRevenue')}
+                      {t('fundManagement.totalRevenue')}
                     </p>
                     <p
                       className={cn(
@@ -644,7 +644,7 @@ export default function FundManagement() {
                         getThemeClass('text-blue-600', 'text-blue-300')
                       )}
                     >
-                      {t('availableBalance')}
+                      {t('fundManagement.availableBalance')}
                     </p>
                     <p
                       className={cn(
@@ -684,7 +684,7 @@ export default function FundManagement() {
                   getThemeClass('text-green-700', 'text-green-300')
                 )}
               >
-                {t('withdrawalRequest')}
+                {t('fundManagement.withdrawalRequest')}
               </h2>
               {withdrawalError && (
                 <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700">
@@ -697,7 +697,7 @@ export default function FundManagement() {
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-6 py-3 rounded-xl disabled:opacity-50"
               >
                 <Download className="mr-2" size={20} />
-                {t('requestWithdrawal')}
+                {t('fundManagement.requestWithdrawal')}
               </Button>
             </div>
           </motion.div>
@@ -724,7 +724,7 @@ export default function FundManagement() {
                   getThemeClass('text-blue-700', 'text-blue-300')
                 )}
               >
-                {t('transactionHistory')}
+                {t('fundManagement.transactionHistory')}
               </h2>
 
               <div className="flex gap-4">
@@ -738,7 +738,7 @@ export default function FundManagement() {
                   />
                   <Input
                     type="text"
-                    placeholder={t('searchTransactions')}
+                    placeholder={t('fundManagement.searchTransactions')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={cn(
@@ -762,9 +762,9 @@ export default function FundManagement() {
                     )
                   )}
                 >
-                  <option value="all">{t('allStatus')}</option>
-                  <option value="0">{t('success')}</option>
-                  <option value="1">{t('failed')}</option>
+                  <option value="all">{t('fundManagement.allStatus')}</option>
+                  <option value="0">{t('fundManagement.success')}</option>
+                  <option value="1">{t('fundManagement.failed')}</option>
                 </select>
               </div>
             </div>
@@ -775,9 +775,9 @@ export default function FundManagement() {
                   className={cn('mx-auto mb-4', getThemeClass('text-gray-400', 'text-gray-400'))}
                   size={64}
                 />
-                <p className={cn('text-lg', getThemeClass('text-gray-500', 'text-gray-400'))}>
-                  {t('noTransactions')}
-                </p>
+                                  <p className={cn('text-lg', getThemeClass('text-gray-500', 'text-gray-400'))}>
+                    {t('fundManagement.noTransactions')}
+                  </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -789,54 +789,54 @@ export default function FundManagement() {
                         getThemeClass('border-gray-300', 'border-blue-500/30')
                       )}
                     >
-                      <th
-                        className={cn(
-                          'text-left p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('transactionId')}
-                      </th>
-                      <th
-                        className={cn(
-                          'text-left p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('orderId')}
-                      </th>
-                      <th
-                        className={cn(
-                          'text-left p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('description')}
-                      </th>
-                      <th
-                        className={cn(
-                          'text-center p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('amount')}
-                      </th>
-                      <th
-                        className={cn(
-                          'text-center p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('status')}
-                      </th>
-                      <th
-                        className={cn(
-                          'text-center p-4 font-semibold',
-                          getThemeClass('text-blue-700', 'text-blue-300')
-                        )}
-                      >
-                        {t('createdAt')}
-                      </th>
+                                              <th
+                          className={cn(
+                            'text-left p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.transactionId')}
+                        </th>
+                        <th
+                          className={cn(
+                            'text-left p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.orderId')}
+                        </th>
+                        <th
+                          className={cn(
+                            'text-left p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.description')}
+                        </th>
+                        <th
+                          className={cn(
+                            'text-center p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.amount')}
+                        </th>
+                        <th
+                          className={cn(
+                            'text-center p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.status')}
+                        </th>
+                        <th
+                          className={cn(
+                            'text-center p-4 font-semibold',
+                            getThemeClass('text-blue-700', 'text-blue-300')
+                          )}
+                        >
+                          {t('fundManagement.createdAt')}
+                        </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -944,7 +944,7 @@ export default function FundManagement() {
                   getThemeClass('text-blue-600', 'text-green-300')
                 )}
               >
-                {t('withdrawalRequest')}
+                {t('fundManagement.withdrawalRequest')}
               </h3>
               <div className="space-y-4">
                 {withdrawalError && (
@@ -959,13 +959,13 @@ export default function FundManagement() {
                       getThemeClass('text-blue-600', 'text-green-300')
                     )}
                   >
-                    {t('withdrawalAmount')}:
+                    {t('fundManagement.withdrawalAmount')}:
                   </label>
                   <Input
                     type="number"
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
-                    placeholder={t('enterWithdrawalAmount')}
+                    placeholder={t('fundManagement.enterWithdrawalAmount')}
                     className={cn(
                       getThemeClass(
                         'bg-white border-blue-300 text-gray-900',
@@ -976,7 +976,7 @@ export default function FundManagement() {
                   <p
                     className={cn('text-sm mt-1', getThemeClass('text-gray-500', 'text-gray-400'))}
                   >
-                    {t('availableBalance')}: {formatCurrency(balance)}
+                    {t('fundManagement.availableBalance')}: {formatCurrency(balance)}
                   </p>
                 </div>
                 <div>
@@ -986,12 +986,12 @@ export default function FundManagement() {
                       getThemeClass('text-blue-600', 'text-green-300')
                     )}
                   >
-                    {t('withdrawalNotes')}:
+                    {t('fundManagement.withdrawalNotes')}:
                   </label>
                   <textarea
                     value={withdrawalNotes}
                     onChange={(e) => setWithdrawalNotes(e.target.value)}
-                    placeholder={t('withdrawalNotesPlaceholder')}
+                    placeholder={t('fundManagement.withdrawalNotesPlaceholder')}
                     className={cn(
                       'w-full p-3 rounded-lg resize-none',
                       getThemeClass(
@@ -1018,10 +1018,10 @@ export default function FundManagement() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('sending')}
+                      {t('fundManagement.sending')}
                     </>
                   ) : (
-                    t('sendRequest')
+                    t('fundManagement.sendRequest')
                   )}
                 </Button>
                 <Button
@@ -1034,7 +1034,7 @@ export default function FundManagement() {
                     )
                   )}
                 >
-                  {t('cancel')}
+                  {t('fundManagement.cancel')}
                 </Button>
               </div>
             </motion.div>

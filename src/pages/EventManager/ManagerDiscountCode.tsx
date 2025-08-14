@@ -67,7 +67,7 @@ export default function ManagerDiscountCode() {
       setFilteredEvents(items);
     } catch (err) {
       console.error('Failed to load events:', err);
-      toast.error(t('failedToLoadEvents'));
+      toast.error(t('managerDiscountCode.failedToLoadEvents'));
       setEvents([]);
       setFilteredEvents([]);
     } finally {
@@ -142,7 +142,7 @@ export default function ManagerDiscountCode() {
         setDiscountCodes(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load discount codes:', err);
-        toast.error(t('failedToLoadDiscountCodes'));
+        toast.error(t('managerDiscountCode.failedToLoadDiscountCodes'));
       } finally {
         setLoadingDiscountCodes(false);
       }
@@ -152,18 +152,18 @@ export default function ManagerDiscountCode() {
   }, [selectedEvent, t]);
 
   const handleDeleteCode = async (codeId: string) => {
-    if (!window.confirm(t('confirmDeleteDiscountCode'))) return;
+    if (!window.confirm(t('managerDiscountCode.confirmDeleteDiscountCode'))) return;
 
     try {
       await deleteDiscountCode(codeId);
-      toast.success(t('discountCodeDeleted'));
+      toast.success(t('managerDiscountCode.discountCodeDeleted'));
       if (selectedEvent) {
         const data = await getDiscountCodesByEvent(selectedEvent.eventId);
         setDiscountCodes(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to delete discount code:', err);
-      toast.error(t('failedToDeleteDiscountCode'));
+      toast.error(t('managerDiscountCode.failedToDeleteDiscountCode'));
     }
   };
 
@@ -194,13 +194,13 @@ export default function ManagerDiscountCode() {
               )
             )}
           >
-            {t('myEvents')}
+            {t('managerDiscountCode.myEvents')}
           </h2>
           <input
             type="text"
             value={searchEvent}
             onChange={(e) => setSearchEvent(e.target.value)}
-            placeholder={t('searchEvents')}
+            placeholder={t('managerDiscountCode.searchEvents')}
             className={cn(
               'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-4',
               getThemeClass(
@@ -217,7 +217,7 @@ export default function ManagerDiscountCode() {
                 getThemeClass('text-blue-600', 'text-pink-400')
               )}
             >
-              {t('loading')}...
+              {t('managerDiscountCode.loading')}...
             </div>
           ) : (
             <div className="space-y-4">
@@ -228,7 +228,7 @@ export default function ManagerDiscountCode() {
                     getThemeClass('text-gray-600', 'text-slate-300')
                   )}
                 >
-                  {t('noEventsFound')}
+                  {t('managerDiscountCode.noEventsFound')}
                 </div>
               )}
 
@@ -276,7 +276,7 @@ export default function ManagerDiscountCode() {
                       navigate(`/event-manager/discount-codes/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> {t('createDiscountCode')}
+                    <FaPlus className="inline mr-2" /> {t('managerDiscountCode.createDiscountCode')}
                   </button>
                 </div>
               ))}
@@ -298,9 +298,9 @@ export default function ManagerDiscountCode() {
                     <FaChevronLeft />
                   </button>
                   <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
-                    {t('page')} {eventPage}/{totalEventPages}
+                    {t('managerDiscountCode.page')} {eventPage}/{totalEventPages}
                     {loadingEvents && (
-                      <span className="ml-2 text-sm opacity-70">({t('loading')}...)</span>
+                      <span className="ml-2 text-sm opacity-70">({t('managerDiscountCode.loading')}...)</span>
                     )}
                   </span>
                   <button
@@ -332,7 +332,7 @@ export default function ManagerDiscountCode() {
                   getThemeClass('text-blue-600', 'text-yellow-300')
                 )}
               >
-                {t('discountCodesFor')}{' '}
+                {t('managerDiscountCode.discountCodesFor')}{' '}
                 <span className={cn(getThemeClass('text-purple-600', 'text-pink-200'))}>
                   {selectedEvent.eventName}
                 </span>
@@ -345,7 +345,7 @@ export default function ManagerDiscountCode() {
                     getThemeClass('text-blue-600', 'text-pink-400')
                   )}
                 >
-                  {t('loading')}...
+                  {t('managerDiscountCode.loading')}...
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -370,7 +370,7 @@ export default function ManagerDiscountCode() {
                             getThemeClass('bg-red-500', 'bg-red-500')
                           )}
                         >
-                          {t('expired')}
+                          {t('managerDiscountCode.expired')}
                         </div>
                       )}
 
@@ -386,7 +386,7 @@ export default function ManagerDiscountCode() {
                               'text-blue-300 hover:text-blue-100'
                             )
                           )}
-                          title={t('edit')}
+                          title={t('managerDiscountCode.edit')}
                         >
                           <FaEdit />
                         </button>
@@ -399,7 +399,7 @@ export default function ManagerDiscountCode() {
                               'text-red-400 hover:text-red-300'
                             )
                           )}
-                          title={t('delete')}
+                          title={t('managerDiscountCode.delete')}
                         >
                           <FaTrash />
                         </button>
@@ -420,14 +420,14 @@ export default function ManagerDiscountCode() {
                           getThemeClass('text-gray-700', 'text-slate-200')
                         )}
                       >
-                        <span className="font-semibold">{t('type')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.type')}:</span>{' '}
                         <span
                           className={cn(
                             'font-bold',
                             getThemeClass('text-purple-600', 'text-pink-200')
                           )}
                         >
-                          {code.discountType === 0 ? t('percentage') : t('fixedAmount')}
+                          {code.discountType === 0 ? t('managerDiscountCode.percentage') : t('managerDiscountCode.fixedAmount')}
                         </span>
                       </div>
 
@@ -437,7 +437,7 @@ export default function ManagerDiscountCode() {
                           getThemeClass('text-gray-700', 'text-slate-200')
                         )}
                       >
-                        <span className="font-semibold">{t('value')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.value')}:</span>{' '}
                         <span
                           className={cn(
                             'font-bold',
@@ -456,7 +456,7 @@ export default function ManagerDiscountCode() {
                           getThemeClass('text-gray-600', 'text-slate-200')
                         )}
                       >
-                        <span className="font-semibold">{t('minOrder')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.minOrder')}:</span>{' '}
                         <span
                           className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}
                         >
@@ -471,7 +471,7 @@ export default function ManagerDiscountCode() {
                             getThemeClass('text-gray-600', 'text-slate-200')
                           )}
                         >
-                          <span className="font-semibold">{t('maxDiscount')}:</span>{' '}
+                          <span className="font-semibold">{t('managerDiscountCode.maxDiscount')}:</span>{' '}
                           <span
                             className={cn(
                               'font-bold',
@@ -489,11 +489,11 @@ export default function ManagerDiscountCode() {
                           getThemeClass('text-gray-600', 'text-slate-200')
                         )}
                       >
-                        <span className="font-semibold">{t('maxUsage')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.maxUsage')}:</span>{' '}
                         <span
                           className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}
                         >
-                          {code.maxUsage === 2147483647 ? t('unlimited') : code.maxUsage}
+                          {code.maxUsage === 2147483647 ? t('managerDiscountCode.unlimited') : code.maxUsage}
                         </span>
                       </div>
 
@@ -503,7 +503,7 @@ export default function ManagerDiscountCode() {
                           getThemeClass('text-gray-600', 'text-slate-200')
                         )}
                       >
-                        <span className="font-semibold">{t('used')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.used')}:</span>{' '}
                         <span
                           className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}
                         >
@@ -514,7 +514,7 @@ export default function ManagerDiscountCode() {
                       <div
                         className={cn('text-sm', getThemeClass('text-gray-600', 'text-slate-200'))}
                       >
-                        <span className="font-semibold">{t('expiresAt')}:</span>{' '}
+                        <span className="font-semibold">{t('managerDiscountCode.expiresAt')}:</span>{' '}
                         <span
                           className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}
                         >
@@ -531,7 +531,7 @@ export default function ManagerDiscountCode() {
                         getThemeClass('text-gray-600', 'text-slate-300')
                       )}
                     >
-                      {t('noDiscountCodesForThisEvent')}
+                      {t('managerDiscountCode.noDiscountCodesForThisEvent')}
                     </div>
                   )}
                 </div>
@@ -544,7 +544,7 @@ export default function ManagerDiscountCode() {
                 getThemeClass('text-gray-600', 'text-slate-300')
               )}
             >
-              {t('selectEventToManageDiscountCodes')}
+              {t('managerDiscountCode.selectEventToManageDiscountCodes')}
             </div>
           )}
         </div>

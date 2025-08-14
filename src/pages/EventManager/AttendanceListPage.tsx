@@ -161,7 +161,7 @@ const AttendanceListPage = () => {
         // Map the API response to match the expected format
         const formattedItems = items.map(item => ({
           ...item,
-          customerName: item.fullName || t('unknownCustomer'),
+          customerName: item.fullName || t('attendanceList.unknownCustomer'),
           email: item.email || '-',
           phone: item.phone || '-',
           role: mapRoleToNumeric(item.role),
@@ -219,10 +219,10 @@ const AttendanceListPage = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success(t('attendanceExportedSuccessfully'));
+      toast.success(t('attendanceList.attendanceExportedSuccessfully'));
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error(t('exportFailed'));
+      toast.error(t('attendanceList.exportFailed'));
     } finally {
       setExportLoading(false);
     }
@@ -232,13 +232,13 @@ const AttendanceListPage = () => {
   const getRoleText = (role) => {
     switch (role) {
       case 1:
-        return t('customer');
+        return t('attendanceList.customer');
       case 2:
-        return t('eventManager');
+        return t('attendanceList.eventManager');
       case 3:
-        return t('collaborator');
+        return t('attendanceList.collaborator');
       default:
-        return t('unknown');
+        return t('attendanceList.unknown');
     }
   };
 
@@ -258,7 +258,7 @@ const AttendanceListPage = () => {
   const { i18n } = useTranslation();
   
   const formatDateTime = (dateString) => {
-    if (!dateString) return t('notAvailable');
+    if (!dateString) return t('attendanceList.notAvailable');
     return new Date(dateString).toLocaleString(i18n.language);
   };
 
@@ -278,10 +278,10 @@ const AttendanceListPage = () => {
           <h1
             className={cn('text-3xl font-bold mb-2', getThemeClass('text-blue-600', 'text-white'))}
           >
-            {t('attendanceList')}
+            {t('attendanceList.title')}
           </h1>
           <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-gray-300'))}>
-            {t('manageEventAttendance')}
+            {t('attendanceList.manageEventAttendance')}
           </p>
         </div>
 
@@ -301,7 +301,7 @@ const AttendanceListPage = () => {
               getThemeClass('text-blue-600', 'text-purple-300')
             )}
           >
-            {t('selectEvent')}
+            {t('attendanceList.selectEvent')}
           </h2>
 
           {/* Search */}
@@ -315,7 +315,7 @@ const AttendanceListPage = () => {
             />
             <input
               type="text"
-              placeholder={t('searchEvents')}
+              placeholder={t('attendanceList.searchEvents')}
               value={eventSearch}
               onChange={(e) => setEventSearch(e.target.value)}
               className={cn(
@@ -378,7 +378,7 @@ const AttendanceListPage = () => {
                   getThemeClass('text-blue-600', 'text-purple-300')
                 )}
               >
-                {t('attendanceList')} - {events.find((e) => e.eventId === selectedEvent)?.eventName}
+                {t('attendanceList.title')} - {events.find((e) => e.eventId === selectedEvent)?.eventName}
               </h2>
 
               <button
@@ -393,7 +393,7 @@ const AttendanceListPage = () => {
                 )}
               >
                 <Download size={20} />
-                {exportLoading ? t('exporting') : t('exportAttendance')}
+                {exportLoading ? t('attendanceList.exporting') : t('attendanceList.exportAttendance')}
               </button>
             </div>
 
@@ -415,7 +415,7 @@ const AttendanceListPage = () => {
                     </div>
                     <div>
                       <p className={cn("text-sm font-medium", getThemeClass("text-gray-500", "text-gray-300"))}>
-                        {t('totalAttendees')}
+                        {t('attendanceList.totalAttendees')}
                       </p>
                       <p className={cn("text-2xl font-bold", getThemeClass("text-gray-800", "text-white"))}>
                         {totalAttendees}
@@ -448,7 +448,7 @@ const AttendanceListPage = () => {
                           getThemeClass('text-gray-700', 'text-purple-200')
                         )}
                       >
-                        {t('customerName')}
+                        {t('attendanceList.customerName')}
                       </th>
                       <th
                         className={cn(
@@ -456,7 +456,7 @@ const AttendanceListPage = () => {
                           getThemeClass('text-gray-700', 'text-purple-200')
                         )}
                       >
-                        {t('role')}
+                        {t('attendanceList.role')}
                       </th>
                       <th
                         className={cn(
@@ -464,7 +464,7 @@ const AttendanceListPage = () => {
                           getThemeClass('text-gray-700', 'text-purple-200')
                         )}
                       >
-                        {t('checkInTime')}
+                        {t('attendanceList.checkInTime')}
                       </th>
                     </tr>
                   </thead>
@@ -503,7 +503,7 @@ const AttendanceListPage = () => {
                             getThemeClass('text-gray-600', 'text-gray-300')
                           )}
                         >
-                          {attendance.checkInTime ? formatDateTime(attendance.checkInTime) : t('notAvailable')}
+                          {attendance.checkInTime ? formatDateTime(attendance.checkInTime) : t('attendanceList.notAvailable')}
                         </td>
 
                       </tr>
@@ -519,29 +519,29 @@ const AttendanceListPage = () => {
                 className={cn('text-center py-8', getThemeClass('text-gray-500', 'text-gray-400'))}
               >
                 <Users size={48} className="mx-auto mb-4 opacity-50" />
-                <p>{t('noAttendancesFound')}</p>
+                <p>{t('attendanceList.noAttendancesFound')}</p>
               </div>
             )}
 
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-6">
-                <button
-                  onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
-                  disabled={pageNumber === 1}
-                  className={cn(
-                    'px-3 py-1 rounded border transition-all',
-                    getThemeClass(
-                      'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50',
-                      'bg-[#1a0022]/80 border-purple-500/30 text-white hover:bg-purple-900/30 disabled:opacity-50'
-                    )
-                  )}
-                >
-                  {t('previous')}
-                </button>
+                                  <button
+                    onClick={() => setPageNumber(Math.max(1, pageNumber - 1))}
+                    disabled={pageNumber === 1}
+                    className={cn(
+                      'px-3 py-1 rounded border transition-all',
+                      getThemeClass(
+                        'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50',
+                        'bg-[#1a0022]/12 border-purple-500/30 text-white hover:bg-purple-900/30 disabled:opacity-50'
+                      )
+                    )}
+                  >
+                    {t('attendanceList.previous')}
+                  </button>
 
                 <span className={cn('px-3 py-1', getThemeClass('text-gray-700', 'text-white'))}>
-                  {t('page')} {pageNumber} {t('of')} {totalPages}
+                  {t('attendanceList.page')} {pageNumber} {t('attendanceList.of')} {totalPages}
                 </span>
 
                 <button
@@ -555,7 +555,7 @@ const AttendanceListPage = () => {
                     )
                   )}
                 >
-                  {t('next')}
+                  {t('attendanceList.next')}
                 </button>
               </div>
             )}
@@ -566,7 +566,7 @@ const AttendanceListPage = () => {
         {!selectedEvent && (
           <div className={cn('text-center py-12', getThemeClass('text-gray-500', 'text-gray-400'))}>
             <Clock size={48} className="mx-auto mb-4 opacity-50" />
-            <p>{t('pleaseSelectEventToViewAttendance')}</p>
+            <p>{t('attendanceList.pleaseSelectEventToViewAttendance')}</p>
           </div>
         )}
       </div>

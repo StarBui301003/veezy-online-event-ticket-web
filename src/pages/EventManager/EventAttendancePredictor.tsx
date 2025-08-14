@@ -26,8 +26,10 @@ import {
 } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const EventAttendancePredictor = () => {
+  const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState([]);
   const [eventSearch, setEventSearch] = useState('');
@@ -182,7 +184,7 @@ const EventAttendancePredictor = () => {
                   )
                 )}
               >
-                AI Attendance Predictor
+                {t('eventAttendancePredictor.aiAttendancePredictor')}
               </h1>
               <p
                 className={cn(
@@ -193,7 +195,7 @@ const EventAttendancePredictor = () => {
                 <Sparkles
                   className={cn('w-5 h-5', getThemeClass('text-blue-500', 'text-yellow-400'))}
                 />
-                Dự đoán số người tham dự
+                {t('eventAttendancePredictor.predictAttendanceWithAI')}
               </p>
             </div>
           </div>
@@ -205,19 +207,19 @@ const EventAttendancePredictor = () => {
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              Neural Network Online
+              {t('eventAttendancePredictor.neuralNetworkOnline')}
             </div>
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
-              Real-time Processing
+              {t('eventAttendancePredictor.realTimeProcessing')}
             </div>
             <div className="flex items-center gap-2">
               <Database className="w-4 h-4" />
-              Big Data Analytics
+              {t('eventAttendancePredictor.bigDataAnalytics')}
             </div>
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4" />
-              Advanced Algorithms
+              {t('eventAttendancePredictor.advancedAlgorithms')}
             </div>
           </div>
         </div>
@@ -240,7 +242,7 @@ const EventAttendancePredictor = () => {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Tìm kiếm sự kiện..."
+                    placeholder={t('eventAttendancePredictor.searchEvents')}
                     value={eventSearch}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -299,7 +301,7 @@ const EventAttendancePredictor = () => {
                   style={{ maxHeight: '13.5rem', overflowY: 'auto' }}
                 >
                   <option value="" className="bg-[#2d0036] text-white">
-                    -- Chọn sự kiện --
+                    {t('eventAttendancePredictor.selectEvent')}
                   </option>
                   {filteredEvents.map((event) => (
                     <option
@@ -328,12 +330,12 @@ const EventAttendancePredictor = () => {
               {isLoading ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
-                  AI Analyzing...
+                  {t('eventAttendancePredictor.aiAnalyzing')}
                 </>
               ) : (
                 <>
                   <Zap className="w-5 h-5" />
-                  Predict with AI
+                  {t('eventAttendancePredictor.predictWithAI')}
                 </>
               )}
             </button>
@@ -343,19 +345,19 @@ const EventAttendancePredictor = () => {
             <div className="mt-4 p-4 bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-xl border-2 border-cyan-500/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-cyan-200 text-sm mb-1">Selected Event:</p>
+                  <p className="text-cyan-200 text-sm mb-1">{t('eventAttendancePredictor.selectedEvent')}</p>
                   <p className="text-white font-bold text-lg">{selectedEventData.eventName}</p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-cyan-300">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       {selectedEventData.startAt
-                        ? `Bắt đầu: ${new Date(selectedEventData.startAt).toLocaleString('vi-VN')}`
+                        ? `${t('eventAttendancePredictor.startTime')} ${new Date(selectedEventData.startAt).toLocaleString('vi-VN')}`
                         : '--'}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       {selectedEventData.endAt
-                        ? `Kết thúc: ${new Date(selectedEventData.endAt).toLocaleString('vi-VN')}`
+                        ? `${t('eventAttendancePredictor.endTime')} ${new Date(selectedEventData.endAt).toLocaleString('vi-VN')}`
                         : '--'}
                     </span>
                     <span className="flex items-center gap-1">
@@ -382,22 +384,22 @@ const EventAttendancePredictor = () => {
                   <Brain className="w-10 h-10 text-purple-400 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">AI Neural Network Processing</h3>
+              <h3 className="text-3xl font-bold text-white mb-4">{t('eventAttendancePredictor.aiNeuralNetworkProcessing')}</h3>
               <p className="text-slate-300 text-lg mb-6">
-                Analyzing historical data, market trends, and behavioral patterns...
+                {t('eventAttendancePredictor.analyzingHistoricalData')}
               </p>
               <div className="flex justify-center items-center gap-6 text-sm text-slate-400 mb-8">
                 <div className="flex items-center gap-2">
                   <Globe className="w-4 h-4" />
-                  Data Mining
+                  {t('eventAttendancePredictor.dataMining')}
                 </div>
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4" />
-                  Pattern Recognition
+                  {t('eventAttendancePredictor.patternRecognition')}
                 </div>
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
-                  Predictive Modeling
+                  {t('eventAttendancePredictor.predictiveModeling')}
                 </div>
               </div>
               <div className="flex justify-center space-x-2">
@@ -416,8 +418,8 @@ const EventAttendancePredictor = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mb-4">
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-2">AI Prediction Complete</h3>
-              <p className="text-slate-300 text-lg">Advanced machine learning analysis results</p>
+              <h3 className="text-3xl font-bold text-white mb-2">{t('eventAttendancePredictor.aiPredictionComplete')}</h3>
+              <p className="text-slate-300 text-lg">{t('eventAttendancePredictor.advancedMachineLearningAnalysis')}</p>
             </div>
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-10 text-white text-center mb-8 relative overflow-hidden">
               {/* Tắt hiệu ứng nhấp nháy */}
@@ -425,7 +427,7 @@ const EventAttendancePredictor = () => {
               <div className="relative z-10">
                 <div className="flex items-center justify-center space-x-4 mb-6">
                   <Users className="w-10 h-10" />
-                  <span className="text-2xl font-medium">Predicted Attendance</span>
+                  <span className="text-2xl font-medium">{t('eventAttendancePredictor.predictedAttendance')}</span>
                 </div>
                 <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
                   {formatNumber(prediction.suggested_quantity)}
@@ -442,16 +444,14 @@ const EventAttendancePredictor = () => {
               <div className="p-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-32 h-32 mx-auto mb-8 flex items-center justify-center">
                 <Brain className="w-16 h-16 text-white" />
               </div>
-              <h3 className="text-4xl font-bold text-white mb-6">Ready for AI Analysis</h3>
+              <h3 className="text-4xl font-bold text-white mb-6">{t('eventAttendancePredictor.readyForAIAnalysis')}</h3>
               <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-8">
-                Select an event above to unleash the power of artificial intelligence. Our advanced
-                neural networks will analyze historical data, market trends, and behavioral patterns
-                to provide precise attendance predictions.
+                {t('eventAttendancePredictor.selectEventDescription')}
               </p>
               <div className="flex justify-center items-center gap-6 text-slate-400">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-6 h-6 text-yellow-400" />
-                  <span className="text-lg">Powered by Machine Learning</span>
+                  <span className="text-lg">{t('eventAttendancePredictor.poweredByMachineLearning')}</span>
                 </div>
               </div>
             </div>

@@ -181,7 +181,7 @@ export default function EventListWithTicketManager() {
 
   // Delete ticket handler
   const handleDelete = async (ticketId: string) => {
-    if (!window.confirm(t('confirm_delete_ticket'))) return;
+    if (!window.confirm(t('eventListWithTicketManager.confirmDeleteTicket'))) return;
     
     try {
       await deleteTicket(ticketId);
@@ -230,7 +230,7 @@ export default function EventListWithTicketManager() {
               )
             )}
           >
-            {t('yourEvents')}
+            {t('eventListWithTicketManager.yourEvents')}
           </h2>
           
           {/* Search Input */}
@@ -238,7 +238,7 @@ export default function EventListWithTicketManager() {
             type="text"
             value={searchEvent}
             onChange={(e) => setSearchEvent(e.target.value)}
-            placeholder={t('searchEvents')}
+            placeholder={t('eventListWithTicketManager.searchEvents')}
             className={cn(
               'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-4',
               getThemeClass(
@@ -256,7 +256,7 @@ export default function EventListWithTicketManager() {
                 getThemeClass('text-blue-600', 'text-pink-400')
               )}
             >
-              {t('loadingEvents')}...
+              {t('eventListWithTicketManager.loadingEvents')}...
             </div>
           )}
 
@@ -270,7 +270,7 @@ export default function EventListWithTicketManager() {
                     getThemeClass('text-gray-600', 'text-slate-300')
                   )}
                 >
-                  {searchEvent.trim() ? t('noEventsFound') : t('noEventsFound')}
+                  {searchEvent.trim() ? t('eventListWithTicketManager.noEventsFound') : t('eventListWithTicketManager.noEventsFound')}
                 </div>
               )}
               
@@ -322,7 +322,7 @@ export default function EventListWithTicketManager() {
                       setSearchTicket('');
                     }}
                   >
-                    <FaSearch className="inline mr-2" /> {t('viewTickets')}
+                    <FaSearch className="inline mr-2" /> {t('eventListWithTicketManager.viewTickets')}
                   </button>
                   <button
                     className={cn(
@@ -337,7 +337,7 @@ export default function EventListWithTicketManager() {
                       navigate(`/event-manager/tickets/create/${event.eventId}`);
                     }}
                   >
-                    <FaPlus className="inline mr-2" /> {t('createNewTicket')}
+                    <FaPlus className="inline mr-2" /> {t('eventListWithTicketManager.createNewTicket')}
                   </button>
                 </div>
               ))}
@@ -362,9 +362,9 @@ export default function EventListWithTicketManager() {
               </button>
               
               <div className={cn('px-4 py-2 font-bold text-center min-w-[120px]', getThemeClass('text-blue-600', 'text-white'))}>
-                <div>{t('page')} {eventPage} / {totalEventPages}</div>
+                <div>{t('eventListWithTicketManager.page')} {eventPage} / {totalEventPages}</div>
                 <div className="text-xs opacity-70">
-                  {t('total')}: {totalEvents} {t('events')}
+                  {t('eventListWithTicketManager.total')}: {totalEvents} {t('eventListWithTicketManager.events')}
                 </div>
               </div>
               
@@ -395,7 +395,7 @@ export default function EventListWithTicketManager() {
                   getThemeClass('text-blue-600', 'text-yellow-300')
                 )}
               >
-                {t('ticketsForEvent')}:{' '}
+                {t('eventListWithTicketManager.ticketsForEvent')}:{' '}
                 <span className={cn(getThemeClass('text-purple-600', 'text-pink-200'))}>
                   {selectedEvent.eventName}
                 </span>
@@ -406,7 +406,7 @@ export default function EventListWithTicketManager() {
                 type="text"
                 value={searchTicket}
                 onChange={(e) => setSearchTicket(e.target.value)}
-                placeholder={t('searchTicketsByNameOrDescription')}
+                placeholder={t('eventListWithTicketManager.searchTicketsByNameOrDescription')}
                 className={cn(
                   'w-full p-3 rounded-xl text-base focus:ring-2 focus:border-transparent transition-all duration-200 mb-5',
                   getThemeClass(
@@ -423,7 +423,7 @@ export default function EventListWithTicketManager() {
                     getThemeClass('text-blue-600', 'text-pink-400')
                   )}
                 >
-                  {t('loadingTickets')}...
+                  {t('eventListWithTicketManager.loadingTickets')}...
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -454,7 +454,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            <span className="font-semibold">{t('price')}:</span>{' '}
+                            <span className="font-semibold">{t('eventListWithTicketManager.price')}:</span>{' '}
                             <span
                               className={cn(
                                 'font-bold',
@@ -470,7 +470,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            <span className="font-semibold">{t('available')}:</span>{' '}
+                            <span className="font-semibold">{t('eventListWithTicketManager.available')}:</span>{' '}
                             <span
                               className={cn(
                                 'font-bold',
@@ -487,7 +487,7 @@ export default function EventListWithTicketManager() {
                             getThemeClass('text-gray-600', 'text-slate-200')
                           )}
                         >
-                          <span className="font-semibold block">{t('sale_time')}:</span>
+                          <span className="font-semibold block">{t('eventListWithTicketManager.sale_time')}:</span>
                           <span
                             className={cn(
                               'font-bold block',
@@ -524,7 +524,7 @@ export default function EventListWithTicketManager() {
                               getThemeClass('text-gray-700', 'text-slate-200')
                             )}
                           >
-                            {t('status')}:
+                            {t('eventListWithTicketManager.status')}:
                           </span>{' '}
                           {ticket.quantityAvailable > 0 ? (
                             <span
@@ -533,7 +533,7 @@ export default function EventListWithTicketManager() {
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
-                              {t('availableTickets')}
+                              {t('eventListWithTicketManager.availableTickets')}
                             </span>
                           ) : (
                             <span
@@ -542,7 +542,7 @@ export default function EventListWithTicketManager() {
                                 getThemeClass('text-red-600', 'text-red-400')
                               )}
                             >
-                              {t('soldOutTickets')}
+                              {t('eventListWithTicketManager.soldOutTickets')}
                             </span>
                           )}
                         </div>
@@ -552,7 +552,7 @@ export default function EventListWithTicketManager() {
                             getThemeClass('text-gray-500', 'text-slate-400')
                           )}
                         >
-                          {t('description')}: {ticket.ticketDescription}
+                          {t('eventListWithTicketManager.description')}: {ticket.ticketDescription}
                         </div>
                       </div>
                       <div className="flex gap-2 mt-4">
@@ -570,7 +570,7 @@ export default function EventListWithTicketManager() {
                             )
                           }
                         >
-                          <FaEdit /> {t('edit')}
+                          <FaEdit /> {t('eventListWithTicketManager.edit')}
                         </button>
                         <button
                           className={cn(
@@ -582,7 +582,7 @@ export default function EventListWithTicketManager() {
                           )}
                           onClick={() => handleDelete(ticket.ticketId)}
                         >
-                          <FaTrash /> {t('delete')}
+                          <FaTrash /> {t('eventListWithTicketManager.delete')}
                         </button>
                       </div>
                     </div>
@@ -594,7 +594,7 @@ export default function EventListWithTicketManager() {
                         getThemeClass('text-gray-600', 'text-slate-300')
                       )}
                     >
-                      {t('no_tickets_for_this_event')}
+                      {t('eventListWithTicketManager.no_tickets_for_this_event')}
                     </div>
                   )}
                 </div>
@@ -607,7 +607,7 @@ export default function EventListWithTicketManager() {
                 getThemeClass('text-gray-600', 'text-slate-300')
               )}
             >
-              {t('please_select_an_event_to_view_tickets')}
+              {t('eventListWithTicketManager.please_select_an_event_to_view_tickets')}
             </div>
           )}
         </div>

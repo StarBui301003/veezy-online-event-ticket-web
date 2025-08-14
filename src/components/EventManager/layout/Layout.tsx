@@ -592,14 +592,14 @@ export function EventManagerLayout() {
                       icon={FaChartBar}
                       isActive={isActiveRoute('/event-manager/analytics/predictions')}
                     >
-                      {t('aiattendancepredictor')}
+                      {t('eventAttendancePredictor.aiAttendancePredictor')}
                     </NavItem>
                     <NavItem
                       to="fund-management"
                       icon={FaDollarSign}
                       isActive={isActiveRoute('/event-manager/fund-management')}
                     >
-                      {t('fundManagement')}
+                      {t('fundManagement.fundManagement')}
                     </NavItem>
                   </div>
                 )}
@@ -633,7 +633,7 @@ export function EventManagerLayout() {
                       icon={FaBell}
                       isActive={isActiveRoute('/event-manager/notification-manager')}
                     >
-                      Notification Center
+                      {t('layout.notificationCenter')}
                     </NavItem>
                   </div>
                 )}
@@ -680,7 +680,7 @@ export function EventManagerLayout() {
                     <div
                       className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}
                     >
-                      Event Manager
+                      {t('layout.eventManager')}
                     </div>
                     <div className={cn('text-xs', getThemeClass('text-gray-600', 'text-gray-300'))}>
                       {t('accountManagement')}
