@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -129,7 +130,7 @@ const NewsDetail: React.FC = () => {
     setShowRegisterModal(true);
   };
 
-  const handleRegisterSuccess = (email: string) => {
+  const handleRegisterSuccess = (_email: string) => {
     setShowRegisterModal(false);
     if (news) setReportModal({ type: 'news', id: news.newsId });
   };

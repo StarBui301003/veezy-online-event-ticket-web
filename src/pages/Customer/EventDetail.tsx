@@ -184,7 +184,7 @@ const EventDetail = () => {
   const [faceError, setFaceError] = useState('');
   const [showAllTags, setShowAllTags] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
-  const [aiApiFailed, setAiApiFailed] = useState(false);
+  const [aiApiFailed] = useState(false);
 
   const { isLoggedIn, user } = useContext(AuthContext);
   const customerId = user?.userId || user?.accountId || '';

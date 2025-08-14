@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ExternalLink, Check, Bell, CheckCheck } from 'lucide-react';
+import { ExternalLink, Bell } from 'lucide-react';
 import { getNotificationIcon } from '../common/getNotificationIcon';
 import type { Notification } from '@/hooks/useNotifications';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
@@ -15,18 +15,11 @@ interface NotificationDropdownProps {
   onClose?: () => void;
 }
 
-const NotificationDropdown = ({
-  userId,
-  onViewAll,
-  t,
-  onRedirect,
-  onClose,
-}: NotificationDropdownProps) => {
+const NotificationDropdown = ({ userId, onViewAll, t }: NotificationDropdownProps) => {
   const { getThemeClass } = useThemeClasses();
 
   // Use the hook for API and UI update
-  const { notifications, markAsRead, markAllAsRead, refreshNotifications } =
-    useRealtimeNotifications();
+  const { notifications, markAsRead } = useRealtimeNotifications();
 
   // Track notifications that are currently being clicked to prevent rapid clicks
   const clickingNotificationsRef = useRef<Set<string>>(new Set());
@@ -43,17 +36,6 @@ const NotificationDropdown = ({
 
   // Calculate unread count from notifications to ensure accuracy
   const actualUnreadCount = notifications.filter((n) => !n.isRead).length;
-
-  // Always call the hook's markAllAsRead(userId) which does both UI and API
-  const handleMarkAllAsRead = async () => {
-    if (!userId || !isMountedRef.current) return;
-    try {
-      await markAllAsRead(userId);
-      await refreshNotifications();
-    } catch (error) {
-      await refreshNotifications();
-    }
-  };
 
   const handleNotificationClick = async (notification: Notification) => {
     if (userId && isMountedRef.current) {
@@ -109,17 +91,6 @@ const NotificationDropdown = ({
           }, 1000);
         }
       }
-    }
-  };
-
-  // Separate function for handling redirects
-  const handleNotificationRedirect = (notification: Notification) => {
-    if (notification.redirectUrl) {
-      console.log('[NotificationDropdown] Redirecting to:', notification.redirectUrl);
-      onRedirect?.(notification.redirectUrl);
-    } else {
-      console.log('[NotificationDropdown] No redirect URL, calling onViewAll');
-      onViewAll();
     }
   };
 
@@ -345,43 +316,22 @@ const NotificationDropdown = ({
           getThemeClass('border-gray-200 bg-white', 'border-gray-800 bg-gray-900')
         )}
       >
-        <div className="flex gap-2">
-          <button
-            className={cn(
-              'flex-1 py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
-              getThemeClass(
-                'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200',
-                'text-blue-200 bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50'
-              )
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onViewAll();
-            }}
-          >
-            {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
-          </button>
-          <button
-            className={cn(
-              'px-4 py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
-              getThemeClass(
-                'text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300',
-                'text-gray-300 bg-gray-800 hover:bg-gray-700 border border-gray-600'
-              )
-            )}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              // Chỉ gọi onClose, không gọi onViewAll
-              if (onClose) {
-                onClose();
-              }
-            }}
-          >
-            {t('close') || 'Đóng'}
-          </button>
-        </div>
+        <button
+          className={cn(
+            'w-full py-3 text-center font-semibold rounded-xl transition-all text-sm hover:scale-[1.02] active:scale-[0.98] hover:shadow-md relative',
+            getThemeClass(
+              'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200',
+              'text-blue-200 bg-blue-900/30 hover:bg-blue-800/40 border border-blue-700/50'
+            )
+          )}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onViewAll();
+          }}
+        >
+          {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
+        </button>
       </div>
 
       <style>{`
