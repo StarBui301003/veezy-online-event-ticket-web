@@ -74,6 +74,12 @@ const EventReviews = () => {
         text: item.text || '',
         score: item.socre ?? item.score ?? 0,
       }));
+      
+      // Calculate total comments
+      const totalComments = (api.negative_reviews || []).length + 
+                           (api.positive_reviews || []).length + 
+                           (api.neutral_reviews || []).length;
+      
       const mapped = {
         data: {
           positivePercentage:
@@ -91,15 +97,36 @@ const EventReviews = () => {
           comments: negativeReviews,
           aspectSentiments: api.aspect_sentiments || [],
           topKeywords: api.top_keywords || {},
+          totalComments: totalComments,
         },
       };
       setSentimentData(mapped);
       setComments(mapped.data.comments);
       setAnimateCards(true);
+      
+      // Show notification if no comments found
+      if (totalComments === 0) {
+        toast.info('Không tìm thấy bình luận nào để phân tích cho sự kiện này.');
+      }
     } catch (error) {
       console.error('[DEBUG] analyzeSentiment error:', error);
       setSentimentData(null);
-      setComments([]);
+      
+      // Xử lý trường hợp không tìm thấy bình luận
+      if (error?.response?.data?.message?.includes('No comments found')) {
+        setSentimentData({
+          data: {
+            totalComments: 0,
+            positivePercentage: 0,
+            neutralPercentage: 0,
+            negativePercentage: 0,
+            overallSentiment: 'neutral',
+            comments: []
+          }
+        });
+      } else {
+        toast.error('Có lỗi xảy ra khi phân tích cảm xúc. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
@@ -119,6 +146,7 @@ const EventReviews = () => {
         return 'from-amber-400 to-yellow-600';
     }
   };
+
   const getSentimentIcon = (sentiment) => {
     switch (sentiment) {
       case 'positive':
@@ -129,7 +157,6 @@ const EventReviews = () => {
         return <Minus className="w-5 h-5" />;
     }
   };
-  // Removed unused getAspectSentimentColor function
 
   const filteredEvents = events.filter(
     (ev) =>
@@ -178,6 +205,7 @@ const EventReviews = () => {
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
+        {/* Header Section */}
         <div
           className={cn(
             'backdrop-blur-xl rounded-2xl shadow-2xl p-8 mb-8',
@@ -245,9 +273,10 @@ const EventReviews = () => {
           </div>
         </div>
 
+        {/* Controls Section with fixed z-index */}
         <div
           className={cn(
-            'backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8',
+            'backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8 relative z-30',
             getThemeClass(
               'bg-white/80 border border-blue-200',
               'bg-gradient-to-r from-slate-800/60 to-slate-700/60 border border-blue-500/30'
@@ -256,6 +285,7 @@ const EventReviews = () => {
         >
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 flex-1">
+              {/* Search Input with high z-index dropdown */}
               <div className="relative w-full sm:w-96">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <div className="relative">
@@ -311,8 +341,9 @@ const EventReviews = () => {
                     </button>
                   )}
                 </div>
+                {/* Dropdown with highest z-index */}
                 {eventSearch && eventSearch !== (selectedEventData?.eventName || '') && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-[#2d0036] border border-green-500/30 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-[#2d0036] border border-green-500/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
                     {filteredEvents.map((ev, idx) => (
                       <div
                         key={ev.eventId}
@@ -334,6 +365,8 @@ const EventReviews = () => {
                   </div>
                 )}
               </div>
+              
+              {/* Select Dropdown */}
               <div className="relative w-full sm:w-80">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-200 w-5 h-5" />
                 <select
@@ -360,6 +393,8 @@ const EventReviews = () => {
                 </select>
               </div>
             </div>
+            
+            {/* Analyze Button */}
             <button
               onClick={analyzeSentiment}
               disabled={!selectedEvent || loading}
@@ -384,6 +419,8 @@ const EventReviews = () => {
               )}
             </button>
           </div>
+          
+          {/* Selected Event Display */}
           {selectedEventData && (
             <div className="mt-4 p-4 bg-gradient-to-r from-green-900/60 to-blue-900/60 rounded-xl border-2 border-green-500/30">
               <p className="text-sm text-green-200">
@@ -394,150 +431,176 @@ const EventReviews = () => {
           )}
         </div>
 
+        {/* Results Section */}
         {sentimentData && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {[
-                {
-                  icon: TrendingUp,
-                  value: `${sentimentData.data?.positivePercentage ?? 0}%`,
-                  label: t('Positive Sentiment'),
-                  gradient: 'from-emerald-500 to-green-500',
-                  bgGradient: 'from-emerald-500/20 to-green-500/20',
-                },
-                {
-                  icon: Minus,
-                  value: `${sentimentData.data?.neutralPercentage ?? 0}%`,
-                  label: t('Neutral Sentiment'),
-                  gradient: 'from-amber-400 to-yellow-600',
-                  bgGradient: 'from-amber-400/20 to-yellow-600/20',
-                },
-                {
-                  icon: TrendingDown,
-                  value: `${sentimentData.data?.negativePercentage ?? 0}%`,
-                  label: t('Negative Sentiment'),
-                  gradient: 'from-red-500 to-rose-500',
-                  bgGradient: 'from-red-500/20 to-rose-500/20',
-                },
-              ].map((metric, index) => (
-                <div
-                  key={index}
-                  className={`bg-gradient-to-br ${metric.bgGradient} backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/10 transform transition-all duration-300 hover:scale-105`}
-                >
-                  <div className="flex items-center">
-                    <div className={`p-3 bg-gradient-to-r ${metric.gradient} rounded-xl`}>
-                      <metric.icon className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="ml-4">
-                      <p className="text-3xl font-bold text-white mb-1">{metric.value}</p>
-                      <p className="text-slate-300 text-sm font-medium">{metric.label}</p>
-                    </div>
+            {/* No Comments Found Message */}
+            {sentimentData.data.totalComments === 0 ? (
+              <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-16 border border-amber-500/30">
+                <div className="text-center">
+                  <div className="p-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
+                    <MessageCircle className="w-12 h-12 text-white" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-white mb-4">Không có bình luận nào</h3>
+                  <p className="text-slate-300 text-lg max-w-2xl mx-auto">
+                    Sự kiện "{selectedEventData?.eventName}" hiện tại chưa có bình luận nào từ người tham dự để phân tích. 
+                    Hãy khuyến khích khách tham dự để lại phản hồi để có thể thực hiện phân tích cảm xúc.
+                  </p>
+                  <div className="mt-8 flex justify-center items-center gap-4 text-slate-400">
+                    <Sparkles className="w-5 h-5" />
+                    <span>Chờ phản hồi từ người tham dự</span>
+                    <Sparkles className="w-5 h-5" />
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <>
+                {/* Sentiment Metrics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  {[
+                    {
+                      icon: TrendingUp,
+                      value: `${sentimentData.data?.positivePercentage ?? 0}%`,
+                      label: t('Positive Sentiment'),
+                      gradient: 'from-emerald-500 to-green-500',
+                      bgGradient: 'from-emerald-500/20 to-green-500/20',
+                    },
+                    {
+                      icon: Minus,
+                      value: `${sentimentData.data?.neutralPercentage ?? 0}%`,
+                      label: t('Neutral Sentiment'),
+                      gradient: 'from-amber-400 to-yellow-600',
+                      bgGradient: 'from-amber-400/20 to-yellow-600/20',
+                    },
+                    {
+                      icon: TrendingDown,
+                      value: `${sentimentData.data?.negativePercentage ?? 0}%`,
+                      label: t('Negative Sentiment'),
+                      gradient: 'from-red-500 to-rose-500',
+                      bgGradient: 'from-red-500/20 to-rose-500/20',
+                    },
+                  ].map((metric, index) => (
+                    <div
+                      key={index}
+                      className={`bg-gradient-to-br ${metric.bgGradient} backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-white/10 transform transition-all duration-300 hover:scale-105`}
+                    >
+                      <div className="flex items-center">
+                        <div className={`p-3 bg-gradient-to-r ${metric.gradient} rounded-xl`}>
+                          <metric.icon className="w-8 h-8 text-white" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-3xl font-bold text-white mb-1">{metric.value}</p>
+                          <p className="text-slate-300 text-sm font-medium">{metric.label}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 mb-8 border border-purple-500/30">
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                Tổng quan cảm xúc
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <div
-                    className={`inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r ${getSentimentGradient(
-                      sentimentData.data?.overallSentiment
-                    )} text-white font-semibold text-lg shadow-lg`}
-                  >
-                    {getSentimentIcon(sentimentData.data?.overallSentiment)}
-                    Tổng thể:{' '}
-                    {sentimentData.data?.overallSentiment === 'positive'
-                      ? 'Rất tích cực'
-                      : sentimentData.data?.overallSentiment === 'negative'
-                      ? 'Cần cải thiện'
-                      : 'Trung tính'}
+                {/* Overall Sentiment Overview */}
+                <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 mb-8 border border-purple-500/30">
+                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    Tổng quan cảm xúc
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                      <div
+                        className={`inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r ${getSentimentGradient(
+                          sentimentData.data?.overallSentiment
+                        )} text-white font-semibold text-lg shadow-lg`}
+                      >
+                        {getSentimentIcon(sentimentData.data?.overallSentiment)}
+                        Tổng thể:{' '}
+                        {sentimentData.data?.overallSentiment === 'positive'
+                          ? 'Rất tích cực'
+                          : sentimentData.data?.overallSentiment === 'negative'
+                          ? 'Cần cải thiện'
+                          : 'Trung tính'}
+                      </div>
+                    </div>
+                    {(sentimentData.data?.positivePercentage > 0 ||
+                      sentimentData.data?.neutralPercentage > 0 ||
+                      sentimentData.data?.negativePercentage > 0) && (
+                      <div className="space-y-4">
+                        <div className="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden shadow-inner">
+                          <div className="h-full flex">
+                            <div
+                              className="bg-gradient-to-r from-emerald-400 to-green-500 h-full transition-all duration-1000 ease-out shadow-lg"
+                              style={{ width: `${sentimentData.data?.positivePercentage || 0}%` }}
+                            ></div>
+                            <div
+                              className="bg-gradient-to-r from-amber-400 to-yellow-500 h-full transition-all duration-1000 ease-out delay-300"
+                              style={{ width: `${sentimentData.data?.neutralPercentage || 0}%` }}
+                            ></div>
+                            <div
+                              className="bg-gradient-to-r from-red-400 to-rose-500 h-full transition-all duration-1000 ease-out delay-500"
+                              style={{ width: `${sentimentData.data?.negativePercentage || 0}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm text-slate-300">
+                          <span className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
+                            Tích cực ({sentimentData.data?.positivePercentage ?? 0}%)
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
+                            Trung tính ({sentimentData.data?.neutralPercentage ?? 0}%)
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-rose-500 rounded-full"></div>
+                            Tiêu cực ({sentimentData.data?.negativePercentage ?? 0}%)
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {(sentimentData.data?.positivePercentage > 0 ||
-                  sentimentData.data?.neutralPercentage > 0 ||
-                  sentimentData.data?.negativePercentage > 0) && (
+
+                {/* Negative Comments Section */}
+                <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-blue-500/30">
+                  <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-red-500 to-rose-500 rounded-xl">
+                      <MessageCircle className="w-6 h-6 text-white" />
+                    </div>
+                    Bình luận tiêu cực
+                  </h3>
                   <div className="space-y-4">
-                    <div className="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden shadow-inner">
-                      <div className="h-full flex">
-                        <div
-                          className="bg-gradient-to-r from-emerald-400 to-green-500 h-full transition-all duration-1000 ease-out shadow-lg"
-                          style={{ width: `${sentimentData.data?.positivePercentage || 0}%` }}
-                        ></div>
-                        <div
-                          className="bg-gradient-to-r from-amber-400 to-yellow-500 h-full transition-all duration-1000 ease-out delay-300"
-                          style={{ width: `${sentimentData.data?.neutralPercentage || 0}%` }}
-                        ></div>
-                        <div
-                          className="bg-gradient-to-r from-red-400 to-rose-500 h-full transition-all duration-1000 ease-out delay-500"
-                          style={{ width: `${sentimentData.data?.negativePercentage || 0}%` }}
-                        ></div>
+                    {comments.length === 0 && (
+                      <div className="text-slate-400 text-center py-8">
+                        <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-400" />
+                        <p className="text-green-300">Tuyệt vời! Không có bình luận tiêu cực nào được tìm thấy</p>
+                        <p className="text-slate-400 text-sm mt-2">Sự kiện này nhận được phản hồi rất tích cực từ người tham dự</p>
                       </div>
-                    </div>
-                    <div className="flex justify-between text-sm text-slate-300">
-                      <span className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
-                        Tích cực ({sentimentData.data?.positivePercentage ?? 0}%)
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
-                        Trung tính ({sentimentData.data?.neutralPercentage ?? 0}%)
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-rose-500 rounded-full"></div>
-                        Tiêu cực ({sentimentData.data?.negativePercentage ?? 0}%)
-                      </span>
-                    </div>
+                    )}
+                    {comments.map((comment, index) => (
+                      <div
+                        key={comment.id || index}
+                        className="bg-slate-700/30 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:bg-slate-700/50 transition-all duration-300 transform hover:scale-[1.02]"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 bg-red-500/20 rounded-lg">
+                            <XCircle className="w-5 h-5 text-red-400" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-slate-200 text-lg leading-relaxed mb-2">
+                              {comment.text}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-
-              {/* Aspect Sentiments đã bị ẩn theo yêu cầu */}
-            </div>
-
-            <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-blue-500/30">
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-red-500 to-rose-500 rounded-xl">
-                  <MessageCircle className="w-6 h-6 text-white" />
                 </div>
-                Bình luận tiêu cực
-              </h3>
-              <div className="space-y-4">
-                {comments.length === 0 && (
-                  <div className="text-slate-400 text-center py-8">
-                    <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    Không có bình luận tiêu cực nào được tìm thấy
-                  </div>
-                )}
-                {comments.map((comment, index) => (
-                  <div
-                    key={comment.id || index}
-                    className="bg-slate-700/30 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:bg-slate-700/50 transition-all duration-300 transform hover:scale-[1.02]"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="p-2 bg-red-500/20 rounded-lg">
-                        <XCircle className="w-5 h-5 text-red-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-slate-200 text-lg leading-relaxed mb-2">
-                          {comment.text}
-                        </p>
-                        {/* Ẩn điểm cảm xúc theo yêu cầu */}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              </>
+            )}
           </>
         )}
 
+        {/* Loading State */}
         {loading && (
           <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 backdrop-blur-xl rounded-2xl shadow-2xl p-16 border border-purple-500/30">
             <div className="text-center">

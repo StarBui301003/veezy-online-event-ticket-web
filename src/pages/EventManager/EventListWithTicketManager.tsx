@@ -50,15 +50,22 @@ export default function EventListWithTicketManager() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [eventPage, setEventPage] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
-  // Load events
-  const loadEvents = async () => {
+  // Load events with pagination
+  const loadEvents = async (page: number = eventPage) => {
     setLoadingEvents(true);
     try {
-      const data = await getMyEvents(1, EVENTS_PER_PAGE);
+      const data = await getMyEvents(page, EVENTS_PER_PAGE);
       const items = Array.isArray(data?.items) ? data.items : [];
       const approved = items.filter((ev) => ev.isApproved === 1);
+      
+      // Set total count từ API response
+      setTotalEvents(data?.totalCount || 0);
+      
+      // Luôn luôn replace events cho từng page (không append)
       setEvents(approved);
       setFilteredEvents(approved);
     } finally {
@@ -79,26 +86,26 @@ export default function EventListWithTicketManager() {
   };
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    loadEvents(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // SignalR real-time updates using global connections
   useEffect(() => {
     // Listen for real-time event updates using global connections managed by App.tsx
     onEvent('OnEventCreated', () => {
-      loadEvents();
+      loadEvents(1);
     });
 
     onEvent('OnEventUpdated', () => {
-      loadEvents();
+      loadEvents(eventPage);
     });
 
     onEvent('OnEventDeleted', () => {
-      loadEvents();
+      loadEvents(eventPage);
     });
 
     onEvent('OnEventApproved', () => {
-      loadEvents();
+      loadEvents(1);
     });
 
     // Listen for real-time ticket updates using global connections managed by App.tsx
@@ -125,13 +132,15 @@ export default function EventListWithTicketManager() {
         loadTicketsForEvent(selectedEvent.eventId);
       }
     });
-  }, [selectedEvent]);
+  }, [selectedEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tìm kiếm sự kiện realtime
   useEffect(() => {
     if (!searchEvent.trim()) {
+      setIsSearching(false);
       setFilteredEvents(events);
     } else {
+      setIsSearching(true);
       const filtered = events.filter((ev) =>
         ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
       );
@@ -141,11 +150,16 @@ export default function EventListWithTicketManager() {
   }, [searchEvent, events]);
 
   // Phân trang sự kiện
-  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE));
-  const pagedEvents = filteredEvents.slice(
-    (eventPage - 1) * EVENTS_PER_PAGE,
-    eventPage * EVENTS_PER_PAGE
-  );
+  const totalEventPages = isSearching 
+    ? Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+    : Math.max(1, Math.ceil(totalEvents / EVENTS_PER_PAGE));
+    
+  const pagedEvents = isSearching 
+    ? filteredEvents.slice(
+        (eventPage - 1) * EVENTS_PER_PAGE,
+        eventPage * EVENTS_PER_PAGE
+      )
+    : filteredEvents; // Khi không search, hiển thị tất cả events đã load
 
   // Log số lượng sự kiện
   // Pagination logging removed for production
@@ -195,9 +209,26 @@ export default function EventListWithTicketManager() {
     }
   };
 
+  // Xử lý chuyển trang
+  const handlePageChange = async (newPage: number) => {
+    if (newPage === eventPage || loadingEvents) return;
+    
+    setEventPage(newPage);
+    
+    // Nếu đang search, chỉ cần update page state để show filtered results
+    if (isSearching) {
+      return;
+    }
+    
+    // Nếu không search, gọi API để load page mới
+    await loadEvents(newPage);
+  };
+
   // Nếu chuyển trang mà không còn sự kiện, về trang 1
   useEffect(() => {
-    if (eventPage > totalEventPages) setEventPage(1);
+    if (eventPage > totalEventPages && totalEventPages > 0) {
+      setEventPage(1);
+    }
   }, [totalEventPages, eventPage]);
 
   return (
@@ -341,13 +372,16 @@ export default function EventListWithTicketManager() {
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === 1}
-                    onClick={() => setEventPage((p) => Math.max(1, p - 1))}
+                    disabled={eventPage === 1 || loadingEvents}
+                    onClick={() => handlePageChange(Math.max(1, eventPage - 1))}
                   >
                     <FaChevronLeft />
                   </button>
                   <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
                     {t('page')} {eventPage}/{totalEventPages}
+                    {loadingEvents && (
+                      <span className="ml-2 text-sm opacity-70">({t('loading')}...)</span>
+                    )}
                   </span>
                   <button
                     className={cn(
@@ -357,8 +391,8 @@ export default function EventListWithTicketManager() {
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === totalEventPages}
-                    onClick={() => setEventPage((p) => Math.min(totalEventPages, p + 1))}
+                    disabled={eventPage === totalEventPages || loadingEvents}
+                    onClick={() => handlePageChange(Math.min(totalEventPages, eventPage + 1))}
                   >
                     <FaChevronRight />
                   </button>

@@ -19,11 +19,11 @@ import { cn } from '@/lib/utils';
 const defaultTicket = {
   name: '',
   description: '',
-  price: 0,
-  quantity: 1,
+  price: '',
+  quantity: '',
   saleStartTime: '',
   saleEndTime: '',
-  maxTicketsPerOrder: 1,
+  maxTicketsPerOrder: '',
 };
 
 export default function CreateTicket() {
@@ -36,20 +36,21 @@ export default function CreateTicket() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showBankError, setShowBankError] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Setup realtime listeners using global connections
   useEffect(() => {
     // Notification hub connection is managed globally in App.tsx
 
     // Listen for ticket creation confirmations
-    onNotification('OnTicketCreated', (data: any) => {
+    onNotification('OnTicketCreated', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
         toast.success('Vé đã được tạo thành công!');
         navigate(`/event-manager/events/${eventId}/tickets`);
       }
     });
 
-    onNotification('OnTicketCreateFailed', (data: any) => {
+    onNotification('OnTicketCreateFailed', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
         toast.error('Không thể tạo vé. Vui lòng thử lại!');
       }
@@ -58,6 +59,15 @@ export default function CreateTicket() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+    
     setForm((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -73,42 +83,57 @@ export default function CreateTicket() {
     setError(null);
     setSuccess(null);
     setShowBankError(false);
+    setFieldErrors({});
 
     try {
-      // Validate
+      const errors: Record<string, string> = {};
+
+      // Validate each field
       if (!form.name.trim()) {
-        setError(t('ticketNameEmpty'));
-        setLoading(false); // Reset loading state
-        return;
+        errors.name = t('ticketNameEmpty');
       }
-      if (!form.price || form.price < 0) {
-        setError(t('ticketPriceInvalid'));
-        setLoading(false); // Reset loading state
-        return;
-      }
-      if (!form.quantity || form.quantity < 1) {
-        setError(t('ticketQuantityInvalid'));
-        setLoading(false); // Reset loading state
-        return;
-      }
-      if (!form.saleStartTime || !form.saleEndTime) {
-        setError(t('ticketSaleTimeInvalid'));
-        setLoading(false); // Reset loading state
-        return;
-      }
-      if (form.saleStartTime >= form.saleEndTime) {
-        setError(t('ticketSaleEndTimeInvalid'));
-        setLoading(false); // Reset loading state
-        return;
-      }
-      if (!eventId) {
-        setError(t('eventNotFound'));
-        setLoading(false); // Reset loading state
-        return;
-      }
+      
       if (!form.description.trim()) {
-        setError(t('ticketDescriptionEmpty'));
-        setLoading(false); // Reset loading state
+        errors.description = t('ticketDescriptionEmpty');
+      }
+      
+      const priceValue = Number(form.price);
+      if (!form.price || isNaN(priceValue) || priceValue < 0) {
+        errors.price = t('ticketPriceInvalid');
+      } else if (priceValue > 0 && priceValue < 10000) {
+        errors.price = 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.';
+      }
+      
+      const quantityValue = Number(form.quantity);
+      if (!form.quantity || isNaN(quantityValue) || quantityValue < 1) {
+        errors.quantity = t('ticketQuantityInvalid');
+      }
+      
+      if (!form.saleStartTime) {
+        errors.saleStartTime = 'Vui lòng chọn thời gian bắt đầu bán vé.';
+      }
+      
+      if (!form.saleEndTime) {
+        errors.saleEndTime = 'Vui lòng chọn thời gian kết thúc bán vé.';
+      }
+      
+      if (form.saleStartTime && form.saleEndTime && form.saleStartTime >= form.saleEndTime) {
+        errors.saleEndTime = t('ticketSaleEndTimeInvalid');
+      }
+      
+      const maxTicketsValue = Number(form.maxTicketsPerOrder);
+      if (!form.maxTicketsPerOrder || isNaN(maxTicketsValue) || maxTicketsValue < 1) {
+        errors.maxTicketsPerOrder = 'Số vé tối đa mỗi đơn hàng phải ít nhất là 1.';
+      }
+      
+      if (!eventId) {
+        errors.general = t('eventNotFound');
+      }
+
+      // If there are validation errors, show them and stop
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setLoading(false);
         return;
       }
 
@@ -134,7 +159,19 @@ export default function CreateTicket() {
         return;
       }
 
-      if (ticket) {
+      // Handle API response errors  
+      if (ticket && ticket.success === false) {
+        // Check if it's a specific field validation error
+        if (ticket.message?.includes('price must be at least 10,000 VND')) {
+          setFieldErrors({ price: 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.' });
+        } else {
+          setError(ticket.message || t('ticketCreationFailed'));
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (ticket && ticket.success) {
         setSuccess(t('ticketCreatedSuccess'));
         setTimeout(() => {
           navigate('/event-manager/tickets/manage');
@@ -156,7 +193,12 @@ export default function CreateTicket() {
           ? (err.response.data.message as string)
           : t('ticketCreationFailed');
       
-      setError(errorMessage);
+      // Handle specific API validation errors
+      if (errorMessage.includes('price must be at least 10,000 VND')) {
+        setFieldErrors({ price: 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.' });
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -222,14 +264,19 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                fieldErrors.name
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                    )
               )}
               placeholder={t('enterTicketNameExample')}
               required
             />
+            {fieldErrors.name && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -247,14 +294,19 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                fieldErrors.description
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                    )
               )}
               placeholder={t('enterTicketDescription')}
               required
             />
+            {fieldErrors.description && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.description}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -274,14 +326,19 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                fieldErrors.price
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                    )
               )}
               placeholder={t('enterTicketPrice')}
               required
             />
+            {fieldErrors.price && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.price}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -301,14 +358,19 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                fieldErrors.quantity
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                    )
               )}
               placeholder={t('enterTicketQuantity')}
               required
             />
+            {fieldErrors.quantity && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.quantity}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -327,13 +389,18 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
-                )
+                fieldErrors.saleStartTime
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
+                    )
               )}
               required
             />
+            {fieldErrors.saleStartTime && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.saleStartTime}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -352,13 +419,18 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
-                )
+                fieldErrors.saleEndTime
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white focus:ring-pink-500'
+                    )
               )}
               required
             />
+            {fieldErrors.saleEndTime && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.saleEndTime}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -378,14 +450,19 @@ export default function CreateTicket() {
               onChange={handleChange}
               className={cn(
                 'w-full p-4 rounded-xl border-2 focus:ring-2 focus:border-transparent transition-all duration-200',
-                getThemeClass(
-                  'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
-                  'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
-                )
+                fieldErrors.maxTicketsPerOrder
+                  ? 'border-red-500 focus:ring-red-500'
+                  : getThemeClass(
+                      'bg-white border-blue-300 text-gray-900 placeholder-blue-500 focus:ring-blue-500',
+                      'bg-[#1a0022]/80 border-pink-500/30 text-white placeholder-pink-400 focus:ring-pink-500'
+                    )
               )}
               placeholder={t('enterTicketMaxPerOrder')}
               required
             />
+            {fieldErrors.maxTicketsPerOrder && (
+              <p className="text-red-500 text-sm mt-1 font-medium">{fieldErrors.maxTicketsPerOrder}</p>
+            )}
           </div>
 
           {error && showBankError && (

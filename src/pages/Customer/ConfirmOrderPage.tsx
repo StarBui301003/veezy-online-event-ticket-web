@@ -54,7 +54,6 @@ const ConfirmOrderPage = () => {
         navigate('/payment-failed');
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderInfo?.orderId, navigate]);
 
   useEffect(() => {
@@ -190,14 +189,22 @@ const ConfirmOrderPage = () => {
       
       // Lưu orderId vào localStorage để callback có thể lấy
       localStorage.setItem('lastOrderId', orderId);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi khi xác nhận đơn hàng:', err);
       let msg = 'Có lỗi khi tạo đơn hàng/thanh toán.';
       
-      if (err?.response?.data?.message) {
-        msg = err.response.data.message;
-      } else if (err?.message) {
-        msg = err.message;
+      if (err && typeof err === 'object' && 'response' in err && 
+          err.response && typeof err.response === 'object' && 
+          'data' in err.response && err.response.data && 
+          typeof err.response.data === 'object' && 'message' in err.response.data) {
+        msg = (err.response.data as { message: string }).message;
+        
+        // Handle specific ticket limit errors
+        if (msg.includes('Bạn chỉ có thể mua tối đa') && msg.includes('vé loại')) {
+          msg = '❌ ' + msg + '\n\nVui lòng quay lại trang sự kiện để kiểm tra số vé đã mua.';
+        }
+      } else if (err && typeof err === 'object' && 'message' in err) {
+        msg = (err as { message: string }).message;
       }
       
       setError(msg);
@@ -265,13 +272,23 @@ const ConfirmOrderPage = () => {
       >
         <AlertCircle className="w-20 h-20 text-red-500 mb-6" />
         <h2 className="text-3xl font-semibold text-red-700 mb-4">{t('error')}</h2>
-        <p className="text-red-600 text-lg mb-8">{error || t('orderNotFound')}</p>
-        <button
-          onClick={() => navigate('/')}
-          className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300"
-        >
-          {t('backToHome')}
-        </button>
+        <p className="text-red-600 text-lg mb-8 whitespace-pre-line">{error || t('orderNotFound')}</p>
+        <div className="space-y-3">
+          {checkout?.eventId && (
+            <button
+              onClick={() => navigate(`/event/${checkout.eventId}`)}
+              className="w-full px-8 py-3 bg-purple-600 text-white font-semibold rounded-lg shadow-md hover:bg-purple-700 transition-all duration-300"
+            >
+              🎟️ Quay lại trang sự kiện
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/')}
+            className="w-full px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300"
+          >
+            {t('backToHome')}
+          </button>
+        </div>
       </motion.div>
     );
   }
@@ -317,7 +334,7 @@ const ConfirmOrderPage = () => {
                 ? new Date(orderInfo.createdAt).toLocaleString('vi-VN')
                 : checkout?.eventTime}
             </div>
-            {checkout.discountCode && (
+            {checkout.discountCode && discountAmount > 0 && (
               <div className="text-sm text-amber-600 mb-2">
                 {t('discountCode')}: <b>{checkout.discountCode}</b>
               </div>
@@ -424,7 +441,7 @@ const ConfirmOrderPage = () => {
         <div className="mb-4 text-left">
           <div className="font-semibold text-lg text-purple-800 mb-1">{checkout.eventName}</div>
           <div className="text-xs text-gray-500 mb-2">{checkout.eventTime}</div>
-          {checkout.discountCode && (
+          {checkout.discountCode && discountAmount > 0 && (
             <div className="text-sm text-amber-600 mb-2">
               {t('discountCode')}: <b>{checkout.discountCode}</b>
             </div>
@@ -473,10 +490,10 @@ const ConfirmOrderPage = () => {
         </div>
         
         {/* Discount (if applicable) */}
-        {checkout.discountCode && discountAmount > 0 && (
+        {discountAmount > 0 && (
           <div className="flex justify-between py-2 border-b">
             <div className="text-gray-600">
-              Mã giảm giá: <span className="font-medium">{checkout.discountCode}</span>
+              Mã giảm giá: <span className="font-medium">{checkout.discountCode || 'Giảm giá'}</span>
             </div>
             <div className="text-red-500 font-medium">
               -{discountAmount.toLocaleString('vi-VN')} VNĐ
