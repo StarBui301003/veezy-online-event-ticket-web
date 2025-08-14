@@ -25,7 +25,7 @@ import {
   X,
   MoreVertical,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+ 
 import {
   connectChatHub,
   onChat,
@@ -223,12 +223,7 @@ const ChatboxAdmin = () => {
           })
         );
 
-        // Show toast notification
-        toast.success(
-          `Room mode changed to ${payload.mode === 'human' ? 'Human Support' : 'AI Support'} by ${
-            payload.changedBy || 'Admin'
-          }`
-        );
+        
       } else {
         console.warn('🔄 [OnModeChanged] Invalid payload received:', payload);
       }
@@ -418,7 +413,6 @@ const ChatboxAdmin = () => {
 
           // Show notification if message is not from current user
           if (message.senderId !== currentUser.userId) {
-            toast.info(`New message from ${message.senderName}`);
           }
         });
 
@@ -544,22 +538,18 @@ const ChatboxAdmin = () => {
             );
             return updatedRooms;
           });
-          toast.info(
-            `New support request from ${transformedRoom.participants?.[0]?.fullName || 'User'}`
-          );
+          
         });
 
         // Add error handler for SignalR errors
         onChat('Error', (errorMessage: string) => {
           console.error('❌ SignalR Error:', errorMessage);
-          toast.error(`Chat Error: ${errorMessage}`);
         });
 
         console.log('✅ Admin ChatHub event listeners setup complete');
       } catch (error) {
         console.error('Failed to connect to ChatHub:', error);
         setIsConnected(false);
-        toast.error('Failed to connect to chat service');
       }
     };
 
@@ -626,7 +616,6 @@ const ChatboxAdmin = () => {
       // Check if user is admin before fetching
       if (!isCurrentUserAdmin()) {
         console.warn('User is not admin, redirecting...');
-        toast.error('Bạn không có quyền truy cập trang này');
         setChatRooms([]);
         return;
       }
@@ -727,11 +716,11 @@ const ChatboxAdmin = () => {
 
       // Handle different error types
       if (error.response?.status === 403 || error.response?.status === 401) {
-        toast.error('Bạn không có quyền truy cập');
+        
       } else if (error.response?.status === 404) {
-        toast.warn('Không tìm thấy phòng chat nào');
+        
       } else {
-        toast.error('Không thể tải danh sách phòng chat');
+        
       }
 
       setChatRooms([]); // Set empty array on error
@@ -771,7 +760,6 @@ const ChatboxAdmin = () => {
       }, 200);
     } catch (error) {
       console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
       setMessages([]); // Set empty array on error
     } finally {
       setLoadingMessages(false);
@@ -784,7 +772,6 @@ const ChatboxAdmin = () => {
       // Validate room and roomId
       if (!room || !room.roomId || room.roomId === 'undefined') {
         console.error('Invalid room or roomId:', room);
-        toast.error('Invalid room selected');
         return;
       }
 
@@ -850,7 +837,6 @@ const ChatboxAdmin = () => {
       }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
       // Restore message content on error
       setNewMessage(messageContent);
     }
@@ -870,10 +856,10 @@ const ChatboxAdmin = () => {
         )
       );
 
-      toast.success('Message deleted successfully');
+      
     } catch (error) {
       console.error('Error deleting message:', error);
-      toast.error('Failed to delete message');
+      
     }
   };
 
@@ -910,10 +896,9 @@ const ChatboxAdmin = () => {
 
       setEditingMessage(null);
       setEditingContent('');
-      toast.success('Message updated successfully');
     } catch (error) {
       console.error('Error updating message:', error);
-      toast.error('Failed to update message');
+      
     }
   };
 
@@ -1250,7 +1235,6 @@ const ChatboxAdmin = () => {
                             }}
                             onClick={async () => {
                               if (!activeRoom?.roomId) {
-                                toast.error('No active room ID');
                                 return;
                               }
                               const nextMode = activeRoom.mode === 'ai' ? 'Human' : 'AI';
@@ -1290,13 +1274,6 @@ const ChatboxAdmin = () => {
                                 // Toast sẽ được hiển thị từ SignalR event handler, không cần gửi ở đây
                               } catch (err: any) {
                                 console.error('[ModeSwitch] Error switching mode:', err);
-                                toast.error(
-                                  err && err.message
-                                    ? err.message
-                                    : nextMode === 'Human'
-                                    ? 'Failed to switch to human support'
-                                    : 'Failed to switch to AI support'
-                                );
                               }
                             }}
                           >
