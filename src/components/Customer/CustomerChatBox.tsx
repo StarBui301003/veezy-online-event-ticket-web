@@ -157,67 +157,31 @@ const CustomerChatBoxInternal: React.FC<UnifiedCustomerChatProps> = ({ className
     });
   }, [scrollToBottom]);
 
-  // No local streaming state to update
-  const updateStreamingMessage = useCallback(() => {
-    scrollToBottom();
-  }, [scrollToBottom]);
-
-  // Auto-fallback to admin if AI fails multiple times
-  const handleAIFailure = useCallback(() => {
-    // no-op in system-only mode
-  }, []);
-
-  // Send AI message (sử dụng endpoint /api/ChatMessage/ai-chat)
-  const sendAIMessage = useCallback(
-    async (messageContent: string) => {
-      // system-only: AI streaming removed
-
-      try {
-        // AI mode disabled for local; nothing to do here.
-        updateStreamingMessage();
-      } catch (error: unknown) {
-        handleAIFailure();
-      } finally {
-        
-      }
-    },
-    [updateStreamingMessage, handleAIFailure]
-  );
-
-  // Send message to human support (mode human)
-  const sendHumanMessage = useCallback(
-    async (messageContent: string) => {
-      // system-only: rely on server messages
-      try {
-        // Gửi message qua API /api/ChatMessage
-        await chatService.sendMessage({
-          roomId: chatRoom?.roomId || '',
-          content: messageContent,
-          messageType: 'Text',
-        });
-        // Tin nhắn sẽ được cập nhật qua SignalR hoặc reload lại nếu cần
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert('Failed to send message to support agent: ' + errorMessage);
-      }
-    },
-    [chatRoom?.roomId]
-  );
-
-  // Send admin message
-  // Removed sendAdminMessageHandler (admin mode not used)
+  // No local streaming or message handlers needed - using server messages only
 
   // Main send message function
   const sendMessage = useCallback(async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !chatRoom?.roomId) return;
     const messageContent = newMessage.trim();
     setNewMessage('');
-    if (chatMode === 'ai') {
-      await sendAIMessage(messageContent);
-    } else {
-      await sendHumanMessage(messageContent);
+    
+    try {
+      if (chatMode === 'ai') {
+        await chatService.processAIChat(chatRoom.roomId, messageContent);
+      } else {
+        await chatService.sendMessage({
+          roomId: chatRoom.roomId,
+          content: messageContent,
+          messageType: 'Text',
+        });
+      }
+      // Auto scroll after sending
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert('Failed to send message: ' + errorMessage);
     }
-  }, [newMessage, sendAIMessage, sendHumanMessage, chatMode]);
+  }, [newMessage, chatMode, chatRoom, scrollToBottom]);
 
   // Handle key press
   const handleKeyPress = useCallback(
