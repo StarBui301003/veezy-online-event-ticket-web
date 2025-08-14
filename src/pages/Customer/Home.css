@@ -1,0 +1,36 @@
+/* Custom styles for Swiper pagination dots */
+.swiper-pagination {
+  position: absolute;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 10;
+}
+
+.swiper-pagination-bullet {
+  width: 12px !important;
+  height: 12px !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+  margin: 0 6px !important;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+  background: #ffffff !important;
+  transform: scale(1.2);
+}
+
+.swiper-pagination-bullet:hover {
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Ensure pagination is visible */
+.swiper-wrapper {
+  position: relative;
+}
+
+.swiper-slide {
+  position: relative;
+}
+

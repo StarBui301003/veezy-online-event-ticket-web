@@ -11,6 +11,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { CategoryMappingProvider } from '@/contexts/CategoryMappingContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './styles/responsive.css';
 import { VerifyRegister } from '@/pages/authentication/VerifyRegister';
 import { ResetRequestForm } from '@/pages/authentication/ResetRequestForm';
 import { ResetNewPasswordForm } from '@/pages/authentication/ResetNewPasswordForm';
