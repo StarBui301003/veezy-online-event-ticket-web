@@ -84,7 +84,7 @@ export const SuggestQuantityModal = ({ open, onClose }: Props) => {
     <Dialog open={open} onOpenChange={onClose} modal={true}>
       <DialogContent
         className="max-w-2xl bg-white dark:bg-gray-800 p-0 shadow-lg flex flex-col rounded-xl border-0 dark:border-0"
-        style={{ maxHeight: '800px', minHeight: '600px' }}
+        style={{ maxHeight: '600px', minHeight: '600px' }}
       >
         <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
