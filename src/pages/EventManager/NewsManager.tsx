@@ -128,6 +128,8 @@ const NewsManager: React.FC = () => {
   const [searchEvent, setSearchEvent] = useState('');
   const [eventPage, setEventPage] = useState(1);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
   const [newsList, setNewsList] = useState<News[]>([]);
   const [loadingNews, setLoadingNews] = useState(false);
   const [searchNews, setSearchNews] = useState('');
@@ -139,34 +141,44 @@ const NewsManager: React.FC = () => {
     isConfirming: false,
   });
 
+  // Load events with pagination
+  const loadEvents = async (page: number = eventPage) => {
+    setLoadingEvents(true);
+    try {
+      const data = await getMyApprovedEvents(page, EVENTS_PER_PAGE);
+      
+      const items = Array.isArray(data?.items) ? data.items : [];
+      
+      // Set total count từ API response
+      setTotalEvents(data?.totalCount || 0);
+      
+      // Luôn luôn replace events cho từng page (không append)
+      setEvents(items);
+      setFilteredEvents(items);
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+      toast.error(t('newsManager.errorFetchingEvents'));
+      setEvents([]);
+      setFilteredEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
   useEffect(() => {
-    // Setup real-time listeners using global connections managed by App.tsx
-    (async () => {
-      setLoadingEvents(true);
-      try {
-        const data = await getMyApprovedEvents(1, 100);
-        setEvents(data);
-        setFilteredEvents(data);
-      } catch (error) {
-        console.error('Failed to fetch events:', error);
-        toast.error(t('newsManager.errorFetchingEvents'));
-      } finally {
-        setLoadingEvents(false);
-      }
-    })();
+    loadEvents(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     // Lắng nghe realtime SignalR
     const reload = async () => {
-      try {
-        const data = await getMyApprovedEvents(1, 100);
-        setEvents(data);
-        setFilteredEvents(data);
-      } catch {}
+      await loadEvents(eventPage);
     };
-    onEvent('OnEventCreated', reload);
+    onEvent('OnEventCreated', () => loadEvents(1));
     onEvent('OnEventUpdated', reload);
     onEvent('OnEventDeleted', reload);
     onEvent('OnEventCancelled', reload);
-    onEvent('OnEventApproved', reload);
+    onEvent('OnEventApproved', () => loadEvents(1));
     // Lắng nghe realtime SignalR cho news
     const reloadNews = () => {
       if (selectedEvent) fetchNewsForEvent(selectedEvent.eventId);
@@ -177,24 +189,34 @@ const NewsManager: React.FC = () => {
     onNews('OnNewsApproved', reloadNews);
     onNews('OnNewsRejected', reloadNews);
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+  }, [eventPage, selectedEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Tìm kiếm sự kiện realtime
   useEffect(() => {
     if (!searchEvent.trim()) {
+      setIsSearching(false);
       setFilteredEvents(events);
     } else {
-      setFilteredEvents(
-        events.filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
+      setIsSearching(true);
+      const filtered = events.filter((ev) =>
+        ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
       );
-      setEventPage(1);
+      setFilteredEvents(filtered);
+      setEventPage(1); // reset về trang 1 khi search khác
     }
   }, [searchEvent, events]);
 
-  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE));
-  const pagedEvents = filteredEvents.slice(
-    (eventPage - 1) * EVENTS_PER_PAGE,
-    eventPage * EVENTS_PER_PAGE
-  );
+  // Phân trang sự kiện
+  const totalEventPages = isSearching 
+    ? Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+    : Math.max(1, Math.ceil(totalEvents / EVENTS_PER_PAGE));
+    
+  const pagedEvents = isSearching 
+    ? filteredEvents.slice(
+        (eventPage - 1) * EVENTS_PER_PAGE,
+        eventPage * EVENTS_PER_PAGE
+      )
+    : filteredEvents; // Khi không search, hiển thị tất cả events đã load
 
   const fetchNewsForEvent = async (eventId: string) => {
     setLoadingNews(true);
@@ -204,7 +226,7 @@ const NewsManager: React.FC = () => {
       const newsItems = response.data?.data?.items || [];
       const activeNews = newsItems.filter((news: News) => news.status && news.eventId === eventId);
       setNewsList(activeNews);
-    } catch (error) {
+    } catch {
       toast.error(t('newsManager.errorFetchingNews'));
       setNewsList([]);
     } finally {
@@ -218,7 +240,7 @@ const NewsManager: React.FC = () => {
     } else {
       setNewsList([]);
     }
-  }, [selectedEvent, window.location.pathname]);
+  }, [selectedEvent]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteNews = (news: News) => {
     setDeleteModal({
@@ -240,8 +262,7 @@ const NewsManager: React.FC = () => {
         fetchNewsForEvent(selectedEvent.eventId); // Refresh the list
       }
       toast.success(t('newsManager.newsDeletedSuccessfully'));
-    } catch (error) {
-      console.error('Error deleting news:', error);
+    } catch {
       toast.error(t('newsManager.errorDeletingNews'));
     } finally {
       setDeleteModal({
@@ -252,8 +273,26 @@ const NewsManager: React.FC = () => {
     }
   };
 
+  // Xử lý chuyển trang
+  const handlePageChange = async (newPage: number) => {
+    if (newPage === eventPage || loadingEvents) return;
+    
+    setEventPage(newPage);
+    
+    // Nếu đang search, chỉ cần update page state để show filtered results
+    if (isSearching) {
+      return;
+    }
+    
+    // Nếu không search, gọi API để load page mới
+    await loadEvents(newPage);
+  };
+
+  // Nếu chuyển trang mà không còn sự kiện, về trang 1
   useEffect(() => {
-    if (eventPage > totalEventPages) setEventPage(1);
+    if (eventPage > totalEventPages && totalEventPages > 0) {
+      setEventPage(1);
+    }
   }, [totalEventPages, eventPage]);
 
   // Lọc news theo searchNews
@@ -298,6 +337,7 @@ const NewsManager: React.FC = () => {
             >
               {t('newsManager.yourEvents')}
             </h2>
+
           </div>
           <input
             type="text"
@@ -384,37 +424,39 @@ const NewsManager: React.FC = () => {
                   </button>
                 </div>
               ))}
-              {/* Pagination */}
+
+              {/* Pagination - Show if we have multiple pages */}
               {totalEventPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4">
                   <button
                     className={cn(
-                      'p-2 rounded-full text-white disabled:opacity-50 transition-colors',
+                      'p-2 rounded-full text-white disabled:opacity-50',
                       getThemeClass(
                         'bg-blue-500 hover:bg-blue-600',
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === 1}
-                    onClick={() => setEventPage((p) => Math.max(1, p - 1))}
-                    aria-label={t('newsManager.previousPage')}
+                    disabled={eventPage === 1 || loadingEvents}
+                    onClick={() => handlePageChange(Math.max(1, eventPage - 1))}
                   >
                     <FaChevronLeft />
                   </button>
-                  <span className={cn('font-bold', getThemeClass('text-gray-900', 'text-white'))}>
+                  <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
                     {t('newsManager.page')} {eventPage}/{totalEventPages}
+                    {loadingEvents && (
+                      <span className="ml-2 text-sm opacity-70">({t('newsManager.loading')}...)</span>
+                    )}
                   </span>
                   <button
                     className={cn(
-                      'p-2 rounded-full text-white disabled:opacity-50 transition-colors',
+                      'p-2 rounded-full text-white disabled:opacity-50',
                       getThemeClass(
                         'bg-blue-500 hover:bg-blue-600',
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === totalEventPages}
-                    onClick={() => setEventPage((p) => Math.min(totalEventPages, p + 1))}
-                    aria-label={t('newsManager.nextPage')}
+                    disabled={eventPage === totalEventPages || loadingEvents}
+                    onClick={() => handlePageChange(Math.min(totalEventPages, eventPage + 1))}
                   >
                     <FaChevronRight />
                   </button>

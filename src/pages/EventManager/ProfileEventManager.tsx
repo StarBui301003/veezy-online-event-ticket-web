@@ -241,8 +241,15 @@ export default function ProfileEventManager() {
       setLoadingEventFollowers(true);
       try {
         // 1. Lấy danh sách event mà user này quản lý
-        const eventsRes = await getMyApprovedEvents();
-        const events = Array.isArray(eventsRes) ? eventsRes : eventsRes?.data?.items || [];
+        const eventsRes = await getMyApprovedEvents(1, 100);
+        let events = [];
+        if (eventsRes && typeof eventsRes === 'object' && 'items' in eventsRes) {
+          events = eventsRes.items || [];
+        } else if (Array.isArray(eventsRes)) {
+          events = eventsRes;
+        } else if (eventsRes?.items) {
+          events = Array.isArray(eventsRes.items) ? eventsRes.items : [];
+        }
         // 2. Lấy followers cho từng event
         const allFollowers = [];
         for (const event of events) {

@@ -123,6 +123,7 @@ const PendingEventsManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -130,18 +131,34 @@ const PendingEventsManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const allEvents = await getMyPendingEvents(1, 100); // lấy tối đa 100 sự kiện
-      setEvents(Array.isArray(allEvents) ? allEvents : []);
+      const response = await getMyPendingEvents(page, EVENTS_PER_PAGE);
+      
+      // Xử lý response mới với cấu trúc pagination
+      if (response && typeof response === 'object' && 'items' in response) {
+        setEvents(response.items || []);
+        // Cập nhật totalPages từ response
+        setTotalPages(response.totalPages || 1);
+      } else {
+        // Fallback cho trường hợp cũ
+        setEvents(Array.isArray(response) ? response : []);
+        setTotalPages(1);
+      }
     } catch (err) {
       setError(err.message || 'Failed to fetch events');
       setEvents([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch events khi component mount và khi page thay đổi
   useEffect(() => {
     fetchEvents();
+  }, [page]);
+
+  // Setup SignalR listeners khi component mount
+  useEffect(() => {
     // Listen for realtime SignalR events using global connections managed by App.tsx
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
@@ -152,14 +169,15 @@ const PendingEventsManager = () => {
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
   }, []);
 
-  // Phân trang
-  const totalPages = Math.max(1, Math.ceil(events.length / EVENTS_PER_PAGE));
-  const pagedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
+  // Phân trang - events đã được paginate từ server
+  const pagedEvents = events;
 
-  // Reset về trang 1 khi danh sách thay đổi
+  // Reset về trang 1 chỉ khi events thay đổi từ 0 (không có events)
   useEffect(() => {
-    setPage(1);
-  }, [events.length]);
+    if (events.length === 0 && page > 1) {
+      setPage(1);
+    }
+  }, [events.length, page]);
 
   const handleEditEvent = (eventId) => {
     navigate(`/event-manager/edit/${eventId}`, { state: { from: location.pathname } });

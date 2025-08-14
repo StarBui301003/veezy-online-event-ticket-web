@@ -47,46 +47,86 @@ export default function ManagerDiscountCode() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingDiscountCodes, setLoadingDiscountCodes] = useState(false);
   const [eventPage, setEventPage] = useState(1);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
-  // Load events
+  // Load events with pagination
+  const loadEvents = async (page: number = eventPage) => {
+    setLoadingEvents(true);
+    try {
+      const data = await getMyApprovedEvents(page, EVENTS_PER_PAGE);
+      
+      const items = Array.isArray(data?.items) ? data.items : [];
+      
+      // Set total count từ API response
+      setTotalEvents(data?.totalCount || 0);
+      
+      // Luôn luôn replace events cho từng page (không append)
+      setEvents(items);
+      setFilteredEvents(items);
+    } catch (err) {
+      console.error('Failed to load events:', err);
+      toast.error(t('failedToLoadEvents'));
+      setEvents([]);
+      setFilteredEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  };
+
   useEffect(() => {
-    const loadEvents = async () => {
-      setLoadingEvents(true);
-      try {
-        const data = await getMyApprovedEvents();
-        setEvents(data);
-        setFilteredEvents(data);
-      } catch (err) {
-        console.error('Failed to load events:', err);
-        toast.error(t('failedToLoadEvents'));
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
+    loadEvents(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    loadEvents();
-  }, [t]);
-
-  // Search events
+  // Tìm kiếm sự kiện realtime
   useEffect(() => {
     if (!searchEvent.trim()) {
+      setIsSearching(false);
       setFilteredEvents(events);
     } else {
+      setIsSearching(true);
       const filtered = events.filter((ev) =>
         ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase())
       );
       setFilteredEvents(filtered);
-      setEventPage(1);
+      setEventPage(1); // reset về trang 1 khi search khác
     }
   }, [searchEvent, events]);
 
-  // Pagination
-  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE));
-  const pagedEvents = filteredEvents.slice(
-    (eventPage - 1) * EVENTS_PER_PAGE,
-    eventPage * EVENTS_PER_PAGE
-  );
+  // Phân trang sự kiện
+  const totalEventPages = isSearching 
+    ? Math.max(1, Math.ceil(filteredEvents.length / EVENTS_PER_PAGE))
+    : Math.max(1, Math.ceil(totalEvents / EVENTS_PER_PAGE));
+    
+  const pagedEvents = isSearching 
+    ? filteredEvents.slice(
+        (eventPage - 1) * EVENTS_PER_PAGE,
+        eventPage * EVENTS_PER_PAGE
+      )
+    : filteredEvents; // Khi không search, hiển thị tất cả events đã load
+
+  // Xử lý chuyển trang
+  const handlePageChange = async (newPage: number) => {
+    if (newPage === eventPage || loadingEvents) return;
+    
+    setEventPage(newPage);
+    
+    // Nếu đang search, chỉ cần update page state để show filtered results
+    if (isSearching) {
+      return;
+    }
+    
+    // Nếu không search, gọi API để load page mới
+    await loadEvents(newPage);
+  };
+
+  // Nếu chuyển trang mà không còn sự kiện, về trang 1
+  useEffect(() => {
+    if (eventPage > totalEventPages && totalEventPages > 0) {
+      setEventPage(1);
+    }
+  }, [totalEventPages, eventPage]);
 
   // Load discount codes when event selected
   useEffect(() => {
@@ -241,6 +281,7 @@ export default function ManagerDiscountCode() {
                 </div>
               ))}
 
+
               {totalEventPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-4">
                   <button
@@ -251,13 +292,16 @@ export default function ManagerDiscountCode() {
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === 1}
-                    onClick={() => setEventPage((p) => Math.max(1, p - 1))}
+                    disabled={eventPage === 1 || loadingEvents}
+                    onClick={() => handlePageChange(Math.max(1, eventPage - 1))}
                   >
                     <FaChevronLeft />
                   </button>
                   <span className={cn('font-bold', getThemeClass('text-blue-600', 'text-white'))}>
                     {t('page')} {eventPage}/{totalEventPages}
+                    {loadingEvents && (
+                      <span className="ml-2 text-sm opacity-70">({t('loading')}...)</span>
+                    )}
                   </span>
                   <button
                     className={cn(
@@ -267,8 +311,8 @@ export default function ManagerDiscountCode() {
                         'bg-pink-500 hover:bg-pink-600'
                       )
                     )}
-                    disabled={eventPage === totalEventPages}
-                    onClick={() => setEventPage((p) => Math.min(totalEventPages, p + 1))}
+                    disabled={eventPage === totalEventPages || loadingEvents}
+                    onClick={() => handlePageChange(Math.min(totalEventPages, eventPage + 1))}
                   >
                     <FaChevronRight />
                   </button>

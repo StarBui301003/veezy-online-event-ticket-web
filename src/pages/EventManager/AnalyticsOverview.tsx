@@ -152,12 +152,12 @@ export default function AnalyticsOverview() {
       const events = await getMyApprovedEvents(1, 100);
       
       const fundResults = await Promise.all(
-        events.map(ev => getEventFund(ev.eventId))
+        (Array.isArray(events) ? events : events?.items || []).map(ev => getEventFund(ev.eventId))
       );
       
       const funds = fundResults.map(res => res.data || res);
 
-      const totalEvents = events.length;
+      const totalEvents = Array.isArray(events) ? events.length : events?.items?.length || 0;
       const totalRevenue = funds.reduce((sum, f) => sum + (f?.totalRevenue || 0), 0);
 
       const realAnalytics: AnalyticsData = {

@@ -41,14 +41,15 @@ const EventAttendancePredictor = () => {
   // Load events function
   const loadEvents = async () => {
     try {
-      const res = await getMyApprovedEvents();
+      // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
+      const res = await getMyApprovedEvents(1, 100);
       let myEvents = [];
-      if (Array.isArray(res)) {
+      if (res && typeof res === 'object' && 'items' in res) {
+        myEvents = res.items || [];
+      } else if (Array.isArray(res)) {
         myEvents = res;
-      } else if (Array.isArray(res?.data?.items)) {
-        myEvents = res.data.items;
-      } else if (Array.isArray(res?.data)) {
-        myEvents = res.data;
+      } else if (res?.items && Array.isArray(res.items)) {
+        myEvents = res.items;
       }
       setEvents(myEvents);
     } catch {

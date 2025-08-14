@@ -40,8 +40,16 @@ const EventReviews = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await getMyApprovedEvents();
-        const myEvents = Array.isArray(res) ? res : res?.data || [];
+        // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
+        const res = await getMyApprovedEvents(1, 100);
+        let myEvents = [];
+        if (res && typeof res === 'object' && 'items' in res) {
+          myEvents = res.items || [];
+        } else if (Array.isArray(res)) {
+          myEvents = res;
+        } else if (res?.items) {
+          myEvents = Array.isArray(res.items) ? res.items : [];
+        }
         setEvents(myEvents);
       } catch {
         setEvents([]);

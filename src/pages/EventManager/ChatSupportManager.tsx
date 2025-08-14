@@ -68,7 +68,7 @@ const ChatSupportManager: React.FC = () => {
       const { getMyApprovedEvents } = await import('@/services/Event Manager/event.service');
       const eventsRes = await getMyApprovedEvents(1, 100);
       // Map backend event properties to frontend expected keys
-      const mappedEvents = (Array.isArray(eventsRes) ? eventsRes : eventsRes?.data || []).map(
+      const mappedEvents = (Array.isArray(eventsRes) ? eventsRes : eventsRes?.items || []).map(
         (ev) => ({
           id: ev.eventId || ev.id,
           name: ev.eventName || ev.name,

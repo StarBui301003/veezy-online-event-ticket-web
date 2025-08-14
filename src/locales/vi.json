@@ -1712,5 +1712,77 @@
   "processing": "Đang xử lý",
   "faceOrderInvalid": "Đơn hàng khuôn mặt không hợp lệ",
   "facePhotoBlurry": "Ảnh khuôn mặt bị mờ",
-  "facePhotoNotBrightEnough": "Ảnh khuôn mặt không đủ sáng"
+  "facePhotoNotBrightEnough": "Ảnh khuôn mặt không đủ sáng",
+  "chat": {
+    "aiAssistant": {
+      "title": "Hỏi AI về sự kiện này",
+      "description": "Có câu hỏi về {{eventName}}? AI Assistant có thể giúp bạn tìm hiểu chi tiết về:",
+      "features": {
+        "ticketInfo": "Thông tin vé",
+        "locationTime": "Địa điểm & thời gian",
+        "payment": "Thanh toán",
+        "otherQuestions": "Câu hỏi khác"
+      },
+      "cta": "Hỏi AI Assistant",
+      "sampleQuestions": "Câu hỏi mẫu:",
+      "questions": {
+        "ticketPrice": "Giá vé là bao nhiêu?",
+        "eventTime": "Sự kiện diễn ra khi nào?",
+        "location": "Địa điểm ở đâu?",
+        "discount": "Có giảm giá không?"
+      },
+      "chatWindow": {
+        "title": "AI Assistant",
+        "supporting": "Đang hỗ trợ: {{eventName}}",
+        "integrated": "Chat đã được tích hợp trong layout chính",
+        "useMainChat": "Vui lòng sử dụng chat box ở góc dưới bên phải màn hình"
+      }
+    },
+    "eventManager": {
+      "title": "Hỗ trợ sự kiện",
+      "managementGroup": "Nhóm quản lý:",
+      "online": "trực tuyến",
+      "connecting": "Đang kết nối...",
+      "connectionFailed": "Không thể kết nối với server",
+      "retry": "Thử lại",
+      "reconnecting": "Đang kết nối lại...",
+      "replyTo": "Trả lời {{senderName}}",
+      "editMessage": "Chỉnh sửa",
+      "deleteMessage": "Xóa",
+      "confirmDelete": "Bạn có chắc chắn muốn xóa tin nhắn này?",
+      "save": "Lưu",
+      "cancel": "Hủy",
+      "reply": "Trả lời",
+      "messageInput": "Nhập tin nhắn...",
+      "sending": "Đang gửi..."
+    },
+    "customer": {
+      "title": "Tư vấn viên",
+      "smartAssistant": "Trợ lý thông minh",
+      "humanSupport": "Hỗ trợ con người",
+      "poweredByAI": "Được hỗ trợ bởi AI",
+      "humanSupportActive": "Hỗ trợ con người đang hoạt động",
+      "chatWithSupport": "Chat với tư vấn viên",
+      "switching": "Đang chuyển đổi...",
+      "messageSupport": "Nhắn tin cho tư vấn viên...",
+      "askAI": "Hỏi AI Assistant..."
+    },
+    "common": {
+      "you": "Bạn",
+      "unknownCustomer": "Khách hàng không xác định",
+      "notAvailable": "Không có sẵn",
+      "previous": "Trước",
+      "next": "Tiếp",
+      "page": "Trang",
+      "of": "của",
+      "loading": "Đang tải...",
+      "failedToLoad": "Tải thất bại",
+      "exporting": "Đang xuất...",
+      "exportSuccess": "Xuất thành công",
+      "exportFailed": "Xuất thất bại",
+      "pleaseSelectEvent": "Vui lòng chọn sự kiện",
+      "noAttendancesFound": "Không tìm thấy danh sách tham dự",
+      "pleaseSelectEventToViewAttendance": "Vui lòng chọn sự kiện để xem danh sách tham dự"
+    }
+  }
 }

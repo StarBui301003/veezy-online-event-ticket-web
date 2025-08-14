@@ -76,17 +76,26 @@ export default function FundManagement() {
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getMyApprovedEvents(1, 100);
-      setEvents(data);
-      if (data.length > 0) {
-        setSelectedEvent(data[0]);
+      const response = await getMyApprovedEvents(1, 100);
+      
+      // Xử lý response mới với cấu trúc pagination
+      let eventsData = [];
+      if (response && typeof response === 'object' && 'items' in response) {
+        eventsData = response.items || [];
+      } else if (Array.isArray(response)) {
+        eventsData = response;
+      }
+      
+      setEvents(eventsData);
+      if (eventsData.length > 0) {
+        setSelectedEvent(eventsData[0]);
       }
     } catch {
       toast.error(t('errorLoadingEvents'));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []); // Không cần t dependency vì chỉ gọi API
 
   const fetchFundData = useCallback(
     async (eventId: string) => {
@@ -224,8 +233,12 @@ export default function FundManagement() {
     };
 
     setupRealtimeFundManagement();
+  }, [t]); // Thêm t vào dependency để setup lại khi ngôn ngữ thay đổi
+
+  // Fetch events khi component mount
+  useEffect(() => {
     fetchEvents();
-  }, []); // Empty dependency array - only run once on mount
+  }, [fetchEvents]);
 
   // Listen for custom refresh events
   useEffect(() => {
@@ -237,7 +250,7 @@ export default function FundManagement() {
     return () => {
       window.removeEventListener('refreshFundEvents', handleRefreshEvents);
     };
-  }, [fetchEvents]);
+  }, []); // Không cần fetchEvents dependency vì chỉ setup event listener
 
   // Handle selectedEvent changes separately
   useEffect(() => {
@@ -379,8 +392,8 @@ export default function FundManagement() {
     });
 
   const filteredEvents = searchEvent.trim()
-    ? events.filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
-    : events;
+    ? (events || []).filter((ev) => ev.eventName.toLowerCase().includes(searchEvent.trim().toLowerCase()))
+    : (events || []);
 
   const sortedEvents = [...filteredEvents].sort(
     (a, b) => (eventRevenues[b.eventId] || 0) - (eventRevenues[a.eventId] || 0)

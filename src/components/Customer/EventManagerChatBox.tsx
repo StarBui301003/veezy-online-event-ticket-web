@@ -979,8 +979,8 @@ const AuthenticatedEventManagerChatBox: React.FC<EventManagerChatBoxProps> = (pr
   const checkVisibility = useCallback(() => {
     const isAuthenticated = !!localStorage.getItem('access_token');
     const currentAccount = getCurrentAccount();
-    // Show for logged-in users with Customer (1) or Event Manager (2) roles
-    const shouldShow = isAuthenticated && !!currentAccount && (currentAccount.role === 1 || currentAccount.role === 2);
+    // Show for logged-in users with Customer (1) - hide for Event Manager (2)
+    const shouldShow = isAuthenticated && !!currentAccount && currentAccount.role === 1;
     setIsVisible(shouldShow);
   }, []);
 

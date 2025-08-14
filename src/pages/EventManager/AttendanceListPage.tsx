@@ -114,8 +114,17 @@ const AttendanceListPage = () => {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const eventsData = await getMyApprovedEvents();
-        setEvents(eventsData);
+        // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
+        const eventsData = await getMyApprovedEvents(1, 100);
+        let events = [];
+        if (eventsData && typeof eventsData === 'object' && 'items' in eventsData) {
+          events = eventsData.items || [];
+        } else if (Array.isArray(eventsData)) {
+          events = eventsData;
+        } else if (eventsData?.items) {
+          events = Array.isArray(eventsData.items) ? eventsData.items : [];
+        }
+        setEvents(events);
       } catch (error) {
         console.error('Failed to load events:', error);
         toast.error(t('failedToLoadEvents'));

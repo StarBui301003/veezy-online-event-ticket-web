@@ -113,6 +113,7 @@ const ApprovedEventsManager = () => {
   const [error, setError] = useState(null);
   // const [actionLoading, setActionLoading] = useState({}); // Removed unused state
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
   // Xóa dòng khai báo hoặc gán giá trị cho location nếu không sử dụng
 
@@ -120,18 +121,34 @@ const ApprovedEventsManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const approvedEvents = await getMyApprovedEvents();
-      setEvents(Array.isArray(approvedEvents) ? approvedEvents : []);
+      const response = await getMyApprovedEvents(page, EVENTS_PER_PAGE);
+      
+      // Xử lý response mới với cấu trúc pagination
+      if (response && typeof response === 'object' && 'items' in response) {
+        setEvents(response.items || []);
+        // Cập nhật totalPages từ response
+        setTotalPages(response.totalPages || 1);
+      } else {
+        // Fallback cho trường hợp cũ
+        setEvents(Array.isArray(response) ? response : []);
+        setTotalPages(Math.max(1, Math.ceil((Array.isArray(response) ? response.length : 0) / EVENTS_PER_PAGE)));
+      }
     } catch (err) {
       setError(err.message || 'Failed to fetch approved events');
       setEvents([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch events khi component mount và khi page thay đổi
   useEffect(() => {
     fetchEvents();
+  }, [page]);
+
+  // Setup SignalR listeners khi component mount
+  useEffect(() => {
     // Lắng nghe realtime SignalR với global connections
     const reload = () => fetchEvents();
     onEvent('OnEventCreated', reload);
@@ -140,16 +157,17 @@ const ApprovedEventsManager = () => {
     onEvent('OnEventApproved', reload);
     onEvent('OnEventCancelled', reload);
     // Cleanup: không cần offEvent vì signalr.service chưa hỗ trợ
-  }, []);
+  }, []); // Chỉ chạy một lần khi component mount
 
-  // Phân trang
-  const totalPages = Math.max(1, Math.ceil(events.length / EVENTS_PER_PAGE));
+  // Phân trang - sử dụng totalPages từ state
   const pagedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
 
-  // Reset về trang 1 khi danh sách thay đổi
+  // Reset về trang 1 chỉ khi events thay đổi từ 0 (không có events)
   useEffect(() => {
-    setPage(1);
-  }, [events.length]);
+    if (events.length === 0 && page > 1) {
+      setPage(1);
+    }
+  }, [events.length, page]);
 
   // Modal state for cancel event
   const [cancelModal, setCancelModal] = useState({ open: false, event: null, isConfirming: false });

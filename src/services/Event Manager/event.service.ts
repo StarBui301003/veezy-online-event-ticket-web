@@ -9,6 +9,7 @@ import instance from "@/services/axios.customize";
 import { CreateEventData, NewsPayload, CreateTicketData } from "@/types/event";
 import { News } from "../signalr.service";
 import type { AIRecommendResponse } from '@/types/ai-recommend-event';
+import type { ApprovedEvent } from '@/types/Admin/event';
 
 // === Event APIs ===
 
@@ -69,21 +70,111 @@ export async function getEventById(eventId: string) {
 
 // === Get My Events ===
 export async function getMyEvents(page = 1, pageSize = 100) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
   const response = await instance.get(
     `/api/Event/creatorApproved?page=${page}&pageSize=${pageSize}`
   );
   return response.data?.data || response.data;
 }
 
-// === Get My Approved Events ===
-export async function getMyApprovedEvents(page = 1, pageSize = 100) {
-  // Không cần lấy access_token, axios.customize sẽ tự động gắn token nếu có
-  const response = await instance.get(
-    `/api/Event/creator?page=${page}&pageSize=${pageSize}`
-  );
-  const items = Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
-  return items.filter(event => event.isApproved === 1 && !event.isCancelled);
+// === Get My Approved Events với pagination đúng ===
+export async function getMyApprovedEvents(page = 1, pageSize = 3) {
+  try {
+    // Gọi API với pagination parameters
+    const response = await instance.get(
+      `/api/Event/creatorApproved?page=${page}&pageSize=${pageSize}`
+    );
+    
+    const data = response.data?.data || response.data;
+    
+    // Nếu API trả về cấu trúc pagination chuẩn
+    if (data && typeof data === 'object' && Array.isArray(data.items)) {
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount || data.totalItems || 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil((data.totalCount || data.totalItems || 0) / pageSize)
+      };
+    }
+    
+    // Nếu API trả về array trực tiếp (fallback)
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        totalCount: data.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(data.length / pageSize)
+      };
+    }
+    
+    // Fallback an toàn
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+    
+  } catch (error) {
+    console.error('Error fetching approved events:', error);
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+  }
+}
+
+// Alternative: Nếu backend chưa hỗ trợ filter approved, dùng cách này
+export async function getMyApprovedEventsClientFilter(page = 1, pageSize = 3) {
+  try {
+    // Lấy một lượng lớn hơn để đảm bảo có đủ approved events
+    const fetchSize = pageSize * 3; // Lấy gấp 3 lần để có đủ approved events
+    const response = await instance.get(
+      `/api/Event/creator?page=${page}&pageSize=${fetchSize}`
+    );
+    
+    const data = response.data?.data || response.data;
+    let allItems = [];
+    
+    if (data && Array.isArray(data.items)) {
+      allItems = data.items;
+    } else if (Array.isArray(data)) {
+      allItems = data;
+    }
+    
+    // Filter approved events
+    const approvedItems = allItems.filter(
+      (event: ApprovedEvent) => event.isApproved === 1 && !event.isCancelled
+    );
+    
+    // Client-side pagination cho approved items
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedItems = approvedItems.slice(startIndex, endIndex);
+    
+    return {
+      items: paginatedItems,
+      totalCount: approvedItems.length,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: Math.ceil(approvedItems.length / pageSize)
+    };
+    
+  } catch (error) {
+    console.error('Error fetching approved events:', error);
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+  }
 }
 
 // === Cancel Event ===
@@ -196,11 +287,276 @@ export async function resendApprovalRequest(eventId: string) {
 
 // === Get My Pending Events ===
 export async function getMyPendingEvents(page = 1, pageSize = 100) {
-  const response = await instance.get(
-    `/api/Event/creator?page=${page}&pageSize=${pageSize}`
-  );
-  const items = Array.isArray(response.data?.data?.items) ? response.data.data.items : [];
-  return items.filter(event => event.isApproved === 0 && !event.isCancelled);
+  try {
+    // Gọi API với pagination parameters - sử dụng endpoint creatorPending nếu có
+    const response = await instance.get(
+      `/api/Event/creatorPending?page=${page}&pageSize=${pageSize}`
+    );
+    
+    const data = response.data?.data || response.data;
+    
+    // Nếu API trả về cấu trúc pagination chuẩn
+    if (data && typeof data === 'object' && Array.isArray(data.items)) {
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount || data.totalItems || 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil((data.totalCount || data.totalItems || 0) / pageSize)
+      };
+    }
+    
+    // Nếu API trả về array trực tiếp (fallback)
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        totalCount: data.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(data.length / pageSize)
+      };
+    }
+    
+    // Fallback an toàn
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+    
+  } catch (error) {
+    console.error('Error fetching pending events:', error);
+    
+    // Fallback: nếu endpoint creatorPending không tồn tại, dùng creator và filter
+    try {
+      const fallbackResponse = await instance.get(
+        `/api/Event/creator?page=${page}&pageSize=${pageSize * 2}` // Lấy gấp đôi để có đủ pending events
+      );
+      
+      const fallbackData = fallbackResponse.data?.data || fallbackResponse.data;
+      let allItems = [];
+      
+      if (fallbackData && Array.isArray(fallbackData.items)) {
+        allItems = fallbackData.items;
+      } else if (Array.isArray(fallbackData)) {
+        allItems = fallbackData;
+      }
+      
+      // Filter pending events
+      const pendingItems = allItems.filter(
+        (event: ApprovedEvent) => event.isApproved === 0 && !event.isCancelled
+      );
+      
+      // Client-side pagination cho pending items
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedItems = pendingItems.slice(startIndex, endIndex);
+      
+      return {
+        items: paginatedItems,
+        totalCount: pendingItems.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(pendingItems.length / pageSize)
+      };
+      
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      return {
+        items: [],
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: 1
+      };
+    }
+  }
+}
+
+// === Get My Rejected Events ===
+export async function getMyRejectedEvents(page = 1, pageSize = 100) {
+  try {
+    // Gọi API với pagination parameters - sử dụng endpoint creatorRejected nếu có
+    const response = await instance.get(
+      `/api/Event/creatorRejected?page=${page}&pageSize=${pageSize}`
+    );
+    
+    const data = response.data?.data || response.data;
+    
+    // Nếu API trả về cấu trúc pagination chuẩn
+    if (data && typeof data === 'object' && Array.isArray(data.items)) {
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount || data.totalItems || 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil((data.totalCount || data.totalItems || 0) / pageSize)
+      };
+    }
+    
+    // Nếu API trả về array trực tiếp (fallback)
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        totalCount: data.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(data.length / pageSize)
+      };
+    }
+    
+    // Fallback an toàn
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+    
+  } catch (error) {
+    console.error('Error fetching rejected events:', error);
+    
+    // Fallback: nếu endpoint creatorRejected không tồn tại, dùng creator và filter
+    try {
+      const fallbackResponse = await instance.get(
+        `/api/Event/creator?page=${page}&pageSize=${pageSize * 2}` // Lấy gấp đôi để có đủ rejected events
+      );
+      
+      const fallbackData = fallbackResponse.data?.data || fallbackResponse.data;
+      let allItems = [];
+      
+      if (fallbackData && Array.isArray(fallbackData.items)) {
+        allItems = fallbackData.items;
+      } else if (Array.isArray(fallbackData)) {
+        allItems = fallbackData;
+      }
+      
+      // Filter rejected events
+      const rejectedItems = allItems.filter(
+        (event: ApprovedEvent) => event.isApproved === 2 && !event.isCancelled
+      );
+      
+      // Client-side pagination cho rejected items
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedItems = rejectedItems.slice(startIndex, endIndex);
+      
+      return {
+        items: paginatedItems,
+        totalCount: rejectedItems.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(rejectedItems.length / pageSize)
+      };
+      
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      return {
+        items: [],
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: 1
+      };
+    }
+  }
+}
+
+// === Get My Completed Events ===
+export async function getMyCompletedEvents(page = 1, pageSize = 100) {
+  try {
+    // Gọi API với pagination parameters - sử dụng endpoint creatorCompleted nếu có
+    const response = await instance.get(
+      `/api/Event/creatorCompleted?page=${page}&pageSize=${pageSize}`
+    );
+    
+    const data = response.data?.data || response.data;
+    
+    // Nếu API trả về cấu trúc pagination chuẩn
+    if (data && typeof data === 'object' && Array.isArray(data.items)) {
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount || data.totalItems || 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil((data.totalCount || data.totalItems || 0) / pageSize)
+      };
+    }
+    
+    // Nếu API trả về array trực tiếp (fallback)
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        totalCount: data.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(data.length / pageSize)
+      };
+    }
+    
+    // Fallback an toàn
+    return {
+      items: [],
+      totalCount: 0,
+      currentPage: page,
+      pageSize: pageSize,
+      totalPages: 1
+    };
+    
+  } catch (error) {
+    console.error('Error fetching completed events:', error);
+    
+    // Fallback: nếu endpoint creatorCompleted không tồn tại, dùng creator và filter
+    try {
+      const fallbackResponse = await instance.get(
+        `/api/Event/creator?page=${page}&pageSize=${pageSize * 2}` // Lấy gấp đôi để có đủ completed events
+      );
+      
+      const fallbackData = fallbackResponse.data?.data || fallbackResponse.data;
+      let allItems = [];
+      
+      if (fallbackData && Array.isArray(fallbackData.items)) {
+        allItems = fallbackData.items;
+      } else if (Array.isArray(fallbackData)) {
+        allItems = fallbackData;
+      }
+      
+      // Filter completed events (events đã kết thúc)
+      const completedItems = allItems.filter(
+        (event: ApprovedEvent) => {
+          const now = new Date();
+          const endDate = new Date(event.endAt);
+          return event.isApproved === 1 && !event.isCancelled && endDate < now;
+        }
+      );
+      
+      // Client-side pagination cho completed items
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedItems = completedItems.slice(startIndex, endIndex);
+      
+      return {
+        items: paginatedItems,
+        totalCount: completedItems.length,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: Math.ceil(completedItems.length / pageSize)
+      };
+      
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      return {
+        items: [],
+        totalCount: 0,
+        currentPage: page,
+        pageSize: pageSize,
+        totalPages: 1
+      };
+    }
+  }
 }
 
 // === Ticket APIs ===
