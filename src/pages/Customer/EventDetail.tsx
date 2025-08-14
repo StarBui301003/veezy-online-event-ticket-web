@@ -113,17 +113,17 @@ const EventDetail = () => {
   const { getThemeClass } = useThemeClasses();
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  
+
   // State declarations
   const [pendingReport, setPendingReport] = useState<ReportInfo | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  
+
   // Handle login required for protected actions
   const handleLoginRequired = useCallback(() => {
     setShowLoginModal(true);
   }, []);
-  
+
   // Handle successful login
   const onLoginSuccess = useCallback(() => {
     if (typeof handleLoginSuccess === 'function') {
@@ -158,10 +158,12 @@ const EventDetail = () => {
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [ticketErrors, setTicketErrors] = useState<Record<string, string>>({});
-  const [ticketLimits, setTicketLimits] = useState<Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }>>({});
+  const [ticketLimits, setTicketLimits] = useState<
+    Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }>
+  >({});
   const [userOrders, setUserOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
-  
+
   // Pagination states for tickets
   const [currentTicketPage, setCurrentTicketPage] = useState(1);
   const TICKETS_PER_PAGE = 5;
@@ -220,16 +222,19 @@ const EventDetail = () => {
       try {
         const ticketData = await getTicketsByEvent(eventId);
         setTickets(ticketData || []);
-        
+
         // Load ticket limits for each ticket
-        const limits: Record<string, { maxPerOrder: number; userPurchased: number; maxPerUser: number }> = {};
+        const limits: Record<
+          string,
+          { maxPerOrder: number; userPurchased: number; maxPerUser: number }
+        > = {};
         for (const ticket of ticketData || []) {
           try {
             const limitInfo = await getTicketLimits(ticket.ticketId);
             limits[ticket.ticketId] = {
               maxPerOrder: limitInfo.maxTicketsPerOrder,
               userPurchased: limitInfo.userPurchasedCount || 0,
-              maxPerUser: limitInfo.maxTicketsPerUser || limitInfo.maxTicketsPerOrder
+              maxPerUser: limitInfo.maxTicketsPerUser || limitInfo.maxTicketsPerOrder,
             };
           } catch (error) {
             console.error(`Error fetching limits for ticket ${ticket.ticketId}:`, error);
@@ -237,7 +242,7 @@ const EventDetail = () => {
             limits[ticket.ticketId] = {
               maxPerOrder: ticket.maxTicketsPerOrder || 5,
               userPurchased: 0,
-              maxPerUser: ticket.maxTicketsPerOrder || 5
+              maxPerUser: ticket.maxTicketsPerOrder || 5,
             };
           }
         }
@@ -251,13 +256,13 @@ const EventDetail = () => {
 
     const fetchUserOrders = async () => {
       if (!customerId) return;
-      
+
       setLoadingOrders(true);
       try {
         const orderHistory = await getOrderHistoryByCustomerId(customerId, 1, 50);
         // Filter orders for this event
-        const eventOrders = (orderHistory?.items || []).filter((order: any) => 
-          order.eventId === eventId && order.orderStatus === 'Success'
+        const eventOrders = (orderHistory?.items || []).filter(
+          (order: any) => order.eventId === eventId && order.orderStatus === 'Success'
         );
         setUserOrders(eventOrders);
       } catch (error) {
@@ -452,43 +457,52 @@ const EventDetail = () => {
 
   const handleQuantityChange = (ticket: TicketData, quantity: number) => {
     const ticketLimit = ticketLimits[ticket.ticketId];
-    const maxPerOrder = ticketLimit?.maxPerOrder || ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+    const maxPerOrder =
+      ticketLimit?.maxPerOrder || ticket.maxTicketsPerOrder || ticket.quantityAvailable;
     const userPurchased = ticketLimit?.userPurchased || 0;
     const maxPerUser = ticketLimit?.maxPerUser || maxPerOrder;
-    
+
     // Clear previous error for this ticket
-    setTicketErrors(prev => ({
+    setTicketErrors((prev) => ({
       ...prev,
-      [ticket.ticketId]: ''
+      [ticket.ticketId]: '',
     }));
-    
+
     // Calculate total user would have after this purchase
     const totalAfterPurchase = userPurchased + quantity;
-    
+
     // Validate quantity
     if (quantity > ticket.quantityAvailable) {
-      setTicketErrors(prev => ({
+      setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`
+        [ticket.ticketId]: `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`,
       }));
       return;
     } else if (quantity > maxPerOrder) {
-      setTicketErrors(prev => ({
+      setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé/${quantity > 1 ? 'lần' : 'lần'} cho loại "${ticket.ticketName}".`
+        [ticket.ticketId]: `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé/${
+          quantity > 1 ? 'lần' : 'lần'
+        } cho loại "${ticket.ticketName}".`,
       }));
       return;
     } else if (totalAfterPurchase > maxPerUser) {
       const remaining = Math.max(0, maxPerUser - userPurchased);
-      setTicketErrors(prev => ({
+      setTicketErrors((prev) => ({
         ...prev,
-        [ticket.ticketId]: `⚠️ Bạn đã mua ${userPurchased} vé "${ticket.ticketName}". Chỉ có thể mua thêm ${remaining} vé (tối đa ${maxPerUser} vé/người).`
+        [ticket.ticketId]: `⚠️ Bạn đã mua ${userPurchased} vé "${ticket.ticketName}". Chỉ có thể mua thêm ${remaining} vé (tối đa ${maxPerUser} vé/người).`,
       }));
       return;
     }
-    
-    const newQuantity = Math.max(0, Math.min(quantity, Math.min(ticket.quantityAvailable, maxPerOrder, maxPerUser - userPurchased)));
-    
+
+    const newQuantity = Math.max(
+      0,
+      Math.min(
+        quantity,
+        Math.min(ticket.quantityAvailable, maxPerOrder, maxPerUser - userPurchased)
+      )
+    );
+
     setSelectedTickets((prev) => {
       const updated = { ...prev };
       if (newQuantity === 0) {
@@ -539,10 +553,10 @@ const EventDetail = () => {
       toast.warn(t('pleaseSelectAtLeastOneTicket'));
       return;
     }
-    
+
     // Clear all ticket errors
     setTicketErrors({});
-    
+
     // NEW: Validate total tickets
     if (!validateTotalTickets()) {
       return;
@@ -561,21 +575,25 @@ const EventDetail = () => {
       // Validate tickets with inline errors
       let hasErrors = false;
       const newErrors: Record<string, string> = {};
-      
+
       for (const ticket of tickets) {
         const selected = selectedTickets[ticket.ticketId];
         if (selected) {
           const maxPerOrder = ticket.maxTicketsPerOrder || ticket.quantityAvailable;
           if (selected.quantity > maxPerOrder) {
-            newErrors[ticket.ticketId] = `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé loại "${ticket.ticketName}" cho sự kiện này.`;
+            newErrors[
+              ticket.ticketId
+            ] = `⚠️ Chỉ có thể mua tối đa ${maxPerOrder} vé loại "${ticket.ticketName}" cho sự kiện này.`;
             hasErrors = true;
           } else if (selected.quantity > ticket.quantityAvailable) {
-            newErrors[ticket.ticketId] = `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`;
+            newErrors[
+              ticket.ticketId
+            ] = `❌ Không đủ vé! Chỉ còn ${ticket.quantityAvailable} vé khả dụng.`;
             hasErrors = true;
           }
         }
       }
-      
+
       if (hasErrors) {
         setTicketErrors(newErrors);
         return;
@@ -621,34 +639,37 @@ const EventDetail = () => {
           const orderPayload = {
             eventId,
             customerId: latestCustomerId,
-            items: checkoutData.items.map(i => ({
+            items: checkoutData.items.map((i) => ({
               ticketId: i.ticketId,
               quantity: i.quantity,
-              price: i.ticketPrice || 0
+              price: i.ticketPrice || 0,
             })),
             discountCode: checkoutData.discountCode || undefined,
             discountAmount: checkoutData.discountAmount || 0,
-            orderAmount: calculateTotalAmount() - appliedDiscount
+            orderAmount: calculateTotalAmount() - appliedDiscount,
           };
 
           // Call createOrder to validate - if successful, we'll get orderId and can proceed
           const orderRes = await createOrder(orderPayload);
-          
+
           // Check for API error response
           if (orderRes && orderRes.success === false) {
             const errorMessage = orderRes.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
-            
-            if (errorMessage.includes('Bạn chỉ có thể mua tối đa') && errorMessage.includes('vé loại')) {
+
+            if (
+              errorMessage.includes('Bạn chỉ có thể mua tối đa') &&
+              errorMessage.includes('vé loại')
+            ) {
               // Extract ticket name and show inline error
               const match = errorMessage.match(/tối đa (\d+) vé loại '([^']+)'/);
               if (match) {
                 const maxTickets = match[1];
                 const ticketName = match[2];
-                
-                const targetTicket = tickets.find(t => t.ticketName === ticketName);
+
+                const targetTicket = tickets.find((t) => t.ticketName === ticketName);
                 if (targetTicket) {
                   setTicketErrors({
-                    [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+                    [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`,
                   });
                   return;
                 }
@@ -664,7 +685,7 @@ const EventDetail = () => {
             ...checkoutData,
             orderId: orderRes?.orderId, // Store the created orderId
           };
-          
+
           localStorage.setItem('checkout', JSON.stringify(enhancedCheckoutData));
           toast.success(
             <>
@@ -676,29 +697,29 @@ const EventDetail = () => {
         } catch (apiError: any) {
           // Handle API call errors
           const msg = apiError?.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng.';
-          
+
           if (msg.includes('Bạn chỉ có thể mua tối đa') && msg.includes('vé loại')) {
             const match = msg.match(/tối đa (\d+) vé loại '([^']+)'/);
             if (match) {
               const maxTickets = match[1];
               const ticketName = match[2];
-              
-              const targetTicket = tickets.find(t => t.ticketName === ticketName);
+
+              const targetTicket = tickets.find((t) => t.ticketName === ticketName);
               if (targetTicket) {
                 setTicketErrors({
-                  [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+                  [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`,
                 });
                 return;
               }
             }
           }
-          
+
           toast.error(msg);
           return;
         }
       } catch (error: any) {
         const msg = error?.response?.data?.message || t('failedToCreateOrder');
-        
+
         // Handle specific ticket limit errors
         if (msg.includes('Bạn chỉ có thể mua tối đa') && msg.includes('vé loại')) {
           // Extract ticket name and limits from error message
@@ -706,18 +727,18 @@ const EventDetail = () => {
           if (match) {
             const maxTickets = match[1];
             const ticketName = match[2];
-            
+
             // Find the ticket ID for this ticket name
-            const targetTicket = tickets.find(t => t.ticketName === ticketName);
+            const targetTicket = tickets.find((t) => t.ticketName === ticketName);
             if (targetTicket) {
               setTicketErrors({
-                [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`
+                [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`,
               });
               return;
             }
           }
         }
-        
+
         toast.error(msg);
       } finally {
         setIsCreatingOrder(false);
@@ -727,9 +748,9 @@ const EventDetail = () => {
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) {
-      setDiscountValidation({ 
-        success: false, 
-        message: 'Vui lòng nhập mã giảm giá' 
+      setDiscountValidation({
+        success: false,
+        message: 'Vui lòng nhập mã giảm giá',
       });
       setAppliedDiscount(0);
       return;
@@ -740,7 +761,7 @@ const EventDetail = () => {
     if (!codePattern.test(discountCode.trim())) {
       setDiscountValidation({
         success: false,
-        message: 'Mã giảm giá phải từ 6-12 ký tự, chỉ bao gồm chữ cái và số'
+        message: 'Mã giảm giá phải từ 6-12 ký tự, chỉ bao gồm chữ cái và số',
       });
       setAppliedDiscount(0);
       return;
@@ -762,9 +783,13 @@ const EventDetail = () => {
             discountAmount: res.data.discountAmount,
           });
           setAppliedDiscount(res.data.discountAmount || 0);
-          
+
           // Show success toast
-          toast.success(`🎉 Áp dụng mã giảm giá thành công! Tiết kiệm ${(res.data.discountAmount || 0).toLocaleString('vi-VN')} VNĐ`);
+          toast.success(
+            `🎉 Áp dụng mã giảm giá thành công! Tiết kiệm ${(
+              res.data.discountAmount || 0
+            ).toLocaleString('vi-VN')} VNĐ`
+          );
         } else {
           const errorMessage = res.data.message || 'Mã giảm giá không hợp lệ';
           setDiscountValidation({
@@ -772,7 +797,7 @@ const EventDetail = () => {
             message: errorMessage,
           });
           setAppliedDiscount(0);
-          
+
           // Enhanced error messages
           if (errorMessage.includes('used') || errorMessage.includes('đã sử dụng')) {
             setDiscountValidation({
@@ -805,7 +830,7 @@ const EventDetail = () => {
         message: errorMsg,
       });
       setAppliedDiscount(0);
-      
+
       // Show error toast
       toast.error('❌ Không thể kiểm tra mã giảm giá. Vui lòng thử lại!');
     } finally {
@@ -995,7 +1020,7 @@ const EventDetail = () => {
       } catch (err: unknown) {
         const error = err as FollowError;
         let errorMessage = t('somethingWentWrong');
-        
+
         if (error?.response?.data?.message) {
           errorMessage = error.response.data.message;
           if (errorMessage.toLowerCase().includes('already following')) {
@@ -1007,7 +1032,7 @@ const EventDetail = () => {
             errorMessage = t('loginRequired');
           }
         }
-        
+
         toast.error(errorMessage);
       } finally {
         setLoadingFollowEvent(false);
@@ -1019,13 +1044,13 @@ const EventDetail = () => {
 
   const handleReportEvent = () => {
     if (isReporting) return; // Prevent multiple clicks
-    
+
     requireLogin(async () => {
       if (!eventId) {
         toast.error(t('eventNotFound'));
         return;
       }
-      
+
       setIsReporting(true);
       try {
         const reportInfo = { type: 'event' as const, id: eventId };
@@ -1046,13 +1071,13 @@ const EventDetail = () => {
 
   const handleReportComment = (report: { type: 'comment'; id: string }) => {
     if (isReporting) return; // Prevent multiple clicks
-    
+
     requireLogin(async () => {
       if (!report?.id) {
         toast.error(t('commentNotFound'));
         return;
       }
-      
+
       setIsReporting(true);
       try {
         setPendingReport(report as ReportInfo);
@@ -1170,7 +1195,7 @@ const EventDetail = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className={cn(
-        'min-h-screen pt-20 pb-12',
+        'min-h-screen sm:pt-20 pt-12 pb-12',
         getThemeClass(
           'bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 text-gray-900',
           'bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 text-white'
@@ -1306,7 +1331,7 @@ const EventDetail = () => {
                     onClick={handleFollowEvent}
                     disabled={loadingFollowEvent}
                     className={cn(
-                      'ml-4 px-4 py-2 rounded-full font-semibold transition-all shadow flex items-center gap-2 whitespace-nowrap text-sm',
+                      'sm:ml-4 ml-0  px-4 py-2 rounded-full font-semibold transition-all shadow flex items-center gap-2 whitespace-nowrap text-sm',
                       isFollowingEvent
                         ? getThemeClass(
                             'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300',
@@ -1442,23 +1467,20 @@ const EventDetail = () => {
                   )
                 )}
               >
-                <div className={cn(
-                  'text-4xl mb-3',
-                  getThemeClass('text-red-500', 'text-red-400')
-                )}>
+                <div className={cn('text-4xl mb-3', getThemeClass('text-red-500', 'text-red-400'))}>
                   ⏰
                 </div>
-                <h3 className={cn(
-                  'text-xl font-bold mb-2',
-                  getThemeClass('text-red-700', 'text-red-300')
-                )}>
+                <h3
+                  className={cn(
+                    'text-xl font-bold mb-2',
+                    getThemeClass('text-red-700', 'text-red-300')
+                  )}
+                >
                   Sự kiện đã kết thúc
                 </h3>
-                <p className={cn(
-                  'text-sm',
-                  getThemeClass('text-red-600', 'text-red-400')
-                )}>
-                  Cảm ơn bạn đã quan tâm đến sự kiện này. Hãy theo dõi các sự kiện sắp tới của chúng tôi!
+                <p className={cn('text-sm', getThemeClass('text-red-600', 'text-red-400'))}>
+                  Cảm ơn bạn đã quan tâm đến sự kiện này. Hãy theo dõi các sự kiện sắp tới của chúng
+                  tôi!
                 </p>
               </motion.div>
             )}
@@ -1500,16 +1522,15 @@ const EventDetail = () => {
                     )}
                   >
                     <div className="text-5xl mb-4">🎭</div>
-                    <h3 className={cn(
-                      'text-xl font-bold mb-2',
-                      getThemeClass('text-red-700', 'text-red-300')
-                    )}>
+                    <h3
+                      className={cn(
+                        'text-xl font-bold mb-2',
+                        getThemeClass('text-red-700', 'text-red-300')
+                      )}
+                    >
                       Sự kiện đã kết thúc
                     </h3>
-                    <p className={cn(
-                      'text-sm',
-                      getThemeClass('text-red-600', 'text-red-400')
-                    )}>
+                    <p className={cn('text-sm', getThemeClass('text-red-600', 'text-red-400'))}>
                       Không thể mua vé cho sự kiện đã kết thúc
                     </p>
                   </motion.div>
@@ -1541,21 +1562,28 @@ const EventDetail = () => {
                           : Number(ticket.ticketPrice) || 0;
                       const subtotal = price * quantity;
                       const ticketLimit = ticketLimits[ticket.ticketId];
-                      const maxPerOrder = ticketLimit?.maxPerOrder || ticket.maxTicketsPerOrder || ticket.quantityAvailable;
+                      const maxPerOrder =
+                        ticketLimit?.maxPerOrder ||
+                        ticket.maxTicketsPerOrder ||
+                        ticket.quantityAvailable;
                       const userPurchased = ticketLimit?.userPurchased || 0;
                       const maxPerUser = ticketLimit?.maxPerUser || maxPerOrder;
                       const remainingCanBuy = Math.max(0, maxPerUser - userPurchased);
-                      
+
                       // Check if ticket sale has ended
                       const saleEndTime = ticket.saleEndTime ? new Date(ticket.saleEndTime) : null;
-                      const saleStartTime = ticket.saleStartTime ? new Date(ticket.saleStartTime) : null;
+                      const saleStartTime = ticket.saleStartTime
+                        ? new Date(ticket.saleStartTime)
+                        : null;
                       const now = new Date();
                       const isSaleEnded = saleEndTime && now > saleEndTime;
                       const isSaleNotStarted = saleStartTime && now < saleStartTime;
                       const isSoldOut = ticket.quantityAvailable <= 0;
-                      
+
                       const canIncrease =
-                        !isSaleEnded && !isSaleNotStarted && !isSoldOut &&
+                        !isSaleEnded &&
+                        !isSaleNotStarted &&
+                        !isSoldOut &&
                         quantity < Math.min(ticket.quantityAvailable, maxPerOrder, remainingCanBuy);
                       return (
                         <motion.div
@@ -1575,7 +1603,7 @@ const EventDetail = () => {
                             <div className="flex-1 min-w-0">
                               <h3
                                 className={cn(
-                                  'text-lg font-semibold truncate',
+                                  'text-lg font-semibold truncate w-[80px]',
                                   getThemeClass('text-gray-900', 'text-white')
                                 )}
                                 title={ticket.ticketName}
@@ -1586,26 +1614,41 @@ const EventDetail = () => {
                               {(isSoldOut || isSaleEnded || isSaleNotStarted) && (
                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                                   {isSoldOut && (
-                                    <span className={cn(
-                                      'text-xs px-2 py-1 rounded-full font-medium',
-                                      getThemeClass('bg-red-100 text-red-700', 'bg-red-900/30 text-red-300')
-                                    )}>
+                                    <span
+                                      className={cn(
+                                        'text-xs px-2 py-1 rounded-full font-medium',
+                                        getThemeClass(
+                                          'bg-red-100 text-red-700',
+                                          'bg-red-900/30 text-red-300'
+                                        )
+                                      )}
+                                    >
                                       🔴 Hết vé
                                     </span>
                                   )}
                                   {isSaleEnded && !isSoldOut && (
-                                    <span className={cn(
-                                      'text-xs px-2 py-1 rounded-full font-medium',
-                                      getThemeClass('bg-orange-100 text-orange-700', 'bg-orange-900/30 text-orange-300')
-                                    )}>
+                                    <span
+                                      className={cn(
+                                        'text-xs px-2 py-1 rounded-full font-medium',
+                                        getThemeClass(
+                                          'bg-orange-100 text-orange-700',
+                                          'bg-orange-900/30 text-orange-300'
+                                        )
+                                      )}
+                                    >
                                       ⏰ Hết hạn bán
                                     </span>
                                   )}
                                   {isSaleNotStarted && (
-                                    <span className={cn(
-                                      'text-xs px-2 py-1 rounded-full font-medium',
-                                      getThemeClass('bg-blue-100 text-blue-700', 'bg-blue-900/30 text-blue-300')
-                                    )}>
+                                    <span
+                                      className={cn(
+                                        'text-xs px-2 py-1 rounded-full font-medium',
+                                        getThemeClass(
+                                          'bg-blue-100 text-blue-700',
+                                          'bg-blue-900/30 text-blue-300'
+                                        )
+                                      )}
+                                    >
                                       🕐 Chưa mở bán
                                     </span>
                                   )}
@@ -1615,7 +1658,7 @@ const EventDetail = () => {
                             <p
                               className={cn(
                                 'text-xl font-bold flex-shrink-0 text-right',
-                                price === 0 
+                                price === 0
                                   ? getThemeClass('text-green-600', 'text-green-400')
                                   : getThemeClass('text-blue-600', 'text-teal-300')
                               )}
@@ -1641,7 +1684,14 @@ const EventDetail = () => {
                                   getThemeClass('text-blue-600', 'text-blue-400')
                                 )}
                               >
-                                📝 Bạn đã mua: {ticketLimits[ticket.ticketId]?.userPurchased || 0} vé | Còn có thể mua: {Math.max(0, (ticketLimits[ticket.ticketId]?.maxPerUser || 0) - (ticketLimits[ticket.ticketId]?.userPurchased || 0))} vé
+                                📝 Bạn đã mua: {ticketLimits[ticket.ticketId]?.userPurchased || 0}{' '}
+                                vé | Còn có thể mua:{' '}
+                                {Math.max(
+                                  0,
+                                  (ticketLimits[ticket.ticketId]?.maxPerUser || 0) -
+                                    (ticketLimits[ticket.ticketId]?.userPurchased || 0)
+                                )}{' '}
+                                vé
                               </p>
                             )}
                           </div>
@@ -1708,10 +1758,14 @@ const EventDetail = () => {
                                 getThemeClass('text-green-600', 'text-green-400')
                               )}
                             >
-                              {quantity === 0 ? '' : subtotal === 0 ? 'Miễn phí' : `${subtotal.toLocaleString('vi-VN')} đ`}
+                              {quantity === 0
+                                ? ''
+                                : subtotal === 0
+                                ? 'Miễn phí'
+                                : `${subtotal.toLocaleString('vi-VN')} đ`}
                             </motion.div>
                           </div>
-                          
+
                           {/* Ticket Error Message */}
                           <AnimatePresence>
                             {ticketErrors[ticket.ticketId] && (
@@ -1740,7 +1794,7 @@ const EventDetail = () => {
                         </motion.div>
                       );
                     })}
-                    
+
                     {/* Ticket Pagination */}
                     {totalTicketPages > 1 && (
                       <motion.div
@@ -1762,7 +1816,7 @@ const EventDetail = () => {
                           <ChevronLeft className="w-5 h-5" />
                           <span className="text-sm font-medium">Trước</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handleTicketPageChange(currentTicketPage + 1)}
                           disabled={currentTicketPage === totalTicketPages}
@@ -1862,42 +1916,48 @@ const EventDetail = () => {
                     </motion.div>
                   </div>
                   {/* Enhanced Discount Code Section */}
-                  <motion.div 
+                  <motion.div
                     className="mb-6"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className={cn(
-                      'rounded-xl border-2 p-4 transition-all duration-300',
-                      discountValidation?.success
-                        ? getThemeClass(
-                            'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50',
-                            'border-green-400 bg-gradient-to-br from-green-900/20 to-emerald-900/20'
-                          )
-                        : discountValidation && !discountValidation.success
-                        ? getThemeClass(
-                            'border-red-300 bg-gradient-to-br from-red-50 to-pink-50',
-                            'border-red-400 bg-gradient-to-br from-red-900/20 to-pink-900/20'
-                          )
-                        : getThemeClass(
-                            'border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 hover:border-purple-300',
-                            'border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 hover:border-purple-400/50'
-                          )
-                    )}>
+                    <div
+                      className={cn(
+                        'rounded-xl border-2 p-4 transition-all duration-300',
+                        discountValidation?.success
+                          ? getThemeClass(
+                              'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50',
+                              'border-green-400 bg-gradient-to-br from-green-900/20 to-emerald-900/20'
+                            )
+                          : discountValidation && !discountValidation.success
+                          ? getThemeClass(
+                              'border-red-300 bg-gradient-to-br from-red-50 to-pink-50',
+                              'border-red-400 bg-gradient-to-br from-red-900/20 to-pink-900/20'
+                            )
+                          : getThemeClass(
+                              'border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50 hover:border-purple-300',
+                              'border-purple-500/30 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 hover:border-purple-400/50'
+                            )
+                      )}
+                    >
                       <div className="flex items-center gap-2 mb-3">
-                        <Ticket className={cn(
-                          'w-5 h-5',
-                          getThemeClass('text-purple-600', 'text-purple-400')
-                        )} />
-                        <span className={cn(
-                          'font-semibold text-sm',
-                          getThemeClass('text-purple-700', 'text-purple-300')
-                        )}>
+                        <Ticket
+                          className={cn(
+                            'w-5 h-5',
+                            getThemeClass('text-purple-600', 'text-purple-400')
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'font-semibold text-sm',
+                            getThemeClass('text-purple-700', 'text-purple-300')
+                          )}
+                        >
                           Mã giảm giá cho sự kiện này
                         </span>
                       </div>
-                      
+
                       <div className="flex gap-3 mb-3">
                         <div className="relative flex-1">
                           <input
@@ -1977,7 +2037,7 @@ const EventDetail = () => {
                             </motion.button>
                           )}
                         </div>
-                        
+
                         <motion.button
                           type="button"
                           whileHover={{ scale: 1.02 }}
@@ -2043,12 +2103,14 @@ const EventDetail = () => {
                               </motion.div>
                               <div className="flex-1">
                                 <div className="text-sm font-medium">
-                                  {discountValidation.success ? '✨ Mã giảm giá hợp lệ!' : '❌ Mã giảm giá không hợp lệ'}
+                                  {discountValidation.success
+                                    ? '✨ Mã giảm giá hợp lệ!'
+                                    : '❌ Mã giảm giá không hợp lệ'}
                                 </div>
                                 <div className="text-sm mt-1">
                                   {discountValidation.message}
                                   {discountValidation.success && appliedDiscount > 0 && (
-                                    <motion.span 
+                                    <motion.span
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
                                       className="font-bold ml-2 text-lg"
@@ -2159,24 +2221,27 @@ const EventDetail = () => {
                 )}
               >
                 <div className="flex items-center gap-3 mb-6">
-                  <ShoppingCart className={cn(
-                    'w-6 h-6',
-                    getThemeClass('text-green-600', 'text-green-400')
-                  )} />
-                  <h3 className={cn(
-                    'text-xl font-bold',
-                    getThemeClass('text-green-700', 'text-green-300')
-                  )}>
+                  <ShoppingCart
+                    className={cn('w-6 h-6', getThemeClass('text-green-600', 'text-green-400'))}
+                  />
+                  <h3
+                    className={cn(
+                      'text-xl font-bold',
+                      getThemeClass('text-green-700', 'text-green-300')
+                    )}
+                  >
                     Vé đã mua cho sự kiện này
                   </h3>
                 </div>
-                
+
                 {loadingOrders ? (
                   <div className="flex justify-center py-4">
-                    <Loader2 className={cn(
-                      'w-6 h-6 animate-spin',
-                      getThemeClass('text-green-600', 'text-green-400')
-                    )} />
+                    <Loader2
+                      className={cn(
+                        'w-6 h-6 animate-spin',
+                        getThemeClass('text-green-600', 'text-green-400')
+                      )}
+                    />
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -2201,31 +2266,35 @@ const EventDetail = () => {
                               Đơn hàng #{order.orderId.slice(-8)}
                             </span>
                           </div>
-                          <span className={cn(
-                            'text-sm px-2 py-1 rounded-full font-medium',
-                            getThemeClass('bg-green-200 text-green-800', 'bg-green-800 text-green-200')
-                          )}>
+                          <span
+                            className={cn(
+                              'text-sm px-2 py-1 rounded-full font-medium',
+                              getThemeClass(
+                                'bg-green-200 text-green-800',
+                                'bg-green-800 text-green-200'
+                              )
+                            )}
+                          >
                             Thành công
                           </span>
                         </div>
-                        
+
                         <div className="space-y-1 text-sm">
                           <p>
                             <span className="font-medium">Ngày mua:</span>{' '}
                             {new Date(order.createdAt).toLocaleDateString('vi-VN', {
                               day: '2-digit',
-                              month: '2-digit', 
+                              month: '2-digit',
                               year: 'numeric',
                               hour: '2-digit',
-                              minute: '2-digit'
+                              minute: '2-digit',
                             })}
                           </p>
                           <p>
                             <span className="font-medium">Tổng tiền:</span>{' '}
-                            {order.totalAmount > 0 
+                            {order.totalAmount > 0
                               ? `${order.totalAmount.toLocaleString('vi-VN')} VNĐ`
-                              : 'Miễn phí'
-                            }
+                              : 'Miễn phí'}
                           </p>
                           {order.orderDetails && order.orderDetails.length > 0 && (
                             <div className="mt-2">
@@ -2295,6 +2364,7 @@ const EventDetail = () => {
                 slidesPerView={1}
                 spaceBetween={24}
                 breakpoints={{
+                  320: { slidesPerView: 1.2 },
                   640: { slidesPerView: 1.2 },
                   768: { slidesPerView: 2 },
                   1024: { slidesPerView: 3 },

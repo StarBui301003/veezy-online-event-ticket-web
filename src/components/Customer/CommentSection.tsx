@@ -73,6 +73,7 @@ export default function CommentSection({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const fetchComments = () => {
     setLoading(true);
@@ -258,12 +259,93 @@ export default function CommentSection({
   const visibleComments = sortedComments.slice(0, showCount);
   const isScrollable = showCount > 3 && sortedComments.length > 3;
 
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Kiểm tra xem có phải click vào dropdown hoặc modal không
+      const target = event.target as Element;
+      const isDropdownClick = target.closest('[data-dropdown]');
+      const isModalClick = target.closest('[data-modal]') || target.closest('[role="dialog"]');
+
+      if (openDropdownId && !isDropdownClick && !isModalClick) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdownId]);
+
+  // Đóng dropdown khi login modal mở
+  useEffect(() => {
+    if (showLoginModal || showRegisterModal) {
+      setOpenDropdownId(null);
+    }
+  }, [showLoginModal, showRegisterModal]);
+
+  // Đóng dropdown khi có modal khác mở (report modal, delete confirm, etc.)
+  useEffect(() => {
+    const checkForModals = () => {
+      // Kiểm tra các modal khác có thể mở
+      const hasReportModal = document.querySelector('[data-report-modal]');
+      const hasDeleteModal = document.querySelector('[data-delete-modal]');
+      const hasAnyModal = document.querySelector('[role="dialog"], [data-modal], .modal, .Modal');
+
+      if (hasReportModal || hasDeleteModal || hasAnyModal) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    // Kiểm tra ngay lập tức
+    checkForModals();
+
+    // Theo dõi thay đổi DOM để phát hiện modal mới
+    const observer = new MutationObserver(checkForModals);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-modal', 'role'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Đóng dropdown khi delete confirm modal mở
+  useEffect(() => {
+    if (deleteConfirmId) {
+      setOpenDropdownId(null);
+    }
+  }, [deleteConfirmId]);
+
+  // Đóng dropdown khi edit mode được kích hoạt
+  useEffect(() => {
+    if (editingCommentId) {
+      setOpenDropdownId(null);
+    }
+  }, [editingCommentId]);
+
+  // Đóng dropdown khi có action khác (edit, delete, report)
+  const closeDropdown = () => {
+    setOpenDropdownId(null);
+  };
+
+  // Đóng dropdown ngay lập tức khi mở login modal
+  const handleReportClick = (commentId: string) => {
+    if (!loggedInUser) {
+      closeDropdown(); // Đóng dropdown trước
+      setShowLoginModal(true); // Sau đó mở login modal
+      return;
+    }
+    setReportModal({ type: 'comment', id: commentId });
+    closeDropdown();
+  };
+
   return (
     <div
-      className={cn(
-        'mt-8 max-h-[700px] min-h-[340px] flex flex-col transition-all duration-300',
-        !showComment ? ' mb-0' : ''
-      )}
+      className={cn('mt-8 transition-all duration-300', !showComment ? ' mb-0' : '')}
       style={{ overscrollBehavior: 'contain' }}
     >
       <button
@@ -286,7 +368,7 @@ export default function CommentSection({
           {/* Khung nhập chat luôn ghim trên đầu */}
           <div
             className={cn(
-              'sticky top-0 z-10 p-5 hover-none',
+              'p-5',
               getThemeClass(
                 'border-b border-blue-300 bg-blue-50/50 hover:bg-blue-100',
                 'border-b border-purple-700 bg-slate-900/60 hover:bg-slate-800'
@@ -425,7 +507,13 @@ export default function CommentSection({
                             >
                               {new Date(c.createdAt).toLocaleString('vi-VN')}
                             </p>
-                            <DropdownMenu>
+                            <DropdownMenu
+                              open={openDropdownId === c.commentId}
+                              onOpenChange={(open) => {
+                                setOpenDropdownId(open ? c.commentId : null);
+                              }}
+                              modal={false}
+                            >
                               <DropdownMenuTrigger asChild>
                                 <button
                                   className={cn(
@@ -452,20 +540,18 @@ export default function CommentSection({
                                 align="end"
                                 sideOffset={8}
                                 className={cn(
-                                  'z-[100] min-w-[180px] p-1',
+                                  'z-[9999] min-w-[180px] p-1',
                                   getThemeClass('bg-white', 'bg-slate-800')
                                 )}
+                                forceMount
+                                data-dropdown
                               >
                                 {/* Report button - only show for other users' comments */}
                                 {loggedInUser?.userId !== c.userId && (
                                   <DropdownMenuItem
                                     onSelect={(e) => {
                                       e.preventDefault();
-                                      if (!loggedInUser) {
-                                        setShowLoginModal(true);
-                                        return;
-                                      }
-                                      setReportModal({ type: 'comment', id: c.commentId });
+                                      handleReportClick(c.commentId);
                                     }}
                                     className={cn(
                                       'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',
@@ -486,6 +572,7 @@ export default function CommentSection({
                                       onSelect={(e) => {
                                         e.preventDefault();
                                         handleEdit(c.commentId, c.content);
+                                        closeDropdown();
                                       }}
                                       className={cn(
                                         'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',
@@ -502,6 +589,7 @@ export default function CommentSection({
                                       onSelect={(e) => {
                                         e.preventDefault();
                                         handleDelete(c.commentId);
+                                        closeDropdown();
                                       }}
                                       className={cn(
                                         'flex items-center gap-2 text-sm px-3 py-2 rounded-md cursor-pointer',

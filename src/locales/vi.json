@@ -311,6 +311,7 @@
   "errorSendingWithdrawalRequest": "Gửi yêu cầu rút tiền thất bại",
   "loadingFundData": "Đang tải dữ liệu quỹ...",
   "previous": "Trước",
+  "onlyCustomerCanBuyTicket": "Chỉ khách hàng mới có thể mua vé",
   "next": "Sau",
   "selectCard": "Chọn thẻ {{card}}",
   "dashboard": "Bảng Điều Khiển",
