@@ -13,7 +13,7 @@ export function Layout() {
     // Nếu đã đăng nhập thì chuyển hướng theo role
     const accStr = localStorage.getItem('account');
     const accessToken = localStorage.getItem('access_token');
-    
+
     if (accStr && accessToken) {
       try {
         const accObj = JSON.parse(accStr);
@@ -68,7 +68,7 @@ export function Layout() {
       // Nếu là guest user (chưa đăng nhập), lưu theme vào localStorage
       const accStr = localStorage.getItem('account');
       const accessToken = localStorage.getItem('access_token');
-      
+
       if (!accStr || !accessToken) {
         // Guest user - save theme to localStorage
         if (theme) {
@@ -80,12 +80,12 @@ export function Layout() {
 
     // Lắng nghe sự kiện thay đổi theme
     window.addEventListener('themeChanged', handleThemeChange);
-    
+
     // Lắng nghe sự kiện từ ThemeContext
     const handleThemeUpdate = () => {
       handleThemeChange();
     };
-    
+
     window.addEventListener('userConfigUpdated', handleThemeUpdate);
 
     return () => {
@@ -98,7 +98,7 @@ export function Layout() {
   useEffect(() => {
     const accStr = localStorage.getItem('account');
     const accessToken = localStorage.getItem('access_token');
-    
+
     // Chỉ áp dụng guest theme nếu chưa đăng nhập
     if (!accStr || !accessToken) {
       const guestTheme = localStorage.getItem('guest_theme');
@@ -113,7 +113,9 @@ export function Layout() {
     <>
       <ScrollToTop />
       <Header />
-      <Outlet />
+      <div className="pt-[60px] sm:pt-[80px]">
+        <Outlet />
+      </div>
       <Footer />
 
       {/* Customer Chat Box - Available on all customer pages */}

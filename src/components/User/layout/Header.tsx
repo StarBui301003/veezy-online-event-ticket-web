@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { IoIosArrowDown } from 'react-icons/io';
 import { Input } from '../../ui/input';
 import { LogoutAPI } from '@/services/auth.service';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu, X } from 'lucide-react';
 // import { Account } from '@/types/auth';
 import { AuthContext } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -42,15 +42,44 @@ export const Header = () => {
   const [loadingLogout, setLoadingLogout] = useState(false);
   const navigate = useNavigate();
   const [notifDropdown, setNotifDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, logout } = useContext(AuthContext);
   const userId = user?.userId || user?.accountId;
   const { unreadCount } = useRealtimeNotifications();
+
+  // Khóa scroll nền khi mở sidebar/search trên mobile
+  useEffect(() => {
+    const body = document.body;
+    const html = document.documentElement;
+    if (mobileMenuOpen) {
+      const previousOverflow = body.style.overflow;
+      const previousHtmlOverflow = html.style.overflow;
+      const previousPaddingRight = body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      body.style.overflow = 'hidden';
+      html.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return () => {
+        body.style.overflow = previousOverflow;
+        html.style.overflow = previousHtmlOverflow;
+        body.style.paddingRight = previousPaddingRight;
+      };
+    }
+    // Ensure reset when both are closed
+    body.style.overflow = '';
+    html.style.overflow = '';
+    body.style.paddingRight = '';
+  }, [mobileMenuOpen]);
 
   // Helper: update language in user config
   const handleChangeLanguage = async (e: React.MouseEvent, lang: 'vi' | 'en') => {
     // Prevent the default behavior of the click event
     e.preventDefault();
-    
+
     try {
       // Change i18n language immediately for UI responsiveness
       i18n.changeLanguage(lang);
@@ -162,6 +191,14 @@ export const Header = () => {
     setBlur(window.scrollY > 0);
   };
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   const handleLogout = async () => {
     setLoadingLogout(true);
     try {
@@ -196,7 +233,7 @@ export const Header = () => {
           ),
         }}
       >
-        <div className="sm:wrapper flex sm:h-[80px] h-[40px] items-center justify-between px-7 pr-10">
+        <div className="sm:wrapper flex sm:h-[80px] h-[60px] items-center justify-between px-4 sm:px-7 sm:pr-10">
           {/* Left side - Logo */}
           <Link to={'/'} className="block shrink-0">
             <img
@@ -209,10 +246,10 @@ export const Header = () => {
             />
           </Link>
 
-          {/* Center - Search bar */}
+          {/* Center - Search bar - Hidden on mobile */}
           <div
             className={cn(
-              'search-container flex w-full max-w-96 items-center min-w-60 border rounded-full relative',
+              'search-container hidden sm:flex w-full max-w-96 items-center min-w-60 border rounded-full relative',
               getThemeClass(
                 'border-blue-300 bg-white/90 backdrop-blur-sm shadow-sm',
                 'border-white/20 bg-white/10'
@@ -275,8 +312,8 @@ export const Header = () => {
           </div>
 
           {/* Right side - Navigation and controls */}
-          <div className="flex items-center gap-4">
-            {/* Navigation */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Desktop Navigation */}
             <div className="sm:flex sm:gap-x-8 hidden items-center">
               <Link
                 to="/"
@@ -418,6 +455,22 @@ export const Header = () => {
                 >
                   {t('signUp')}
                 </Link>
+
+                {/* Hamburger at far right on mobile */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="sm:hidden p-2 rounded-full ml-1"
+                  onClick={toggleMobileMenu}
+                  aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                  title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                >
+                  {mobileMenuOpen ? (
+                    <X className={cn('w-6 h-6', getTextClass())} />
+                  ) : (
+                    <Menu className={cn('w-6 h-6', getTextClass())} />
+                  )}
+                </Button>
               </>
             ) : (
               <DropdownMenu modal={false}>
@@ -586,6 +639,314 @@ export const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 sm:hidden">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={closeMobileMenu} />
+
+          {/* Menu Content */}
+          <div
+            className={cn(
+              'fixed top-0 right-0 h-full w-80 max-w-[85vw] p-6 shadow-xl transform transition-transform duration-300 ease-in-out',
+              getThemeClass(
+                'bg-white border-l border-gray-200',
+                'bg-gray-900 border-l border-gray-700'
+              )
+            )}
+          >
+            {/* Close Button */}
+            <div className="flex justify-end mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeMobileMenu}
+                className="p-2 rounded-full"
+                aria-label="Close menu"
+              >
+                <X className={cn('w-6 h-6', getTextClass())} />
+              </Button>
+            </div>
+
+            {/* Mobile Search */}
+            <div className="mb-6">
+              <div
+                className={cn(
+                  'flex items-center w-full border rounded-full relative',
+                  getThemeClass(
+                    'border-blue-300 bg-white/90 backdrop-blur-sm shadow-sm',
+                    'border-white/20 bg-white/10'
+                  )
+                )}
+              >
+                <CiSearch className={cn('size-5 ml-[17px]', getTextClass())} strokeWidth={1.2} />
+                <Input
+                  type="text"
+                  placeholder={t('search_placeholder')}
+                  className={cn(
+                    'body-medium-14 border-none truncate-placeholder ml-0 my-[2px] bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+                    getThemeClass(
+                      'text-gray-900 placeholder:text-gray-500',
+                      ' placeholder:text-gray-500 text-gray-100'
+                    )
+                  )}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                {searchResults.length > 0 && (
+                  <div
+                    className={cn(
+                      'absolute top-full left-0 right-0 mt-1 border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto',
+                      getThemeClass('bg-white border-gray-300', 'bg-gray-900 border-gray-700')
+                    )}
+                  >
+                    {searchResults.map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/event/${item.id}`}
+                        className={cn(
+                          'block p-3 border-b last:border-b-0',
+                          getThemeClass(
+                            'text-gray-900 border-gray-300',
+                            'text-white border-gray-700'
+                          )
+                        )}
+                        onClick={() => {
+                          setSearchResults([]);
+                          closeMobileMenu();
+                        }}
+                      >
+                        <div className="flex items-center">
+                          {item.imageUrl && (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded mr-3"
+                            />
+                          )}
+                          <div>
+                            <div className={cn('font-medium', getTextClass())}>{item.name}</div>
+                            <div
+                              className={cn(
+                                'text-sm',
+                                getThemeClass('text-gray-600', 'text-gray-300')
+                              )}
+                            >
+                              {new Date(item.date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Navigation */}
+            <nav className="space-y-4 mb-6">
+              <Link
+                to="/"
+                className={cn(
+                  'block py-3 px-4 rounded-lg transition-colors',
+                  getThemeClass('text-gray-900 hover:bg-gray-100', 'text-white hover:bg-gray-800')
+                )}
+                onClick={closeMobileMenu}
+              >
+                {t('Home')}
+              </Link>
+              <Link
+                to="/events"
+                className={cn(
+                  'block py-3 px-4 rounded-lg transition-colors',
+                  getThemeClass('text-gray-900 hover:bg-gray-100', 'text-white hover:bg-gray-800')
+                )}
+                onClick={closeMobileMenu}
+              >
+                {t('Event')}
+              </Link>
+              <Link
+                to="/news"
+                className={cn(
+                  'block py-3 px-4 rounded-lg transition-colors',
+                  getThemeClass('text-gray-900 hover:bg-gray-100', 'text-white hover:bg-gray-800')
+                )}
+                onClick={closeMobileMenu}
+              >
+                {t('newss')}
+              </Link>
+              <Link
+                to="/terms-of-use"
+                className={cn(
+                  'block py-3 px-4 rounded-lg transition-colors',
+                  getThemeClass('text-gray-900 hover:bg-gray-100', 'text-white hover:bg-gray-800')
+                )}
+                onClick={closeMobileMenu}
+              >
+                {t('Terms of Use')}
+              </Link>
+            </nav>
+
+            {/* Mobile Theme Toggle */}
+            <div className="mb-6">
+              <ThemeToggle />
+            </div>
+
+            {/* Mobile Language Toggle */}
+            <div className="mb-6">
+              <div
+                className={cn(
+                  'flex rounded-lg border overflow-hidden',
+                  getThemeClass('border-gray-300', 'border-gray-600')
+                )}
+              >
+                <button
+                  onClick={(e) => {
+                    handleChangeLanguage(e, 'vi');
+                    closeMobileMenu();
+                  }}
+                  className={cn(
+                    'flex-1 py-2 px-4 text-sm font-medium transition-colors',
+                    i18nInstance.language === 'vi'
+                      ? getThemeClass('bg-blue-600 text-white', 'bg-blue-600 text-white')
+                      : getThemeClass(
+                          'text-gray-700 hover:bg-gray-100',
+                          'text-gray-300 hover:bg-gray-800'
+                        )
+                  )}
+                >
+                  VN
+                </button>
+                <button
+                  onClick={(e) => {
+                    handleChangeLanguage(e, 'en');
+                    closeMobileMenu();
+                  }}
+                  className={cn(
+                    'flex-1 py-2 px-4 text-sm font-medium transition-colors',
+                    i18nInstance.language === 'en'
+                      ? getThemeClass('bg-blue-600 text-white', 'bg-blue-600 text-white')
+                      : getThemeClass(
+                          'text-gray-700 hover:bg-gray-100',
+                          'text-gray-300 hover:bg-gray-800'
+                        )
+                  )}
+                >
+                  EN
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Auth Section */}
+            {!user ? (
+              <div className="space-y-3">
+                <Link
+                  to="/login"
+                  className={cn(
+                    'block w-full py-3 px-4 text-center rounded-lg font-medium transition-colors',
+                    getThemeClass(
+                      'bg-blue-600 text-white hover:bg-blue-700',
+                      'bg-blue-600 text-white hover:bg-blue-700'
+                    )
+                  )}
+                  onClick={closeMobileMenu}
+                >
+                  {t('login')}
+                </Link>
+                <Link
+                  to="/register"
+                  className={cn(
+                    'block w-full py-3 px-4 text-center rounded-lg font-medium transition-colors border',
+                    getThemeClass(
+                      'border-blue-600 text-blue-600 hover:bg-blue-50',
+                      'border-blue-400 text-blue-400 hover:bg-blue-900/20'
+                    )
+                  )}
+                  onClick={closeMobileMenu}
+                >
+                  {t('signUp')}
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div
+                  className={cn(
+                    'flex items-center gap-3 p-4 rounded-lg',
+                    getThemeClass('bg-gray-50', 'bg-gray-800')
+                  )}
+                >
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={avatar || AVATAR} alt="avatar" />
+                    <AvatarFallback className="bg-blue-600 text-white">
+                      {user?.fullName?.[0]?.toUpperCase() ||
+                        user?.fullname?.[0]?.toUpperCase() ||
+                        user?.username?.[0]?.toUpperCase() ||
+                        'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className={cn('font-medium', getTextClass())}>
+                      {user?.fullName || user?.fullname || user?.username}
+                    </div>
+                    <div className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-400'))}>
+                      {user?.email}
+                    </div>
+                  </div>
+                </div>
+
+                {user?.role === 2 && (
+                  <Button
+                    className="w-full bg-gradient-to-r from-[#ff00cc] to-[#3333ff] text-white py-3 font-bold rounded-lg"
+                    onClick={() => {
+                      navigate('/event-manager');
+                      closeMobileMenu();
+                    }}
+                  >
+                    {t('eventManager')}
+                  </Button>
+                )}
+
+                <Link
+                  to={user?.role === 2 ? '/event-manager/profile' : '/profile'}
+                  className={cn(
+                    'block w-full py-3 px-4 text-center rounded-lg font-medium transition-colors border',
+                    getThemeClass(
+                      'border-gray-300 text-gray-700 hover:bg-gray-50',
+                      'border-gray-600 text-gray-300 hover:bg-gray-800'
+                    )
+                  )}
+                  onClick={closeMobileMenu}
+                >
+                  <FiUser className="inline mr-2" />
+                  {t('profile')}
+                </Link>
+
+                <Button
+                  variant="outline"
+                  className="w-full py-3 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={() => {
+                    handleLogout();
+                    closeMobileMenu();
+                  }}
+                  disabled={loadingLogout}
+                >
+                  <LogOut className="inline mr-2 w-4 h-4" />
+                  {loadingLogout ? (
+                    <>
+                      <Loader2 className="inline mr-2 h-4 w-4 animate-spin" />
+                      {t('logging_out')}
+                    </>
+                  ) : (
+                    t('logout')
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
