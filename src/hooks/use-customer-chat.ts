@@ -1,7 +1,6 @@
 import { connectChatHub, onChat, offChat, disconnectChatHub, joinChatRoom, leaveChatRoom, onChatReconnected, onChatReconnecting, onChatClosed } from '@/services/signalr.service';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { chatService, ChatMessage, ChatRoom } from '@/services/chat.service';
-import { toast } from 'react-toastify';
 
 interface UseChatOptions {
   autoConnect?: boolean;
@@ -244,9 +243,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
 
         return room.roomId;
       } catch (error) {
-        if (initializationPromiseRef.current) {
-          toast.error('Không thể kết nối tới hỗ trợ. Vui lòng thử lại sau.');
-        }
+        console.error('[useCustomerChat] Failed to initialize chat room:', error);
         throw error;
       } finally {
         setIsLoading(false);
@@ -318,9 +315,7 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
         if (onDebug) onDebug('connectToSignalR:connected', { roomId });
       } catch (error) {
         if (onDebug) onDebug('connectToSignalR:error', error);
-        if (isConnecting) {
-          toast.error('Kết nối realtime thất bại. Chat vẫn hoạt động nhưng không realtime.');
-        }
+        console.error('[useCustomerChat] SignalR connection failed:', error);
         throw error;
       } finally {
         setIsConnecting(false);
@@ -518,27 +513,11 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
 
 
 
-          // Show toast notification to customer with debounce
-          const showModeChangeToast = (() => {
-            let lastMode: string | null = null;
-            let lastTimestamp = 0;
-            
-            return (mode: string, changedBy: string) => {
-              const now = Date.now();
-              // Only show if mode changed or 5s passed since last toast
-              if (mode !== lastMode || now - lastTimestamp > 5000) {
-                toast.info(`Chat mode changed to ${mode} support by ${changedBy || 'Admin'}`);
-                lastMode = mode;
-                lastTimestamp = now;
-              }
-            };
-          })();
-
-          try {
-            showModeChangeToast(payload.mode, payload.changedByName || payload.changedBy);
-          } catch (error) {
-            console.warn('Failed to show mode change notification:', error);
-          }
+          // Log mode change
+          console.log('[useCustomerChat] Chat mode changed:', {
+            mode: payload.mode,
+            changedBy: payload.changedByName || payload.changedBy || 'Admin'
+          });
         } else {
           console.warn('🔄 [Customer useCustomerChat OnModeChanged] ❌ INVALID payload or roomId mismatch:', {
             payload,
@@ -662,9 +641,6 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       scrollToBottom();
     } catch (error) {
       console.error('[useCustomerChat] Error sending message:', error);
-      if (isSendingMessage) {
-        toast.error('Không thể gửi tin nhắn. Vui lòng thử lại.');
-      }
       throw error;
     } finally {
       setIsSendingMessage(false);
@@ -699,9 +675,6 @@ export const useCustomerChat = (options: UseChatOptions = {}): UseChatReturn => 
       }
     } catch (error) {
       console.error('[useCustomerChat] Error loading more messages:', error);
-      if (isLoading) {
-        toast.error('Không thể tải thêm tin nhắn.');
-      }
     } finally {
       setIsLoading(false);
     }
