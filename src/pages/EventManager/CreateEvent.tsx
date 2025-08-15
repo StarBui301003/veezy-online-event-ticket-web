@@ -52,7 +52,7 @@ const QuillEditor = React.forwardRef<QuillEditorRef, ReactQuillProps>((props, re
     <Suspense
       fallback={
         <div className="h-[300px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-          <p>{t('common.loadingEditor') || 'Loading editor...'}</p>
+          <p>{t('common.loadingEditor')}</p>
         </div>
       }
     >

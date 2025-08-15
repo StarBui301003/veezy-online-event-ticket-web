@@ -62,7 +62,7 @@ const OrderHistory = ({
           getThemeClass('text-gray-900', 'text-slate-100')
         )}
       >
-        Lịch sử mua vé
+        Order History
       </h2>
 
       {loading ? (
@@ -74,7 +74,7 @@ const OrderHistory = ({
             )}
           />
           <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-slate-400'))}>
-            Đang tải lịch sử mua vé...
+            Loading order history...
           </p>
         </div>
       ) : error ? (
@@ -97,7 +97,7 @@ const OrderHistory = ({
           )}
         >
           <div className="text-4xl mb-4 opacity-50">📋</div>
-          <p>Bạn chưa có đơn hàng nào</p>
+          <p>You don't have any orders yet</p>
         </div>
       ) : (
         <div className="w-full overflow-x-auto animate-in slide-in-from-bottom duration-500 delay-100">
@@ -120,12 +120,12 @@ const OrderHistory = ({
                   )
                 )}
               >
-                <th className="px-4 py-3 font-medium">Mã đơn hàng</th>
-                <th className="px-4 py-3 font-medium">Tên sự kiện</th>
-                <th className="px-4 py-3 font-medium">Tổng tiền</th>
-                <th className="px-4 py-3 font-medium">Ngày mua</th>
-                <th className="px-4 py-3 font-medium">Trạng thái</th>
-                <th className="px-4 py-3 font-medium">Thao tác</th>
+                <th className="px-4 py-3 font-medium">Order ID</th>
+                <th className="px-4 py-3 font-medium">Event Name</th>
+                <th className="px-4 py-3 font-medium">Total Amount</th>
+                <th className="px-4 py-3 font-medium">Purchase Date</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -168,7 +168,7 @@ const OrderHistory = ({
                             'bg-blue-500/20 text-blue-300 border border-blue-400/30'
                           )
                         )}>
-                          MỚI
+                          NEW
                         </span>
                       )}
                     </div>
@@ -179,7 +179,7 @@ const OrderHistory = ({
                       getThemeClass('text-gray-900', 'text-slate-200')
                     )}
                   >
-                    {order.totalAmount > 0 ? `${order.totalAmount?.toLocaleString()} VNĐ` : 'Miễn phí'}
+                    {order.totalAmount > 0 ? `${order.totalAmount?.toLocaleString()} VND` : 'Free'}
                   </td>
                   <td
                     className={cn(
@@ -187,7 +187,7 @@ const OrderHistory = ({
                       getThemeClass('text-gray-600', 'text-slate-400')
                     )}
                   >
-                    {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'Không rõ'}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleString('en-US') : 'Unknown'}
                   </td>
                   <td className="px-4 py-3">
                     {order.orderStatus === 1 ? (
@@ -206,7 +206,7 @@ const OrderHistory = ({
                             getThemeClass('bg-green-600', 'bg-green-400')
                           )}
                         ></span>
-                        Đã thanh toán
+                        Paid
                       </span>
                     ) : (
                       <span
@@ -224,7 +224,7 @@ const OrderHistory = ({
                             getThemeClass('bg-yellow-600', 'bg-yellow-400')
                           )}
                         ></span>
-                        Chờ thanh toán
+                        Pending Payment
                       </span>
                     )}
                   </td>
@@ -241,7 +241,7 @@ const OrderHistory = ({
                         )
                       )}
                     >
-                      Xem vé
+                      View Ticket
                     </Button>
                   </td>
                 </tr>
@@ -266,7 +266,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                Trước
+                Previous
               </Button>
               <div
                 className={cn(
@@ -294,7 +294,7 @@ const OrderHistory = ({
                   )
                 )}
               >
-                Tiếp
+                Next
               </Button>
             </div>
           )}
