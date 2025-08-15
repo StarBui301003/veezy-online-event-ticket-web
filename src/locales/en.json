@@ -42,7 +42,19 @@
   "facePhotoBlurry": "The photo is blurry",
   "facePhotoNotBrightEnough": "The photo is not bright enough",
   "claimFreeTickets": " Claim Free Tickets",
-
+  "footer": {
+    "tagline": "Vezzy – Tap. Book. Rock On.",
+    "contact": "Contact",
+    "address": "Address",
+    "addressValue": "600 Nguyen Van Cu Noi Dai Street, Binh Thuy Ward, Can Tho City",
+    "email": "Email",
+    "emailValue": "support@vezzy.com",
+    "copyright": "© 2025 VEZZY. All rights reserved.",
+    "home": "Home",
+    "event": "Event",
+    "news": "News",
+    "termsOfUse": "Terms of Use"
+  },
  "faceVerification": "Face Verification",
     "startVerification": "Start Verification",
     "faceDetected": "Face Detected",
@@ -169,7 +181,7 @@
   "noNewsFound": "No News Found",
   "notifications": "Notifications",
   "newss": "News",
-  "noNotifications": "No Notifications",
+
   "allRead": "All Read",
   "markAllAsRead": "Mark All As Read",
   "viewAllNotifications": "View All Notifications",
@@ -1516,15 +1528,29 @@
    
    "recommendEvents": "Recommended Events",
   "eventDetail": {
-    "otherTags": "Other Tags",
-    
-    
+    "otherTags": "Other Tags",    
     "buyTickets": "Buy Tickets",
+    "soldOut": "Sold Out",
+    "saleEnded": "Sale Ended",
+    "saleNotStarted": "Sale Not Started",
+    "free": "Free",
+    "previous": "Previous",
+    "next": "Next",
+    "eventEnded": "Event has ended",
+    "eventEndedMessage": "Cannot purchase tickets for ended events",
+    "youHavePurchased": "You have purchased: {{count}} tickets | Can still buy: {{remaining}} tickets",
+    "insufficientTickets": "❌ Not enough tickets! Only {{count}} tickets available.",
+    "maxTicketsPerOrder": "⚠️ Maximum {{max}} tickets per order for \"{{ticketName}}\".",
+    "maxTicketsPerUser": "⚠️ You have purchased {{purchased}} tickets \"{{ticketName}}\". Can only buy {{remaining}} more tickets (max {{max}} tickets per person).",
+    "maxTicketsForEvent": "⚠️ Maximum {{max}} tickets of type \"{{ticketName}}\" for this event.",
+    "orderCreationFailed": "Cannot create order. Please try again.",
     "followevent":"Follow",
     "followEvent": "Follow Event",
     "remainingTickets": "{{count}} Remaining",
     "maxTicketsPerOrderError": "Maximum {{max}} tickets per order",
     "orderSummary": "Order Summary",
+    "send": "Send",
+    "eventManager": "Event Manager",
     "ticketType": "{{type}} (x{{count}})",
     "loginToComment": "Login to comment",
     "commentPlaceholder": "Add a comment...",
@@ -1533,6 +1559,7 @@
     "applyDiscount": "Apply Discount",
     "bookTickets": "Book Tickets",
     "bookTicketsWithFace": "Book with Face ID",
+    "processingOrder": "Processing order...",
     "commentDiscussion": "Comment Discussion",
     "reportEvent": "Report Event",
     "reportComment": "Report Comment",
@@ -1559,6 +1586,8 @@
       "sample4": "Are there any discounts?"
     }
   },
+  "eventManagerMobileLoginBlocked": "Event Manager cannot login on mobile devices. Please use a computer to login.",
+  "eventManagerMobileFaceLoginBlocked": "Event Manager cannot login with face recognition on mobile devices. Please use a computer to login.",
   "backToHome": "Back to Home",
   "loginWithFace": "Login with Face",
   "dontHaveAccount": "Don't have an account? ",
@@ -1594,6 +1623,7 @@
     "success": "Your report has been submitted successfully!",
     "error": "An error occurred while submitting the report"
   },
+  "content": "Content",
   "profileCustomer": {
     "attendanceHistory": "Attendance History",
     "loadingAttendance": "Loading attendance history...",

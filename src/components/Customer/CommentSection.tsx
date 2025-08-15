@@ -468,7 +468,7 @@ export default function CommentSection({
                       getThemeClass('text-gray-500', 'text-slate-400')
                     )}
                   >
-                    {t('noCommentsYet')}
+                    {t('noCommentsFound')}
                   </div>
                 ) : (
                   visibleComments.map((c) => (
