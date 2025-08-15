@@ -50,7 +50,7 @@ const QuillEditor = forwardRef<QuillEditorRef, ReactQuillProps>((props, ref) => 
     <Suspense
       fallback={
         <div className="h-[300px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-          <p>{t('common.loadingEditor') || 'Đang tải trình soạn thảo...'}</p>
+          <p>{t('common.loadingEditor')}</p>
         </div>
       }
     >

@@ -330,7 +330,7 @@ const NotificationDropdown = ({ userId, onViewAll, t }: NotificationDropdownProp
             onViewAll();
           }}
         >
-          {t('viewAllNotifications') || 'Xem tất cả thông báo'} →
+          {t('notifications.viewAllNotifications')} →
         </button>
       </div>
 

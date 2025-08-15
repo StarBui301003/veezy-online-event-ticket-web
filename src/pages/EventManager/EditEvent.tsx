@@ -56,7 +56,7 @@ const QuillEditor = React.forwardRef<QuillEditorRef, ReactQuillProps>((props, re
     <React.Suspense
       fallback={
         <div className="h-[300px] bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
-          <p>{t('common.loadingEditor') || 'Loading editor...'}</p>
+          <p>{t('common.loadingEditor')}</p>
         </div>
       }
     >
@@ -285,9 +285,8 @@ const EditEvent: React.FC = () => {
 
   // Handle editor content changes
   const handleEditorChange = (
-    content: string,
-    _delta: any,
-    _source: any  ) => {
+    content: string
+  ) => {
     setFormData((prev) => ({
       ...prev,
       eventDescription: content,
@@ -349,8 +348,8 @@ const EditEvent: React.FC = () => {
             label: cat.categoryName,
           }))
         );
-      } catch (err) {
-        setError('Không thể tải dữ liệu sự kiện hoặc danh mục!');
+      } catch {
+        setError(t('editEvent.unableToLoadEventOrCategories'));
       } finally {
         setLoading(false);
       }
@@ -372,13 +371,13 @@ const EditEvent: React.FC = () => {
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Please upload an image file');
+        alert(t('editEvent.pleaseUploadImageFile'));
         return;
       }
 
       // Validate file size (10MB max)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size should not exceed 10MB');
+        alert(t('editEvent.fileSizeExceeded'));
         return;
       }
 
@@ -391,7 +390,7 @@ const EditEvent: React.FC = () => {
         }));
       } catch (error) {
         console.error('Error uploading image:', error);
-        alert('Failed to upload image. Please try again.');
+        alert(t('editEvent.failedToUploadImage'));
       } finally {
         setUploadingCover(false);
       }
@@ -431,7 +430,7 @@ const EditEvent: React.FC = () => {
     if (!file.type.startsWith('image/')) {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Chỉ chấp nhận file hình ảnh',
+        [index]: t('editEvent.onlyImageFilesAccepted'),
       }));
       return;
     }
@@ -439,7 +438,7 @@ const EditEvent: React.FC = () => {
     if (file.size > 10 * 1024 * 1024) {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Kích thước file không được vượt quá 10MB',
+        [index]: t('editEvent.contentImageSizeExceeded'),
       }));
       return;
     }
@@ -459,7 +458,7 @@ const EditEvent: React.FC = () => {
     } catch {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Upload hình ảnh thất bại',
+        [index]: t('editEvent.contentImageUploadFailed'),
       }));
     } finally {
       setUploadingContentImage((prev) => ({ ...prev, [index]: false }));
@@ -597,7 +596,7 @@ const EditEvent: React.FC = () => {
       }
     } catch (error) {
       console.error('Error in handleContentImageDelete:', error);
-      alert('Đã xảy ra lỗi khi xử lý yêu cầu xóa ảnh.');
+              alert(t('editEvent.errorDeletingImage'));
     }
   };
 
@@ -895,7 +894,7 @@ const EditEvent: React.FC = () => {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span>{t('backToDashboard')}</span>
+                                    <span>{t('editEvent.backToDashboard')}</span>
           </button>
         </div>
 
@@ -913,27 +912,27 @@ const EditEvent: React.FC = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 drop-shadow">
-              {t('editEvent')}
+              {t('editEvent.editEvent')}
             </h2>
-            <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-slate-400'))}>
-              {t('updateEventDetails')}
-            </p>
+                          <p className={cn('text-lg', getThemeClass('text-gray-600', 'text-slate-400'))}>
+                {t('editEvent.updateEventDetails')}
+              </p>
           </div>
 
           {/* Basic Information Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <FormField label={t('eventName')} error={errors.eventName} required>
+            <FormField label={t('editEvent.eventName')} error={errors.eventName} required>
               <InputField
                 type="text"
                 name="eventName"
                 value={formData.eventName}
                 onChange={handleChange}
-                placeholder={t('enterEventName')}
+                                  placeholder={t('editEvent.enterEventName')}
                 error={errors.eventName}
               />
             </FormField>
 
-            <FormField label={t('coverImage')}>
+            <FormField label={t('editEvent.coverImage')}>
               <div
                 {...getCoverRootProps()}
                 className={`w-full h-48 flex items-center justify-center bg-slate-700/30 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${
@@ -946,7 +945,7 @@ const EditEvent: React.FC = () => {
                 {uploadingCover ? (
                   <div className="text-center">
                     <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                    <p className="text-slate-400">{t('uploadingCover')}</p>
+                    <p className="text-slate-400">{t('editEvent.uploadingCover')}</p>
                   </div>
                 ) : formData.eventCoverImageUrl ? (
                   <div className="relative w-full h-full">
@@ -971,7 +970,7 @@ const EditEvent: React.FC = () => {
                         onClick={handleCoverImageDelete}
                         className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs transition-all duration-200"
                       >
-                        {t('remove')}
+                        {t('editEvent.remove')}
                       </button>
                     </div>
                   </div>
@@ -979,26 +978,26 @@ const EditEvent: React.FC = () => {
                   <div className="text-center">
                     <div className="text-5xl mb-3">📷</div>
                     <p className="text-slate-400 mb-1">
-                      {isCoverDragActive ? t('dropImageHere') : t('clickOrDragImage')}
+                      {isCoverDragActive ? t('editEvent.dropImageHere') : t('editEvent.clickOrDragImage')}
                     </p>
-                    <p className="text-xs text-slate-500">PNG, JPG up to 10MB</p>
+                                          <p className="text-xs text-slate-500">{t('editEvent.fileFormatAndSize')}</p>
                   </div>
                 )}
               </div>
             </FormField>
 
-            <FormField label={t('location')} error={errors.eventLocation} required>
+            <FormField label={t('editEvent.location')} error={errors.eventLocation} required>
               <InputField
                 type="text"
                 name="eventLocation"
                 value={formData.eventLocation}
                 onChange={handleChange}
-                placeholder={t('enterEventLocation')}
+                                  placeholder={t('editEvent.enterEventLocation')}
                 error={errors.eventLocation}
               />
             </FormField>
 
-            <FormField label={t('startTime')} error={errors.startAt} required>
+            <FormField label={t('editEvent.startTime')} error={errors.startAt} required>
               <InputField
                 type="datetime-local"
                 name="startAt"
@@ -1008,7 +1007,7 @@ const EditEvent: React.FC = () => {
               />
             </FormField>
 
-            <FormField label={t('endTime')} error={errors.endAt} required>
+            <FormField label={t('editEvent.endTime')} error={errors.endAt} required>
               <InputField
                 type="datetime-local"
                 name="endAt"
@@ -1018,7 +1017,7 @@ const EditEvent: React.FC = () => {
               />
             </FormField>
 
-            <FormField label={t('selectCategories')} error={errors.categoryIds} required>
+            <FormField label={t('editEvent.selectCategories')} error={errors.categoryIds} required>
               <Select
                 isMulti
                 options={categoryOptions}
@@ -1028,7 +1027,7 @@ const EditEvent: React.FC = () => {
                 onChange={handleCategoriesChange}
                 isLoading={loadingCategories}
                 styles={selectStyles}
-                placeholder={t('selectCategories')}
+                                  placeholder={t('editEvent.selectCategories')}
                 className="react-select-container"
                 classNamePrefix="react-select"
               />
@@ -1054,38 +1053,38 @@ const EditEvent: React.FC = () => {
                   d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                 />
               </svg>
-              Thông tin ngân hàng (Tùy chọn)
+              {t('editEvent.bankInformation')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FormField label={t('bankAccount')} error={errors.bankAccount}>
+              <FormField label={t('editEvent.bankAccount')} error={errors.bankAccount}>
                 <InputField
                   type="text"
                   name="bankAccount"
                   value={formData.bankAccount}
                   onChange={handleChange}
-                  placeholder={t('enterBankAccount')}
+                  placeholder={t('editEvent.enterBankAccount')}
                   error={errors.bankAccount}
                 />
               </FormField>
 
-              <FormField label={t('bankAccountName')} error={errors.bankAccountName}>
+              <FormField label={t('editEvent.bankAccountName')} error={errors.bankAccountName}>
                 <InputField
                   type="text"
                   name="bankAccountName"
                   value={formData.bankAccountName}
                   onChange={handleChange}
-                  placeholder={t('enterBankAccountName')}
+                  placeholder={t('editEvent.enterBankAccountName')}
                   error={errors.bankAccountName}
                 />
               </FormField>
 
-              <FormField label={t('bankName')} error={errors.bankName}>
+              <FormField label={t('editEvent.bankName')} error={errors.bankName}>
                 <InputField
                   type="text"
                   name="bankName"
                   value={formData.bankName}
                   onChange={handleChange}
-                  placeholder={t('enterBankName')}
+                  placeholder={t('editEvent.enterBankName')}
                   error={errors.bankName}
                 />
               </FormField>
@@ -1093,7 +1092,7 @@ const EditEvent: React.FC = () => {
           </div>
 
           {/* Tags */}
-          <FormField label={t('tags')}>
+                      <FormField label={t('editEvent.tags')}>
             <InputField
               type="text"
               value={tagInput}
@@ -1106,7 +1105,7 @@ const EditEvent: React.FC = () => {
                   .filter((tag) => tag !== '');
                 setFormData((prev) => ({ ...prev, tags }));
               }}
-              placeholder={t('eGGameWorkshopOffline')}
+                                placeholder={t('editEvent.eGGameWorkshopOffline')}
             />
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.tags.map((tag, index) => (
@@ -1119,12 +1118,12 @@ const EditEvent: React.FC = () => {
               ))}
             </div>
             <p className={cn('text-xs mt-1', getThemeClass('text-gray-500', 'text-slate-400'))}>
-              {t('separateTagsWithCommas')}
+              {t('editEvent.separateTagsWithCommas')}
             </p>
           </FormField>
 
           {/* Event Description */}
-          <FormField label={t('eventDescription')}>
+          <FormField label={t('editEvent.eventDescription')}>
             <div className="rounded-xl border border-purple-700 bg-[#27272a] overflow-hidden">
               <QuillEditor
                 value={formData.eventDescription}
@@ -1143,7 +1142,7 @@ const EditEvent: React.FC = () => {
                   'list', 'bullet',
                   'link', 'image'
                 ]}
-                placeholder="Enter event description..."
+                placeholder={t('editEvent.enterEventDescriptionPlaceholder')}
                 className="quill-editor"
                 ref={quillRef}
               />
@@ -1172,7 +1171,7 @@ const EditEvent: React.FC = () => {
                     d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                   />
                 </svg>
-                {t('eventContents')}
+                {t('editEvent.eventContents')}
               </h3>
               <Button
                 type="button"
@@ -1188,7 +1187,7 @@ const EditEvent: React.FC = () => {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                <span>{t('addContent')}</span>
+                <span>{t('editEvent.addContent')}</span>
               </Button>
             </div>
 
@@ -1207,8 +1206,8 @@ const EditEvent: React.FC = () => {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <p className="text-lg">{t('noContentSectionsYet')}</p>
-                <p className="text-sm">Thêm nội dung để làm phong phú thêm sự kiện của bạn</p>
+                <p className="text-lg">{t('editEvent.noContentSectionsYet')}</p>
+                <p className="text-sm">{t('editEvent.addContentToEnrichEvent')}</p>
               </div>
             )}
 
@@ -1228,7 +1227,7 @@ const EditEvent: React.FC = () => {
                         {index + 1}
                       </div>
                       <span className="text-lg font-medium text-purple-300">
-                        {t('content')} {index + 1}
+                        {t('editEvent.content')} {index + 1}
                       </span>
                     </div>
                     <Button
@@ -1249,7 +1248,7 @@ const EditEvent: React.FC = () => {
                           d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                         />
                       </svg>
-                      <span>{t('remove')}</span>
+                                              <span>{t('editEvent.remove')}</span>
                     </Button>
                   </div>
 
@@ -1261,7 +1260,7 @@ const EditEvent: React.FC = () => {
                         getThemeClass('text-gray-700', 'text-slate-300')
                       )}
                     >
-                      {t('contentType')}
+                      {t('editEvent.contentType')}
                     </label>
                     <div className="flex gap-3">
                       {contentTypeOptions.map((option) => (
@@ -1321,13 +1320,13 @@ const EditEvent: React.FC = () => {
                           getThemeClass('text-gray-700', 'text-slate-300')
                         )}
                       >
-                        {t('descriptionRequired')} <span className="text-red-400">*</span>
+                        {t('editEvent.descriptionRequired')} <span className="text-red-400">*</span>
                       </label>
                       <InputField
                         type="text"
                         value={content.description || ''}
                         onChange={handleContentChange(index, 'description')}
-                        placeholder={t('enterContentDescription')}
+                                                  placeholder={t('editEvent.enterContentDescription')}
                         error={contentErrors[index]}
                       />
                       {contentErrors[index] && (
@@ -1352,7 +1351,7 @@ const EditEvent: React.FC = () => {
                   {content.contentType === 'image' && (
                     <div className="space-y-3">
                       <label className="block text-sm font-medium text-slate-300">
-                        {t('uploadImageRequired')} <span className="text-red-400">*</span>
+                        {t('editEvent.uploadImageRequired')} <span className="text-red-400">*</span>
                       </label>
 
                       <div className="relative">
@@ -1371,7 +1370,7 @@ const EditEvent: React.FC = () => {
                           <div className="absolute inset-0 bg-slate-800/80 rounded-xl flex items-center justify-center">
                             <div className="flex items-center space-x-3">
                               <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                              <p className="text-sm text-slate-300">{t('uploadingImage')}</p>
+                              <p className="text-sm text-slate-300">{t('editEvent.uploadingImage')}</p>
                             </div>
                           </div>
                         )}
@@ -1407,7 +1406,7 @@ const EditEvent: React.FC = () => {
                               onClick={() => handleContentImageDelete(index)}
                               className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-lg text-xs transition-all duration-200"
                             >
-                              {t('remove')} {t('image')}
+                              {t('editEvent.remove')} {t('editEvent.image')}
                             </button>
                           </div>
                           <div className="flex items-center justify-center mt-3">
@@ -1419,7 +1418,7 @@ const EditEvent: React.FC = () => {
                                   clipRule="evenodd"
                                 />
                               </svg>
-                              <span>Hình ảnh đã được tải lên thành công</span>
+                              <span>{t('editEvent.imageUploadedSuccessfully')}</span>
                             </div>
                           </div>
                         </div>
@@ -1457,7 +1456,7 @@ const EditEvent: React.FC = () => {
               {submitting ? (
                 <div className="flex items-center justify-center space-x-3">
                   <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
-                  <span>{t('updating')}</span>
+                  <span>{t('editEvent.updating')}</span>
                 </div>
               ) : (
                 <div className="flex items-center justify-center space-x-3">
@@ -1469,7 +1468,7 @@ const EditEvent: React.FC = () => {
                       d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
                     />
                   </svg>
-                  <span>{t('updateEvent')}</span>
+                  <span>{t('editEvent.updateEvent')}</span>
                 </div>
               )}
             </Button>
