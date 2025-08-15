@@ -2428,8 +2428,7 @@ const EventDetail = () => {
                         <div className="p-2 sm:p-3 md:p-4 flex-1 flex flex-col">
                           <h3
                             className={cn(
-                              'text-sm sm:text-base md:text-lg font-bold mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1',
-                              getThemeClass('text-gray-900', 'text-white')
+                              'text-sm sm:text-base md:text-lg font-bold mb-1 group-hover:text-blue-700 transition-colors duration-200 line-clamp-1 text-gray-900'
                             )}
                           >
                             {event.eventName}

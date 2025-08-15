@@ -322,19 +322,6 @@ export default function AllNotificationsPage() {
           }
         });
 
-        // Subscribe to notification deletion events (if implemented)
-        onNotification(
-          'NotificationDeleted',
-          (data: { notificationId: string; userId: string }) => {
-            if (!isMounted || data.userId !== userId) return;
-
-            console.log('Notification deleted via SignalR:', data);
-            setNotifications((prev) =>
-              prev.filter((n) => n.notificationId !== data.notificationId)
-            );
-          }
-        );
-
         // Subscribe to notification updates (if notification content changes)
         onNotification('NotificationUpdated', (updatedNotification: Notification) => {
           if (!isMounted || updatedNotification.userId !== userId) return;
@@ -709,7 +696,7 @@ export default function AllNotificationsPage() {
                                 markingReadIds.has(notification.notificationId)
                               }
                               className={cn(
-                                'flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
+                                'w-full py-2 px-3 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
                                 notification.isRead ||
                                   markingReadIds.has(notification.notificationId)
                                   ? getThemeClass(
@@ -727,48 +714,6 @@ export default function AllNotificationsPage() {
                                 {notification.isRead
                                   ? t('read') || 'Đã đọc'
                                   : t('markAsRead') || 'Đánh dấu đã đọc'}
-                              </div>
-                            </button>
-
-                            {/* Delete button */}
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (window.confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
-                                  // TODO: Implement delete notification functionality
-                                  console.log('Delete notification:', notification.notificationId);
-                                  // Remove from local state for now
-                                  setNotifications((prev) =>
-                                    prev.filter(
-                                      (n) => n.notificationId !== notification.notificationId
-                                    )
-                                  );
-                                }
-                              }}
-                              className={cn(
-                                'py-2 px-3 text-xs font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
-                                getThemeClass(
-                                  'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300',
-                                  'bg-red-900/40 text-red-200 hover:bg-red-800/60 border border-red-700/50'
-                                )
-                              )}
-                              title="Xóa thông báo"
-                            >
-                              <div className="flex items-center justify-center">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
                               </div>
                             </button>
                           </div>
