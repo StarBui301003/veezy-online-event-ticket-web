@@ -24,7 +24,7 @@ export const Footer = () => {
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
           {/* Brand */}
-          <div className="text-center lg:text-left">
+          <div className="hidden sm:block text-center lg:text-left">
             <img src={LOGO_RECTANGLE} alt="Logo" className="h-20 sm:h-24 lg:h-28 mx-auto lg:mx-0" />
             <p
               className={cn(
@@ -100,7 +100,7 @@ export const Footer = () => {
         </div>
 
         {/* Divider */}
-        <div className="mt-10 mb-8">
+        <div className="mt-10 mb-8 ">
           <Separator className={getThemeClass('bg-gray-400', 'bg-white/20')} />
         </div>
 
@@ -108,14 +108,14 @@ export const Footer = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p
             className={cn(
-              'text-sm text-center sm:text-left',
+              'text-sm text-center sm:text-left order-2 sm:order-1',
               getThemeClass('text-gray-700', 'text-white/70')
             )}
           >
             {t('footer.copyright')}
           </p>
 
-          <nav className="flex flex-wrap items-center justify-center sm:justify-end gap-x-6 lg:gap-x-8 gap-y-2 text-sm font-medium">
+          <nav className="order-1 sm:order-2 flex flex-wrap items-center justify-center sm:justify-end gap-x-6 lg:gap-x-8 gap-y-2 text-sm font-medium">
             <Link
               to="/"
               className={cn(
