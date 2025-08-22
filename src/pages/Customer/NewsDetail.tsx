@@ -279,8 +279,8 @@ const NewsDetail: React.FC = () => {
       </div>
 
       {/* Content area with proper z-index */}
-      <div className="relative z-10 sm:pt-16 pt-0 pb-16">
-        <div className="container mx-auto px-6 sm:py-12 py-0">
+      <div className="relative z-10 pt-0">
+        <div className="container mx-auto px-6 sm:pb-12 py-0">
           {/* Enhanced Breadcrumb */}
           <nav className="mb-8 mt-24 opacity-0 animate-fade-in">
             <div
