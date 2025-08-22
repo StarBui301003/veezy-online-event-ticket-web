@@ -562,11 +562,56 @@ export async function getMyCompletedEvents(page = 1, pageSize = 100) {
 // === Ticket APIs ===
 
 export async function createTicket(data: CreateTicketData) {
-  const response = await instance.post(
-    "/api/Ticket",
-    data
-  );
-  return response.data?.data || response.data;
+  try {
+    console.log('createTicket API call - URL:', '/api/Ticket');
+    console.log('createTicket API call - Data:', JSON.stringify(data, null, 2));
+    
+    const response = await instance.post(
+      "/api/Ticket",
+      data
+    );
+    
+    console.log('createTicket API response:', response);
+    console.log('Response data:', response.data);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    // Handle different response structures
+    const responseData = response.data;
+    
+    // If response has nested data structure
+    if (responseData && responseData.data) {
+      console.log('Response has nested data structure');
+      return responseData.data;
+    }
+    
+    // If response is direct data
+    if (responseData) {
+      console.log('Response is direct data');
+      return responseData;
+    }
+    
+    // Fallback to full response
+    console.log('Using full response as fallback');
+    return response;
+    
+  } catch (error) {
+    console.error('createTicket API error:', error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorResponse = error as { response?: { status?: number; data?: unknown; headers?: Record<string, string> } };
+      console.error('Error response details:', {
+        status: errorResponse.response?.status,
+        data: errorResponse.response?.data,
+        headers: errorResponse.response?.headers
+      });
+      
+      // Log the full error response for debugging
+      if (errorResponse.response?.data) {
+        console.error('Full error response data:', JSON.stringify(errorResponse.response.data, null, 2));
+      }
+    }
+    throw error;
+  }
 }
 
 // Lấy danh sách vé của 1 event

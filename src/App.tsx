@@ -1,5 +1,6 @@
 /* eslint-disable no-empty */
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { Suspense } from 'react';
 import { Layout } from '@/components/User/layout/Layout';
 import { ErrorPage } from '@/pages/ErrorPage';
 // import { HomePage } from '@/pages/User/HomePage';
@@ -97,6 +98,8 @@ import DashboardTabs from './pages/Admin/Dashboard/DashboardTabs';
 import { FundTabs } from './pages/Admin/Fund/FundTabs';
 import EventReviews from './pages/EventManager/EventReviews';
 import EventAttendancePredictor from './pages/EventManager/EventAttendancePredictor';
+
+import I18nProvider from './components/common/I18nProvider';
 
 // Thêm import cho NotificationManager
 import NotificationManager from './pages/EventManager/NotificationManager';
@@ -789,21 +792,25 @@ function App() {
           <OnlineStatusProvider>
             <CategoryMappingProvider>
               <AuthProvider>
-                <RouterProvider router={router} />
-                {/* Đặt AuthModals ở đây để modal luôn tồn tại */}
-                <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop={false}
-                  closeOnClick
-                  rtl={false}
-                  pauseOnFocusLoss
-                  draggable
-                  pauseOnHover
-                  theme="colored"
-                />
-                <AuthModals open={false} onClose={() => {}} />
+                <I18nProvider>
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <RouterProvider router={router} />
+                  </Suspense>
+                  {/* Đặt AuthModals ở đây để modal luôn tồn tại */}
+                  <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="colored"
+                  />
+                                     <AuthModals open={false} onClose={() => {}} />
+                </I18nProvider>
               </AuthProvider>
             </CategoryMappingProvider>
           </OnlineStatusProvider>

@@ -34,7 +34,7 @@ import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { updateUserConfigAndTriggerUpdate, getCurrentUserId } from '@/utils/account-utils';
 
 export const Header = () => {
-  const { t, i18n: i18nInstance } = useTranslation();
+  const { t } = useTranslation();
   const { getThemeClass, getTextClass } = useThemeClasses();
   const [blur, setBlur] = useState(false);
   // Remove local user state, always use AuthContext's user
@@ -152,8 +152,8 @@ export const Header = () => {
           const userConfig = JSON.parse(userConfigStr);
           if (userConfig.language !== undefined) {
             const languageCode = userConfig.language === 1 ? 'vi' : 'en';
-            if (i18nInstance.language !== languageCode) {
-              i18nInstance.changeLanguage(languageCode);
+            if (i18n.language !== languageCode) {
+              i18n.changeLanguage(languageCode);
             }
           }
         }
@@ -163,7 +163,7 @@ export const Header = () => {
     };
 
     loadLanguageFromStorage();
-  }, [i18nInstance]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -382,7 +382,7 @@ export const Header = () => {
                     )
                   )}
                 >
-                  {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
+                  {i18n.language === 'vi' ? 'VN' : 'EN'}
                   <IoIosArrowDown className={getTextClass()} />
                 </Button>
               </DropdownMenuTrigger>
@@ -626,8 +626,8 @@ export const Header = () => {
                 </Button>
               </>
             )}
-            {/* Notification Bell */}
-            {user && (
+            {/* Notification Bell - Hidden for Event Management role */}
+            {user && user.role !== 2 && (
               <div className="relative">
                 <button
                   className={cn(
@@ -639,12 +639,15 @@ export const Header = () => {
                 >
                   <Bell className={cn('text-xl', getTextClass())} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-800 animate-pulse"></span>
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold border-2 border-white shadow-sm">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
                   )}
                 </button>
                 {notifDropdown && (
                   <NotificationDropdown
                     userId={userId}
+                    t={t}
                     onViewAll={() => {
                       setNotifDropdown(false);
                       navigate('/notifications');
@@ -656,7 +659,6 @@ export const Header = () => {
                     onClose={() => {
                       setNotifDropdown(false);
                     }}
-                    t={t}
                   />
                 )}
               </div>
@@ -851,7 +853,7 @@ export const Header = () => {
                   }}
                   className={cn(
                     'flex-1 py-2 px-4 text-sm font-medium transition-colors',
-                    i18nInstance.language === 'vi'
+                    i18n.language === 'vi'
                       ? getThemeClass('bg-blue-600 text-white', 'bg-blue-600 text-white')
                       : getThemeClass(
                           'text-gray-700 hover:bg-gray-100',
@@ -868,7 +870,7 @@ export const Header = () => {
                   }}
                   className={cn(
                     'flex-1 py-2 px-4 text-sm font-medium transition-colors',
-                    i18nInstance.language === 'en'
+                    i18n.language === 'en'
                       ? getThemeClass('bg-blue-600 text-white', 'bg-blue-600 text-white')
                       : getThemeClass(
                           'text-gray-700 hover:bg-gray-100',

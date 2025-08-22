@@ -126,7 +126,7 @@ export function EventManagerLayout() {
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
-  const [i18nInstance] = useState(i18n);
+
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({
@@ -220,8 +220,8 @@ export function EventManagerLayout() {
           const userConfig = JSON.parse(userConfigStr);
           if (userConfig.language !== undefined) {
             const languageCode = userConfig.language === 1 ? 'vi' : 'en';
-            if (i18nInstance.language !== languageCode) {
-              i18nInstance.changeLanguage(languageCode);
+            if (i18n.language !== languageCode) {
+              i18n.changeLanguage(languageCode);
             }
           }
         }
@@ -231,7 +231,7 @@ export function EventManagerLayout() {
     };
 
     loadLanguageFromStorage();
-  }, [i18nInstance]);
+  }, []);
 
   const handleLogout = () => {
     safeLogout();
@@ -420,7 +420,7 @@ export function EventManagerLayout() {
                         style={{ marginBottom: '1px' }}
                       />
                       <span className="font-bold text-xs" style={{ marginTop: '1px' }}>
-                        {i18nInstance.language === 'vi' ? 'VN' : 'EN'}
+                        {i18n.language === 'vi' ? 'VN' : 'EN'}
                       </span>
                     </button>
                   </DropdownMenuTrigger>
@@ -440,10 +440,10 @@ export function EventManagerLayout() {
                       className={cn(
                         'flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150',
                         getThemeClass(
-                          i18nInstance.language === 'vi'
+                          i18n.language === 'vi'
                             ? 'bg-blue-600 text-white'
                             : 'text-gray-700 hover:bg-gray-100',
-                          i18nInstance.language === 'vi'
+                          i18n.language === 'vi'
                             ? 'bg-purple-600 text-white'
                             : 'text-gray-300 hover:bg-gray-700'
                         ),
@@ -458,10 +458,10 @@ export function EventManagerLayout() {
                       className={cn(
                         'flex items-center gap-1 px-2 py-1 rounded font-semibold text-xs transition-all duration-150',
                         getThemeClass(
-                          i18nInstance.language === 'en'
+                          i18n.language === 'en'
                             ? 'bg-blue-600 text-white'
                             : 'text-gray-700 hover:bg-gray-100',
-                          i18nInstance.language === 'en'
+                          i18n.language === 'en'
                             ? 'bg-purple-600 text-white'
                             : 'text-gray-300 hover:bg-gray-700'
                         ),

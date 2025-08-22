@@ -175,19 +175,44 @@ export default function CreateDiscountCode() {
         maxUsage: Number(formData.maxUsage),
       };
 
-      const response = await instance.post('/api/DiscountCode/create-discount-code', requestData);
+      const response = await instance.post('/api/DiscountCode', requestData);
 
-      if (response.data.success) {
-        toast.success('Đang tạo mã giảm giá...', {
+      // Debug: Log the API response
+      console.log('CreateDiscountCode API Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response status:', response.status);
+
+      // Handle different response structures
+      const responseData = response.data;
+      let isSuccess = false;
+      let successMessage = '';
+
+      // Check multiple possible success indicators
+      if (responseData.success === true || responseData.flag === true || responseData.code === 200) {
+        isSuccess = true;
+        successMessage = responseData.message || 'Mã giảm giá đã được tạo thành công!';
+      } else if (responseData.id || responseData.discountId) {
+        // If response contains ID, consider it successful
+        isSuccess = true;
+        successMessage = 'Mã giảm giá đã được tạo thành công!';
+      }
+
+      if (isSuccess) {
+        toast.success(successMessage, {
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
         });
-        // Wait for signalR confirmation
+        
+        // Navigate back or show success message
+        setTimeout(() => {
+          navigate('/event-manager/discount-codes');
+        }, 2000);
       } else {
-        throw new Error(response.data.message || 'Failed to create discount code');
+        console.log('API returned success: false, message:', responseData.message);
+        throw new Error(responseData.message || 'Failed to create discount code');
       }
     } catch (error) {
       console.error('Error creating discount code:', error);

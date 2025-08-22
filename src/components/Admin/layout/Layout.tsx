@@ -51,7 +51,7 @@ const useGlobalLoading = () => {
 
 // ✅ Component wrapper để đảm bảo theme context sẵn sàng
 function AdminLayoutContent() {
-  const { t, i18n: i18nInstance } = useTranslation();
+  const { t } = useTranslation();
 
   // ✅ Sử dụng hooks một cách an toàn
   const themeClasses = useThemeClasses();
@@ -117,7 +117,7 @@ function AdminLayoutContent() {
     }
 
     // ✅ Kiểm tra xem language có thực sự thay đổi không
-    if (i18nInstance.language === lang) {
+    if (i18n.language === lang) {
       console.log('Language already matches, skipping update:', lang);
       return;
     }
@@ -169,9 +169,9 @@ function AdminLayoutContent() {
           if (userConfig.language !== undefined) {
             const languageCode = userConfig.language === 1 ? 'vi' : 'en';
             // ✅ Chỉ thay đổi language nếu thực sự khác biệt
-            if (i18nInstance.language !== languageCode) {
+            if (i18n.language !== languageCode) {
               console.log('Loading language from localStorage:', languageCode);
-              i18nInstance.changeLanguage(languageCode);
+              i18n.changeLanguage(languageCode);
             }
           }
         }
@@ -315,7 +315,7 @@ function AdminLayoutContent() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#e9e6e6] dark:bg-gray-500 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-semibold shadow hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500 text-sm">
                     <Globe className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    {i18nInstance.language === 'vi' ? t('vn') : t('en')}
+                    {i18n.language === 'vi' ? t('vn') : t('en')}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -325,7 +325,7 @@ function AdminLayoutContent() {
                   <DropdownMenuItem
                     onClick={() => handleChangeLanguage('vi')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-300 ease-in-out font-semibold text-gray-900 dark:text-white ${
-                      i18nInstance.language === 'vi'
+                      i18n.language === 'vi'
                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
@@ -335,7 +335,7 @@ function AdminLayoutContent() {
                   <DropdownMenuItem
                     onClick={() => handleChangeLanguage('en')}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-300 ease-in-out font-semibold text-gray-900 dark:text-white ${
-                      i18nInstance.language === 'en'
+                      i18n.language === 'en'
                         ? 'bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}

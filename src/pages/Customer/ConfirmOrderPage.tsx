@@ -120,13 +120,13 @@ const ConfirmOrderPage = () => {
   const discountAmount = checkout?.discountAmount || 0;
   const finalTotal = Math.max(0, subtotal - discountAmount); // Final total sau khi giảm giá
 
-  const isFaceOrderInvalid = checkout?.faceOrder && (checkout.items.length === 0 || checkout.totalAmount === 0);
+  const isFaceOrderInvalid = checkout?.faceOrder && checkout.items.length === 0;
 
   const handleConfirm = async () => {
     if (!checkout) return;
     
     // Validate order amount before proceeding
-    if (subtotal <= 0) {
+    if (subtotal < 0) {
       setError('Tổng tiền đơn hàng không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.');
       return;
     }

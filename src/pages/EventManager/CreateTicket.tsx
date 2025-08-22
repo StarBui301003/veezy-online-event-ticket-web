@@ -151,6 +151,11 @@ export default function CreateTicket() {
 
       const ticket = await createTicket(ticketPayload);
 
+      // Debug: Log the API response
+      console.log('CreateTicket API Response:', ticket);
+      console.log('Response type:', typeof ticket);
+      console.log('Response keys:', ticket ? Object.keys(ticket) : 'null');
+
       // Handle bank account error
       if (ticket && ticket.success === false && ticket.message?.toLowerCase().includes('bank')) {
         setError(ticket.message);
@@ -159,39 +164,77 @@ export default function CreateTicket() {
         return;
       }
 
-      // Handle API response errors  
-      if (ticket && ticket.success === false) {
+      // Handle API response errors - check multiple possible response structures
+      if (ticket && (ticket.success === false || ticket.flag === false || ticket.code >= 400)) {
+        const errorMessage = ticket.message || ticket.error || t('ticketCreationFailed');
+        
         // Check if it's a specific field validation error
-        if (ticket.message?.includes('price must be at least 10,000 VND')) {
+        if (errorMessage.includes('price must be at least 10,000 VND')) {
           setFieldErrors({ price: 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.' });
         } else {
-          setError(ticket.message || t('ticketCreationFailed'));
+          setError(errorMessage);
         }
         setLoading(false);
         return;
       }
 
-      if (ticket && ticket.success) {
+      // Check for successful response - handle multiple possible success structures
+      if (ticket && (ticket.success === true || ticket.flag === true || ticket.code === 200 || ticket.id || ticket.ticketId)) {
         setSuccess(t('ticketCreatedSuccess'));
         setTimeout(() => {
           navigate('/event-manager/tickets/manage');
         }, 1000);
       } else {
+        // Debug: Log when falling to this case
+        console.log('Falling to default error case. Ticket object:', ticket);
+        console.log('Response structure analysis:', {
+          hasSuccess: ticket && 'success' in ticket,
+          hasFlag: ticket && 'flag' in ticket,
+          hasCode: ticket && 'code' in ticket,
+          hasId: ticket && 'id' in ticket,
+          hasTicketId: ticket && 'ticketId' in ticket
+        });
         setError(t('ticketCreationFailed'));
       }
     } catch (err: unknown) {
-      const errorMessage = 
-        err && 
-        typeof err === 'object' && 
-        'response' in err && 
-        err.response && 
-        typeof err.response === 'object' && 
-        'data' in err.response && 
-        err.response.data && 
-        typeof err.response.data === 'object' && 
-        'message' in err.response.data
-          ? (err.response.data.message as string)
-          : t('ticketCreationFailed');
+      console.error('CreateTicket catch block - Full error:', err);
+      
+      // Try to extract error message from different error structures
+      let errorMessage = t('ticketCreationFailed');
+      
+      if (err && typeof err === 'object') {
+        // Check if it's an Axios error with response
+        if ('response' in err && err.response) {
+          const response = err.response as { data?: unknown; status?: number; headers?: Record<string, string> };
+          console.log('Error response object:', response);
+          
+          if (response.data) {
+            console.log('Error response data:', response.data);
+            
+            // Try to extract message from different possible structures
+            if (typeof response.data === 'string') {
+              errorMessage = response.data;
+            } else if (response.data && typeof response.data === 'object' && 'message' in response.data) {
+              errorMessage = (response.data as { message: string }).message;
+            } else if (response.data && typeof response.data === 'object' && 'error' in response.data) {
+              errorMessage = (response.data as { error: string }).error;
+            } else if (response.data && typeof response.data === 'object' && 'title' in response.data) {
+              errorMessage = (response.data as { title: string }).title;
+            }
+          }
+          
+          console.log('Response status:', response.status);
+          console.log('Response headers:', response.headers);
+        }
+        
+        // Check if it's a network error
+        if ('message' in err && err.message && typeof err.message === 'string') {
+          console.log('Error message:', err.message);
+          if (err.message.includes('Network Error') || err.message.includes('Failed to fetch')) {
+            errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+          }
+        }
+      }
       
       // Handle specific API validation errors
       if (errorMessage.includes('price must be at least 10,000 VND')) {

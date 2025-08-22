@@ -589,6 +589,7 @@
   "markThisRead": "Đánh Dấu Đã Đọc",
   "deleteThisNotification": "Xóa Thông Báo Này",
   "read": "Đã Đọc",
+  "markAsRead": "Đánh dấu đã đọc",
   "justNow": "Vừa Xong",
   "hAgo": "{{count}} Giờ Trước",
   "newEvent": "Sự Kiện Mới",
@@ -1475,6 +1476,10 @@
   "filter": {
     "searchEventPlaceholder": "Tìm kiếm sự kiện...",
     "searchNewsPlaceholder": "Tìm kiếm tin tức...",
+    "searchPlaceholder": "Tìm kiếm...",
+    "locationPlaceholder": "Chọn địa điểm...",
+    "categoryPlaceholder": "Chọn danh mục...",
+    "authorPlaceholder": "Nhập tên tác giả...",
     "allDates": "Tất cả ngày",
     "today": "Hôm nay",
     "thisWeek": "Tuần này",
@@ -2333,5 +2338,6 @@
       "endTimeRequired": "Thời gian kết thúc là bắt buộc",
       "confirmDeleteImage": "Bạn có chắc chắn muốn xóa ảnh này không?"
     }
-  }
+  },
+  "enterNewsContent": "Nhập nội dung tin tức..."
 }

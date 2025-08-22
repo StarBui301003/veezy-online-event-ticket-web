@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { Suspense } from 'react';
 import './index.css';
 import './styles/theme.css';
 import App from '@/App.tsx';
@@ -47,7 +48,9 @@ const accStr = localStorage.getItem('account');
 const userId = accStr ? JSON.parse(accStr).userId : undefined;
 
 createRoot(document.getElementById('root')!).render(
-  <NotificationProvider userId={userId}>
-    <App />
-  </NotificationProvider>
+  <Suspense fallback={<div>Loading...</div>}>
+    <NotificationProvider userId={userId}>
+      <App />
+    </NotificationProvider>
+  </Suspense>
 );

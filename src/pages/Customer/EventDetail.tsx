@@ -945,8 +945,7 @@ const EventDetail = () => {
       if (
         !orderInfo ||
         !orderInfo.items ||
-        orderInfo.items.length === 0 ||
-        orderInfo.totalAmount === 0
+        orderInfo.items.length === 0
       ) {
         setFaceError(t('faceOrderFailed'));
         toast.error(t('faceOrderFailed'));
@@ -2179,7 +2178,7 @@ const EventDetail = () => {
                     whileHover={{ scale: 1.02, boxShadow: '0px 0px 15px rgba(56, 189, 248, 0.5)' }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleCreateOrder}
-                    disabled={isCreatingOrder || totalAmount === 0}
+                    disabled={isCreatingOrder || Object.keys(selectedTickets).length === 0}
                     className={cn(
                       'w-full mt-2 font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
                       getThemeClass(
@@ -2206,12 +2205,12 @@ const EventDetail = () => {
                         setFaceError('');
                       });
                     }}
-                    disabled={isCreatingOrder || faceLoading || totalAmount === 0}
+                    disabled={isCreatingOrder || faceLoading || Object.keys(selectedTickets).length === 0}
                     className={cn(
                       'w-full mt-3 font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
                       getThemeClass(
                         'bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600',
-                        'bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-pink-600'
+                        'bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:from-purple-700 hover:to-indigo-700'
                       )
                     )}
                   >
