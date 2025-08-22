@@ -280,9 +280,9 @@ const NewsDetail: React.FC = () => {
 
       {/* Content area with proper z-index */}
       <div className="relative z-10 pt-0">
-        <div className="container mx-auto px-6 sm:pb-12 py-0">
+        <div className="container mx-auto px-6 pb-12 py-0">
           {/* Enhanced Breadcrumb */}
-          <nav className="mb-8 mt-24 opacity-0 animate-fade-in">
+          <nav className="mb-8 sm:mt-24 mt-12 opacity-0 animate-fade-in">
             <div
               className={cn(
                 'flex items-center text-sm backdrop-blur-sm rounded-lg px-4 py-3 border',
