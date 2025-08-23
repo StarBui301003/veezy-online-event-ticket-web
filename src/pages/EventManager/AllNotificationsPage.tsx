@@ -435,7 +435,7 @@ export default function AllNotificationsPage() {
       )}
     >
       {/* Main content with spacing for the fixed header */}
-      <div className="pt-16 sm:pt-20">
+      <div className="pt-8 sm:pt-10">
         <div className="max-w-4xl mx-auto p-3 sm:p-6 w-full">
           {/* Header */}
           <div

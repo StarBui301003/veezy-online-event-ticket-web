@@ -16,7 +16,7 @@ const PAGE_SIZE = 12;
 const PageHeader = ({ title, subtitle }: { title: string; subtitle: string }) => {
   const { getThemeClass } = useThemeClasses();
   return (
-    <div className="text-center pt-24 pb-12">
+    <div className="text-center sm:pt-24 pt-10 pb-12">
       <h1
         className={cn(
           'text-4xl md:text-5xl font-extrabold tracking-tight mb-4',

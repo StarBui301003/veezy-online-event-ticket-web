@@ -942,11 +942,7 @@ const EventDetail = () => {
       }
 
       const orderInfo = await getOrderById(orderId);
-      if (
-        !orderInfo ||
-        !orderInfo.items ||
-        orderInfo.items.length === 0
-      ) {
+      if (!orderInfo || !orderInfo.items || orderInfo.items.length === 0) {
         setFaceError(t('faceOrderFailed'));
         toast.error(t('faceOrderFailed'));
         setFaceLoading(false);
@@ -1397,12 +1393,14 @@ const EventDetail = () => {
             <button
               onClick={() => setShowDetail((v) => !v)}
               className={cn(
-                'w-full sm:flex block justify-between items-center text-lg font-semibold mb-4 focus:outline-none px-4 py-2 rounded-lg transition-colors',
+                'w-full flex justify-between items-center text-lg font-semibold pb-3 focus:outline-none px-4 py-2 rounded-lg transition-all duration-200',
                 getThemeClass(
-                  'text-blue-600 bg-blue-50/50 border  hover:bg-blue-100 border-b border-blue-300',
-                  'text-purple-300 bg-slate-900/60 hover:bg-slate-800  border-b border-purple-700'
-                )
+                  'text-blue-600 border-b border-blue-300 bg-blue-50/50 hover:bg-blue-100',
+                  'text-purple-300 border-b border-purple-700 bg-slate-900/60 hover:bg-slate-800'
+                ),
+                showDetail ? 'mb-0' : 'mb-0'
               )}
+              type="button"
             >
               {t('eventDetails')}
               <span>{showDetail ? '▲' : '▼'}</span>
@@ -2205,7 +2203,9 @@ const EventDetail = () => {
                         setFaceError('');
                       });
                     }}
-                    disabled={isCreatingOrder || faceLoading || Object.keys(selectedTickets).length === 0}
+                    disabled={
+                      isCreatingOrder || faceLoading || Object.keys(selectedTickets).length === 0
+                    }
                     className={cn(
                       'w-full mt-3 font-semibold py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed',
                       getThemeClass(
