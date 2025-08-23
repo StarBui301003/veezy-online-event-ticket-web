@@ -22,6 +22,7 @@
     "viewAllNotifications": "View All Notifications",
     "notificationHint": "Notifications will appear here when you have updates",
     "notificationCenter": "Notification Center",
+    "read": "Read",
     "markAsRead": "Mark as Read",
     "markAsUnread": "Mark as Unread",
     "deleteNotification": "Delete Notification",

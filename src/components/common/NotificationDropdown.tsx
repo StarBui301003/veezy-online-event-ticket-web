@@ -1,11 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ExternalLink, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { getNotificationIcon } from '../common/getNotificationIcon';
 import type { Notification } from '@/hooks/useNotifications';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { useRef, useEffect } from 'react';
+
+// Helper function to format date without seconds
+const formatDateTime = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).replace(',', '');
+  } catch (error) {
+    return dateString;
+  }
+};
 
 interface NotificationDropdownProps {
   userId?: string;
@@ -243,17 +259,6 @@ const NotificationDropdown = ({ userId, onViewAll, t }: NotificationDropdownProp
                       >
                         {notification.notificationTitle}
                       </h4>
-                      {notification.redirectUrl && (
-                        <ExternalLink
-                          className={cn(
-                            'w-4 h-4 mt-0.5 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-all duration-200',
-                            getThemeClass(
-                              'text-gray-400 hover:text-blue-500',
-                              'text-gray-500 hover:text-blue-400'
-                            )
-                          )}
-                        />
-                      )}
                     </div>
 
                     <p
@@ -274,7 +279,7 @@ const NotificationDropdown = ({ userId, onViewAll, t }: NotificationDropdownProp
                           getThemeClass('text-gray-500', 'text-gray-400')
                         )}
                       >
-                        {notification.createdAtVietnam || notification.createdAt}
+                        {formatDateTime(notification.createdAtVietnam || notification.createdAt)}
                       </span>
                       {!notification.isRead && (
                         <span

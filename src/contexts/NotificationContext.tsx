@@ -86,7 +86,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   // Initial fetch and setup realtime listener
   useEffect(() => {
-    if (!userId) return;
+    // Clear notifications when userId changes (logout/login)
+    if (!userId) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
 
     // Initial fetch
     refreshNotifications();

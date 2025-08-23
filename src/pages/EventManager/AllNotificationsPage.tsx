@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { getNotificationIcon } from '@/components/common/getNotificationIcon';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
+import { useNotificationContext } from '@/contexts/NotificationContext';
 
 interface Notification {
   notificationId: string;
@@ -47,6 +48,7 @@ export default function AllNotificationsPage() {
   const location = useLocation();
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
+  const { markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotificationContext();
 
   const isEventManager = location.pathname.startsWith('/event-manager');
   const accountStr = typeof window !== 'undefined' ? localStorage.getItem('account') : null;
@@ -100,6 +102,9 @@ export default function AllNotificationsPage() {
               (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setNotifications(sortedItems);
+            
+            // Note: We don't sync with context here because this is just loading data,
+            // not marking as read. The context should already have the correct state.
           }
         } else {
           const errorMsg =
@@ -116,7 +121,7 @@ export default function AllNotificationsPage() {
         setRefreshing(false);
       }
     },
-    [userId, isEventManager]
+    [userId, isEventManager, t]
   );
 
   const handleMarkAllAsRead = async () => {
@@ -141,6 +146,10 @@ export default function AllNotificationsPage() {
             readAtVietnam: now.toISOString(),
           }))
         );
+        
+        // Update context to sync with dropdown
+        contextMarkAllAsRead();
+        
         console.log('All notifications marked as read successfully');
       } else {
         const errorMsg =
@@ -197,10 +206,14 @@ export default function AllNotificationsPage() {
               : n
           )
         );
+        
+        // Update context to sync with dropdown
+        contextMarkAsRead(notification.notificationId);
 
         // Then call API
         console.log('Calling markNotificationRead API for:', notification.notificationId);
         await markNotificationRead(notification.notificationId, userId);
+        
         console.log('Successfully marked notification as read:', notification.notificationId);
       } catch (error) {
         console.error('Error marking notification as read:', error);
@@ -212,6 +225,9 @@ export default function AllNotificationsPage() {
               : n
           )
         );
+        
+        // Note: We don't revert context here because the API call failed,
+        // so the notification should remain unread in the context
       } finally {
         // Remove from marking set
         setMarkingReadIds((prev) => {
@@ -264,6 +280,8 @@ export default function AllNotificationsPage() {
             },
             ...prev,
           ]);
+          
+          // Note: The context will automatically receive this notification via its own SignalR listener
         });
 
         // Subscribe to notification read events
@@ -281,6 +299,9 @@ export default function AllNotificationsPage() {
                 : n
             )
           );
+          
+          // Update context to sync with dropdown
+          contextMarkAsRead(data.notificationId);
         });
 
         // Subscribe to all notifications read events
@@ -291,6 +312,9 @@ export default function AllNotificationsPage() {
           setNotifications((prev) =>
             prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
           );
+          
+          // Update context to sync with dropdown
+          contextMarkAllAsRead();
         });
 
         // Subscribe to notifications fetched events (auto-refresh)
@@ -319,6 +343,9 @@ export default function AllNotificationsPage() {
             );
 
             setNotifications(sortedItems);
+            
+            // Note: This is just refreshing the UI, not marking as read
+            // The context should already have the correct state
           }
         });
 
@@ -334,6 +361,8 @@ export default function AllNotificationsPage() {
                 : n
             )
           );
+          
+          // Note: The context will handle this update via its own SignalR listener
         });
       } catch (error) {
         console.error('SignalR connection error:', error);
@@ -349,7 +378,7 @@ export default function AllNotificationsPage() {
         clearTimeout(clickTimeoutRef.current);
       }
     };
-  }, [userId, loadNotifications]);
+  }, [userId, loadNotifications, contextMarkAsRead, contextMarkAllAsRead]);
 
   if (loading) {
     return (
@@ -711,9 +740,9 @@ export default function AllNotificationsPage() {
                             >
                               <div className="flex items-center justify-center gap-2">
                                 <CheckCircle className="w-3 h-3" />
-                                {notification.isRead
-                                  ? t('read') || 'Đã đọc'
-                                  : t('markAsRead') || 'Đánh dấu đã đọc'}
+                                        {notification.isRead
+          ? t('notifications.read') || 'Đã đọc'
+          : t('notifications.markAsRead') || 'Đánh dấu đã đọc'}
                               </div>
                             </button>
                           </div>
