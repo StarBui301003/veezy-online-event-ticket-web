@@ -16,6 +16,7 @@ export interface AdminOverviewRealtimeData {
   totalRevenue: number;
   platformRevenue: number;
   pendingWithdrawals: number;
+  totalWithdrawals?: number;
   pendingEventApprovals: number;
   pendingNewsApprovals: number;
   activeEvents: number;

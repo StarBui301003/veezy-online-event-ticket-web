@@ -107,6 +107,12 @@ export default function UserTabs() {
 
     // Handler reference for cleanup
     const handler = (data: any) => {
+      // Ignore realtime updates when a non-default/custom filter is active
+      const isDefaultFilterActive =
+        filterRef.current === '12' && !startDateRef.current && !endDateRef.current;
+      if (!isDefaultFilterActive) {
+        return;
+      }
       // Chỉ reload nếu tab đang hiển thị và dữ liệu thực sự thay đổi
       if (document.visibilityState === 'visible') {
         // So sánh dữ liệu mới với dữ liệu hiện tại
@@ -132,6 +138,8 @@ export default function UserTabs() {
 
   useEffect(() => {
     reloadData();
+    // Reset last params to allow refresh on same filter after dates change back
+    lastParamsKeyRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 

@@ -76,7 +76,7 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
     {
       name: 'Withdrawal Requests',
       value: data.pendingWithdrawals,
-      total: 0,
+      total: data.totalWithdrawals ?? 0,
       fill: '#f59e42',
     },
     {
