@@ -46,23 +46,23 @@ interface FieldErrors {
   [key: string]: string;
 }
 
-const validateEditDiscountCodeForm = (formData: FormData) => {
+const validateEditDiscountCodeForm = (formData: FormData, t: (key: string) => string) => {
   const errors: FieldErrors = {};
 
   if (!formData.code.trim()) {
-    errors.code = 'Mã giảm giá không được để trống';
+          errors.code = t('discountCodeRequired');
   }
 
   if (formData.value <= 0) {
-    errors.value = 'Giá trị giảm giá phải lớn hơn 0';
+    errors.value = t('discountValueMustBeGreaterThanZero');
   }
 
   if (formData.discountType === 0 && formData.value > 100) {
-    errors.value = 'Phần trăm giảm giá không được vượt quá 100';
+    errors.value = t('discountPercentageCannotExceed100');
   }
 
   if (!formData.expiredAt) {
-    errors.expiredAt = 'Ngày hết hạn không được để trống';
+          errors.expiredAt = t('expirationDateRequired');
   }
 
   return errors;
@@ -151,7 +151,7 @@ export default function EditDiscountCode() {
       const errors = validateEditDiscountCodeForm({
         ...formData,
         expiredAt: formData.expiredAt || '',
-      });
+      }, t);
 
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
@@ -179,13 +179,13 @@ export default function EditDiscountCode() {
       };
 
       if (!discountId) {
-        throw new Error('Mã giảm giá không hợp lệ');
+        throw new Error(t('invalidDiscountCodeId'));
       }
 
       const response = await updateDiscountCode(discountId, requestData);
 
       if (response.flag) {
-        toast.success('Cập nhật mã giảm giá thành công!', {
+        toast.success(t('discountCodeUpdateSuccess'), {
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -198,7 +198,7 @@ export default function EditDiscountCode() {
           navigate('/event-manager/discount-codes');
         }, 1500);
       } else {
-        throw new Error(response.message || 'Không thể cập nhật mã giảm giá');
+        throw new Error(response.message || t('cannotUpdateDiscountCode'));
       }
     } catch (error) {
       console.error('Error updating discount code:', error);
@@ -249,7 +249,7 @@ export default function EditDiscountCode() {
         const errorMessage =
           axiosError.response?.data?.message ||
           axiosError.message ||
-          'Có lỗi xảy ra khi cập nhật mã giảm giá';
+          t('errorUpdatingDiscountCode');
         toast.error(errorMessage, {
           autoClose: 5000,
           hideProgressBar: false,
@@ -259,8 +259,8 @@ export default function EditDiscountCode() {
         });
       } else {
         // Handle non-API errors
-        const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra';
-        toast.error(`Lỗi: ${errorMessage}`, {
+        const errorMessage = error instanceof Error ? error.message : t('anErrorOccurred');
+        toast.error(`${t('error')}: ${errorMessage}`, {
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,

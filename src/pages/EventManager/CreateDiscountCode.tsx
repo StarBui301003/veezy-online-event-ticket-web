@@ -123,16 +123,16 @@ export default function CreateDiscountCode() {
   // Setup realtime connection for discount code creation
   useEffect(() => {
     // Listen for discount code creation confirmations using global connections
-    onNotification('OnDiscountCodeCreated', (data: any) => {
+    onNotification('OnDiscountCodeCreated', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
-        toast.success('Mã giảm giá đã được tạo thành công!');
+        toast.success(t('discountCodeCreatedSuccessfully'));
         navigate(`/event-manager/discount-codes`);
       }
     });
 
-    onNotification('OnDiscountCodeCreateFailed', (data: any) => {
+    onNotification('OnDiscountCodeCreateFailed', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
-        toast.error('Không thể tạo mã giảm giá. Vui lòng thử lại!');
+        toast.error(t('cannotCreateDiscountCode'));
       }
     });
   }, [eventId, navigate]);
@@ -190,11 +190,11 @@ export default function CreateDiscountCode() {
       // Check multiple possible success indicators
       if (responseData.success === true || responseData.flag === true || responseData.code === 200) {
         isSuccess = true;
-        successMessage = responseData.message || 'Mã giảm giá đã được tạo thành công!';
+        successMessage = responseData.message || t('discountCodeCreatedSuccessfully');
       } else if (responseData.id || responseData.discountId) {
         // If response contains ID, consider it successful
         isSuccess = true;
-        successMessage = 'Mã giảm giá đã được tạo thành công!';
+        successMessage = t('discountCodeCreatedSuccessfully');
       }
 
       if (isSuccess) {
@@ -212,7 +212,7 @@ export default function CreateDiscountCode() {
         }, 2000);
       } else {
         console.log('API returned success: false, message:', responseData.message);
-        throw new Error(responseData.message || 'Failed to create discount code');
+        throw new Error(responseData.message || t('failedToCreateDiscountCode'));
       }
     } catch (error) {
       console.error('Error creating discount code:', error);
@@ -246,7 +246,7 @@ export default function CreateDiscountCode() {
         }
 
         // Handle other API errors
-        const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi tạo mã giảm giá';
+        const errorMessage = error.response?.data?.message || t('errorCreatingDiscountCode');
         toast.error(errorMessage, {
           autoClose: 5000,
           hideProgressBar: false,
@@ -256,7 +256,7 @@ export default function CreateDiscountCode() {
         });
       } else {
         // Handle non-API errors
-        toast.error('Có lỗi xảy ra khi tạo mã giảm giá. Vui lòng thử lại sau.', {
+        toast.error(t('errorCreatingDiscountCodePleaseTryAgain'), {
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,

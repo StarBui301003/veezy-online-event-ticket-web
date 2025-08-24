@@ -90,7 +90,7 @@ export default function EventManagerDashboard() {
     { value: GroupBy.Year, label: t('dashboard.byYear') },
   ];
 
-  const [dashboardData, setDashboardData] = useState(null);
+
 
   // Track if this is the initial mount
   const isInitialMount = useRef(true);
@@ -121,14 +121,12 @@ export default function EventManagerDashboard() {
     prevFiltersRef.current = { ...currentFilters };
 
     try {
-      const data = await getEventManagerDashboard({
+      await getEventManagerDashboard({
         period: currentFilters.selectedPeriod,
         groupBy: currentFilters.groupBy,
         startDate: currentFilters.customStartDate,
         endDate: currentFilters.customEndDate,
       });
-
-      setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error(t('dashboard.unableToLoadData'));
@@ -195,10 +193,9 @@ export default function EventManagerDashboard() {
         groupBy={groupBy}
         startDate={customStartDate}
         endDate={customEndDate}
-        dashboardData={dashboardData}
       />
     ),
-    [selectedPeriod, groupBy, customStartDate, customEndDate, dashboardData]
+    [selectedPeriod, groupBy, customStartDate, customEndDate]
   );
 
   useEffect(() => {

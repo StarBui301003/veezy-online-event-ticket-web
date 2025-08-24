@@ -45,14 +45,14 @@ export default function CreateTicket() {
     // Listen for ticket creation confirmations
     onNotification('OnTicketCreated', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
-        toast.success('Vé đã được tạo thành công!');
+        toast.success(t('ticketCreatedSuccessfully'));
         navigate(`/event-manager/events/${eventId}/tickets`);
       }
     });
 
     onNotification('OnTicketCreateFailed', (data: { eventId: string }) => {
       if (data.eventId === eventId) {
-        toast.error('Không thể tạo vé. Vui lòng thử lại!');
+        toast.error(t('cannotCreateTicket'));
       }
     });
   }, [eventId, navigate]);
@@ -101,7 +101,7 @@ export default function CreateTicket() {
       if (!form.price || isNaN(priceValue) || priceValue < 0) {
         errors.price = t('ticketPriceInvalid');
       } else if (priceValue > 0 && priceValue < 10000) {
-        errors.price = 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.';
+        errors.price = t('ticketPriceMustBeAtLeast10000VND');
       }
       
       const quantityValue = Number(form.quantity);
@@ -110,11 +110,11 @@ export default function CreateTicket() {
       }
       
       if (!form.saleStartTime) {
-        errors.saleStartTime = 'Vui lòng chọn thời gian bắt đầu bán vé.';
+        errors.saleStartTime = t('pleaseSelectSaleStartTime');
       }
       
       if (!form.saleEndTime) {
-        errors.saleEndTime = 'Vui lòng chọn thời gian kết thúc bán vé.';
+        errors.saleEndTime = t('pleaseSelectSaleEndTime');
       }
       
       if (form.saleStartTime && form.saleEndTime && form.saleStartTime >= form.saleEndTime) {
@@ -123,7 +123,7 @@ export default function CreateTicket() {
       
       const maxTicketsValue = Number(form.maxTicketsPerOrder);
       if (!form.maxTicketsPerOrder || isNaN(maxTicketsValue) || maxTicketsValue < 1) {
-        errors.maxTicketsPerOrder = 'Số vé tối đa mỗi đơn hàng phải ít nhất là 1.';
+        errors.maxTicketsPerOrder = t('maxTicketsPerOrderMustBeAtLeast1');
       }
       
       if (!eventId) {
@@ -170,7 +170,7 @@ export default function CreateTicket() {
         
         // Check if it's a specific field validation error
         if (errorMessage.includes('price must be at least 10,000 VND')) {
-          setFieldErrors({ price: 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.' });
+          setFieldErrors({ price: t('ticketPriceMustBeAtLeast10000VND') });
         } else {
           setError(errorMessage);
         }
@@ -231,14 +231,14 @@ export default function CreateTicket() {
         if ('message' in err && err.message && typeof err.message === 'string') {
           console.log('Error message:', err.message);
           if (err.message.includes('Network Error') || err.message.includes('Failed to fetch')) {
-            errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+            errorMessage = t('networkConnectionError');
           }
         }
       }
       
       // Handle specific API validation errors
       if (errorMessage.includes('price must be at least 10,000 VND')) {
-        setFieldErrors({ price: 'Giá vé phải ít nhất 10,000 VNĐ cho vé trả phí.' });
+        setFieldErrors({ price: t('ticketPriceMustBeAtLeast10000VND') });
       } else {
         setError(errorMessage);
       }

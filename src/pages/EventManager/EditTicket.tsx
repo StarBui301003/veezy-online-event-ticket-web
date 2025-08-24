@@ -62,16 +62,16 @@ export default function EditTicket() {
   // Setup realtime connection for ticket updates using global connections
   useEffect(() => {
     // Listen for ticket update confirmations
-    onNotification('OnTicketUpdated', (data: any) => {
+    onNotification('OnTicketUpdated', (data: { ticketId: string }) => {
       if (data.ticketId === ticketId) {
-        toast.success('Vé đã được cập nhật thành công!');
+        toast.success(t('ticketUpdatedSuccessfully'));
         navigate(`/event-manager/events/${eventId}/tickets`);
       }
     });
 
-    onNotification('OnTicketUpdateFailed', (data: any) => {
+    onNotification('OnTicketUpdateFailed', (data: { ticketId: string }) => {
       if (data.ticketId === ticketId) {
-        toast.error('Không thể cập nhật vé. Vui lòng thử lại!');
+        toast.error(t('cannotUpdateTicket'));
       }
     });
   }, [eventId, ticketId, navigate]);

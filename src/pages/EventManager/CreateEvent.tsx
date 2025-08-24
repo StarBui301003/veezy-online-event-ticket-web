@@ -173,52 +173,7 @@ function cleanHtml(html: string) {
   return plainText.trim() === '' ? '' : plainText;
 }
 
-// Validation functions
-const validateField = (name: string, value: any, formData?: any): string => {
-  switch (name) {
-    case 'eventName':
-      if (!value || value.trim() === '') return 'Tên sự kiện là bắt buộc';
-      if (value.length < 3) return 'Tên sự kiện phải có ít nhất 3 ký tự';
-      if (value.length > 100) return 'Tên sự kiện không được quá 100 ký tự';
-      break;
 
-    case 'eventLocation':
-      if (!value || value.trim() === '') return 'Địa điểm là bắt buộc';
-      if (value.length > 200) return 'Địa điểm không được quá 200 ký tự';
-      break;
-
-    case 'startAt':
-      if (!value) return 'Thời gian bắt đầu là bắt buộc';
-      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thởi điểm hiện tại';
-      break;
-
-    case 'endAt':
-      if (!value) return 'Thời gian kết thúc là bắt buộc';
-      if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
-        return 'Thời gian kết thúc phải sau thời gian bắt đầu';
-      }
-      break;
-
-    case 'bankAccount':
-      if (value && !/^[0-9]{8,20}$/.test(value)) {
-        return 'Số tài khoản phải từ 8-20 chữ số';
-      }
-      break;
-
-    case 'bankAccountName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên tài khoản phải từ 2-50 ký tự';
-      }
-      break;
-
-    case 'bankName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên ngân hàng phải từ 2-50 ký tự';
-      }
-      break;
-  }
-  return '';
-};
 
 export default function CreateEventForm() {
   const { t } = useTranslation();
@@ -326,13 +281,13 @@ export default function CreateEventForm() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      alert('Chỉ chấp nhận file hình ảnh');
+      alert(t('onlyImageFilesAccepted'));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
       // 10MB
-      alert('Kích thước file không được vượt quá 10MB');
+      alert(t('fileSizeCannotExceed10MB'));
       return;
     }
 
@@ -344,7 +299,7 @@ export default function CreateEventForm() {
         eventCoverImageUrl: url,
       }));
     } catch {
-      alert('Upload ảnh bìa thất bại.');
+      alert(t('coverImageUploadFailed'));
     } finally {
       setUploadingCover(false);
     }
@@ -367,7 +322,7 @@ export default function CreateEventForm() {
     if (!file.type.startsWith('image/')) {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Chỉ chấp nhận file hình ảnh',
+        [index]: t('onlyImageFilesAccepted'),
       }));
       return;
     }
@@ -375,7 +330,7 @@ export default function CreateEventForm() {
     if (file.size > 10 * 1024 * 1024) {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Kích thước file không được vượt quá 10MB',
+        [index]: t('fileSizeCannotExceed10MB'),
       }));
       return;
     }
@@ -395,7 +350,7 @@ export default function CreateEventForm() {
     } catch {
       setContentErrors((prev) => ({
         ...prev,
-        [index]: 'Upload hình ảnh thất bại',
+        [index]: t('contentImageUploadFailed'),
       }));
     } finally {
       setUploadingContentImage((prev) => ({ ...prev, [index]: false }));
@@ -508,6 +463,53 @@ export default function CreateEventForm() {
     }
   };
 
+  // Validation functions
+  const validateField = (name: string, value: any, formData?: any): string => {
+    switch (name) {
+      case 'eventName':
+        if (!value || value.trim() === '') return t('editEvent.validation.eventNameRequired');
+        if (value.length < 3) return t('editEvent.validation.eventNameMinLength');
+        if (value.length > 100) return t('editEvent.validation.eventNameMaxLength');
+        break;
+
+      case 'eventLocation':
+        if (!value || value.trim() === '') return t('editEvent.validation.locationRequired');
+        if (value.length > 200) return t('editEvent.validation.locationMaxLength');
+        break;
+
+      case 'startAt':
+        if (!value) return t('editEvent.validation.startTimeRequired');
+        if (new Date(value) <= new Date()) return t('editEvent.validation.startTimeMustBeFuture');
+        break;
+
+      case 'endAt':
+        if (!value) return t('editEvent.validation.endTimeRequired');
+        if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
+          return t('editEvent.validation.endTimeMustBeAfterStart');
+        }
+        break;
+
+      case 'bankAccount':
+        if (value && !/^[0-9]{8,20}$/.test(value)) {
+          return t('editEvent.validation.bankAccountLength');
+        }
+        break;
+
+      case 'bankAccountName':
+        if (value && (value.length < 2 || value.length > 50)) {
+          return t('editEvent.validation.bankAccountNameLength');
+        }
+        break;
+
+      case 'bankName':
+        if (value && (value.length < 2 || value.length > 50)) {
+          return t('editEvent.validation.bankNameLength');
+        }
+        break;
+    }
+    return '';
+  };
+
   // Validation
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -527,17 +529,17 @@ export default function CreateEventForm() {
 
     // Validate categories
     if (formData.categoryIds.length === 0) {
-      newErrors['categoryIds'] = 'Vui lòng chọn ít nhất một danh mục';
+      newErrors['categoryIds'] = t('selectAtLeastOneCategory');
       hasError = true;
     }
 
     // Validate contents
     formData.contents.forEach((content, index) => {
       if (content.contentType === 'description' && !content.description.trim()) {
-        newContentErrors[index] = 'Mô tả không được để trống';
+        newContentErrors[index] = t('descriptionRequired');
         hasError = true;
       } else if (content.contentType === 'image' && !content.imageUrl.trim()) {
-        newContentErrors[index] = 'Hình ảnh không được để trống';
+        newContentErrors[index] = t('uploadImageRequired');
         hasError = true;
       }
     });
@@ -588,7 +590,7 @@ export default function CreateEventForm() {
       await createEvent(apiData);
       navigate('/event-manager/pending-events');
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || 'Tạo sự kiện thất bại';
+      const errorMessage = error?.response?.data?.message || t('eventCreateFailed');
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -1282,7 +1284,7 @@ export default function CreateEventForm() {
                                   clipRule="evenodd"
                                 />
                               </svg>
-                              <span>Hình ảnh đã được tải lên thành công</span>
+                              <span>{t('imageUploadedSuccessfully')}</span>
                             </div>
                           </div>
                         </div>

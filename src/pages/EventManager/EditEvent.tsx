@@ -198,52 +198,7 @@ function getContentType(content: Content): 'description' | 'image' {
   return 'description';
 }
 
-// Validation functions
-const validateField = (name: string, value: any, formData?: any): string => {
-  switch (name) {
-    case 'eventName':
-      if (!value || value.trim() === '') return 'Tên sự kiện là bắt buộc';
-      if (value.length < 3) return 'Tên sự kiện phải có ít nhất 3 ký tự';
-      if (value.length > 100) return 'Tên sự kiện không được quá 100 ký tự';
-      break;
 
-    case 'eventLocation':
-      if (!value || value.trim() === '') return 'Địa điểm là bắt buộc';
-      if (value.length > 200) return 'Địa điểm không được quá 200 ký tự';
-      break;
-
-    case 'startAt':
-      if (!value) return 'Thời gian bắt đầu là bắt buộc';
-      if (new Date(value) <= new Date()) return 'Thời gian bắt đầu phải sau thời điểm hiện tại';
-      break;
-
-    case 'endAt':
-      if (!value) return 'Thời gian kết thúc là bắt buộc';
-      if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
-        return 'Thời gian kết thúc phải sau thời gian bắt đầu';
-      }
-      break;
-
-    case 'bankAccount':
-      if (value && !/^[0-9]{8,20}$/.test(value)) {
-        return 'Số tài khoản phải từ 8-20 chữ số';
-      }
-      break;
-
-    case 'bankAccountName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên tài khoản phải từ 2-50 ký tự';
-      }
-      break;
-
-    case 'bankName':
-      if (value && (value.length < 2 || value.length > 50)) {
-        return 'Tên ngân hàng phải từ 2-50 ký tự';
-      }
-      break;
-  }
-  return '';
-};
 
 const EditEvent: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -592,12 +547,59 @@ const EditEvent: React.FC = () => {
         await deleteEventImage(imageUrl);
       } catch (error: any) {
         setContents(oldContents);
-        alert(error.message || 'Không thể xóa ảnh. Vui lòng thử lại.');
+        alert(error.message || t('cannotDeleteImage'));
       }
     } catch (error) {
       console.error('Error in handleContentImageDelete:', error);
               alert(t('editEvent.errorDeletingImage'));
     }
+  };
+
+  // Validation functions
+  const validateField = (name: string, value: any, formData?: any): string => {
+    switch (name) {
+      case 'eventName':
+        if (!value || value.trim() === '') return t('editEvent.validation.eventNameRequired');
+        if (value.length < 3) return t('editEvent.validation.eventNameMinLength');
+        if (value.length > 100) return t('editEvent.validation.eventNameMaxLength');
+        break;
+
+      case 'eventLocation':
+        if (!value || value.trim() === '') return t('editEvent.validation.locationRequired');
+        if (value.length > 200) return t('editEvent.validation.locationMaxLength');
+        break;
+
+      case 'startAt':
+        if (!value) return t('editEvent.validation.startTimeRequired');
+        if (new Date(value) <= new Date()) return t('editEvent.validation.startTimeMustBeFuture');
+        break;
+
+      case 'endAt':
+        if (!value) return t('editEvent.validation.endTimeRequired');
+        if (formData?.startAt && new Date(value) <= new Date(formData.startAt)) {
+          return t('editEvent.validation.endTimeMustBeAfterStart');
+        }
+        break;
+
+      case 'bankAccount':
+        if (value && !/^[0-9]{8,20}$/.test(value)) {
+          return t('editEvent.validation.bankAccountLength');
+        }
+        break;
+
+      case 'bankAccountName':
+        if (value && (value.length < 2 || value.length > 50)) {
+          return t('editEvent.validation.bankAccountNameLength');
+        }
+        break;
+
+      case 'bankName':
+        if (value && (value.length < 2 || value.length > 50)) {
+          return t('editEvent.validation.bankNameLength');
+        }
+        break;
+    }
+    return '';
   };
 
   // Validation
@@ -619,17 +621,17 @@ const EditEvent: React.FC = () => {
 
     // Validate categories
     if (formData.categoryIds.length === 0) {
-      newErrors['categoryIds'] = 'Vui lòng chọn ít nhất một danh mục';
+      newErrors['categoryIds'] = t('selectAtLeastOneCategory');
       hasError = true;
     }
 
     // Validate contents
     contents.forEach((content, index) => {
       if (content.contentType === 'description' && !content.description?.trim()) {
-        newContentErrors[index] = 'Mô tả không được để trống';
+        newContentErrors[index] = t('descriptionRequired');
         hasError = true;
       } else if (content.contentType === 'image' && !content.imageUrl?.trim()) {
-        newContentErrors[index] = 'Hình ảnh không được để trống';
+        newContentErrors[index] = t('uploadImageRequired');
         hasError = true;
       }
     });
@@ -682,7 +684,7 @@ const EditEvent: React.FC = () => {
         await updateEvent(eventId!, apiData);
         navigate(location.state?.from || '/event-manager');
       } catch (error: any) {
-        const errorMessage = error?.response?.data?.message || 'Cập nhật sự kiện thất bại';
+        const errorMessage = error?.response?.data?.message || t('eventUpdateFailed');
         alert(errorMessage);
       } finally {
         setSubmitting(false);
@@ -770,7 +772,7 @@ const EditEvent: React.FC = () => {
             )}
           />
           <span className={cn('text-xl', getThemeClass('text-blue-600', 'text-purple-300'))}>
-            Đang tải...
+            {t('loading')}
           </span>
         </div>
       </div>
