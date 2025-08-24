@@ -140,21 +140,6 @@ const AllWithdrawRequests = ({ onPendingChanged }: { onPendingChanged?: () => vo
       SortDescending: sortDescending,
     };
 
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Fund Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      withdrawalSearch: withdrawalSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 

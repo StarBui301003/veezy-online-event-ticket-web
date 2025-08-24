@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getEventAnalytics } from '@/services/Admin/dashboard.service';
 import {
   AreaChart,
@@ -45,7 +45,7 @@ const FILTERS = [
 // PieChart colors
 const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
 
-export default function EventTabs({ isActive = false }: { isActive?: boolean }) {
+export default function EventTabs() {
   const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -53,10 +53,11 @@ export default function EventTabs({ isActive = false }: { isActive?: boolean }) 
   const [eventsByCategory, setEventsByCategory] = useState<EventByCategory[]>([]);
   const [topEvents, setTopEvents] = useState<EventTopPerformingEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const inFlightRef = useRef(false);
+  const lastParamsKeyRef = useRef<string | null>(null);
 
   // Real-time data reload function
   const reloadData = () => {
-    if (!isActive) return;
     console.log(
       '🔄 EventTabs reloadData called with filter:',
       filter,
@@ -77,7 +78,6 @@ export default function EventTabs({ isActive = false }: { isActive?: boolean }) 
         return;
       }
     }
-    setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
       params.period = 16;
@@ -86,6 +86,16 @@ export default function EventTabs({ isActive = false }: { isActive?: boolean }) 
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    if (inFlightRef.current) return;
+    const paramsKey = JSON.stringify({
+      period: (params as Record<string, unknown>).period ?? '12',
+      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
+      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
+    });
+    if (lastParamsKeyRef.current === paramsKey) return;
+    lastParamsKeyRef.current = paramsKey;
+    inFlightRef.current = true;
+    setLoading(true);
     console.log('📡 EventTabs API call params:', params);
     getEventAnalytics(params)
       .then((res: AdminEventAnalyticsResponse) => {
@@ -118,13 +128,13 @@ export default function EventTabs({ isActive = false }: { isActive?: boolean }) 
         setTopEvents([]);
       })
       .finally(() => {
+        inFlightRef.current = false;
         setLoading(false);
       });
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    if (!isActive) return;
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
@@ -162,13 +172,12 @@ export default function EventTabs({ isActive = false }: { isActive?: boolean }) 
       offAnalytics('OnEventAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
+  }, []);
 
   useEffect(() => {
-    if (!isActive) return;
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, filter, startDate, endDate]);
+  }, [filter, startDate, endDate]);
 
   return (
     <div className="space-y-6 p-3 min-h-screen">

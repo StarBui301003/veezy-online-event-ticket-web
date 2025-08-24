@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PersonalNotificationList } from './PersonalNotificationList';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import { Skeleton } from '@/components/ui/skeleton';
 // import { PersonNotificationList } from './PersonNotificationList';
 
@@ -171,7 +171,7 @@ export const OverviewTabs = () => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [exporting, setExporting] = useState(false);
   const inFlightRef = useRef(false);
-  const lastParamsKeyRef = useRef<string | null>(null);
+  const didInitRef = useRef(false);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -179,6 +179,9 @@ export const OverviewTabs = () => {
       if (!startDate || !endDate) return;
       if (endDate < startDate) return;
     }
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '5') {
       params.period = 5;
@@ -187,16 +190,6 @@ export const OverviewTabs = () => {
     } else if (filter !== '4') {
       params.period = parseInt(filter, 10);
     }
-    const paramsKey = JSON.stringify({
-      period: (params as Record<string, unknown>).period ?? '4',
-      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
-      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
-    });
-    if (lastParamsKeyRef.current === paramsKey) return;
-    if (inFlightRef.current) return;
-    lastParamsKeyRef.current = paramsKey;
-    inFlightRef.current = true;
-    setLoading(true);
     getAdminOverviewDashboard(params)
       .then((res: AdminOverviewRealtimeResponse) => setData(res.data))
       .catch(() => {
@@ -209,17 +202,33 @@ export const OverviewTabs = () => {
       });
   };
 
-  // Connect to AnalyticsHub for real-time updates
+  // Connect once and subscribe with cleanup
   useEffect(() => {
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
-    // Listen for real-time analytics updates
-    onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
+    const handler = (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
       setData(newData);
-    });
+    };
+    onAnalytics('OnAdminRealtimeOverview', handler);
 
-    // Initial data load
+    return () => {
+      offAnalytics('OnAdminRealtimeOverview', handler);
+    };
+  }, []);
+
+  // Initial load once on mount
+  useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      reloadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Subsequent reloads when filters change (skip very first render)
+  useEffect(() => {
+    if (!didInitRef.current) return;
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);

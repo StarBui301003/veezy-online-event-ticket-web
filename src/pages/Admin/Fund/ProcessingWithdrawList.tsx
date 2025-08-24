@@ -134,21 +134,6 @@ const ProcessingWithdrawList = ({ onProcessingChanged }: { onProcessingChanged?:
       SortDescending: sortDescending,
     };
 
-    // Debug: Log amount range values
-    console.log('🔍 Amount Range Debug:', {
-      amountRange,
-      maxAmount,
-      minAmount: filterParams.MinAmount,
-      maxAmountFilter: filterParams.MaxAmount,
-    });
-
-    // Debug: Log search parameters
-    console.log('🔍 Processing Fund Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      processingSearch: processingSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 

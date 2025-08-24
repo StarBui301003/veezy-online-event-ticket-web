@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getFinancialAnalytics } from '@/services/Admin/dashboard.service';
 import {
   LineChart,
@@ -45,7 +45,7 @@ const FILTERS = [
 const cardClass =
   'w-full min-w-[180px] max-w-[220px] bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-800/70 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4 flex flex-col justify-between';
 
-export default function FinancialTabs({ isActive = false }: { isActive?: boolean }) {
+export default function FinancialTabs() {
   const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -62,13 +62,9 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
     topEventPlatformFee: number;
   } | null>(null);
   const [loading, setLoading] = useState(false);
-  const inFlightRef = useRef(false);
-  const lastParamsKeyRef = useRef<string | null>(null);
 
   // Real-time data reload function
   const reloadData = () => {
-    if (!isActive) return;
-    if (inFlightRef.current) return;
     console.log(
       '🔄 reloadData called with filter:',
       filter,
@@ -89,6 +85,7 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
         return;
       }
     }
+    setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
       params.period = 16;
@@ -97,20 +94,14 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
-    const paramsKey = JSON.stringify({
-      period: params.period ?? '12',
-      customStartDate: params.customStartDate ?? null,
-      customEndDate: params.customEndDate ?? null,
-    });
-    if (lastParamsKeyRef.current === paramsKey) {
-      return;
-    }
-    lastParamsKeyRef.current = paramsKey;
-    inFlightRef.current = true;
-    setLoading(true);
     console.log('📡 API call params:', params);
     getFinancialAnalytics(params)
       .then((res: AdminFinancialAnalyticsResponse) => {
+        console.log('📊 API Response:', res.data);
+        console.log('🎯 topEventsByRevenue:', res.data?.topEventsByRevenue);
+        console.log('📈 revenueTimeline:', res.data?.revenueTimeline);
+        console.log('💰 platformFees:', res.data?.platformFees);
+
         // Safely set the data with proper null checks
         const safeRevenueTimeline = res.data?.revenueTimeline || [];
         const safeTopEvents = res.data?.topEventsByRevenue || [];
@@ -119,6 +110,8 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
         setRevenueTimeline(safeRevenueTimeline);
         setTopEvents(safeTopEvents);
         setPlatformFees(safePlatformFees);
+
+        console.log('🔄 State updated - topEvents:', safeTopEvents);
 
         // Safely set summary with proper null checks
         const firstTopEvent = safeTopEvents.length > 0 ? safeTopEvents[0] : null;
@@ -131,8 +124,22 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
           topEventRevenue: firstTopEvent?.revenue ?? 0,
           topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
         });
+
+        console.log('🔄 Summary set:', {
+          totalRevenue: res.data?.totalRevenue || 0,
+          netRevenue: res.data?.netRevenue ?? 0,
+          platformFee: res.data?.platformFee ?? 0,
+          topEventRevenue: firstTopEvent?.revenue ?? 0,
+          topEventPlatformFee: firstPlatformFeeEvent?.feeCollected ?? 0,
+        });
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('❌ Error loading financial analytics:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
         toast.error('Failed to load financial data');
         // Set default values on error
         setRevenueTimeline([]);
@@ -146,15 +153,11 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
           topEventPlatformFee: 0,
         });
       })
-      .finally(() => {
-        inFlightRef.current = false;
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    if (!isActive) return;
     console.log('🚀 FinancialTabs mounted - connecting to AnalyticsHub...');
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
@@ -180,7 +183,8 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
           !platformFees ||
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
-          // Preserve previous summary if payload omits it to avoid resetting cards to 0
+          console.log('🔄 SignalR: Updating states due to data changes');
+          // Preserve previous summary if payload omits it or sends null to avoid resetting cards
           setSummary((prev) => (data.summary == null ? prev : data.summary));
           setRevenueTimeline(safeRevenueTimeline);
           setTopEvents(safeTopEvents);
@@ -198,13 +202,20 @@ export default function FinancialTabs({ isActive = false }: { isActive?: boolean
       offAnalytics('OnFinancialAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
+  }, []);
 
   useEffect(() => {
-    if (!isActive) return;
+    console.log(
+      '🔄 useEffect triggered - filter:',
+      filter,
+      'startDate:',
+      startDate,
+      'endDate:',
+      endDate
+    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, filter, startDate, endDate]);
+  }, [filter, startDate, endDate]);
 
   // Debug useEffect to monitor state changes
   useEffect(() => {

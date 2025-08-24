@@ -167,13 +167,6 @@ export const PendingNewsList = ({
       sortDescending: sortDescending,
     };
 
-    // Debug: Log search parameters
-    console.log('🔍 Pending News Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      pendingNewsSearch: pendingNewsSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 

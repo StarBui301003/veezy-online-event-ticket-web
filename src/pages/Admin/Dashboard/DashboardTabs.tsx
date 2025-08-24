@@ -13,8 +13,15 @@ import NewsTabs from './NewsTabs';
 
 export default function DashboardTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabParam || 'overview');
+
+  // Ưu tiên tab từ param, nếu không có thì mặc định là 'overview'
+  const getInitialTab = () => {
+    const tab = searchParams.get('tab');
+    if (['overview', 'user', 'revenue', 'event', 'news'].includes(tab || '')) return tab!;
+    return 'overview';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
   const overviewBadge = 0;
 
   const handleTabChange = (tab: string) => {
@@ -22,11 +29,34 @@ export default function DashboardTabs() {
     setSearchParams({ tab });
   };
 
+  // Set default query param if missing
   useEffect(() => {
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam);
+    if (!searchParams.get('tab')) {
+      setSearchParams({ tab: 'overview' }, { replace: true });
     }
-  }, [tabParam, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync activeTab when query param changes (back/forward, manual edits)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (
+      tab &&
+      tab !== activeTab &&
+      ['overview', 'user', 'revenue', 'event', 'news'].includes(tab)
+    ) {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Track which tabs have been loaded at least once
+  useEffect(() => {
+    if (!loadedTabs.includes(activeTab)) {
+      setLoadedTabs((prev) => [...prev, activeTab]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   return (
     <div className="p-6">
@@ -94,13 +124,15 @@ export default function DashboardTabs() {
           </TabsTrigger>
         </TabsList>
         <div>
-          <TabsContent value="overview">{activeTab === 'overview' && <OverviewTabs />}</TabsContent>
-          <TabsContent value="user">{activeTab === 'user' && <UserTabs isActive />}</TabsContent>
-          <TabsContent value="revenue">
-            {activeTab === 'revenue' && <FinancialTabs isActive />}
+          <TabsContent value="overview">
+            {loadedTabs.includes('overview') && <OverviewTabs />}
           </TabsContent>
-          <TabsContent value="event">{activeTab === 'event' && <EventTabs isActive />}</TabsContent>
-          <TabsContent value="news">{activeTab === 'news' && <NewsTabs />}</TabsContent>
+          <TabsContent value="user">{loadedTabs.includes('user') && <UserTabs />}</TabsContent>
+          <TabsContent value="revenue">
+            {loadedTabs.includes('revenue') && <FinancialTabs />}
+          </TabsContent>
+          <TabsContent value="event">{loadedTabs.includes('event') && <EventTabs />}</TabsContent>
+          <TabsContent value="news">{loadedTabs.includes('news') && <NewsTabs />}</TabsContent>
         </div>
       </Tabs>
     </div>

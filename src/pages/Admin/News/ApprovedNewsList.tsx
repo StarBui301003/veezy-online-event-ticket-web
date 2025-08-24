@@ -183,9 +183,6 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
       sortDescending: sortDescending,
     };
 
-    // Debug: Log search parameters
-    console.log('🔍 Approved News Search Parameters:', filterParams);
-
     getAllApprovedNews(filterParams)
       .then(async (res) => {
         if (res && res.data) {

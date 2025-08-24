@@ -1,10 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getUserConfig, updateUserConfig } from '@/services/userConfig.service';
 
+interface ThemeContextSetOptions {
+  skipApi?: boolean;
+  userConfig?: Partial<{
+    language: number;
+    receiveEmail: boolean;
+    receiveNotify: boolean;
+    userId?: string;
+  }>;
+}
+
 interface ThemeContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  setTheme: (theme: 'light' | 'dark') => void;
+  setTheme: (theme: 'light' | 'dark', options?: ThemeContextSetOptions) => void;
   resetThemeForNewUser: () => void; // Thêm function để reset theme cho user mới
 }
 
@@ -88,8 +98,8 @@ const applyTheme = (newTheme: 'light' | 'dark') => {
   }
 };
 
-// Helper function to save theme to localStorage AND database
-const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
+// Helper function to save theme to localStorage AND database (optional)
+const saveThemeToStorage = (newTheme: 'light' | 'dark', options?: ThemeContextSetOptions) => {
   try {
     const currentUserId = getCurrentUserId();
 
@@ -106,28 +116,31 @@ const saveThemeToStorage = (newTheme: 'light' | 'dark') => {
       };
 
       // Save to localStorage
-      localStorage.setItem('user_config', JSON.stringify(updatedConfig));
+      const mergedLocalConfig = {
+        ...updatedConfig,
+        ...(options?.userConfig || {}),
+        theme: newTheme === 'dark' ? 1 : 0,
+        userId: currentUserId,
+      };
+      localStorage.setItem('user_config', JSON.stringify(mergedLocalConfig));
 
-      // Also save to database via API (fire and forget)
-      (async () => {
-        try {
-          // Get current user config from API first
-          const res = await getUserConfig(currentUserId);
-          if (res?.data) {
-            const newConfig = {
-              ...res.data,
-              userId: currentUserId,
-              theme: newTheme === 'dark' ? 1 : 0,
+      // Optionally save to database via API if not already updated by caller
+      if (!options?.skipApi) {
+        (async () => {
+          try {
+            // Build full config from localStorage without re-fetching
+            const finalConfig = {
+              language: mergedLocalConfig.language ?? 0,
+              theme: mergedLocalConfig.theme ?? (newTheme === 'dark' ? 1 : 0),
+              receiveEmail: mergedLocalConfig.receiveEmail ?? false,
+              receiveNotify: mergedLocalConfig.receiveNotify ?? false,
             };
-
-            // Update user config via API
-            await updateUserConfig(currentUserId, newConfig);
+            await updateUserConfig(currentUserId, finalConfig);
+          } catch (error) {
+            console.error('Failed to save theme to database:', error);
           }
-        } catch (error) {
-          console.error('Failed to save theme to database:', error);
-          // Don't show error toast here as it might be too intrusive
-        }
-      })();
+        })();
+      }
 
       // Remove guest config if it exists (user is now logged in)
       localStorage.removeItem('guest_userconfig');
@@ -466,10 +479,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   // Set specific theme
-  const setTheme = (newTheme: 'light' | 'dark') => {
+  const setTheme = (newTheme: 'light' | 'dark', options?: ThemeContextSetOptions) => {
     setThemeState(newTheme);
     applyTheme(newTheme);
-    saveThemeToStorage(newTheme);
+    saveThemeToStorage(newTheme, options);
   };
 
   const value: ThemeContextType = {

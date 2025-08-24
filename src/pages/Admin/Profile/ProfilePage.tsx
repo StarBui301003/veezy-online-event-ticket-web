@@ -318,8 +318,8 @@ const ProfilePage = () => {
       };
       setUserConfig(newConfig);
 
-      // ✅ Update theme context sau khi API thành công
-      setTheme(themeMode);
+      // ✅ Update theme context từ payload đã có, KHÔNG gọi lại API
+      setTheme(themeMode, { skipApi: true, userConfig: newConfig });
 
       // ✅ KHÔNG gọi updateUserConfigAndTriggerUpdate để tránh vòng lặp
       // updateUserConfigAndTriggerUpdate(newConfig);

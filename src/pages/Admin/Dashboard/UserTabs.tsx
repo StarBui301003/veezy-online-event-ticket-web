@@ -46,6 +46,9 @@ export default function UserTabs() {
   const [growth, setGrowth] = useState<UserGrowth | null>(null);
   const [demographics, setDemographics] = useState<UserDemographics | null>(null);
 
+  const inFlightRef = useRef(false);
+  const lastParamsKeyRef = useRef<string | null>(null);
+
   const filterRef = useRef(filter);
   const startDateRef = useRef(startDate);
   const endDateRef = useRef(endDate);
@@ -79,10 +82,23 @@ export default function UserTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
-    getUserAnalytics(params).then((res: AdminUserAnalyticsResponse) => {
-      setGrowth(res.data.growth);
-      setDemographics(res.data.demographics);
+    const paramsKey = JSON.stringify({
+      period: (params as Record<string, unknown>).period ?? '12',
+      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
+      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
     });
+    if (lastParamsKeyRef.current === paramsKey) return;
+    if (inFlightRef.current) return;
+    lastParamsKeyRef.current = paramsKey;
+    inFlightRef.current = true;
+    getUserAnalytics(params)
+      .then((res: AdminUserAnalyticsResponse) => {
+        setGrowth(res.data.growth);
+        setDemographics(res.data.demographics);
+      })
+      .finally(() => {
+        inFlightRef.current = false;
+      });
   };
 
   // Setup Analytics Hub listeners using global connections
@@ -235,7 +251,7 @@ export default function UserTabs() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
           <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Users by Role</h4>
           {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={Object.entries(growth.usersByRole).map(([role, value]) => ({
