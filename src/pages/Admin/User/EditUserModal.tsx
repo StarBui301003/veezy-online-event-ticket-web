@@ -120,7 +120,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
       if (!allowedTypes.includes(file.type)) {
         toast.error(
           t('invalidFileFormat') ||
-            'Invalid file format. Please upload JPG, PNG, GIF, or WebP images only.'
+            t('invalidFileFormat')
         );
         return;
       }
@@ -129,7 +129,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         toast.error(
-          t('fileTooLarge') || 'File size too large. Please upload files smaller than 5MB.'
+          t('fileTooLarge') || t('fileSizeTooLarge')
         );
         return;
       }
@@ -180,13 +180,13 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
             } else if (errorMessage.includes('413') || errorMessage.includes('Payload Too Large')) {
               toast.error(
                 t('avatarFileTooLarge') ||
-                  'Avatar file is too large. Please upload a smaller image.'
+                  t('fileSizeTooLarge')
               );
             } else {
-              toast.error(t('avatarUploadFailed') || 'Failed to upload avatar. Please try again.');
+              toast.error(t('avatarUploadFailed') || t('failedToUploadAvatar'));
             }
           } else {
-            toast.error(t('avatarUploadFailed') || 'Failed to upload avatar. Please try again.');
+            toast.error(t('avatarUploadFailed') || t('failedToUploadAvatar'));
           }
           // Don't close modal on avatar upload failure, let user try again
           setLoading(false);
@@ -195,7 +195,7 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
       }
 
       // Show success toast
-      toast.success(t('userUpdatedSuccessfully') || 'User updated successfully!');
+      toast.success(t('userUpdatedSuccessfully') || t('userUpdatedSuccessfully'));
 
       if (onUpdated) {
         if (isUserAccountResponse) {
@@ -224,23 +224,23 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
         if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
           handleApiError(
             error,
-            t('invalidUserData') || 'Invalid user data. Please check your input and try again.'
+            t('invalidUserData') || t('invalidUserData')
           );
         } else if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
           handleApiError(
             error,
-            t('userNotFound') || 'User not found. Please refresh and try again.'
+            t('userNotFound') || t('userNotFound')
           );
         } else if (errorMessage.includes('409') || errorMessage.includes('Conflict')) {
           handleApiError(
             error,
-            t('userDataConflict') || 'User data conflict. The email or phone may already be in use.'
+            t('userDataConflict') || t('userDataConflict')
           );
         } else {
           handleApiError(error, errorMessage);
         }
       } else {
-        handleApiError(error, t('updateUserFailed') || 'Failed to update user. Please try again.');
+        handleApiError(error, t('updateUserFailed') || t('updateUserFailed'));
       }
     } finally {
       setLoading(false);
@@ -261,9 +261,9 @@ export const EditUserModal = ({ user, onClose, onUpdated, disableEmail = false }
           <div className="flex flex-col items-center gap-2 mb-4">
             <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shadow">
               {previewUrl ? (
-                <img src={previewUrl} alt="avatar" className="object-cover w-full h-full" />
+                <img src={previewUrl} alt={t('avatar')} className="object-cover w-full h-full" />
               ) : (
-                <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
+                <img src={NO_AVATAR} alt={t('noAvatar')} className="object-cover w-full h-full" />
               )}
             </div>
             <input

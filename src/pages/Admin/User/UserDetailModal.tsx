@@ -71,9 +71,9 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
           <div className="flex flex-col items-start gap-3 mb-6 w-full">
             <div className="w-20 h-20 rounded-full border-4 border-blue-400 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden shadow mx-auto">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="avatar" className="object-cover w-full h-full" />
+                <img src={user.avatarUrl} alt={t('avatar')} className="object-cover w-full h-full" />
               ) : (
-                <img src={NO_AVATAR} alt="no avatar" className="object-cover w-full h-full" />
+                <img src={NO_AVATAR} alt={t('noAvatar')} className="object-cover w-full h-full" />
               )}
             </div>
             <div className="w-full">
@@ -133,7 +133,7 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                 </div>
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    Status
+                    {t('status')}
                   </label>
                   <input
                     className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
@@ -141,13 +141,13 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-red-600 dark:text-red-400'
                     }`}
-                    value={(user as UserAccountResponse).isActive ? 'Active' : 'Inactive'}
+                    value={(user as UserAccountResponse).isActive ? t('active') : t('inactive')}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    Online Status
+                    {t('onlineStatus')}
                   </label>
                   <input
                     className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
@@ -155,13 +155,13 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                         ? 'text-blue-600 dark:text-blue-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}
-                    value={(user as UserAccountResponse).isOnline ? 'Online' : 'Offline'}
+                    value={(user as UserAccountResponse).isOnline ? t('online') : t('offline')}
                     readOnly
                   />
                 </div>
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    Email Verified
+                    {t('emailVerified')}
                   </label>
                   <input
                     className={`text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left ${
@@ -170,14 +170,14 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                         : 'text-yellow-600 dark:text-yellow-400'
                     }`}
                     value={
-                      (user as UserAccountResponse).isEmailVerified ? 'Verified' : 'Not Verified'
+                      (user as UserAccountResponse).isEmailVerified ? t('verified') : t('notVerified')
                     }
                     readOnly
                   />
                 </div>
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    Last Active
+                    {t('lastActive')}
                   </label>
                   <input
                     className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"
@@ -197,7 +197,7 @@ export const UserDetailModal = ({ user, onClose }: Props) => {
                 </div>
                 <div className="w-full">
                   <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    Created At
+                    {t('createdAt')}
                   </label>
                   <input
                     className="text-gray-600 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-0 rounded px-3 py-2 w-full text-left"

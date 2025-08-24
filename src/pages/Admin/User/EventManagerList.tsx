@@ -102,14 +102,14 @@ export const EventManagerList = () => {
         // Don't update filters here to avoid infinite loop
       } else {
         // Handle API response error
-        toast.error(response.message || 'Failed to fetch event manager users');
+        toast.error(response.message || t('failedToFetchEventManagerUsers'));
       }
     } catch (error) {
       // Handle API error with specific message
       if (error instanceof Error) {
-        toast.error(error.message || 'Failed to fetch event manager users');
+        toast.error(error.message || t('failedToFetchEventManagerUsers'));
       } else {
-        toast.error('Failed to fetch event manager users');
+                  toast.error(t('failedToFetchEventManagerUsers'));
       }
       console.error('Error fetching users:', error);
     } finally {
@@ -185,14 +185,14 @@ export const EventManagerList = () => {
     try {
       // Always call deactivate API - if user is active, it will deactivate; if inactive, it will activate
       await deactivateUserAPI(user.accountId);
-      toast.success(`User ${user.isActive ? 'deactivated' : 'activated'} successfully!`);
+              toast.success(t('userStatusChangedSuccessfully', { status: user.isActive ? t('deactivated') : t('activated') }));
       fetchUsers(); // Refresh the list
     } catch (error) {
       // Handle API error with specific message
       if (error instanceof Error) {
-        toast.error(error.message || 'Failed to toggle user status!');
+        toast.error(error.message || t('toggleUserStatusFailed'));
       } else {
-        toast.error('Failed to toggle user status!');
+        toast.error(t('toggleUserStatusFailed'));
       }
       console.error('Error toggling user status:', error);
     }
@@ -210,7 +210,7 @@ export const EventManagerList = () => {
             setEditUser(null);
             fetchUsers();
           }}
-          title="Edit Event Manager"
+                      title={t('editEventManager')}
           disableEmail
         />
       )}
@@ -264,7 +264,7 @@ export const EventManagerList = () => {
                     }}
                     tabIndex={-1}
                     type="button"
-                    aria-label="Clear search"
+                    aria-label={t('clearSearch')}
                   >
                     &#10005;
                   </button>
@@ -285,7 +285,7 @@ export const EventManagerList = () => {
                   className={`w-56 rounded-xl shadow-2xl p-2 z-[9999] ${getAdminListDropdownClass()}`}
                 >
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
-                    Status
+                    {t('status')}
                   </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', undefined)}
@@ -297,7 +297,7 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>All</span>
+                    <span>{t('all')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', true)}
@@ -309,7 +309,7 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>Active</span>
+                    <span>{t('active')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isActive', false)}
@@ -321,11 +321,11 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>Inactive</span>
+                    <span>{t('inactive')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
-                    Online Status
+                    {t('onlineStatus')}
                   </div>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', undefined)}
@@ -337,7 +337,7 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>All</span>
+                    <span>{t('all')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', true)}
@@ -349,7 +349,7 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>Online</span>
+                    <span>{t('online')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => updateFilter('isOnline', false)}
@@ -361,48 +361,48 @@ export const EventManagerList = () => {
                       readOnly
                       className="mr-2"
                     />
-                    <span>Offline</span>
+                    <span>{t('offline')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
-                    Email Verified
+                                    <div className="px-2 py-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {t('emailVerified')}
                   </div>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('isEmailVerified', undefined)}
-                    className={getAdminListDropdownItemClass()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.isEmailVerified === undefined}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>All</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('isEmailVerified', true)}
-                    className={getAdminListDropdownItemClass()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.isEmailVerified === true}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>Verified</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => updateFilter('isEmailVerified', false)}
-                    className={getAdminListDropdownItemClass()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.isEmailVerified === false}
-                      readOnly
-                      className="mr-2"
-                    />
-                    <span>Not Verified</span>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => updateFilter('isEmailVerified', undefined)}
+                      className={getAdminListDropdownItemClass()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.isEmailVerified === undefined}
+                        readOnly
+                        className="mr-2"
+                      />
+                      <span>{t('all')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => updateFilter('isEmailVerified', true)}
+                      className={getAdminListDropdownItemClass()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.isEmailVerified === true}
+                        readOnly
+                        className="mr-2"
+                      />
+                      <span>{t('verified')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => updateFilter('isEmailVerified', false)}
+                      className={getAdminListDropdownItemClass()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filters.isEmailVerified === false}
+                        readOnly
+                        className="mr-2"
+                      />
+                      <span>{t('notVerified')}</span>
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -421,7 +421,7 @@ export const EventManagerList = () => {
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('fullname')}
                   >
-                    Name
+                    {t('fullName')}
                     {getSortIcon('fullname')}
                   </div>
                 </TableHead>
@@ -430,7 +430,7 @@ export const EventManagerList = () => {
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('username')}
                   >
-                    Username
+                    {t('username')}
                     {getSortIcon('username')}
                   </div>
                 </TableHead>
@@ -439,30 +439,30 @@ export const EventManagerList = () => {
                     className="flex items-center gap-1 cursor-pointer"
                     onClick={() => handleSort('email')}
                   >
-                    Email
+                    {t('email')}
                     {getSortIcon('email')}
                   </div>
                 </TableHead>
                 <TableHead className="text-center font-semibold" style={{ width: '10%' }}>
-                  Status
+                  {t('status')}
                 </TableHead>
                 <TableHead className="text-center font-semibold" style={{ width: '10%' }}>
-                  Online
+                  {t('online')}
                 </TableHead>
                 <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
-                  Email Verified
+                  {t('emailVerified')}
                 </TableHead>
                 <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
                   <div
                     className="flex items-center justify-center gap-1 cursor-pointer"
                     onClick={() => handleSort('createdAt')}
                   >
-                    Created At
+                    {t('createdAt')}
                     {getSortIcon('createdAt')}
                   </div>
                 </TableHead>
                 <TableHead className="text-center font-semibold" style={{ width: '15%' }}>
-                  Actions
+                  {t('actions')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -477,7 +477,7 @@ export const EventManagerList = () => {
                       colSpan={9}
                       className="text-center py-4 text-gray-500 dark:text-gray-400"
                     >
-                      No event managers found.
+                      {t('noEventManagersFound')}
                     </TableCell>
                   </TableRow>
                   {/* Add empty rows to maintain table height */}
@@ -542,7 +542,7 @@ export const EventManagerList = () => {
                               : 'border-gray-500 bg-gray-500 text-white hover:bg-gray-600 hover:text-white hover:border-gray-500'
                           }`}
                         >
-                          {user.isOnline ? 'Online' : 'Offline'}
+                          {user.isOnline ? t('online') : t('offline')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -553,7 +553,7 @@ export const EventManagerList = () => {
                               : 'border-yellow-500 bg-yellow-500 text-white hover:bg-yellow-600 hover:text-white hover:border-yellow-500'
                           }`}
                         >
-                          {user.isEmailVerified ? 'Verified' : 'Not Verified'}
+                          {user.isEmailVerified ? t('verified') : t('notVerified')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -562,14 +562,14 @@ export const EventManagerList = () => {
                       <TableCell className="text-center flex items-center justify-center gap-2">
                         <button
                           className="border-2 border-yellow-400 bg-yellow-400 rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white flex items-center justify-center hover:bg-yellow-500 hover:text-white"
-                          title="View details"
+                          title={t('viewDetails')}
                           onClick={() => setViewUser(user)}
                         >
                           <FaEye className="w-4 h-4" />
                         </button>
                         <button
                           className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[15px] font-semibold text-white hover:bg-[#0071e2]"
-                          title="Edit"
+                          title={t('edit')}
                           onClick={() => setEditUser(user)}
                         >
                           <MdOutlineEdit className="w-4 h-4" />
@@ -698,14 +698,14 @@ export const EventManagerList = () => {
                     <div className="flex items-center gap-2 justify-end w-full md:w-auto">
                       <span className="text-sm text-gray-700 dark:text-gray-300">
                         {totalItems === 0
-                          ? '0-0 of 0'
+                          ? `0-0 ${t('of')} 0`
                           : `${(filters.page - 1) * filters.pageSize + 1}-${Math.min(
                               filters.page * filters.pageSize,
                               totalItems
-                            )} of ${totalItems}`}
+                            )} ${t('of')} ${totalItems}`}
                       </span>
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        Rows per page
+                        {t('rowsPerPage')}
                       </span>
                       <select
                         className={`border rounded px-2 py-1 text-sm ${getAdminListPageSizeSelectClass()}`}

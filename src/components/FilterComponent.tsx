@@ -79,7 +79,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
           <input
             type="text"
-            placeholder={t('filter.searchPlaceholder')}
+            placeholder={t('filterOptions.searchPlaceholder')}
             className={cn('w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2', theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}
             value={filters.searchTerm}
             onChange={(e) => updateFilter('searchTerm', e.target.value)}
@@ -92,7 +92,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
             <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
             <input
               type="text"
-              placeholder={t('filter.authorPlaceholder')}
+              placeholder={t('filterOptions.authorPlaceholder')}
               className={cn('w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2', theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900')}
               value={filters.authorFullName}
               onChange={(e) => updateFilter('authorFullName', e.target.value)}
@@ -101,13 +101,13 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         )}
         
         {/* Location Filter (for Events) */}
-        {showLocationFilter && <Select options={locations} value={locations.find(l => l.value === filters.location)} onChange={handleSelectChange('location')} isClearable isSearchable placeholder={t('filter.locationPlaceholder')} styles={selectStyles} menuPortalTarget={document.body} maxMenuHeight={220} />}
+        {showLocationFilter && <Select options={locations} value={locations.find(l => l.value === filters.location)} onChange={handleSelectChange('location')} isClearable isSearchable placeholder={t('filterOptions.locationPlaceholder')} styles={selectStyles} menuPortalTarget={document.body} maxMenuHeight={220} />}
         
         {/* Category Filter (for Events) */}
-        {showCategoryFilter && <Select isMulti options={categories} value={categories.filter(c => filters.categoryIds?.includes(c.value))} onChange={handleMultiSelectChange('categoryIds')} placeholder={t('filter.categoryPlaceholder')} styles={selectStyles} closeMenuOnSelect={false} menuPortalTarget={document.body} maxMenuHeight={220} />}
+        {showCategoryFilter && <Select isMulti options={categories} value={categories.filter(c => filters.categoryIds?.includes(c.value))} onChange={handleMultiSelectChange('categoryIds')} placeholder={t('filterOptions.categoryPlaceholder')} styles={selectStyles} closeMenuOnSelect={false} menuPortalTarget={document.body} maxMenuHeight={220} />}
       
       </div>
-      {hasActiveFilters && <button onClick={() => onFilterChange(baseFilters)} className="flex items-center text-sm text-blue-600 dark:text-cyan-400 hover:underline"><X className="h-4 w-4 mr-1" />{t('filter.clearFilters')}</button>}
+      {hasActiveFilters && <button onClick={() => onFilterChange(baseFilters)} className="flex items-center text-sm text-blue-600 dark:text-cyan-400 hover:underline"><X className="h-4 w-4 mr-1" />{t('filterOptions.clearFilters')}</button>}
     </div>
   );
 };

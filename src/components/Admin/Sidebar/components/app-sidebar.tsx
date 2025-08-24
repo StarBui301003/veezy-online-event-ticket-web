@@ -76,12 +76,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: MdReportGmailerrorred,
       },
       {
-        title: 'Withdraw',
+        title: t('withdraw'),
         url: '/admin/withdraw',
         icon: PiHandWithdraw,
       },
       {
-        title: 'Chatbox',
+        title: t('chatbox'),
         url: '/admin/chatbox',
         icon: IoChatboxEllipsesOutline,
       },

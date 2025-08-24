@@ -8,8 +8,10 @@ import { EventManagerList } from './EventManagerList';
 import { FaUserShield, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
 import { cn } from '@/lib/utils';
 import { onIdentity } from '@/services/signalr.service';
+import { useTranslation } from 'react-i18next';
 
 export default function UserListTabs() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -97,7 +99,7 @@ export default function UserListTabs() {
             )}
           >
             <FaUserShield className="w-4 h-4" />
-            <span>Admin</span>
+            <span>{t('admin')}</span>
           </TabsTrigger>
           <TabsTrigger
             value="customer"
@@ -109,7 +111,7 @@ export default function UserListTabs() {
             )}
           >
             <FaUser className="w-4 h-4" />
-            <span>Customer</span>
+            <span>{t('customer')}</span>
           </TabsTrigger>
           <TabsTrigger
             value="collaborator"
@@ -121,7 +123,7 @@ export default function UserListTabs() {
             )}
           >
             <FaUsers className="w-4 h-4" />
-            <span>Collaborator</span>
+            <span>{t('collaborator')}</span>
           </TabsTrigger>
           <TabsTrigger
             value="eventmanager"
@@ -133,7 +135,7 @@ export default function UserListTabs() {
             )}
           >
             <FaUserTie className="w-4 h-4" />
-            <span>Event Manager</span>
+            <span>{t('eventManager')}</span>
           </TabsTrigger>
         </TabsList>
         <TabsContent value="admin" className="mt-0">

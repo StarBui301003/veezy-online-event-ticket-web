@@ -115,7 +115,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
     try {
       // Phone is now required, so no need to convert to undefined
       await createAdminAPI(form);
-      toast.success(t('adminAccountCreatedSuccessfully') || 'Admin account created successfully!');
+              toast.success(t('adminAccountCreatedSuccessfully') || t('adminAccountCreatedSuccessfully'));
       setForm({
         username: '',
         email: '',
@@ -134,7 +134,7 @@ export const CreateAdminModal = ({ open, onClose, onCreated }: Props) => {
       } else {
         handleApiError(
           error,
-          t('createAdminFailed') || 'Failed to create admin account. Please try again.'
+          t('createAdminFailed') || t('createAdminFailed')
         );
       }
     } finally {
