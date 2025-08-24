@@ -600,7 +600,9 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
                               onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
                               aria-disabled={filters.Page === 1}
                               className={`${
-                                filters.Page === 1 ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>
@@ -678,7 +680,9 @@ const PendingWithdrawList = ({ onPendingChanged }: { onPendingChanged?: () => vo
                               }
                               aria-disabled={filters.Page === totalPages}
                               className={`${
-                                filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>

@@ -29,12 +29,16 @@ const FundDetailModal = ({
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
-  const isPending = withdrawal.transactionStatus === 'Pending';
+  const statusStr =
+    (withdrawal.transactionStatus as unknown as { toString?: () => string })?.toString?.() || '';
+  const isPending = statusStr === 'Pending' || statusStr === '2';
+  const isProcessing = statusStr === 'Processing' || statusStr === '3';
+  const shouldShowConfirm = showConfirmPaymentButton || isProcessing;
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      if (showConfirmPaymentButton) {
+      if (shouldShowConfirm) {
         await confirmPayment(withdrawal.transactionId, { Notes: reason.trim() });
         toast.success('Confirmed payment successfully');
       } else if (actionType === 'approve') {
@@ -198,7 +202,7 @@ const FundDetailModal = ({
         </div>
         <div className="p-4">
           <DialogFooter>
-            {showConfirmPaymentButton ? (
+            {shouldShowConfirm ? (
               !actionType ? (
                 <div className="flex gap-2">
                   <button

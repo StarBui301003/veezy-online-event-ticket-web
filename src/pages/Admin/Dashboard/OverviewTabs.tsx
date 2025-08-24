@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type {
   AdminOverviewRealtimeData,
   AdminOverviewRealtimeResponse,
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PersonalNotificationList } from './PersonalNotificationList';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import { Skeleton } from '@/components/ui/skeleton';
 // import { PersonNotificationList } from './PersonNotificationList';
 
@@ -170,6 +170,8 @@ export const OverviewTabs = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [exporting, setExporting] = useState(false);
+  const inFlightRef = useRef(false);
+  const lastParamsKeyRef = useRef<string | null>(null);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -177,7 +179,6 @@ export const OverviewTabs = () => {
       if (!startDate || !endDate) return;
       if (endDate < startDate) return;
     }
-    setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '5') {
       params.period = 5;
@@ -186,13 +187,26 @@ export const OverviewTabs = () => {
     } else if (filter !== '4') {
       params.period = parseInt(filter, 10);
     }
+    const paramsKey = JSON.stringify({
+      period: (params as Record<string, unknown>).period ?? '4',
+      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
+      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
+    });
+    if (lastParamsKeyRef.current === paramsKey) return;
+    if (inFlightRef.current) return;
+    lastParamsKeyRef.current = paramsKey;
+    inFlightRef.current = true;
+    setLoading(true);
     getAdminOverviewDashboard(params)
       .then((res: AdminOverviewRealtimeResponse) => setData(res.data))
       .catch(() => {
         toast.error('Unable to load dashboard data. Please try again later.');
         setData(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        inFlightRef.current = false;
+        setLoading(false);
+      });
   };
 
   // Connect to AnalyticsHub for real-time updates
@@ -200,14 +214,15 @@ export const OverviewTabs = () => {
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Listen for real-time analytics updates
-    onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
+    const handler = (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
       setData(newData);
-    });
+    };
+    onAnalytics('OnAdminRealtimeOverview', handler);
 
-    // Initial data load
-    reloadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      offAnalytics('OnAdminRealtimeOverview', handler);
+    };
   }, []);
 
   useEffect(() => {

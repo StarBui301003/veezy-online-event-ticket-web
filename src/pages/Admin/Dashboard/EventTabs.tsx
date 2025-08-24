@@ -45,7 +45,7 @@ const FILTERS = [
 // PieChart colors
 const PIE_COLORS = ['#fbbf24', '#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#f59e42'];
 
-export default function EventTabs() {
+export default function EventTabs({ isActive = false }: { isActive?: boolean }) {
   const [filter, setFilter] = useState<string>('12'); // Last 30 Days mặc định
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -56,6 +56,7 @@ export default function EventTabs() {
 
   // Real-time data reload function
   const reloadData = () => {
+    if (!isActive) return;
     console.log(
       '🔄 EventTabs reloadData called with filter:',
       filter,
@@ -108,19 +109,8 @@ export default function EventTabs() {
         setApprovalTrend(safeApprovalTrend);
         setEventsByCategory(safeEventsByCategory);
         setTopEvents(safeTopEvents);
-
-        console.log('🔄 EventTabs State updated:');
-        console.log('  - approvalTrend:', safeApprovalTrend);
-        console.log('  - eventsByCategory:', safeEventsByCategory);
-        console.log('  - topEvents:', safeTopEvents);
       })
-      .catch((error) => {
-        console.error('❌ Error loading event analytics:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
-        });
+      .catch(() => {
         toast.error('Failed to load event data');
         // Set default values on error
         setApprovalTrend([]);
@@ -128,27 +118,18 @@ export default function EventTabs() {
         setTopEvents([]);
       })
       .finally(() => {
-        console.log('✅ EventTabs API call completed - setting loading to false');
         setLoading(false);
       });
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    console.log('🚀 EventTabs mounted - connecting to AnalyticsHub...');
+    if (!isActive) return;
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
-        console.log('📡 EventTabs SignalR Update Received:', data);
-        console.log(
-          '🎯 SignalR approvalMetrics.approvalTrend:',
-          data.approvalMetrics?.approvalTrend
-        );
-        console.log('📈 SignalR eventsByCategory:', data.eventsByCategory);
-        console.log('🏆 SignalR topPerformingEvents:', data.topPerformingEvents);
-
         // Defensive: always ensure arrays with proper null checks
         const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend)
           ? data.approvalMetrics.approvalTrend
@@ -168,12 +149,9 @@ export default function EventTabs() {
           !topEvents ||
           JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents)
         ) {
-          console.log('🔄 EventTabs SignalR: Updating states due to data changes');
           setApprovalTrend(safeApprovalTrend);
           setEventsByCategory(safeEventsByCategory);
           setTopEvents(safeTopEvents);
-        } else {
-          console.log('⏭️ EventTabs SignalR: No changes detected, skipping update');
         }
       }
     };
@@ -181,31 +159,16 @@ export default function EventTabs() {
 
     // Cleanup to avoid duplicate listeners
     return () => {
-      console.log('🧹 EventTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnEventAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isActive]);
 
   useEffect(() => {
-    console.log(
-      '🔄 EventTabs useEffect triggered - filter:',
-      filter,
-      'startDate:',
-      startDate,
-      'endDate:',
-      endDate
-    );
+    if (!isActive) return;
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, startDate, endDate]);
-
-  // Debug useEffect to monitor state changes
-  useEffect(() => {
-    console.log('🔍 EventTabs State changed - approvalTrend:', approvalTrend);
-    console.log('🔍 EventTabs State changed - eventsByCategory:', eventsByCategory);
-    console.log('🔍 EventTabs State changed - topEvents:', topEvents);
-  }, [approvalTrend, eventsByCategory, topEvents]);
+  }, [isActive, filter, startDate, endDate]);
 
   return (
     <div className="space-y-6 p-3 min-h-screen">

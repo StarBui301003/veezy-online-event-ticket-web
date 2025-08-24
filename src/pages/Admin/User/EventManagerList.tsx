@@ -610,7 +610,9 @@ export const EventManagerList = () => {
                               onClick={() => handlePageChange(Math.max(1, filters.page - 1))}
                               aria-disabled={filters.page === 1}
                               className={`${
-                                filters.page === 1 ? 'pointer-events-none opacity-50' : ''
+                                filters.page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>
@@ -688,7 +690,9 @@ export const EventManagerList = () => {
                               }
                               aria-disabled={filters.page === totalPages}
                               className={`${
-                                filters.page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } text-gray-700 dark:text-white`}
                             />
                           </PaginationItem>

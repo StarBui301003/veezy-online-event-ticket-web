@@ -656,7 +656,9 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                               onClick={() => handlePageChange(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
                               className={`${
-                                page === 1 ? 'pointer-events-none opacity-50' : ''
+                                page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
@@ -732,7 +734,9 @@ export const ApprovedNewsList = ({ activeTab }: { activeTab: string }) => {
                               onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
                               className={`${
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>

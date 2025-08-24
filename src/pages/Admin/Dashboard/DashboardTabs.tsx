@@ -15,9 +15,7 @@ export default function DashboardTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabParam || 'overview');
-  const [loadedTabs, setLoadedTabs] = useState<string[]>([tabParam || 'overview']);
-  // Nếu muốn badge số cho Overview, có thể lấy số từ props hoặc context
-  const overviewBadge = 0; // ví dụ: số thông báo mới
+  const overviewBadge = 0;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -28,10 +26,7 @@ export default function DashboardTabs() {
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam);
     }
-    if (!loadedTabs.includes(activeTab)) {
-      setLoadedTabs((prev) => [...prev, activeTab]);
-    }
-  }, [tabParam, activeTab, loadedTabs]);
+  }, [tabParam, activeTab]);
 
   return (
     <div className="p-6">
@@ -99,15 +94,13 @@ export default function DashboardTabs() {
           </TabsTrigger>
         </TabsList>
         <div>
-          <TabsContent value="overview">
-            {loadedTabs.includes('overview') && <OverviewTabs />}
-          </TabsContent>
-          <TabsContent value="user">{loadedTabs.includes('user') && <UserTabs />}</TabsContent>
+          <TabsContent value="overview">{activeTab === 'overview' && <OverviewTabs />}</TabsContent>
+          <TabsContent value="user">{activeTab === 'user' && <UserTabs isActive />}</TabsContent>
           <TabsContent value="revenue">
-            {loadedTabs.includes('revenue') && <FinancialTabs />}
+            {activeTab === 'revenue' && <FinancialTabs isActive />}
           </TabsContent>
-          <TabsContent value="event">{loadedTabs.includes('event') && <EventTabs />}</TabsContent>
-          <TabsContent value="news">{loadedTabs.includes('news') && <NewsTabs />}</TabsContent>
+          <TabsContent value="event">{activeTab === 'event' && <EventTabs isActive />}</TabsContent>
+          <TabsContent value="news">{activeTab === 'news' && <NewsTabs />}</TabsContent>
         </div>
       </Tabs>
     </div>
