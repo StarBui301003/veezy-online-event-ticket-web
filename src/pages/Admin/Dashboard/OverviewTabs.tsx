@@ -208,12 +208,12 @@ export const OverviewTabs = () => {
     // Initial data load
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    reloadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // useEffect(() => {
+  //   reloadData();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [filter, startDate, endDate]);
 
   // Export function
   const handleExportData = async () => {
