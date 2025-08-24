@@ -251,7 +251,7 @@ export default function UserTabs() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
           <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Users by Role</h4>
           {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={230}>
               <PieChart>
                 <Pie
                   data={Object.entries(growth.usersByRole).map(([role, value]) => ({
@@ -285,7 +285,7 @@ export default function UserTabs() {
           {demographics &&
           demographics.usersByGender &&
           Object.keys(demographics.usersByGender).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
@@ -321,7 +321,7 @@ export default function UserTabs() {
           {demographics &&
           demographics.usersByAgeGroup &&
           Object.keys(demographics.usersByAgeGroup).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={210}>
               <BarChart
                 data={Object.entries(demographics.usersByAgeGroup).map(([age, value]) => ({
                   age,

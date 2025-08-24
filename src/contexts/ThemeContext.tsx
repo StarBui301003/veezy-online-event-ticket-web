@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { getUserConfig, updateUserConfig } from '@/services/userConfig.service';
+import type { UserConfig } from '@/services/userConfig.service';
 
 interface ThemeContextSetOptions {
   skipApi?: boolean;
@@ -180,11 +181,53 @@ const loadThemeFromUserConfig = (userId: string): 'light' | 'dark' | null => {
   return null;
 };
 
-// Helper function to load theme from database (API)
+// Helper function to load theme from database (API) with in-memory cache + in-flight dedup
 // Returns null when not available to avoid overriding local preference incorrectly
-const loadThemeFromDatabase = async (userId: string): Promise<'light' | 'dark' | null> => {
+const USERCONFIG_CACHE_TTL_MS = 60 * 1000; // 60s TTL to prevent repeated calls on quick navigations
+
+type UserConfigCache = { userId: string; data: UserConfig; fetchedAt: number };
+
+const loadThemeFromDatabase = async (
+  userId: string,
+  cacheRef?: React.MutableRefObject<UserConfigCache | null>,
+  inFlightRef?: React.MutableRefObject<Record<string, Promise<UserConfig | null> | undefined>>
+): Promise<'light' | 'dark' | null> => {
   try {
+    // Use cache if still fresh
+    if (cacheRef?.current && cacheRef.current.userId === userId) {
+      const age = Date.now() - cacheRef.current.fetchedAt;
+      if (age < USERCONFIG_CACHE_TTL_MS) {
+        const cachedData = cacheRef.current.data;
+        if (cachedData && cachedData.theme !== undefined) {
+          return cachedData.theme === 1 ? 'dark' : 'light';
+        }
+      }
+    }
+
+    // Deduplicate concurrent requests per userId
+    if (inFlightRef) {
+      if (!inFlightRef.current[userId]) {
+        inFlightRef.current[userId] = (async () => {
+          const res = await getUserConfig(userId);
+          return res?.data || null;
+        })();
+      }
+      const data = await inFlightRef.current[userId];
+      delete inFlightRef.current[userId];
+      if (data && cacheRef) {
+        cacheRef.current = { userId, data, fetchedAt: Date.now() };
+      }
+      if (data && data.theme !== undefined) {
+        return data.theme === 1 ? 'dark' : 'light';
+      }
+      return null;
+    }
+
+    // Fallback (without inFlightRef)
     const res = await getUserConfig(userId);
+    if (res?.data && cacheRef) {
+      cacheRef.current = { userId, data: res.data, fetchedAt: Date.now() };
+    }
     if (res?.data && res.data.theme !== undefined) {
       return res.data.theme === 1 ? 'dark' : 'light';
     }
@@ -200,6 +243,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setThemeState] = useState<'light' | 'dark'>(getInitialTheme);
   const [lastUserId, setLastUserId] = useState<string | null>(getCurrentUserId());
   const [isProcessingTheme, setIsProcessingTheme] = useState(false); // Add flag to prevent multiple simultaneous calls
+  const userConfigCacheRef = useRef<UserConfigCache | null>(null);
+  const inFlightUserConfigRef = useRef<Record<string, Promise<UserConfig | null> | undefined>>({});
 
   // Apply theme immediately on mount and when theme changes
   useEffect(() => {
@@ -226,16 +271,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       // Then load from database (most up-to-date)
       (async () => {
         try {
-          const userTheme = await loadThemeFromDatabase(currentUserId);
+          const userTheme = await loadThemeFromDatabase(
+            currentUserId,
+            userConfigCacheRef,
+            inFlightUserConfigRef
+          );
           if (userTheme && userTheme !== theme) {
             setThemeState(userTheme);
           }
 
-          // Also update localStorage with the latest config from database
-          const res = await getUserConfig(currentUserId);
-          if (res?.data) {
+          // Also update localStorage with the latest config from database (from cache)
+          const cached = userConfigCacheRef.current;
+          if (cached && cached.userId === currentUserId) {
             const userConfig = {
-              ...res.data,
+              ...cached.data,
               userId: currentUserId,
             };
             localStorage.setItem('user_config', JSON.stringify(userConfig));
@@ -267,17 +316,21 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           if (currentUserId) {
             // New user logged in, load their theme from database immediately
             try {
-              const userTheme = await loadThemeFromDatabase(currentUserId);
+              const userTheme = await loadThemeFromDatabase(
+                currentUserId,
+                userConfigCacheRef,
+                inFlightUserConfigRef
+              );
               // Only update if theme is actually different to prevent unnecessary re-renders
               if (userTheme && userTheme !== theme) {
                 setThemeState(userTheme);
               }
 
-              // Also update localStorage with the latest config from database
-              const res = await getUserConfig(currentUserId);
-              if (res?.data) {
+              // Also update localStorage with the latest config from database (from cache)
+              const cached = userConfigCacheRef.current;
+              if (cached && cached.userId === currentUserId) {
                 const userConfig = {
-                  ...res.data,
+                  ...cached.data,
                   userId: currentUserId,
                 };
                 localStorage.setItem('user_config', JSON.stringify(userConfig));
@@ -445,18 +498,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     }
 
     try {
-      const userTheme = await loadThemeFromDatabase(currentUserId);
+      const userTheme = await loadThemeFromDatabase(
+        currentUserId,
+        userConfigCacheRef,
+        inFlightUserConfigRef
+      );
       console.log('Theme loaded from database:', userTheme, 'current theme:', theme);
       if (userTheme && userTheme !== theme) {
         console.log('Updating theme from database:', theme, '->', userTheme);
         setThemeState(userTheme);
       }
 
-      // Also update localStorage with the latest config from database
-      const res = await getUserConfig(currentUserId);
-      if (res?.data) {
+      // Also update localStorage with the latest config from database (from cache)
+      const cached = userConfigCacheRef.current;
+      if (cached && cached.userId === currentUserId) {
         const userConfig = {
-          ...res.data,
+          ...cached.data,
           userId: currentUserId,
         };
         localStorage.setItem('user_config', JSON.stringify(userConfig));
