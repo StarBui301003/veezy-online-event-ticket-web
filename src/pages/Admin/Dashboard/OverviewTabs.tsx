@@ -217,18 +217,17 @@ export const OverviewTabs = () => {
     const handler = (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
       setData(newData);
-    };
-    onAnalytics('OnAdminRealtimeOverview', handler);
+    });
 
-    return () => {
-      offAnalytics('OnAdminRealtimeOverview', handler);
-    };
-  }, []);
-
-  useEffect(() => {
+    // Initial data load
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
+
+  // useEffect(() => {
+  //   reloadData();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [filter, startDate, endDate]);
 
   // Export function
   const handleExportData = async () => {
