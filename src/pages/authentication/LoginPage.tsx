@@ -156,6 +156,16 @@ export const LoginPage = () => {
         return;
       }
 
+      // Chặn Admin đăng nhập trên mobile (tương tự EM)
+      if (role === 0 && isMobile) {
+        toast.error('Admin login on mobile is not supported', {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem('access_token', apiResult.data.accessToken);
       localStorage.setItem('customerId', apiResult.data.account.userId);
       // Set refresh token cookie (remove secure flag for development)
@@ -271,6 +281,16 @@ export const LoginPage = () => {
       const isMobile = window.innerWidth <= 768;
       if (role === 2 && isMobile) {
         toast.error(t('eventManagerMobileFaceLoginBlocked'), {
+          position: 'top-right',
+          autoClose: 5000,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Chặn Admin face login trên mobile (tương tự EM)
+      if (role === 0 && isMobile) {
+        toast.error('Admin face login on mobile is not supported', {
           position: 'top-right',
           autoClose: 5000,
         });
