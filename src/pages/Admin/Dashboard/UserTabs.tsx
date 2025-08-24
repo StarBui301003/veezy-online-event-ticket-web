@@ -13,6 +13,8 @@ import {
   BarChart,
   Bar,
   Legend,
+  LineChart,
+  Line,
 } from 'recharts';
 import { onAnalytics, offAnalytics } from '@/services/signalr.service';
 import type { AdminUserAnalyticsResponse } from '@/types/Admin/dashboard';
@@ -251,6 +253,68 @@ export default function UserTabs() {
               </div>
             </div>
           </>
+        )}
+      </div>
+      {/* User Growth Timeline */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 border border-gray-200 dark:border-gray-700">
+        <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
+          User Growth Timeline
+        </h3>
+        {!growth || !Array.isArray(growth.growthChart) || growth.growthChart.length === 0 ? (
+          <div className="flex items-center justify-center h-[260px] text-gray-500 dark:text-gray-400">
+            <div className="text-center">
+              <div>No user growth data available</div>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart
+              data={growth.growthChart}
+              margin={{ top: 16, right: 16, left: 48, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="periodLabel" />
+              <YAxis
+                allowDecimals={false}
+                tickFormatter={(v) => (v ? Number(v).toLocaleString() : '')}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) =>
+                  name === 'New Users' || name === 'Active New Users' || name === 'Total Users'
+                    ? Number(value).toLocaleString()
+                    : value
+                }
+              />
+              <Line
+                type="monotone"
+                dataKey="newUsers"
+                stroke="#60a5fa"
+                name="New Users"
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                activeDot={{ r: 4 }}
+              />
+              {/* Optional if backend provides it */}
+              <Line
+                type="monotone"
+                dataKey="newActiveUsers"
+                stroke="#f59e42"
+                name="Active New Users"
+                strokeDasharray="5 3"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="totalUsers"
+                stroke="#10b981"
+                name="Total Users"
+                strokeWidth={2.5}
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         )}
       </div>
       {/* Biểu đồ phụ demographics */}
