@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getEventAnalytics } from '@/services/Admin/dashboard.service';
 import {
   AreaChart,
@@ -53,6 +53,8 @@ export default function EventTabs() {
   const [eventsByCategory, setEventsByCategory] = useState<EventByCategory[]>([]);
   const [topEvents, setTopEvents] = useState<EventTopPerformingEvent[]>([]);
   const [loading, setLoading] = useState(false);
+  const inFlightRef = useRef(false);
+  const lastParamsKeyRef = useRef<string | null>(null);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -76,7 +78,6 @@ export default function EventTabs() {
         return;
       }
     }
-    setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '16') {
       params.period = 16;
@@ -85,6 +86,16 @@ export default function EventTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
+    if (inFlightRef.current) return;
+    const paramsKey = JSON.stringify({
+      period: (params as Record<string, unknown>).period ?? '12',
+      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
+      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
+    });
+    if (lastParamsKeyRef.current === paramsKey) return;
+    lastParamsKeyRef.current = paramsKey;
+    inFlightRef.current = true;
+    setLoading(true);
     console.log('📡 EventTabs API call params:', params);
     getEventAnalytics(params)
       .then((res: AdminEventAnalyticsResponse) => {
@@ -108,19 +119,8 @@ export default function EventTabs() {
         setApprovalTrend(safeApprovalTrend);
         setEventsByCategory(safeEventsByCategory);
         setTopEvents(safeTopEvents);
-
-        console.log('🔄 EventTabs State updated:');
-        console.log('  - approvalTrend:', safeApprovalTrend);
-        console.log('  - eventsByCategory:', safeEventsByCategory);
-        console.log('  - topEvents:', safeTopEvents);
       })
-      .catch((error) => {
-        console.error('❌ Error loading event analytics:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
-        });
+      .catch(() => {
         toast.error('Failed to load event data');
         // Set default values on error
         setApprovalTrend([]);
@@ -128,27 +128,18 @@ export default function EventTabs() {
         setTopEvents([]);
       })
       .finally(() => {
-        console.log('✅ EventTabs API call completed - setting loading to false');
+        inFlightRef.current = false;
         setLoading(false);
       });
   };
 
   // Connect to AnalyticsHub for real-time updates
   useEffect(() => {
-    console.log('🚀 EventTabs mounted - connecting to AnalyticsHub...');
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Handler reference for cleanup
     const handler = (data: any) => {
       if (document.visibilityState === 'visible') {
-        console.log('📡 EventTabs SignalR Update Received:', data);
-        console.log(
-          '🎯 SignalR approvalMetrics.approvalTrend:',
-          data.approvalMetrics?.approvalTrend
-        );
-        console.log('📈 SignalR eventsByCategory:', data.eventsByCategory);
-        console.log('🏆 SignalR topPerformingEvents:', data.topPerformingEvents);
-
         // Defensive: always ensure arrays with proper null checks
         const safeApprovalTrend = Array.isArray(data.approvalMetrics?.approvalTrend)
           ? data.approvalMetrics.approvalTrend
@@ -168,12 +159,9 @@ export default function EventTabs() {
           !topEvents ||
           JSON.stringify(safeTopEvents) !== JSON.stringify(topEvents)
         ) {
-          console.log('🔄 EventTabs SignalR: Updating states due to data changes');
           setApprovalTrend(safeApprovalTrend);
           setEventsByCategory(safeEventsByCategory);
           setTopEvents(safeTopEvents);
-        } else {
-          console.log('⏭️ EventTabs SignalR: No changes detected, skipping update');
         }
       }
     };
@@ -181,31 +169,15 @@ export default function EventTabs() {
 
     // Cleanup to avoid duplicate listeners
     return () => {
-      console.log('🧹 EventTabs cleanup - disconnecting from AnalyticsHub...');
       offAnalytics('OnEventAnalytics', handler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    console.log(
-      '🔄 EventTabs useEffect triggered - filter:',
-      filter,
-      'startDate:',
-      startDate,
-      'endDate:',
-      endDate
-    );
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
-
-  // Debug useEffect to monitor state changes
-  useEffect(() => {
-    console.log('🔍 EventTabs State changed - approvalTrend:', approvalTrend);
-    console.log('🔍 EventTabs State changed - eventsByCategory:', eventsByCategory);
-    console.log('🔍 EventTabs State changed - topEvents:', topEvents);
-  }, [approvalTrend, eventsByCategory, topEvents]);
 
   return (
     <div className="space-y-6 p-3 min-h-screen">

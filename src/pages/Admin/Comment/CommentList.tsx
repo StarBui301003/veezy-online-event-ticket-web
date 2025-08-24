@@ -657,7 +657,9 @@ export const CommentList = () => {
                               onClick={() => handlePageChange(Math.max(1, (filters.page || 1) - 1))}
                               aria-disabled={(filters.page || 1) === 1}
                               className={`${
-                                (filters.page || 1) === 1 ? 'pointer-events-none opacity-50' : ''
+                                (filters.page || 1) === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             >
                               {t('previous')}
@@ -737,8 +739,8 @@ export const CommentList = () => {
                               aria-disabled={(filters.page || 1) === totalPages}
                               className={`${
                                 (filters.page || 1) === totalPages
-                                  ? 'pointer-events-none opacity-50'
-                                  : ''
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             >
                               {t('next')}

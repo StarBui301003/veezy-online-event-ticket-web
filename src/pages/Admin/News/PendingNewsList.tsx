@@ -167,13 +167,6 @@ export const PendingNewsList = ({
       sortDescending: sortDescending,
     };
 
-    // Debug: Log search parameters
-    console.log('🔍 Pending News Search Parameters:', {
-      pagination: paginationParams,
-      filters: filterParams,
-      pendingNewsSearch: pendingNewsSearch,
-    });
-
     // Combine pagination and filter parameters
     const params = { ...paginationParams, ...filterParams };
 
@@ -673,7 +666,9 @@ export const PendingNewsList = ({
                               onClick={() => handlePageChange(Math.max(1, page - 1))}
                               aria-disabled={page === 1}
                               className={`${
-                                page === 1 ? 'pointer-events-none opacity-50' : ''
+                                page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
@@ -749,7 +744,9 @@ export const PendingNewsList = ({
                               onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                               aria-disabled={page === totalPages}
                               className={`${
-                                page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>

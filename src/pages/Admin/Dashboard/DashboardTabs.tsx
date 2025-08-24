@@ -13,25 +13,50 @@ import NewsTabs from './NewsTabs';
 
 export default function DashboardTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabParam || 'overview');
-  const [loadedTabs, setLoadedTabs] = useState<string[]>([tabParam || 'overview']);
-  // Nếu muốn badge số cho Overview, có thể lấy số từ props hoặc context
-  const overviewBadge = 0; // ví dụ: số thông báo mới
+
+  // Ưu tiên tab từ param, nếu không có thì mặc định là 'overview'
+  const getInitialTab = () => {
+    const tab = searchParams.get('tab');
+    if (['overview', 'user', 'revenue', 'event', 'news'].includes(tab || '')) return tab!;
+    return 'overview';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+  const [loadedTabs, setLoadedTabs] = useState<string[]>([getInitialTab()]);
+  const overviewBadge = 0;
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
 
+  // Set default query param if missing
   useEffect(() => {
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam);
+    if (!searchParams.get('tab')) {
+      setSearchParams({ tab: 'overview' }, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync activeTab when query param changes (back/forward, manual edits)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (
+      tab &&
+      tab !== activeTab &&
+      ['overview', 'user', 'revenue', 'event', 'news'].includes(tab)
+    ) {
+      setActiveTab(tab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Track which tabs have been loaded at least once
+  useEffect(() => {
     if (!loadedTabs.includes(activeTab)) {
       setLoadedTabs((prev) => [...prev, activeTab]);
     }
-  }, [tabParam, activeTab, loadedTabs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   return (
     <div className="p-6">

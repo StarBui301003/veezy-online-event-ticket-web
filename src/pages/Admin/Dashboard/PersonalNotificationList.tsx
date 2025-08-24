@@ -503,7 +503,9 @@ export const PersonalNotificationList: React.FC<PersonalNotificationListProps> =
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
                           aria-disabled={page === 1}
                           className={`${
-                            page === 1 ? 'pointer-events-none opacity-50' : ''
+                            page === 1
+                              ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                              : 'cursor-pointer'
                           } text-gray-700 dark:text-gray-100 hover:text-gray-900 dark:hover:text-white`}
                         />
                       </PaginationItem>
@@ -565,7 +567,9 @@ export const PersonalNotificationList: React.FC<PersonalNotificationListProps> =
                           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                           aria-disabled={page === totalPages}
                           className={`${
-                            page === totalPages ? 'pointer-events-none opacity-50' : ''
+                            page === totalPages
+                              ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                              : 'cursor-pointer'
                           } text-gray-700 dark:text-gray-100 hover:text-gray-900 dark:hover:text-white`}
                         />
                       </PaginationItem>

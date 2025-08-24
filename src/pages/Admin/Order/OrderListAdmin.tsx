@@ -739,7 +739,9 @@ const OrderListAdmin = () => {
                               onClick={() => handlePageChange(Math.max(1, filters.Page - 1))}
                               aria-disabled={filters.Page === 1}
                               className={`${
-                                filters.Page === 1 ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
@@ -817,7 +819,9 @@ const OrderListAdmin = () => {
                               }
                               aria-disabled={filters.Page === totalPages}
                               className={`${
-                                filters.Page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.Page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>

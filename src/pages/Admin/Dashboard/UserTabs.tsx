@@ -46,6 +46,9 @@ export default function UserTabs() {
   const [growth, setGrowth] = useState<UserGrowth | null>(null);
   const [demographics, setDemographics] = useState<UserDemographics | null>(null);
 
+  const inFlightRef = useRef(false);
+  const lastParamsKeyRef = useRef<string | null>(null);
+
   const filterRef = useRef(filter);
   const startDateRef = useRef(startDate);
   const endDateRef = useRef(endDate);
@@ -79,10 +82,23 @@ export default function UserTabs() {
     } else if (filter !== '12') {
       params.period = parseInt(filter, 10);
     }
-    getUserAnalytics(params).then((res: AdminUserAnalyticsResponse) => {
-      setGrowth(res.data.growth);
-      setDemographics(res.data.demographics);
+    const paramsKey = JSON.stringify({
+      period: (params as Record<string, unknown>).period ?? '12',
+      customStartDate: (params as Record<string, unknown>).customStartDate ?? null,
+      customEndDate: (params as Record<string, unknown>).customEndDate ?? null,
     });
+    if (lastParamsKeyRef.current === paramsKey) return;
+    if (inFlightRef.current) return;
+    lastParamsKeyRef.current = paramsKey;
+    inFlightRef.current = true;
+    getUserAnalytics(params)
+      .then((res: AdminUserAnalyticsResponse) => {
+        setGrowth(res.data.growth);
+        setDemographics(res.data.demographics);
+      })
+      .finally(() => {
+        inFlightRef.current = false;
+      });
   };
 
   // Setup Analytics Hub listeners using global connections
@@ -91,6 +107,12 @@ export default function UserTabs() {
 
     // Handler reference for cleanup
     const handler = (data: any) => {
+      // Ignore realtime updates when a non-default/custom filter is active
+      const isDefaultFilterActive =
+        filterRef.current === '12' && !startDateRef.current && !endDateRef.current;
+      if (!isDefaultFilterActive) {
+        return;
+      }
       // Chỉ reload nếu tab đang hiển thị và dữ liệu thực sự thay đổi
       if (document.visibilityState === 'visible') {
         // So sánh dữ liệu mới với dữ liệu hiện tại
@@ -116,6 +138,8 @@ export default function UserTabs() {
 
   useEffect(() => {
     reloadData();
+    // Reset last params to allow refresh on same filter after dates change back
+    lastParamsKeyRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);
 
@@ -235,7 +259,7 @@ export default function UserTabs() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col items-center border border-gray-200 dark:border-gray-700">
           <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Users by Role</h4>
           {growth && growth.usersByRole && Object.keys(growth.usersByRole).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={230}>
               <PieChart>
                 <Pie
                   data={Object.entries(growth.usersByRole).map(([role, value]) => ({
@@ -269,7 +293,7 @@ export default function UserTabs() {
           {demographics &&
           demographics.usersByGender &&
           Object.keys(demographics.usersByGender).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
                   data={Object.entries(demographics.usersByGender).map(([gender, value]) => ({
@@ -305,7 +329,7 @@ export default function UserTabs() {
           {demographics &&
           demographics.usersByAgeGroup &&
           Object.keys(demographics.usersByAgeGroup).length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={210}>
               <BarChart
                 data={Object.entries(demographics.usersByAgeGroup).map(([age, value]) => ({
                   age,

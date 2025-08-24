@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type {
   AdminOverviewRealtimeData,
   AdminOverviewRealtimeResponse,
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PersonalNotificationList } from './PersonalNotificationList';
-import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
 import { Skeleton } from '@/components/ui/skeleton';
 // import { PersonNotificationList } from './PersonNotificationList';
 
@@ -76,7 +76,7 @@ function AdminMetricsPanel({ data }: { data: AdminOverviewRealtimeData }) {
     {
       name: 'Withdrawal Requests',
       value: data.pendingWithdrawals,
-      total: 0,
+      total: data.totalWithdrawals ?? 0,
       fill: '#f59e42',
     },
     {
@@ -170,6 +170,8 @@ export const OverviewTabs = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [exporting, setExporting] = useState(false);
+  const inFlightRef = useRef(false);
+  const didInitRef = useRef(false);
 
   // Real-time data reload function
   const reloadData = () => {
@@ -177,6 +179,8 @@ export const OverviewTabs = () => {
       if (!startDate || !endDate) return;
       if (endDate < startDate) return;
     }
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     const params: Record<string, unknown> = {};
     if (filter === '5') {
@@ -192,20 +196,39 @@ export const OverviewTabs = () => {
         toast.error('Unable to load dashboard data. Please try again later.');
         setData(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        inFlightRef.current = false;
+        setLoading(false);
+      });
   };
 
-  // Connect to AnalyticsHub for real-time updates
+  // Connect once and subscribe with cleanup
   useEffect(() => {
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
-    // Listen for real-time analytics updates
-    onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
+    const handler = (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
       setData(newData);
-    });
+    };
+    onAnalytics('OnAdminRealtimeOverview', handler);
 
-    // Initial data load
+    return () => {
+      offAnalytics('OnAdminRealtimeOverview', handler);
+    };
+  }, []);
+
+  // Initial load once on mount
+  useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      reloadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Subsequent reloads when filters change (skip very first render)
+  useEffect(() => {
+    if (!didInitRef.current) return;
     reloadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, startDate, endDate]);

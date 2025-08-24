@@ -184,7 +184,8 @@ export default function FinancialTabs() {
           JSON.stringify(safePlatformFees) !== JSON.stringify(platformFees)
         ) {
           console.log('🔄 SignalR: Updating states due to data changes');
-          setSummary(data.summary || null);
+          // Preserve previous summary if payload omits it or sends null to avoid resetting cards
+          setSummary((prev) => (data.summary == null ? prev : data.summary));
           setRevenueTimeline(safeRevenueTimeline);
           setTopEvents(safeTopEvents);
           setPlatformFees(safePlatformFees);

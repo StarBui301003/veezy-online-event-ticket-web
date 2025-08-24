@@ -612,7 +612,9 @@ export const CollaboratorList = () => {
                               onClick={() => handlePageChange(Math.max(1, filters.page - 1))}
                               aria-disabled={filters.page === 1}
                               className={`${
-                                filters.page === 1 ? 'pointer-events-none opacity-50' : ''
+                                filters.page === 1
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               } ${getAdminListPaginationClass()}`}
                             />
                           </PaginationItem>
@@ -690,7 +692,9 @@ export const CollaboratorList = () => {
                               }
                               aria-disabled={filters.page === totalPages}
                               className={`${
-                                filters.page === totalPages ? 'pointer-events-none opacity-50' : ''
+                                filters.page === totalPages
+                                  ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                  : 'cursor-pointer'
                               }`}
                             />
                           </PaginationItem>
