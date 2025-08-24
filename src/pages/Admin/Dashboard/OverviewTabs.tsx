@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PersonalNotificationList } from './PersonalNotificationList';
-import { connectAnalyticsHub, onAnalytics, offAnalytics } from '@/services/signalr.service';
+import { connectAnalyticsHub, onAnalytics } from '@/services/signalr.service';
 import { Skeleton } from '@/components/ui/skeleton';
 // import { PersonNotificationList } from './PersonNotificationList';
 
@@ -214,7 +214,7 @@ export const OverviewTabs = () => {
     connectAnalyticsHub('https://analytics.vezzy.site/analyticsHub');
 
     // Listen for real-time analytics updates
-    const handler = (newData: AdminOverviewRealtimeData) => {
+    onAnalytics('OnAdminRealtimeOverview', (newData: AdminOverviewRealtimeData) => {
       console.log('📊 Received real-time admin overview data:', newData);
       setData(newData);
     });
