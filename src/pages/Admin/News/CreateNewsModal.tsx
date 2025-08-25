@@ -239,25 +239,25 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
         <div className="p-6 border-b border-gray-200 dark:border-0">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-800 dark:text-gray-200">
-              {t('createNews')}
+              {t('adminCreateNews.title')}
             </DialogTitle>
           </DialogHeader>
         </div>
         <div className="p-6 space-y-6 max-h-[50vh] overflow-y-auto">
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              {t('event')}
+              {t('adminCreateNews.event')}
             </label>
             <Select
               options={[
-                { value: '__no_event__', label: t('noEvent') },
+                { value: '__no_event__', label: t('adminCreateNews.noEvent') },
                 ...events.map((ev) => ({
                   value: ev.eventId,
                   label: ev.eventName,
                 })),
               ]}
               value={[
-                { value: '__no_event__', label: t('noEvent') },
+                { value: '__no_event__', label: t('adminCreateNews.noEvent') },
                 ...events.map((ev) => ({
                   value: ev.eventId,
                   label: ev.eventName,
@@ -266,7 +266,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               onChange={(selectedOption) => {
                 handleEventChange(selectedOption?.value || '');
               }}
-              placeholder={t('selectEvent')}
+              placeholder={t('adminCreateNews.selectEvent')}
               isDisabled={loading}
               isSearchable={true}
               className={getErrorClass('eventId', '')}
@@ -354,7 +354,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              {t('newsTitle')}
+              {t('adminCreateNews.newsTitle')}
             </label>
             <input
               className={getErrorClass(
@@ -364,7 +364,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               value={form.newsTitle}
               onChange={handleTitleChange}
               disabled={loading}
-              placeholder={t('enterNewsTitle')}
+              placeholder={t('adminCreateNews.enterNewsTitle')}
             />
             {getFieldError('newsTitle') && (
               <div className="text-red-400 text-sm mt-1 ml-2 text-left">
@@ -374,7 +374,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              {t('newsDescription')}
+              {t('adminCreateNews.newsDescription')}
             </label>
             <textarea
               className={getErrorClass(
@@ -384,7 +384,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
               value={form.newsDescription}
               onChange={(e) => handleDescriptionChange(e)}
               disabled={loading}
-              placeholder={t('enterNewsDescription')}
+              placeholder={t('adminCreateNews.enterNewsDescription')}
               rows={3}
             />
             {getFieldError('newsDescription') && (
@@ -395,7 +395,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Content
+              {t('adminCreateNews.content')}
             </label>
             <RichTextEditor
               value={form.newsContent}
@@ -410,7 +410,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Image
+              {t('adminCreateNews.image')}
             </label>
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center gap-2">
@@ -423,12 +423,12 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                   {isUploading ? (
                     <>
                       <FaSpinner className="animate-spin" />
-                      Uploading...
+                                             {t('adminCreateNews.uploading')}
                     </>
                   ) : (
                     <>
                       <FaUpload />
-                      Import
+                                             {t('adminCreateNews.import')}
                     </>
                   )}
                   <input
@@ -466,7 +466,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Status
+              {t('adminCreateNews.status')}
             </label>
             <UISelect
               value={form.status ? 'true' : 'false'}
@@ -479,20 +479,20 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                   `border rounded px-3 py-2 w-full transition-colors ${getSelectClass()}`
                 )}
               >
-                <SelectValue placeholder="Select status" />
+                                 <SelectValue placeholder={t('adminCreateNews.selectStatus')} />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
                 <SelectItem
                   value="true"
                   className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  Active
+                                     {t('adminCreateNews.active')}
                 </SelectItem>
                 <SelectItem
                   value="false"
                   className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  Inactive
+                                     {t('adminCreateNews.inactive')}
                 </SelectItem>
               </SelectContent>
             </UISelect>
@@ -511,7 +511,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             disabled={loading}
             type="button"
           >
-            {t('cancel')}
+                         {t('adminCreateNews.cancel')}
           </button>
           <button
             className="border-2 border-[#24b4fb] bg-[#24b4fb] rounded-[0.9em] cursor-pointer px-5 py-2 transition-all duration-200 text-[14px] font-semibold text-white hover:bg-[#0071e2] flex items-center justify-center gap-2"
@@ -522,10 +522,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
             {loading ? (
               <>
                 <FaSpinner className="animate-spin" />
-                {t('creating')}
+                                 {t('adminCreateNews.creating')}
               </>
             ) : (
-              t('create')
+                             t('adminCreateNews.create')
             )}
           </button>
         </div>

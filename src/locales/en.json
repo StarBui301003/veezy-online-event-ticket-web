@@ -1213,7 +1213,7 @@
   "failedToLoadDiscountCode": "Failed to load discount code",
   "failedToUpdateDiscountCode": "Failed to update discount code",
   "updating": "Updating...",
-  "createNews": {
+  "eventManagerCreateNews": {
     "title": "Create News",
     "subtitle": "Create a new news article for your event",
     "backToNews": "Back to News",
@@ -1236,7 +1236,50 @@
     "newsTitleRequired": "Please enter a news title",
     "descriptionRequired": "Please enter a description",
     "contentRequired": "Please enter the news content",
-    "imageRequired": "Please upload a news image"
+    "imageRequired": "Please upload a news image",
+    "imageUploaded": "Image uploaded successfully!",
+    "imageUploadFailed": "Image upload failed"
+  },
+  "adminCreateNews": {
+    "title": "Create New News",
+    "subtitle": "Create a new news article for the system",
+    "backToNews": "Back to News",
+    "newsImage": "News Image",
+    "clickToUpload": "Click to upload",
+    "orDragAndDrop": "or drag and drop here",
+    "imageFormatHint": "Supports: JPG, PNG, GIF (max 5MB)",
+    "newsTitle": "News Title",
+    "newsTitlePlaceholder": "Enter news title",
+    "shortDescription": "Short Description",
+    "shortDescriptionPlaceholder": "Enter a short description about the news",
+    "newsContent": "News Content",
+    "newsStatusActive": "News is active",
+    "newsStatusInactive": "News is inactive",
+    "cancel": "Cancel",
+    "createNews": "Create News",
+    "updating": "Creating...",
+    "newsCreated": "News created successfully!",
+    "errorCreatingNews": "Error creating news",
+    "newsTitleRequired": "Please enter a news title",
+    "descriptionRequired": "Please enter a description",
+    "contentRequired": "Please enter the news content",
+    "imageRequired": "Please upload a news image",
+    "event": "Event",
+    "noEvent": "No event",
+    "selectEvent": "Select event",
+    "enterNewsTitle": "Enter news title",
+    "enterNewsDescription": "Enter news description",
+    "newsDescription": "News Description",
+    "content": "Content",
+    "image": "Image",
+    "uploading": "Uploading...",
+    "import": "Import Image",
+    "status": "Status",
+    "selectStatus": "Select status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "creating": "Creating...",
+    "create": "Create"
   },
   "editNews": {
     "title": "Edit News",
@@ -1386,7 +1429,7 @@
     "searchEvents": "Search Events...",
     "loading": "Loading...",
     "noEventsFound": "No Events Found",
-    "createNews": "Create News",
+    "createNewsButton": "Create News",
     "previousPage": "Previous Page",
     "nextPage": "Next Page",
     "page": "Page",
@@ -1422,7 +1465,7 @@
     "searchEvents": "Search Events",
     "loading": "Loading...",
     "noEventsFound": "No Events Found",
-    "createNews": "Create News",
+    "createNewsButton": "Create News",
     "page": "Page",
     "newsFor": "News for",
     "selectEventToViewNews": "Select an event to view and manage news",
@@ -1638,7 +1681,19 @@
     "followEvent": "Follow Event",
     "remainingTickets": "{{count}} Remaining",
     "maxTicketsPerOrderError": "Maximum {{max}} tickets per order",
-    "orderSummary": "Order Summary",
+    "OrderSummary": "Order Summary",
+    "discountCodeForEvent": "Discount code for this event",
+    "enterDiscountCode": "Enter discount code (use only 1 time)",
+    "apply": "Apply",
+    "discountCodeValid": "✨ Valid discount code!",
+    "discountCodeInvalid": "❌ Invalid discount code",
+    "discountAmount": "🎉 Discount {{amount}} VND",
+    "discountCodeCancelled": "🗑️ Discount code cancelled",
+    "discountCodeUsageNote": "💡 This code can only be used once for this event",
+    "currency": "VND",
+    "currencyPerTicket": "VND/ticket",
+    "totalAmount": "Total Amount:",
+    "free": "Free",
     "send": "Send",
     "eventManager": "Event Manager",
     "ticketType": "{{type}} (x{{count}})",
@@ -2193,5 +2248,67 @@
   "admin": "Admin",
   "customer": "Customer",
   "collaborator": "Collaborator",
-  "filter": "Filter"
+  "filter": "Filter",
+  
+  "discountCode": {
+    "alreadyUsed": "❌ This discount code has already been used. Each code can only be used once.",
+    "notApplicableForEvent": "🎯 This discount code is not applicable for the current event.",
+    "expired": "⏰ This discount code has expired.",
+    "invalidOrNotFound": "❌ Discount code does not exist or is invalid",
+    "checkFailed": "❌ Unable to check discount code. Please try again!",
+    "applySuccess": "🎉 Discount code applied successfully! Saved {{amount}}",
+                  "validationFailed": "Please enter a discount code",
+              "invalidFormat": "Discount code must be 6-12 characters, only letters and numbers",
+              "validForEvent": "Valid discount code for this event",
+              "invalid": "Invalid discount code"
+  },
+  
+  "orderErrors": {
+    "invalidOrderAmount": "Order total is invalid. Please check your cart.",
+    "orderCreationFailed": "Unable to create order. Please try again.",
+    "maxTicketsReached": "❌ {{message}}\n\nPlease return to the event page to check the number of tickets you have purchased.",
+    "paymentLinkFailed": "Unable to get payment link from server.",
+    "orderPaymentError": "There was an error creating the order/payment.",
+    "orderNotFound": "Order not found"
+  },
+  
+  "faceOrder": {
+    "success": "Face order created successfully!",
+    "failed": "Face order failed",
+    "loading": "Processing face order..."
+  },
+  
+  "ticketErrors": {
+    "maxTicketsPerOrder": "⚠️ You have purchased enough tickets for type \"{{ticketName}}\". Maximum {{maxTickets}} tickets per person for this event.",
+    "maxTicketsPerOrderError": "Maximum {{maxPerOrder}} tickets per order for \"{{ticketName}}\"",
+    "notEnoughTicketsAvailable": "Not enough tickets available for \"{{ticketName}}\". Available: {{available}}, Requested: {{requested}}"
+  },
+  
+  "eventStatus": {
+    "ended": "Event has ended",
+    "thankYouMessage": "Thank you for your interest in this event. Please follow our upcoming events."
+  },
+  
+  "common": {
+    "accountNotLoaded": "Account not loaded yet",
+    "newsNotFound": "News not found!",
+    "errorLoadingNews": "Error loading news!",
+    "newsRemoved": "This news has been removed",
+    "loadingOrder": "Loading order",
+    "pleaseWait": "Please wait...",
+    "waitingForPayment": "Waiting for payment",
+    "completePaymentInNewTab": "Please complete payment in the new tab",
+    "ifPaymentNotCompletedReloadPage": "If payment is not completed, please reload the page",
+    "paymentSuccessful": "Payment successful! Thank you for your order",
+    "finalAmount": "Final amount:",
+    "paymentFailed": "Payment failed",
+    "paymentErrorMessage": "An error occurred during the payment process. Please try again or contact support.",
+    "tryAgain": "Try again",
+            "backToEventPage": "🎟️ Back to event page",
+        "orderConfirmationError": "Error confirming order:"
+      },
+      "faceAuth": {
+        "updateSuccess": "Face updated successfully!",
+        "updateFailed": "Face update failed!"
+  }
 }

@@ -158,10 +158,10 @@ const EditNews: React.FC = () => {
       try {
         const imageUrl = await uploadNewsImage(file);
         setNewsPayload((prev) => ({ ...prev, imageUrl }));
-        toast.success(t('createNews.imageUploaded'));
+        toast.success(t('eventManagerCreateNews.imageUploaded'));
       } catch (error) {
         console.error('Image upload failed:', error);
-        toast.error(t('createNews.imageUploadFailed'));
+        toast.error(t('eventManagerCreateNews.imageUploadFailed'));
         // Nếu upload lỗi, quay lại ảnh cũ
         setImagePreview(newsPayload.imageUrl);
       } finally {
@@ -201,11 +201,11 @@ const EditNews: React.FC = () => {
     const cleanedContent = cleanHtml(newsPayload.newsContent);
 
     if (!newsPayload.newsTitle.trim()) {
-      toast.error(t('createNews.newsTitleRequired'));
+              toast.error(t('eventManagerCreateNews.newsTitleRequired'));
       return;
     }
     if (!cleanedContent) {
-      toast.error(t('createNews.contentRequired'));
+              toast.error(t('eventManagerCreateNews.contentRequired'));
       return;
     }
 
@@ -292,7 +292,7 @@ const EditNews: React.FC = () => {
               <button onClick={() => navigate('/event-manager/news')}
                 className={cn('px-4 py-2 text-sm font-medium rounded-lg border transition-all', getThemeClass('hover:bg-blue-600 hover:text-white', 'hover:bg-purple-800/50'))}
               >
-                {t('createNews.backToNews')}
+                {t('eventManagerCreateNews.backToNews')}
               </button>
             </div>
           </div>
@@ -302,7 +302,7 @@ const EditNews: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1">
                   <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                    {t('createNews.newsImage')} <span className="text-red-500">*</span>
+                    {t('eventManagerCreateNews.newsImage')} <span className="text-red-500">*</span>
                   </label>
                   <div {...getRootProps()}
                     className={cn('border-2 border-dashed rounded-xl p-6 text-center cursor-pointer min-h-[200px] flex items-center justify-center', getThemeClass('border-blue-400', 'border-purple-500/50'), isDragActive && getThemeClass('bg-blue-100', 'bg-purple-500/20'))}>
@@ -320,26 +320,26 @@ const EditNews: React.FC = () => {
                 <div className="md:col-span-2 space-y-6">
                   <div>
                     <label htmlFor="newsTitle" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                      {t('createNews.newsTitle')} <span className="text-red-500">*</span>
+                      {t('eventManagerCreateNews.newsTitle')} <span className="text-red-500">*</span>
                     </label>
                     <input type="text" id="newsTitle" name="newsTitle" value={newsPayload.newsTitle} onChange={handleChange}
                       className={cn('w-full p-3 rounded-xl border focus:ring-2', getThemeClass('border-gray-300', 'bg-slate-700/80 border-purple-700'))}
-                      placeholder={t('createNews.newsTitlePlaceholder')} required />
+                      placeholder={t('eventManagerCreateNews.newsTitlePlaceholder')} required />
                   </div>
                   <div>
                     <label htmlFor="newsDescription" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                      {t('createNews.shortDescription')} <span className="text-red-500">*</span>
+                      {t('eventManagerCreateNews.shortDescription')} <span className="text-red-500">*</span>
                     </label>
                     <textarea id="newsDescription" name="newsDescription" value={newsPayload.newsDescription} onChange={handleChange} rows={4}
                       className={cn('w-full p-3 rounded-xl border focus:ring-2 resize-none', getThemeClass('border-gray-300', 'bg-slate-700/80 border-purple-700'))}
-                      placeholder={t('createNews.shortDescriptionPlaceholder')} required />
+                      placeholder={t('eventManagerCreateNews.shortDescriptionPlaceholder')} required />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                  {t('createNews.newsContent')} <span className="text-red-500">*</span>
+                  {t('eventManagerCreateNews.newsContent')} <span className="text-red-500">*</span>
                 </label>
                 <div className={cn('rounded-xl overflow-hidden', getThemeClass('light', 'dark'))}>
                   <QuillEditor value={newsPayload.newsContent} onChange={handleEditorChange} modules={quillModules} formats={quillFormats}
@@ -358,14 +358,14 @@ const EditNews: React.FC = () => {
                             </label>
                         </div>
                         <label htmlFor="status" className={cn('text-sm font-medium', getThemeClass('text-gray-700', 'text-pink-200'))}>
-                            {newsPayload.status ? t('createNews.newsStatusActive') : t('createNews.newsStatusInactive')}
+                            {newsPayload.status ? t('eventManagerCreateNews.newsStatusActive') : t('eventManagerCreateNews.newsStatusInactive')}
                         </label>
                     </div>
 
                     <div className="flex gap-3">
                         <button type="button" onClick={() => navigate('/event-manager/news')}
                             className={cn('px-6 py-2.5 rounded-xl border', getThemeClass('border-gray-300', 'border-pink-500/40 hover:bg-pink-800/60'))}>
-                            {t('createNews.cancel')}
+                            {t('eventManagerCreateNews.cancel')}
                         </button>
                         <button type="submit" disabled={loading}
                             className="px-6 py-3 font-semibold text-white rounded-xl shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-70">

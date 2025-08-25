@@ -420,7 +420,7 @@ const NewsManager: React.FC = () => {
                     }}
                     disabled={!event}
                   >
-                    <FaPlus className="inline mr-2" /> {t('newsManager.createNews')}
+                    <FaPlus className="inline mr-2" /> {t('newsManager.createNewsButton')}
                   </button>
                 </div>
               ))}

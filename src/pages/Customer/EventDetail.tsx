@@ -711,7 +711,10 @@ const EventDetail = () => {
               const targetTicket = tickets.find((t) => t.ticketName === ticketName);
               if (targetTicket) {
                 setTicketErrors({
-                  [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`,
+                  [targetTicket.ticketId]: t('ticketErrors.maxTicketsPerOrder', { 
+                    ticketName: ticketName, 
+                    maxTickets: maxTickets 
+                  }),
                 });
                 return;
               }
@@ -736,7 +739,10 @@ const EventDetail = () => {
             const targetTicket = tickets.find((t) => t.ticketName === ticketName);
             if (targetTicket) {
               setTicketErrors({
-                [targetTicket.ticketId]: `⚠️ Bạn đã mua đủ số vé cho loại "${ticketName}". Tối đa ${maxTickets} vé/người cho sự kiện này.`,
+                [targetTicket.ticketId]: t('ticketErrors.maxTicketsPerOrder', { 
+                  ticketName: ticketName, 
+                  maxTickets: maxTickets 
+                }),
               });
               return;
             }
@@ -754,22 +760,22 @@ const EventDetail = () => {
     if (!discountCode.trim()) {
       setDiscountValidation({
         success: false,
-        message: 'Vui lòng nhập mã giảm giá',
+        message: t('discountCode.validationFailed'),
       });
       setAppliedDiscount(0);
       return;
     }
 
-    // Basic format validation
-    const codePattern = /^[A-Z0-9]{6,12}$/;
-    if (!codePattern.test(discountCode.trim())) {
-      setDiscountValidation({
-        success: false,
-        message: 'Mã giảm giá phải từ 6-12 ký tự, chỉ bao gồm chữ cái và số',
-      });
-      setAppliedDiscount(0);
-      return;
-    }
+          // Basic format validation
+      const codePattern = /^[A-Z0-9]{6,12}$/;
+      if (!codePattern.test(discountCode.trim())) {
+        setDiscountValidation({
+          success: false,
+          message: t('discountCode.invalidFormat'),
+        });
+        setAppliedDiscount(0);
+        return;
+      }
 
     setValidatingDiscount(true);
     setDiscountValidation(null);
@@ -783,19 +789,19 @@ const EventDetail = () => {
         if (res.data.isValid) {
           setDiscountValidation({
             success: true,
-            message: res.data.message || 'Mã giảm giá hợp lệ cho sự kiện này',
+            message: res.data.message || t('discountCode.validForEvent'),
             discountAmount: res.data.discountAmount,
           });
           setAppliedDiscount(res.data.discountAmount || 0);
 
           // Show success toast
           toast.success(
-            `🎉 Áp dụng mã giảm giá thành công! Tiết kiệm ${(
-              res.data.discountAmount || 0
-            ).toLocaleString('vi-VN')} VNĐ`
+            t('discountCode.applySuccess', { 
+              amount: `${(res.data.discountAmount || 0).toLocaleString('vi-VN')} ${t('eventDetail.currency')}` 
+            })
           );
         } else {
-          const errorMessage = res.data.message || 'Mã giảm giá không hợp lệ';
+          const errorMessage = res.data.message || t('discountCode.invalid');
           setDiscountValidation({
             success: false,
             message: errorMessage,
@@ -806,29 +812,29 @@ const EventDetail = () => {
           if (errorMessage.includes('used') || errorMessage.includes('đã sử dụng')) {
             setDiscountValidation({
               success: false,
-              message: '❌ Mã giảm giá này đã được sử dụng. Mỗi mã chỉ sử dụng được 1 lần.',
+              message: t('discountCode.alreadyUsed'),
             });
           } else if (errorMessage.includes('event') || errorMessage.includes('sự kiện')) {
             setDiscountValidation({
               success: false,
-              message: '🎯 Mã giảm giá này không áp dụng cho sự kiện hiện tại.',
+              message: t('discountCode.notApplicableForEvent'),
             });
           } else if (errorMessage.includes('expired') || errorMessage.includes('hết hạn')) {
             setDiscountValidation({
               success: false,
-              message: '⏰ Mã giảm giá đã hết hạn sử dụng.',
+              message: t('discountCode.expired'),
             });
           }
         }
       } else {
         setDiscountValidation({
           success: false,
-          message: res.message || '❌ Mã giảm giá không tồn tại hoặc không hợp lệ',
+          message: res.message || t('discountCode.invalidOrNotFound'),
         });
         setAppliedDiscount(0);
       }
     } catch (err: any) {
-      const errorMsg = err?.response?.data?.message || 'Có lỗi xảy ra khi kiểm tra mã giảm giá';
+      const errorMsg = err?.response?.data?.message || t('discountCode.checkFailed');
       setDiscountValidation({
         success: false,
         message: errorMsg,
@@ -836,7 +842,7 @@ const EventDetail = () => {
       setAppliedDiscount(0);
 
       // Show error toast
-      toast.error('❌ Không thể kiểm tra mã giảm giá. Vui lòng thử lại!');
+      toast.error(t('discountCode.checkFailed'));
     } finally {
       setValidatingDiscount(false);
     }
@@ -1875,7 +1881,7 @@ const EventDetail = () => {
                       )
                     )}
                   >
-                    {t('orderSummary')}
+                    {t('OrderSummary')}
                   </h3>
                   <div className="space-y-2 mb-4">
                     {Object.values(selectedTickets).map((item) => {
@@ -1895,11 +1901,11 @@ const EventDetail = () => {
                             {item.ticketName} (x{item.quantity})
                           </span>
                           <span>
-                            {price === 0
-                              ? t('eventDetail.free')
-                              : `${(price * item.quantity).toLocaleString(
-                                  i18n.language === 'vi' ? 'vi-VN' : 'en-US'
-                                )} đ`}
+                                                    {price === 0
+                          ? t('eventDetail.free')
+                          : `${(price * item.quantity).toLocaleString(
+                              i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+                            )} ${t('eventDetail.currency')}`}
                           </span>
                         </div>
                       );
@@ -1930,7 +1936,7 @@ const EventDetail = () => {
                         {typeof totalAmount === 'number'
                           ? totalAmount.toLocaleString('vi-VN')
                           : Number(totalAmount || 0).toLocaleString('vi-VN')}{' '}
-                        đ
+                        {t('eventDetail.currency')}
                       </span>
                     </motion.div>
                   </div>
@@ -1973,7 +1979,7 @@ const EventDetail = () => {
                             getThemeClass('text-purple-700', 'text-purple-300')
                           )}
                         >
-                          Mã giảm giá cho sự kiện này
+                          {t('eventDetail.discountCodeForEvent')}
                         </span>
                       </div>
 
@@ -1998,7 +2004,7 @@ const EventDetail = () => {
                                     'border-purple-500/50 bg-purple-900/10 text-white placeholder:text-purple-300 focus:ring-purple-200 hover:border-purple-400'
                                   )
                             )}
-                            placeholder="Nhập mã giảm giá (chỉ dùng 1 lần)"
+                            placeholder={t('eventDetail.enterDiscountCode')}
                             value={discountCode}
                             onChange={(e) => {
                               setDiscountCode(e.target.value.toUpperCase());
@@ -2083,7 +2089,7 @@ const EventDetail = () => {
                           {validatingDiscount ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            'Áp dụng'
+                            t('eventDetail.apply')
                           )}
                         </motion.button>
                       </div>
@@ -2123,8 +2129,8 @@ const EventDetail = () => {
                               <div className="flex-1">
                                 <div className="text-sm font-medium">
                                   {discountValidation.success
-                                    ? '✨ Mã giảm giá hợp lệ!'
-                                    : '❌ Mã giảm giá không hợp lệ'}
+                                    ? t('eventDetail.discountCodeValid')
+                                    : t('eventDetail.discountCodeInvalid')}
                                 </div>
                                 <div className="text-sm mt-1">
                                   {discountValidation.message}
@@ -2134,14 +2140,14 @@ const EventDetail = () => {
                                       animate={{ scale: 1 }}
                                       className="font-bold ml-2 text-lg"
                                     >
-                                      🎉 Giảm {appliedDiscount.toLocaleString('vi-VN')} VNĐ
+                                      {t('eventDetail.discountAmount', { amount: appliedDiscount.toLocaleString('vi-VN') })}
                                     </motion.span>
                                   )}
                                 </div>
                                 {discountValidation.success && (
                                   <div className="flex items-center justify-between mt-2">
                                     <div className="text-xs opacity-75">
-                                      💡 Mã này chỉ sử dụng được 1 lần cho sự kiện này
+                                      {t('eventDetail.discountCodeUsageNote')}
                                     </div>
                                     <motion.button
                                       whileHover={{ scale: 1.05 }}
@@ -2151,7 +2157,7 @@ const EventDetail = () => {
                                         setDiscountCode('');
                                         setDiscountValidation(null);
                                         setAppliedDiscount(0);
-                                        toast.info('🗑️ Đã hủy mã giảm giá');
+                                        toast.info(t('eventDetail.discountCodeCancelled'));
                                       }}
                                       className={cn(
                                         'px-3 py-1 rounded-full text-xs font-medium transition-all duration-200',
@@ -2312,10 +2318,10 @@ const EventDetail = () => {
                             })}
                           </p>
                           <p>
-                            <span className="font-medium">Tổng tiền:</span>{' '}
+                                                          <span className="font-medium">{t('eventDetail.totalAmount')}</span>{' '}
                             {order.totalAmount > 0
-                              ? `${order.totalAmount.toLocaleString('vi-VN')} VNĐ`
-                              : 'Miễn phí'}
+                              ? `${order.totalAmount.toLocaleString('vi-VN')} ${t('eventDetail.currency')}`
+                                                              : t('eventDetail.free')}
                           </p>
                           {order.orderDetails && order.orderDetails.length > 0 && (
                             <div className="mt-2">
@@ -2326,7 +2332,7 @@ const EventDetail = () => {
                                     • {detail.ticketName || 'Vé'} x{detail.quantity}
                                     {detail.pricePerTicket > 0 && (
                                       <span className="ml-2">
-                                        ({detail.pricePerTicket.toLocaleString('vi-VN')} VNĐ/vé)
+                                        ({detail.pricePerTicket.toLocaleString('vi-VN')} {t('eventDetail.currencyPerTicket')})
                                       </span>
                                     )}
                                   </div>
