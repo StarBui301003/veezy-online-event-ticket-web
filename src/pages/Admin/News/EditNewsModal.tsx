@@ -59,7 +59,7 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
   useEffect(() => {
     if (news) {
       setForm({
-        eventId: news.eventId || '',
+        eventId: news.eventId || '__no_event__', // Use __no_event__ when eventId is null/empty
         newsDescription: news.newsDescription || '',
         newsTitle: news.newsTitle || '',
         newsContent: typeof news.newsContent === 'string' ? news.newsContent : initialLexicalValue,
@@ -110,14 +110,12 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
       alert('Description is required!');
       return;
     }
-    if (!form.eventId) {
-      alert('Event is required!');
-      return;
-    }
+    // Remove event validation - event is optional for admin
     setLoading(true);
     try {
       await updateNews(news.newsId, {
         ...form,
+        eventId: form.eventId === '__no_event__' ? null : form.eventId, // Send null if no event selected
         newsContent: form.newsContent,
       });
       onUpdated && onUpdated();
@@ -144,18 +142,28 @@ export const EditNewsModal = ({ news, onClose, onUpdated }: Props) => {
               Event
             </label>
             <Select
-              options={events.map((ev) => ({
-                value: ev.eventId,
-                label: ev.eventName,
-              }))}
-              value={events
-                .map((ev) => ({
+              options={[
+                { value: '__no_event__', label: 'No Event' },
+                ...events.map((ev) => ({
                   value: ev.eventId,
                   label: ev.eventName,
-                }))
-                .find((option) => option.value === form.eventId)}
+                })),
+              ]}
+              value={[
+                { value: '__no_event__', label: 'No Event' },
+                ...events.map((ev) => ({
+                  value: ev.eventId,
+                  label: ev.eventName,
+                })),
+              ].find((option) => option.value === (form.eventId || '__no_event__'))}
               onChange={(selectedOption) =>
-                setForm((prev) => ({ ...prev, eventId: selectedOption?.value || '' }))
+                setForm((prev) => ({
+                  ...prev,
+                  eventId:
+                    selectedOption?.value === '__no_event__'
+                      ? '__no_event__'
+                      : selectedOption?.value || '__no_event__',
+                }))
               }
               placeholder="Select event"
               isDisabled={loading}
