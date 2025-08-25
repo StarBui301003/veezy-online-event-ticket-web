@@ -170,7 +170,7 @@
   "statuses5": "Đã hoàn thành",
   "statuses6": "Đã hủy",
   "statuses7": "Đã hoãn",
-  "search_placeholder": "Tìm kiếm sự kiện...",
+  "search_placeholder": "Tìm kiếm sự kiện, tin tức,...",
   "search": "Tìm kiếm...",
   "searchOptions": {
     "resultsFor": "Kết quả tìm kiếm cho: {{query}}",

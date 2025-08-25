@@ -260,7 +260,7 @@ export const HomePage = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.slice(0, 3).map((event, idx) => (
+              {events.slice(0, 6).map((event, idx) => (
                 <motion.div
                   key={event.eventId}
                   className={cn(
@@ -455,7 +455,7 @@ export const HomePage = () => {
                   {t('noNews')}
                 </div>
               ) : (
-                news.slice(0, 3).map((item) => (
+                news.slice(0, 6).map((item) => (
                   <Link
                     key={item.newsId}
                     to={`/news/${item.newsId}`}

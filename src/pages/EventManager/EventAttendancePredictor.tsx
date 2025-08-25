@@ -30,18 +30,27 @@ const EventAttendancePredictor = () => {
   const { getThemeClass } = useThemeClasses();
   const [events, setEvents] = useState([]);
   const [eventSearch, setEventSearch] = useState('');
-  // Removed unused searchActiveIndex state
+  const [searchActiveIndex, setSearchActiveIndex] = useState(-1);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedEventData, setSelectedEventData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [prediction, setPrediction] = useState(null);
   // Removed unused animateCards state
 
+  // Filtered events for search suggestions
+  const filteredEvents = events.filter(
+    (ev) =>
+      typeof ev.eventName === 'string' &&
+      ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
+  );
+
   // Load events function
   const loadEvents = async () => {
     try {
       // Lấy tất cả events với pageSize lớn để có đủ dữ liệu cho search
       const res = await getMyApprovedEvents(1, 100);
+      console.log('API Response:', res); // Debug log
+      
       let myEvents = [];
       if (res && typeof res === 'object' && 'items' in res) {
         myEvents = res.items || [];
@@ -50,8 +59,11 @@ const EventAttendancePredictor = () => {
       } else if (res?.items && Array.isArray(res.items)) {
         myEvents = res.items;
       }
+      
+      console.log('Processed Events:', myEvents); // Debug log
       setEvents(myEvents);
-    } catch {
+    } catch (error) {
+      console.error('Error loading events:', error); // Debug log
       setEvents([]);
     }
   };
@@ -77,6 +89,7 @@ const EventAttendancePredictor = () => {
   }, []);
 
   useEffect(() => {
+    console.log('Events state updated:', events); // Debug log
     setSelectedEventData(events.find((e) => e.eventId === selectedEvent));
   }, [selectedEvent, events]);
 
@@ -132,11 +145,7 @@ const EventAttendancePredictor = () => {
     return num ? num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0';
   };
 
-  const filteredEvents = events.filter(
-    (ev) =>
-      typeof ev.eventName === 'string' &&
-      ev.eventName.toLowerCase().includes(eventSearch.toLowerCase())
-  );
+  // filteredEvents removed as it's not used
 
   return (
     <div
@@ -221,10 +230,10 @@ const EventAttendancePredictor = () => {
           </div>
         </div>
 
-        {/* Search and Filter Section */}
+        {/* Search and Filter Section with fixed z-index */}
         <div
           className={cn(
-            'backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8',
+            'backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-8 relative z-30',
             getThemeClass(
               'bg-white/80 border border-blue-200',
               'bg-gradient-to-r from-slate-800/60 to-slate-700/60 border border-blue-500/30'
@@ -233,7 +242,7 @@ const EventAttendancePredictor = () => {
         >
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              {/* Search Input */}
+              {/* Search Input with high z-index dropdown */}
               <div className="relative w-full sm:w-96">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <div className="relative">
@@ -242,19 +251,32 @@ const EventAttendancePredictor = () => {
                     placeholder={t('eventAttendancePredictor.searchEvents')}
                     value={eventSearch}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      setEventSearch(value);
-                      // setSearchActiveIndex removed
-                      // Chỉ auto-select nếu chưa chọn hoặc chọn event không còn trong filtered list
-                      const filtered = events.filter(
-                        (ev) =>
-                          typeof ev.eventName === 'string' &&
-                          ev.eventName.toLowerCase().includes(value.toLowerCase())
-                      );
-                      if (filtered.length === 0) {
-                        setSelectedEvent('');
-                      } else if (!filtered.some((ev) => ev.eventId === selectedEvent)) {
-                        setSelectedEvent(filtered[0].eventId);
+                      setEventSearch(e.target.value);
+                      setSearchActiveIndex(-1);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!filteredEvents.length) return;
+                      if (e.key === 'Enter') {
+                        if (searchActiveIndex >= 0 && filteredEvents[searchActiveIndex]) {
+                          const selectedEv = filteredEvents[searchActiveIndex];
+                          setSelectedEvent(selectedEv.eventId);
+                          setEventSearch(selectedEv.eventName);
+                          setSelectedEventData(selectedEv);
+                        } else if (filteredEvents.length > 0) {
+                          const selectedEv = filteredEvents[0];
+                          setSelectedEvent(selectedEv.eventId);
+                          setEventSearch(selectedEv.eventName);
+                          setSelectedEventData(selectedEv);
+                        }
+                        setSearchActiveIndex(-1);
+                      } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSearchActiveIndex((idx) => Math.min(idx + 1, filteredEvents.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSearchActiveIndex((idx) => Math.max(idx - 1, 0));
+                      } else if (e.key === 'Escape') {
+                        setSearchActiveIndex(-1);
                       }
                     }}
                     className={cn(
@@ -272,9 +294,7 @@ const EventAttendancePredictor = () => {
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white focus:outline-none text-xl"
                       onClick={() => {
                         setEventSearch('');
-                        // setSearchActiveIndex removed
-                        setSelectedEvent('');
-                        setSelectedEventData(null);
+                        setSearchActiveIndex(-1);
                       }}
                       tabIndex={-1}
                     >
@@ -282,7 +302,57 @@ const EventAttendancePredictor = () => {
                     </button>
                   )}
                 </div>
-                {/* Đã bỏ dropdown gợi ý dưới input, chỉ gợi ý bên select */}
+                {/* Dropdown gợi ý khi search với z-index cao nhất */}
+                {eventSearch && eventSearch !== (selectedEventData?.eventName || '') && (
+                  <div 
+                    className={cn(
+                      'absolute z-[9999] left-0 right-0 mt-1 rounded-xl shadow-2xl max-h-60 overflow-y-auto border',
+                      getThemeClass(
+                        'bg-white border-gray-200',
+                        'bg-[#2d0036] border-cyan-500/30'
+                      )
+                    )}
+                    style={{ position: 'absolute', zIndex: 9999 }}
+                  >
+                    {filteredEvents.map((ev, idx) => (
+                      <div
+                        key={ev.eventId}
+                        className={cn(
+                          'px-4 py-2 cursor-pointer',
+                          getThemeClass(
+                            'hover:bg-gray-100 text-gray-900',
+                            'hover:bg-cyan-700/30 text-white'
+                          ),
+                          selectedEvent === ev.eventId && getThemeClass(
+                            'bg-blue-100',
+                            'bg-cyan-700/40'
+                          ),
+                          searchActiveIndex === idx && getThemeClass(
+                            'bg-blue-200',
+                            'bg-cyan-800/60'
+                          )
+                        )}
+                        onClick={() => {
+                          setSelectedEvent(ev.eventId);
+                          setEventSearch(ev.eventName);
+                          setSearchActiveIndex(-1);
+                          setSelectedEventData(ev);
+                        }}
+                        onMouseEnter={() => setSearchActiveIndex(idx)}
+                      >
+                        {ev.eventName}
+                      </div>
+                    ))}
+                    {filteredEvents.length === 0 && (
+                      <div className={cn(
+                        'px-4 py-2',
+                        getThemeClass('text-gray-500', 'text-cyan-400')
+                      )}>
+                        {t('eventAttendancePredictor.noEventFound')}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {/* Filter Select */}
               <div className="relative w-full sm:w-80">
@@ -298,6 +368,8 @@ const EventAttendancePredictor = () => {
                     const event = events.find((ev) => ev.eventId === e.target.value);
                     setSelectedEvent(e.target.value);
                     setEventSearch(event ? event.eventName : '');
+                    setSelectedEventData(event);
+                    setSearchActiveIndex(-1);
                   }}
                   className={cn(
                     'pl-10 pr-8 py-3 w-full rounded-xl border-2 focus:outline-none appearance-none transition-all duration-300',
@@ -314,15 +386,21 @@ const EventAttendancePredictor = () => {
                   >
                     {t('eventAttendancePredictor.selectEvent')}
                   </option>
-                  {filteredEvents.map((event) => (
-                    <option
-                      key={event.eventId}
-                      value={event.eventId}
-                      className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
-                    >
-                      {event.eventName}
+                  {events && events.length > 0 ? (
+                    events.map((event) => (
+                      <option
+                        key={event.eventId}
+                        value={event.eventId}
+                        className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
+                      >
+                        {event.eventName}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled className="text-gray-500">
+                      {t('eventAttendancePredictor.noEventsAvailable')}
                     </option>
-                  ))}
+                  )}
                 </select>
               </div>
             </div>
