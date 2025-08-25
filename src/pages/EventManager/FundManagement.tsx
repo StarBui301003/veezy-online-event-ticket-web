@@ -381,8 +381,7 @@ export default function FundManagement() {
     .filter((transaction) => {
       const search = searchTerm.toLowerCase();
       return (
-        (transaction.transactionId.toLowerCase().includes(search) ||
-          transaction.orderId.toLowerCase().includes(search) ||
+        (transaction.orderId.toLowerCase().includes(search) ||
           transaction.amount.toString().includes(search) ||
           transaction.transactionDescription.toLowerCase().includes(search) ||
           formatDate(transaction.createdAt).includes(search) ||
@@ -789,14 +788,6 @@ export default function FundManagement() {
                         getThemeClass('border-gray-300', 'border-blue-500/30')
                       )}
                     >
-                                              <th
-                          className={cn(
-                            'text-left p-4 font-semibold',
-                            getThemeClass('text-blue-700', 'text-blue-300')
-                          )}
-                        >
-                          {t('fundManagement.transactionId')}
-                        </th>
                         <th
                           className={cn(
                             'text-left p-4 font-semibold',
@@ -854,9 +845,6 @@ export default function FundManagement() {
                           )
                         )}
                       >
-                        <td className={cn('p-4', getThemeClass('text-gray-900', 'text-white'))}>
-                          {transaction.transactionId}
-                        </td>
                         <td className={cn('p-4', getThemeClass('text-gray-900', 'text-white'))}>
                           {transaction.orderId}
                         </td>
