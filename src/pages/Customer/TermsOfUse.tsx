@@ -19,24 +19,17 @@ import { cn } from '@/lib/utils';
 const TermsOfUse = () => {
   const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
   const [hoveredSection, setHoveredSection] = useState(null);
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
     const handleScroll = () => {
       setScrollY(window.scrollY);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('scroll', handleScroll);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
@@ -221,92 +214,8 @@ const TermsOfUse = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.8 }}
-      className={cn(
-        'min-h-screen overflow-hidden relative',
-        getThemeClass('bg-gradient-to-br from-blue-50 via-cyan-50 to-emerald-50', 'bg-black')
-      )}
+      className={cn('min-h-screen', getThemeClass('bg-gray-100', 'bg-gray-900'))}
     >
-      {/* Dynamic background with mouse tracking - constrained to content area */}
-      <div className="absolute inset-0 z-0">
-        <div
-          className={cn(
-            'absolute inset-0',
-            getThemeClass(
-              'bg-gradient-to-br from-blue-100/60 via-cyan-100/60 to-emerald-100/60',
-              'bg-gradient-to-br from-gray-900/40 via-slate-900/40 to-black/60'
-            )
-          )}
-          style={{
-            transform: `translate(${mousePosition.x * 0.008}px, ${mousePosition.y * 0.008}px)`,
-          }}
-        ></div>
-        <div
-          className={cn(
-            'absolute inset-0',
-            getThemeClass(
-              'bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.1)_0%,_transparent_70%)]',
-              'bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1)_0%,_transparent_70%)]'
-            )
-          )}
-          style={{
-            transform: `translate(${-mousePosition.x * 0.005}px, ${-mousePosition.y * 0.005}px)`,
-          }}
-        ></div>
-      </div>
-
-      {/* Animated floating orbs - constrained to content area */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div
-          className={cn(
-            'absolute w-[500px] h-[500px] rounded-full blur-3xl animate-pulse',
-            getThemeClass(
-              'bg-gradient-to-r from-blue-200/30 via-cyan-200/30 to-emerald-200/30',
-              'bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-blue-500/20'
-            )
-          )}
-          style={{
-            top: '15%',
-            left: '70%',
-            transform: `translate(${mousePosition.x * 0.02}px, ${scrollY * 0.1}px) rotate(${
-              scrollY * 0.05
-            }deg)`,
-          }}
-        ></div>
-        <div
-          className={cn(
-            'absolute w-[400px] h-[400px] rounded-full blur-3xl animate-pulse delay-1000',
-            getThemeClass(
-              'bg-gradient-to-r from-amber-200/25 via-orange-200/25 to-red-200/25',
-              'bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-red-500/15'
-            )
-          )}
-          style={{
-            top: '70%',
-            left: '5%',
-            transform: `translate(${-mousePosition.x * 0.015}px, ${-scrollY * 0.08}px) rotate(${
-              -scrollY * 0.03
-            }deg)`,
-          }}
-        ></div>
-        <div
-          className={cn(
-            'absolute w-[350px] h-[350px] rounded-full blur-3xl animate-pulse delay-500',
-            getThemeClass(
-              'bg-gradient-to-r from-violet-200/30 via-purple-200/30 to-indigo-200/30',
-              'bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-indigo-500/20'
-            )
-          )}
-          style={{
-            top: '35%',
-            left: '40%',
-            transform: `translate(${mousePosition.x * 0.01}px, ${scrollY * 0.12}px) rotate(${
-              scrollY * 0.02
-            }deg)`,
-          }}
-        ></div>
-      </div>
-
-      {/* Content area with proper z-index */}
       <div className="relative z-10 pt-16 pb-16">
         <div className="container mx-auto px-6 py-12">
           {/* Title Section */}
@@ -485,7 +394,7 @@ const TermsOfUse = () => {
                               getThemeClass('text-gray-800', 'text-gray-200')
                             )}
                           >
-                            www.veezy.vn
+                            wwww.vezzy.site
                           </p>
                         </div>
                       </div>

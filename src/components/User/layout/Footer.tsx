@@ -20,7 +20,7 @@ export const Footer = () => {
         )
       )}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-4">
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
           {/* Brand */}
@@ -40,7 +40,7 @@ export const Footer = () => {
           <div className="lg:col-span-2">
             <h4
               className={cn(
-                'text-xl font-semibold text-center lg:text-left mb-6',
+                'text-xl font-semibold text-center lg:text-left mb-4',
                 getThemeClass('text-gray-900', 'text-white')
               )}
             >

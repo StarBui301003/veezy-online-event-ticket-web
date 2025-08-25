@@ -233,7 +233,7 @@ export const Header = () => {
           ),
         }}
       >
-        <div className="sm:wrapper flex sm:h-[80px] h-[60px] items-center justify-between px-4 sm:px-7 sm:pr-10">
+        <div className="sm:wrapper flex sm:h-[70px] h-[50px] items-center justify-between px-4 sm:px-7 sm:pr-10">
           {/* Left side - Logo */}
           <Link to={'/'} className="block shrink-0">
             <img
