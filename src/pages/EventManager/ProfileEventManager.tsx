@@ -52,7 +52,7 @@ import {
 
 export default function ProfileEventManager() {
   const { t } = useTranslation();
-  
+
   const TABS = [
     { key: 'profile', label: t('profileEventManager.tabs.profile') },
     { key: 'settings', label: t('profileEventManager.tabs.settings') },
@@ -450,7 +450,8 @@ export default function ProfileEventManager() {
   const handleSave = async () => {
     setFieldErrors({});
     const newFieldErrors: FieldErrors = {};
-    if (!form.fullName?.trim()) newFieldErrors.fullname = [t('profileEventManager.errors.fullNameRequired')];
+    if (!form.fullName?.trim())
+      newFieldErrors.fullname = [t('profileEventManager.errors.fullNameRequired')];
     if (!form.email?.trim()) newFieldErrors.email = [t('profileEventManager.errors.emailRequired')];
     if (!form.phone?.trim()) newFieldErrors.phone = [t('profileEventManager.errors.phoneRequired')];
     if (form.dob) {
@@ -966,6 +967,28 @@ export default function ProfileEventManager() {
                               }
                             }
                           }}
+                          onMonthChange={(_month) => {
+                            // eslint-disable-line @typescript-eslint/no-unused-vars
+                            // Clear date of birth error when month changes
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          onYearChange={(_year) => {
+                            // eslint-disable-line @typescript-eslint/no-unused-vars
+                            // Clear date of birth error when year changes
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           disabled={false}
                           className="w-full"
                         />
@@ -986,14 +1009,18 @@ export default function ProfileEventManager() {
                     onClick={handleSave}
                     disabled={loading}
                   >
-                    {loading ? t('profileEventManager.actions.saving') : t('profileEventManager.actions.saveChanges')}
+                    {loading
+                      ? t('profileEventManager.actions.saving')
+                      : t('profileEventManager.actions.saveChanges')}
                   </Button>
                   <Button
                     type="button"
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:brightness-110 transition rounded-full flex-1 min-w-[140px] py-2 text-base font-semibold shadow text-white"
                     onClick={() => setShowFaceModal(true)}
                   >
-                    {account.avatarUrl ? t('profileEventManager.avatar.updateFace') : t('profileEventManager.avatar.registerFace')}
+                    {account.avatarUrl
+                      ? t('profileEventManager.avatar.updateFace')
+                      : t('profileEventManager.avatar.registerFace')}
                   </Button>
                 </div>
               </div>
@@ -1052,7 +1079,7 @@ export default function ProfileEventManager() {
                       {t('profileEventManager.followers.noEventFollowers')}
                     </div>
                     <div className="text-gray-500 text-sm">
-                                              {t('profileEventManager.followers.noEventFollowersDescription')}
+                      {t('profileEventManager.followers.noEventFollowersDescription')}
                     </div>
                   </div>
                 ) : (
@@ -1075,9 +1102,15 @@ export default function ProfileEventManager() {
                             )
                           )}
                         >
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.avatar')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.name')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.eventName')}</th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.avatar')}
+                          </th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.name')}
+                          </th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.eventName')}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1173,7 +1206,7 @@ export default function ProfileEventManager() {
                       {t('profileEventManager.followers.noManagerFollowers')}
                     </div>
                     <div className="text-gray-500 text-sm">
-                                              {t('profileEventManager.followers.noManagerFollowersDescription')}
+                      {t('profileEventManager.followers.noManagerFollowersDescription')}
                     </div>
                   </div>
                 ) : (
@@ -1196,9 +1229,15 @@ export default function ProfileEventManager() {
                             )
                           )}
                         >
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.avatar')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.name')}</th>
-                          <th className="px-4 py-3 font-semibold">{t('profileEventManager.followers.username')}</th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.avatar')}
+                          </th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.name')}
+                          </th>
+                          <th className="px-4 py-3 font-semibold">
+                            {t('profileEventManager.followers.username')}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1262,7 +1301,9 @@ export default function ProfileEventManager() {
               ×
             </button>
             <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              {account.avatarUrl ? t('profileEventManager.avatar.updateFace') : t('profileEventManager.avatar.registerFace')}
+              {account.avatarUrl
+                ? t('profileEventManager.avatar.updateFace')
+                : t('profileEventManager.avatar.registerFace')}
             </h2>
             <input
               type="password"

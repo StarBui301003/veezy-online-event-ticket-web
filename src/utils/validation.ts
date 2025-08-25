@@ -134,11 +134,17 @@ export const validateDateOfBirth = (dateOfBirth: string): ValidationResult => {
     return { isValid: true }; // Date of birth is optional
   }
 
-  const date = new Date(dateOfBirth);
+  // Create dates in local timezone to avoid timezone issues
+  // Parse the date string and create a local date object
+  const [year, month, day] = dateOfBirth.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+  
+  // Get today's date in local timezone (start of day)
   const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   // Check if date is today or in the future
-  if (date >= today) {
+  if (date >= todayStart) {
     return { isValid: false, errorMessage: 'Date of birth cannot be today or in the future' };
   }
 

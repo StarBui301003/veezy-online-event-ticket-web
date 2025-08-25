@@ -14,6 +14,8 @@ import { useThemeClasses } from '@/hooks/useThemeClasses';
 interface DatePickerProfileProps {
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;
+  onMonthChange?: (month: string) => void;
+  onYearChange?: (year: string) => void;
   disabled?: boolean;
   error?: string;
   className?: string;
@@ -24,6 +26,8 @@ interface DatePickerProfileProps {
 export function DatePickerProfile({
   selectedDate,
   onDateChange,
+  onMonthChange,
+  onYearChange,
   disabled,
   error,
   className,
@@ -58,6 +62,12 @@ export function DatePickerProfile({
     if (date) {
       const newDate = setMonth(date, months.indexOf(month));
       setDate(newDate);
+      if (onDateChange) {
+        onDateChange(newDate);
+      }
+      if (onMonthChange) {
+        onMonthChange(month);
+      }
     }
   };
 
@@ -65,6 +75,12 @@ export function DatePickerProfile({
     if (date) {
       const newDate = setYear(date, parseInt(year));
       setDate(newDate);
+      if (onDateChange) {
+        onDateChange(newDate);
+      }
+      if (onYearChange) {
+        onYearChange(year);
+      }
     }
   };
 
@@ -83,7 +99,7 @@ export function DatePickerProfile({
             variant={'outline'}
             disabled={disabled}
             className={cn(
-              'w-full justify-start text-left font-normal rounded-full border transition-all duration-200 py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all duration-200 disabled:opacity-70',
+              'w-full justify-start text-left font-normal rounded-full border transition-all duration-200 py-2 px-3 h-auto text-sm shadow-[0_4px_4px_rgba(0,0,0,0.25)] hover:transition-all disabled:opacity-70',
               !date && getThemeClass('text-gray-500', 'text-slate-400'),
               error
                 ? getThemeClass(
