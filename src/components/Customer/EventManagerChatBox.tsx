@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { onChat, joinChatRoom, leaveChatRoom } from '@/services/signalr.service';
+import { leaveChatRoom } from '@/services/signalr.service';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
@@ -222,109 +222,166 @@ const EventManagerChatBoxInternal: React.FC<EventManagerChatBoxProps> = ({
         }
       });
 
-      // Connect to chat room using global SignalR connections
-      // Chat hub connection is managed globally in App.tsx
-      setIsConnected(true);
-
-      await joinChatRoom(room.roomId);
+      // SignalR connection will be handled by the useEffect hook
+      // when chatRoom is set, so no need to connect here
 
       scrollToBottom();
     } catch (error: any) {
       console.error('Failed to initialize chat room:', error);
+      setIsConnected(false);
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, eventId, eventName, transformMessage, scrollToBottom]);
+  }, [currentUser, eventId, transformMessage, scrollToBottom]);
 
-  // Setup SignalR listeners
+  // Setup SignalR listeners and manage connection
   useEffect(() => {
-    if (!isConnected || !chatRoom) return;
+    if (!chatRoom) return;
 
-    // Listen for new messages
-    const handleReceiveMessage = (messageDto: any) => {
-      if (messageDto.RoomId === chatRoom.roomId || messageDto.roomId === chatRoom.roomId) {
-        const message: ChatMessage = {
-          messageId: messageDto.Id || messageDto.id,
-          roomId: messageDto.RoomId || messageDto.roomId,
-          senderId: messageDto.SenderUserId || messageDto.senderUserId,
-          senderName: messageDto.SenderUserName || messageDto.senderUserName,
-          content: messageDto.Content || messageDto.content,
-          timestamp: messageDto.CreatedAt || messageDto.createdAt,
-          createdAt: messageDto.CreatedAt || messageDto.createdAt,
-          isRead: false,
-          messageType: 'Text',
-          attachmentUrl: messageDto.AttachmentUrl || messageDto.attachmentUrl,
-          isDeleted: messageDto.IsDeleted || messageDto.isDeleted || false,
-          isEdited: messageDto.IsEdited || messageDto.isEdited || false,
-          replyToMessageId: messageDto.ReplyToMessageId || messageDto.replyToMessageId,
-          replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage,
+    let isComponentMounted = true;
+    let disconnectChatHub: (() => void) | null = null;
+    let leaveGroup: (() => Promise<void>) | null = null;
+
+    const setupSignalRConnection = async () => {
+      try {
+        // Import SignalR functions dynamically
+        const { connectHub, onHubEvent, joinChatRoom, leaveChatRoom, disconnectHub } = 
+          await import('@/services/signalr.service');
+        
+        const token = localStorage.getItem('access_token');
+        
+        // Connect to ChatHub directly (not through Gateway for SignalR)
+        await connectHub('chat', 'https://chat.vezzy.site/chatHub', token || undefined);
+        
+        // Join the chat room
+        await joinChatRoom(chatRoom.roomId);
+        
+        if (!isComponentMounted) return;
+        
+        setIsConnected(true);
+        console.log('Successfully connected and joined chat room:', chatRoom.roomId);
+        
+        // Setup leave function
+        leaveGroup = async () => {
+          try {
+            await leaveChatRoom(chatRoom.roomId);
+          } catch (error) {
+            console.warn('Error leaving chat room:', error);
+          }
         };
 
-        // Check if message already exists to prevent duplicates
-        setMessages((prev) => {
-          const exists = prev.some((m) => m.id === message.messageId);
-          if (exists) {
-            return prev;
-          }
+        // Listen for new messages
+        onHubEvent('chat', 'ReceiveMessage', (messageDto: any) => {
+          if (!isComponentMounted) return;
+          
+          // Check if message belongs to current room
+          const messageRoomId = messageDto.RoomId || messageDto.roomId;
+          if (messageRoomId !== chatRoom.roomId) return;
+          
+          const message: ChatMessage = {
+            messageId: messageDto.Id || messageDto.id,
+            roomId: messageRoomId,
+            senderId: messageDto.SenderUserId || messageDto.senderUserId,
+            senderName: messageDto.SenderUserName || messageDto.senderUserName,
+            content: messageDto.Content || messageDto.content,
+            timestamp: messageDto.CreatedAt || messageDto.createdAt,
+            createdAt: messageDto.CreatedAt || messageDto.createdAt,
+            isRead: false,
+            messageType: 'Text',
+            attachmentUrl: messageDto.AttachmentUrl || messageDto.attachmentUrl,
+            isDeleted: messageDto.IsDeleted || messageDto.isDeleted || false,
+            isEdited: messageDto.IsEdited || messageDto.isEdited || false,
+            replyToMessageId: messageDto.ReplyToMessageId || messageDto.replyToMessageId,
+            replyToMessage: messageDto.ReplyToMessage || messageDto.replyToMessage,
+          };
 
-          const transformedMessage = transformMessage(message);
-          return [...prev, transformedMessage];
+          // Add message to current room
+          setMessages((prev) => {
+            // Check for duplicates
+            const exists = prev.some((m) => m.id === message.messageId);
+            if (exists) return prev;
+
+            const transformedMessage = transformMessage(message);
+            const newMessages = [...prev, transformedMessage].sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+
+            // Auto-scroll after adding new message
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+
+            return newMessages;
+          });
         });
 
-        scrollToBottom();
+        // Listen for user online status
+        onHubEvent('chat', 'UserConnected', (userInfo: any) => {
+          if (!isComponentMounted) return;
+          setOnlineParticipants((prev) =>
+            prev.map((p) => (p.userId === userInfo.userId ? { ...p, isOnline: true } : p))
+          );
+        });
 
-        // Show notification if not from current user
-        if (message.senderId !== currentUser?.id) {
-          // Optional: Show toast notification for new messages
-          console.log('New message received from:', message.senderName);
+        onHubEvent('chat', 'UserDisconnected', (userId: string) => {
+          if (!isComponentMounted) return;
+          setOnlineParticipants((prev) =>
+            prev.map((p) => (p.userId === userId ? { ...p, isOnline: false } : p))
+          );
+        });
+
+        // Listen for message updates
+        onHubEvent('chat', 'MessageUpdated', (messageDto: any) => {
+          if (!isComponentMounted) return;
+          const messageId = messageDto.Id || messageDto.id;
+          const newContent = messageDto.Content || messageDto.content;
+          
+          setMessages((prev) => prev.map(msg => 
+            msg.id === messageId 
+              ? { ...msg, content: newContent, isEdited: true }
+              : msg
+          ));
+        });
+
+        // Listen for message deletions
+        onHubEvent('chat', 'MessageDeleted', (messageDto: any) => {
+          if (!isComponentMounted) return;
+          const messageId = messageDto.Id || messageDto.id;
+          
+          setMessages((prev) => prev.filter(msg => msg.id !== messageId));
+        });
+
+        // Setup disconnect function
+        disconnectChatHub = () => disconnectHub('chat');
+        
+      } catch (error) {
+        console.error('Failed to setup SignalR connection:', error);
+        if (isComponentMounted) {
+          setIsConnected(false);
         }
       }
     };
 
-    // Listen for user online status
-    const handleUserConnected = (userInfo: any) => {
-      setOnlineParticipants((prev) =>
-        prev.map((p) => (p.userId === userInfo.userId ? { ...p, isOnline: true } : p))
-      );
-    };
+    // Start connection setup
+    setupSignalRConnection();
 
-    const handleUserDisconnected = (userId: string) => {
-      setOnlineParticipants((prev) =>
-        prev.map((p) => (p.userId === userId ? { ...p, isOnline: false } : p))
-      );
-    };
-
-    // Handle message updates
-    const handleMessageUpdated = (messageDto: any) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === (messageDto.Id || messageDto.id)
-            ? { ...msg, content: messageDto.Content || messageDto.content }
-            : msg
-        )
-      );
-
-      console.log('Message updated:', messageDto);
-    };
-
-    // Handle message deletions
-    const handleMessageDeleted = (messageDto: any) => {
-      setMessages((prev) => prev.filter((msg) => msg.id !== (messageDto.Id || messageDto.id)));
-
-      console.log('Message deleted:', messageDto);
-    };
-
-    // Register listeners
-    onChat('ReceiveMessage', handleReceiveMessage);
-    onChat('UserConnected', handleUserConnected);
-    onChat('UserDisconnected', handleUserDisconnected);
-    onChat('MessageUpdated', handleMessageUpdated);
-    onChat('MessageDeleted', handleMessageDeleted);
-
+    // Cleanup function
     return () => {
-      // Cleanup will be handled by SignalR service
+      isComponentMounted = false;
+      
+      // Leave room
+      if (leaveGroup) {
+        leaveGroup().catch(console.warn);
+      }
+      
+      // Disconnect hub
+      if (disconnectChatHub) {
+        disconnectChatHub();
+      }
+      
+      setIsConnected(false);
     };
-  }, [chatRoom?.roomId, isConnected]); // Only depend on roomId and connection status
+  }, [chatRoom?.roomId, currentUser?.id, transformMessage]); // Include all required dependencies
 
   // Open chat
   const openChat = useCallback(async () => {

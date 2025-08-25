@@ -89,6 +89,7 @@ import {
   connectAnalyticsHub,
   onAnalytics,
   disconnectAnalyticsHub,
+  disconnectChatHub,
 } from './services/signalr.service';
 
 import { Register } from './pages/authentication/Register';
@@ -118,7 +119,7 @@ function App() {
       }
     }
 
-    // NotificationService - use access_token instead of token
+    // Use access_token instead of token for all services
     const finalToken = accessToken || token;
 
     if (finalToken) {
@@ -256,7 +257,7 @@ function App() {
         // AnalyticsService: OnEventManagerPerformanceComparison data received
       });
     });
-    // Cleanup
+    // Cleanup all hub connections
     return () => {
       disconnectNotificationHub();
       disconnectEventHub();
@@ -264,6 +265,7 @@ function App() {
       disconnectFeedbackHub();
       disconnectIdentityHub();
       disconnectAnalyticsHub();
+      disconnectChatHub();
     };
   }, []);
   const router = createBrowserRouter([
