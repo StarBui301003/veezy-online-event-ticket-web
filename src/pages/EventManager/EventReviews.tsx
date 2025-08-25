@@ -549,7 +549,14 @@ const EventReviews = () => {
                         </div>
                         <div className="ml-4">
                           <p className="text-3xl font-bold text-white mb-1">{metric.value}</p>
-                          <p className="text-slate-300 text-sm font-medium">{metric.label}</p>
+                          <p
+                            className={cn(
+                              'text-sm font-medium',
+                              getThemeClass('text-gray-800', 'text-slate-300')
+                            )}
+                          >
+                            {metric.label}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -603,18 +610,24 @@ const EventReviews = () => {
                         <div className="flex justify-between text-sm text-slate-300">
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
-                            {t('eventReviews.positive')} (
-                            {sentimentData.data?.positivePercentage ?? 0}%)
+                            <span className={cn(getThemeClass('text-gray-800', 'text-slate-300'))}>
+                              {t('eventReviews.positive')} (
+                              {sentimentData.data?.positivePercentage ?? 0}%)
+                            </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
-                            {t('eventReviews.neutral')} (
-                            {sentimentData.data?.neutralPercentage ?? 0}%)
+                            <span className={cn(getThemeClass('text-gray-800', 'text-slate-300'))}>
+                              {t('eventReviews.neutral')} (
+                              {sentimentData.data?.neutralPercentage ?? 0}%)
+                            </span>
                           </span>
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-rose-500 rounded-full"></div>
-                            {t('eventReviews.negativeSentiment')} (
-                            {sentimentData.data?.negativePercentage ?? 0}%)
+                            <span className={cn(getThemeClass('text-gray-800', 'text-slate-300'))}>
+                              {t('eventReviews.negativeSentiment')} (
+                              {sentimentData.data?.negativePercentage ?? 0}%)
+                            </span>
                           </span>
                         </div>
                       </div>

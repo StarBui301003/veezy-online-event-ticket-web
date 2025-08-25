@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { createNews } from '@/services/Admin/news.service';
+import { createNews, uploadNewsImage } from '@/services/Admin/news.service';
 import { getApprovedEvents } from '@/services/Admin/event.service';
 import { toast } from 'react-toastify';
 import { FaUpload, FaSpinner } from 'react-icons/fa';
@@ -76,8 +76,10 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     status: true,
   });
   const [loading, setLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [events, setEvents] = useState<{ eventId: string; eventName: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>('');
 
   const { t } = useTranslation();
 
@@ -87,6 +89,23 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
       showToastOnValidation: false, // Only show inline errors, no toast for validation
       showToastOnApiError: true, // Keep toast for API errors
     });
+
+  // Cleanup blob URLs when component unmounts or modal closes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
+  // Cleanup when modal closes
+  useEffect(() => {
+    if (!open && imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl('');
+    }
+  }, [open, imagePreviewUrl]);
 
   useEffect(() => {
     if (open) {
@@ -140,16 +159,34 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Cleanup previous preview URL if exists
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+
     setImageFile(file);
     clearFieldError('imageUrl');
 
-    // Nếu có API upload ảnh, upload tại đây và lấy url trả về
-    // const url = await uploadImageAPI(file);
-    // setForm((prev) => ({ ...prev, imageUrl: url }));
+    // Create preview URL for display
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(previewUrl);
 
-    // Nếu chỉ lấy local url để preview:
-    const url = URL.createObjectURL(file);
-    setForm((prev) => ({ ...prev, imageUrl: url }));
+    // Upload image to server
+    setIsUploading(true);
+    try {
+      const uploadedImageUrl = await uploadNewsImage(file);
+      setForm((prev) => ({ ...prev, imageUrl: uploadedImageUrl }));
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      toast.error('Failed to upload image. Please try again.');
+      // Cleanup on error
+      setImageFile(null);
+      setImagePreviewUrl('');
+      setForm((prev) => ({ ...prev, imageUrl: '' }));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -170,6 +207,12 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
       });
 
       toast.success('News created successfully!');
+
+      // Cleanup
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+
       setForm({
         eventId: '',
         newsDescription: '',
@@ -180,6 +223,7 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
         status: true,
       });
       setImageFile(null);
+      setImagePreviewUrl('');
       onClose();
       if (onCreated) onCreated();
     } catch (error: unknown) {
@@ -376,22 +420,31 @@ export const CreateNewsModal = ({ open, onClose, onCreated, authorId }: Props) =
                   }`}
                   style={{ marginBottom: 0 }}
                 >
-                  <FaUpload />
-                  Import
+                  {isUploading ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <FaUpload />
+                      Import
+                    </>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    disabled={loading}
+                    disabled={loading || isUploading}
                     className="hidden m-0"
                   />
                 </label>
                 {/* Hiển thị preview ảnh và tên file nếu đã chọn */}
-                {(form.imageUrl || imageFile) && (
+                {(imagePreviewUrl || imageFile) && (
                   <div className="flex items-center gap-2">
-                    {form.imageUrl && (
+                    {imagePreviewUrl && (
                       <img
-                        src={form.imageUrl}
+                        src={imagePreviewUrl}
                         alt="Preview"
                         className="h-12 w-12 object-cover rounded border"
                       />

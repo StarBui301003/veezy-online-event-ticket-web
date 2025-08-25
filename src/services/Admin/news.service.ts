@@ -45,6 +45,24 @@ export async function createNews(data: CreateNewsRequest): Promise<News> {
   return res.data;
 }
 
+// Upload news image
+export async function uploadNewsImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await instance.post('/api/News/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error('News image upload failed', error);
+    throw error;
+  }
+}
+
 export async function updateNews(newsId: string, data: CreateNewsRequest): Promise<News> {
   const res = await instance.put(`/api/News/${newsId}`, data);
   return res.data;
