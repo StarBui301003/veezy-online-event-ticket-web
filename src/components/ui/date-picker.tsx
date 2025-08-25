@@ -15,6 +15,8 @@ interface DatePickerProps {
   endYear?: number;
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;
+  onMonthChange?: (month: string) => void;
+  onYearChange?: (year: string) => void;
   disabled?: (date: Date) => boolean;
   error?: string;
   className?: string;
@@ -25,6 +27,8 @@ export function DatePicker({
   endYear = getYear(new Date()) + 100,
   selectedDate,
   onDateChange,
+  onMonthChange,
+  onYearChange,
   disabled,
   error,
   className,
@@ -57,11 +61,23 @@ export function DatePicker({
   const handleMonthChange = (month: string) => {
     const newDate = setMonth(date, months.indexOf(month));
     setDate(newDate);
+    if (onMonthChange) {
+      onMonthChange(month);
+    }
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
   };
 
   const handleYearChange = (year: string) => {
     const newDate = setYear(date, parseInt(year));
     setDate(newDate);
+    if (onYearChange) {
+      onYearChange(year);
+    }
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
   };
 
   const handleSelect = (selectedData: Date | undefined) => {

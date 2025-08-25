@@ -1129,6 +1129,28 @@ const ProfileCustomer = () => {
                               }
                             }
                           }}
+                          onMonthChange={(_month) => {
+                            // eslint-disable-line @typescript-eslint/no-unused-vars
+                            // Clear date of birth error when month changes
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          onYearChange={(_year) => {
+                            // eslint-disable-line @typescript-eslint/no-unused-vars
+                            // Clear date of birth error when year changes
+                            if (hasFieldError(fieldErrors, 'dob')) {
+                              setFieldErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dob;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           error={getFieldError(fieldErrors, 'dob')}
                         />
                       </div>

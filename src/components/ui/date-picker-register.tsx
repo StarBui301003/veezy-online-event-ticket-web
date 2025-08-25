@@ -15,6 +15,9 @@ interface DatePickerRegisterProps {
   endYear?: number;
   selectedDate?: Date;
   onDateChange?: (date: Date | undefined) => void;
+  onMonthChange?: (month: string) => void;
+  onYearChange?: (year: string) => void;
+  onOpenChange?: (open: boolean) => void;
   disabled?: (date: Date) => boolean;
   error?: string;
   className?: string;
@@ -25,6 +28,9 @@ export function DatePickerRegister({
   endYear = getYear(new Date()) + 100,
   selectedDate,
   onDateChange,
+  onMonthChange,
+  onYearChange,
+  onOpenChange,
   disabled,
   error,
   className,
@@ -58,12 +64,26 @@ export function DatePickerRegister({
     if (!date) return;
     const newDate = setMonth(date, months.indexOf(month));
     setDate(newDate);
+    // Call the callback if provided
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
+    if (onMonthChange) {
+      onMonthChange(month);
+    }
   };
 
   const handleYearChange = (year: string) => {
     if (!date) return;
     const newDate = setYear(date, parseInt(year));
     setDate(newDate);
+    // Call the callback if provided
+    if (onDateChange) {
+      onDateChange(newDate);
+    }
+    if (onYearChange) {
+      onYearChange(year);
+    }
   };
 
   const handleSelect = (selectedData: Date | undefined) => {
@@ -78,7 +98,7 @@ export function DatePickerRegister({
 
   return (
     <div className="w-full">
-      <Popover>
+      <Popover onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <Button
             variant={'outline'}

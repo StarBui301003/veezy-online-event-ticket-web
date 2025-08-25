@@ -20,15 +20,15 @@ export const Footer = () => {
         )
       )}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Top Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           {/* Brand */}
           <div className="hidden sm:block text-center lg:text-left">
-            <img src={LOGO_RECTANGLE} alt="Logo" className="h-20 sm:h-24 lg:h-28 mx-auto lg:mx-0" />
+            <img src={LOGO_RECTANGLE} alt="Logo" className="h-16 sm:h-20 lg:h-24 mx-auto lg:mx-0" />
             <p
               className={cn(
-                'mt-4 text-sm lg:text-base',
+                'mt-3 text-sm lg:text-sm',
                 getThemeClass('text-gray-800', 'text-white/80')
               )}
             >
@@ -40,24 +40,24 @@ export const Footer = () => {
           <div className="lg:col-span-2">
             <h4
               className={cn(
-                'text-xl font-semibold text-center lg:text-left mb-6',
+                'text-lg font-semibold text-center lg:text-left mb-3',
                 getThemeClass('text-gray-900', 'text-white')
               )}
             >
               {t('footer.contact')}
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-              <div className="flex items-start gap-3 justify-start mx-20 sm:mx-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6">
+              <div className="flex items-start gap-3 justify-start">
                 <FaMapMarkerAlt
                   className={cn(
-                    'mt-1 text-lg flex-shrink-0',
+                    'mt-0.5 text-base flex-shrink-0',
                     getThemeClass('text-gray-700', 'text-white')
                   )}
                 />
                 <div className="text-left">
                   <p
                     className={cn(
-                      'font-semibold mb-2',
+                      'font-semibold mb-1',
                       getThemeClass('text-gray-900', 'text-white')
                     )}
                   >
@@ -74,17 +74,17 @@ export const Footer = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 justify-start mx-20 sm:mx-0">
+              <div className="flex items-start gap-3 justify-start">
                 <FaEnvelope
                   className={cn(
-                    'mt-1 text-lg flex-shrink-0',
+                    'mt-0.5 text-base flex-shrink-0',
                     getThemeClass('text-gray-700', 'text-white')
                   )}
                 />
                 <div className="text-left">
                   <p
                     className={cn(
-                      'font-semibold mb-2',
+                      'font-semibold mb-1',
                       getThemeClass('text-gray-900', 'text-white')
                     )}
                   >
@@ -100,22 +100,22 @@ export const Footer = () => {
         </div>
 
         {/* Divider */}
-        <div className="mt-10 mb-8 ">
+        <div className="mt-6 mb-6 ">
           <Separator className={getThemeClass('bg-gray-400', 'bg-white/20')} />
         </div>
 
         {/* Bottom Section */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <p
             className={cn(
-              'text-sm text-center sm:text-left order-2 sm:order-1',
+              'text-xs sm:text-sm text-center sm:text-left order-2 sm:order-1',
               getThemeClass('text-gray-700', 'text-white/70')
             )}
           >
             {t('footer.copyright')}
           </p>
 
-          <nav className="order-1 sm:order-2 flex flex-wrap items-center justify-center sm:justify-end gap-x-6 lg:gap-x-8 gap-y-2 text-sm font-medium">
+          <nav className="order-1 sm:order-2 flex flex-wrap items-center justify-center sm:justify-end gap-x-4 lg:gap-x-6 gap-y-2 text-xs sm:text-sm font-medium">
             <Link
               to="/"
               className={cn(

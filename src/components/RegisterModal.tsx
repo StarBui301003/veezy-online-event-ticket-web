@@ -60,7 +60,7 @@ const RegisterChooseRoleModal: React.FC<RegisterChooseRoleModalProps> = ({
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Choose Your Role</h2>
           <p className="text-gray-600">What type of account would you like to create?</p>
         </div>
-        
+
         <div className="flex gap-6 justify-center">
           <button
             onClick={() => {
@@ -71,13 +71,19 @@ const RegisterChooseRoleModal: React.FC<RegisterChooseRoleModalProps> = ({
           >
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
               <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <span className="font-semibold text-gray-800">Customer</span>
-            <span className="text-sm text-gray-500 text-center mt-1">Join events and activities</span>
+            <span className="text-sm text-gray-500 text-center mt-1">
+              Join events and activities
+            </span>
           </button>
-          
+
           <button
             onClick={() => {
               onChooseRole(2); // Event Manager
@@ -87,19 +93,20 @@ const RegisterChooseRoleModal: React.FC<RegisterChooseRoleModalProps> = ({
           >
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
               <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <span className="font-semibold text-gray-800">Event Manager</span>
             <span className="text-sm text-gray-500 text-center mt-1">Create and manage events</span>
           </button>
         </div>
-        
+
         <div className="text-center mt-6">
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-sm"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-sm">
             Cancel
           </button>
         </div>
@@ -108,11 +115,11 @@ const RegisterChooseRoleModal: React.FC<RegisterChooseRoleModalProps> = ({
   );
 };
 
-export const RegisterModal: React.FC<RegisterModalProps> = ({ 
-  open, 
-  onClose, 
+export const RegisterModal: React.FC<RegisterModalProps> = ({
+  open,
+  onClose,
   onRegisterSuccess,
-  onLoginRedirect 
+  onLoginRedirect,
 }) => {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
@@ -131,6 +138,9 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const faceRegisteringRef = useRef(false);
   const { t } = useTranslation();
+
+  // Remove the useEffect that automatically clears the dateofbirth error
+  // This was causing the error to flash and disappear immediately
 
   // Khi mở RegisterModal, kiểm tra nếu có email chưa verify và còn thời gian thì hiện lại modal verify
   React.useEffect(() => {
@@ -239,14 +249,14 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   const handleRegisterWithFace = async (faceFile?: File) => {
     if (faceRegisteringRef.current) return;
     faceRegisteringRef.current = true;
-    
+
     setFieldErrors({});
-    
+
     const validationErrors = validateForm();
     if (!faceFile) {
       validationErrors.face = ['Please capture your face!'];
     }
-    
+
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
       faceRegisteringRef.current = false;
@@ -275,7 +285,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       formData.append('FaceImage', faceFile);
 
       const response = await registerWithFaceAPI(formData);
-      
+
       if (response && response.flag && response.code === 200) {
         toast.success('Face registration successful! Please verify your email.');
         onClose();
@@ -285,21 +295,22 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       }
     } catch (err: unknown) {
       const { fieldErrors: backendFieldErrors, generalErrors } = parseBackendErrors(err);
-      
+
       // Handle face-specific errors
       let hasFaceError = false;
       let faceErrorMessage = '';
-      
+
       // Type guard for error object with response
       type ErrorWithResponse = { response?: { data?: { message?: unknown } } };
       const errorObj = err as ErrorWithResponse;
       const backendMessage = errorObj.response?.data?.message;
-      if (typeof backendMessage === 'string' && (
-        backendMessage.includes('face') || 
-        backendMessage.includes('Liveness') ||
-        backendMessage.includes('detected') ||
-        backendMessage.includes('Fake')
-      )) {
+      if (
+        typeof backendMessage === 'string' &&
+        (backendMessage.includes('face') ||
+          backendMessage.includes('Liveness') ||
+          backendMessage.includes('detected') ||
+          backendMessage.includes('Fake'))
+      ) {
         hasFaceError = true;
         faceErrorMessage = backendMessage;
       }
@@ -308,7 +319,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
       if (hasFaceError) {
         finalFieldErrors.face = [faceErrorMessage];
       }
-      
+
       setFieldErrors(finalFieldErrors);
 
       if (hasFaceError) {
@@ -334,12 +345,12 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
   return (
     <>
       {/* Modal Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       >
         {/* Modal Content */}
-        <div 
+        <div
           className="relative bg-gradient-to-br from-[#193c8f] via-[#1e4a9e] to-[#0f2d5f] p-8 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 text-white max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
@@ -362,7 +373,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {/* Left Column - Account Information */}
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-white mb-4">Account Information</h3>
-              
+
               {/* Username */}
               <div>
                 <Input
@@ -485,7 +496,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     tabIndex={-1}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
                 {getFieldError(fieldErrors, 'confirmpassword') && (
@@ -499,7 +514,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {/* Right Column - Personal Information */}
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-white mb-4">Personal Information</h3>
-              
+
               {/* Full Name */}
               <div>
                 <Input
@@ -563,6 +578,17 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     selected={dateOfBirth ? new Date(dateOfBirth) : null}
                     onChange={(date: Date | null) => {
                       setDateOfBirth(date ? date.toISOString().slice(0, 10) : '');
+                      // Clear date of birth error when date changes
+                      if (hasFieldError(fieldErrors, 'dateofbirth')) {
+                        setFieldErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.dateofbirth;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    onCalendarOpen={() => {
+                      // Clear date of birth error when calendar opens
                       if (hasFieldError(fieldErrors, 'dateofbirth')) {
                         setFieldErrors((prev) => {
                           const newErrors = { ...prev };
@@ -599,7 +625,11 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                     role ? 'bg-blue-500/30' : ''
                   }`}
                 >
-                  {role === 1 ? 'Customer Selected' : role === 2 ? 'Event Manager Selected' : 'Choose Your Role'}
+                  {role === 1
+                    ? 'Customer Selected'
+                    : role === 2
+                    ? 'Event Manager Selected'
+                    : 'Choose Your Role'}
                 </Button>
               </div>
             </div>
@@ -661,7 +691,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
             {/* Login Link */}
             <div className="text-center pt-4">
               <span className="text-white/70">Already have an account? </span>
-              <button 
+              <button
                 onClick={handleLoginClick}
                 className="text-blue-300 hover:text-blue-200 font-semibold transition-colors"
               >
@@ -687,7 +717,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
         <FaceCapture
           onCapture={({ image }) => {
             if (faceRegisteringRef.current) return;
-            
+
             if (hasFieldError(fieldErrors, 'face')) {
               setFieldErrors((prev) => {
                 const newErrors = { ...prev };
@@ -695,7 +725,7 @@ export const RegisterModal: React.FC<RegisterModalProps> = ({
                 return newErrors;
               });
             }
-            
+
             setShowFaceCapture(false);
             handleRegisterWithFace(
               new File([image], 'face.jpg', { type: image.type || 'image/jpeg' })

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePickerRegister } from '@/components/ui/date-picker-register';
@@ -693,6 +692,32 @@ export const Register = () => {
                     selectedDate={date}
                     onDateChange={(selectedDate) => {
                       setDate(selectedDate);
+                      // Validate immediately on date change (handles future/age errors correctly)
+                      const newErrors: FieldErrors = { ...fieldErrors };
+                      delete newErrors.dateofbirth;
+                      if (selectedDate) {
+                        const dateOfBirth = format(selectedDate, 'yyyy-MM-dd', {
+                          timeZone: 'Asia/Ho_Chi_Minh',
+                        });
+                        const dateValidation = validateDateOfBirth(dateOfBirth);
+                        if (!dateValidation.isValid) {
+                          newErrors.dateofbirth = [dateValidation.errorMessage!];
+                        }
+                      }
+                      setFieldErrors(newErrors);
+                    }}
+                    onYearChange={() => {
+                      // Clear date of birth error when year changes
+                      if (hasFieldError(fieldErrors, 'dateofbirth')) {
+                        setFieldErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.dateofbirth;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    onMonthChange={() => {
+                      // Clear date of birth error when month changes
                       if (hasFieldError(fieldErrors, 'dateofbirth')) {
                         setFieldErrors((prev) => {
                           const newErrors = { ...prev };

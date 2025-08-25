@@ -116,7 +116,7 @@ export function Layout() {
     <>
       <ScrollToTop />
       <Header />
-      <div className="pt-[60px] sm:pt-[80px]">
+      <div className="pt-[50px] sm:pt-[70px]">
         <Outlet />
       </div>
       <Footer />

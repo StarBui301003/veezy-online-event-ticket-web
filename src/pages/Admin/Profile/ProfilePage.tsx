@@ -693,6 +693,28 @@ const ProfilePage = () => {
                         });
                       }
                     }}
+                    onMonthChange={(_month) => {
+                      // eslint-disable-line @typescript-eslint/no-unused-vars
+                      // Clear date of birth error when month changes
+                      if (validationErrors.dob) {
+                        setValidationErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.dob;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    onYearChange={(_year) => {
+                      // eslint-disable-line @typescript-eslint/no-unused-vars
+                      // Clear date of birth error when year changes
+                      if (validationErrors.dob) {
+                        setValidationErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.dob;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     error={validationErrors.dob?.[0]}
                   />
                 </div>
