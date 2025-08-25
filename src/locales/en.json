@@ -389,7 +389,7 @@
   "month": "Month",
   "quarter": "Quarter",
   "year": "Year",
-  "searchEvent": "Search event...",
+  "searchEvent": "Search Anything...",
   "advancedSearch": "Advanced Search",
   "all": "All",
   "ongoing": "Ongoing",
@@ -1942,6 +1942,11 @@
       "settings": "General Settings",
       "followers": "Event Followers",
       "managerFollowers": "Manager Followers"
+    },
+    "avatar": {
+      "changeAvatar": "Change Avatar",
+      "changePassword": "Change Password",
+      "updateFace": "Update Face"
     },
     "avatarOptions": {
       "changeAvatar": "Change Avatar",

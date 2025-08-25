@@ -1,25 +1,21 @@
 import { useState, memo } from 'react';
-import { exportAnalyticsExcel } from '@/services/Event Manager/event.service';
+import instance from '@/services/axios.customize';
 import { Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 
 export interface ExportButtonsProps {
   period?: number;
-  groupBy?: number;
   startDate?: string;
   endDate?: string;
-  dashboardData?: any; // Pass the dashboard data if already loaded
 }
 
 const ExportButtons = memo(({ 
   period = 3, // Default to ThisMonth
-  groupBy = 1, // Default to Day
   startDate = '',
-  endDate = '',
-  dashboardData = null
+  endDate = ''
 }: ExportButtonsProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,26 +26,7 @@ const ExportButtons = memo(({
     setError(null);
     
     try {
-      // If we already have the dashboard data, use it directly
-      if (dashboardData) {
-        await exportData(dashboardData);
-        return;
-      }
-      
-      // Otherwise, fetch the data first
-      const { getEventManagerDashboard } = await import('@/services/Event Manager/event.service');
-      const response = await getEventManagerDashboard({
-        period,
-        groupBy,
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate })
-      });
-      
-      if (response && response.data) {
-        await exportData(response.data);
-      } else {
-        throw new Error('Invalid dashboard data');
-      }
+      await exportData();
     } catch (err) {
       console.error('Export failed:', err);
       setError(t('exportFailed') || 'Export failed. Please try again.');
@@ -58,7 +35,7 @@ const ExportButtons = memo(({
     }
   };
 
-  const exportData = async (data: any) => {
+  const exportData = async () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const periodText = 
       period === 1 ? 'day' : 
@@ -74,21 +51,26 @@ const ExportButtons = memo(({
       fileName = `event-analytics-${start}-to-${end}`;
     }
     
-    fileName += '.csv';
+    fileName += '.xlsx';
+
+    // Map i18n language to API language parameter
+    // 0: Vietnamese (vi), 1: English (en)
+    const languageMap: { [key: string]: number } = {
+      'vi': 0,
+      'en': 1
+    };
     
-    const blob = await exportAnalyticsExcel(
-      'dashboard', 
-      data, 
-      { 
-        period, 
-        groupBy,
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate })
-      }, 
-      0 // language code
-    );
-    
-    const url = window.URL.createObjectURL(new Blob([blob]));
+    const languageParam = languageMap[i18n.language] || 0; // Default to Vietnamese if language not found
+
+    // Call the GET endpoint with language parameter
+    const response = await instance.get('/api/analytics/eventManager/analytics/export/excel', {
+      params: {
+        language: languageParam
+      },
+      responseType: 'blob'
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', fileName);

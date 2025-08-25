@@ -190,7 +190,6 @@ export default function EventManagerDashboard() {
     () => (
       <ExportButtons
         period={selectedPeriod}
-        groupBy={groupBy}
         startDate={customStartDate}
         endDate={customEndDate}
       />

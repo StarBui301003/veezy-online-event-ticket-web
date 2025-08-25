@@ -1154,7 +1154,7 @@
   },
   "newsManager": {
     "yourEvents": "Sự Kiện Của Bạn",
-    "searchEvents": "Tìm Kiếm Sự Kiện...",
+    "searchEvents": "Tìm Kiếm Cái Gì Đó...",
     "loading": "Đang Tải...",
     "noEventsFound": "Không Tìm Thấy Sự Kiện Nào",
     "createNews": "Tạo Tin Tức",
@@ -2182,6 +2182,11 @@
       "settings": "Cài đặt chung",
       "followers": "Người theo dõi event của bạn",
       "managerFollowers": "Người theo dõi bạn"
+    },
+    "avatar": {
+      "changeAvatar": "Thay đổi ảnh đại diện",
+      "changePassword": "Thay đổi mật khẩu",
+      "updateFace": "Cập nhật khuôn mặt"
     },
     "avatarOptions": {
       "changeAvatar": "Thay đổi ảnh đại diện",
