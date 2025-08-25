@@ -360,7 +360,7 @@ const TermsOfUse = () => {
                               getThemeClass('text-gray-800', 'text-gray-200')
                             )}
                           >
-                            support@veezy.vn
+                            veezy.site@gmail.com
                           </p>
                         </div>
                       </div>
