@@ -82,12 +82,13 @@ const EventReviews = () => {
         text: item.text || '',
         score: item.socre ?? item.score ?? 0,
       }));
-      
+
       // Calculate total comments
-      const totalComments = (api.negative_reviews || []).length + 
-                           (api.positive_reviews || []).length + 
-                           (api.neutral_reviews || []).length;
-      
+      const totalComments =
+        (api.negative_reviews || []).length +
+        (api.positive_reviews || []).length +
+        (api.neutral_reviews || []).length;
+
       const mapped = {
         data: {
           positivePercentage:
@@ -111,7 +112,7 @@ const EventReviews = () => {
       setSentimentData(mapped);
       setComments(mapped.data.comments);
       setAnimateCards(true);
-      
+
       // Show notification if no comments found
       if (totalComments === 0) {
         toast.info(t('eventReviews.noCommentsToAnalyze'));
@@ -119,7 +120,7 @@ const EventReviews = () => {
     } catch (error) {
       console.error('[DEBUG] analyzeSentiment error:', error);
       setSentimentData(null);
-      
+
       // Xử lý trường hợp không tìm thấy bình luận
       if (error?.response?.data?.message?.includes('No comments found')) {
         setSentimentData({
@@ -129,8 +130,8 @@ const EventReviews = () => {
             neutralPercentage: 0,
             negativePercentage: 0,
             overallSentiment: 'neutral',
-            comments: []
-          }
+            comments: [],
+          },
         });
       } else {
         toast.error(t('eventReviews.errorAnalyzingSentiment'));
@@ -368,15 +369,22 @@ const EventReviews = () => {
                       </div>
                     ))}
                     {filteredEvents.length === 0 && (
-                      <div className="px-4 py-2 text-gray-400">{t('eventReviews.noEventFound')}</div>
+                      <div className="px-4 py-2 text-gray-400">
+                        {t('eventReviews.noEventFound')}
+                      </div>
                     )}
                   </div>
                 )}
               </div>
-              
+
               {/* Select Dropdown */}
               <div className="relative w-full sm:w-80">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-200 w-5 h-5" />
+                <Filter
+                  className={cn(
+                    'absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5',
+                    getThemeClass('text-gray-400', 'text-green-200')
+                  )}
+                />
                 <select
                   value={selectedEvent}
                   onChange={(e) => {
@@ -384,16 +392,25 @@ const EventReviews = () => {
                     setSelectedEvent(e.target.value);
                     setEventSearch(event ? event.eventName : '');
                   }}
-                  className="pl-10 pr-8 py-2 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-green-500/30 focus:outline-none focus:border-green-400 appearance-none"
+                  className={cn(
+                    'pl-10 pr-8 py-2 w-full rounded-xl border-2 focus:outline-none appearance-none',
+                    getThemeClass(
+                      'bg-white text-gray-900 border-blue-300 focus:border-blue-500',
+                      'bg-[#2d0036]/80 text-white border-green-500/30 focus:border-green-400'
+                    )
+                  )}
                 >
-                  <option value="" className="bg-[#2d0036] text-white">
+                  <option
+                    value=""
+                    className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
+                  >
                     -- {t('eventReviews.chooseEvent')} --
                   </option>
                   {filteredEvents.map((event) => (
                     <option
                       key={event.eventId}
                       value={event.eventId}
-                      className="bg-[#2d0036] text-white"
+                      className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
                     >
                       {event.eventName}
                     </option>
@@ -401,7 +418,7 @@ const EventReviews = () => {
                 </select>
               </div>
             </div>
-            
+
             {/* Analyze Button */}
             <button
               onClick={analyzeSentiment}
@@ -427,7 +444,7 @@ const EventReviews = () => {
               )}
             </button>
           </div>
-          
+
           {/* Selected Event Display */}
           {selectedEventData && (
             <div className="mt-4 p-4 bg-gradient-to-r from-green-900/60 to-blue-900/60 rounded-xl border-2 border-green-500/30">
@@ -449,7 +466,9 @@ const EventReviews = () => {
                   <div className="p-6 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
                     <MessageCircle className="w-12 h-12 text-white" />
                   </div>
-                  <h3 className="text-3xl font-bold text-white mb-4">{t('eventReviews.noCommentsFound')}</h3>
+                  <h3 className="text-3xl font-bold text-white mb-4">
+                    {t('eventReviews.noCommentsFound')}
+                  </h3>
                   <p className="text-slate-300 text-lg max-w-2xl mx-auto">
                     {t('eventReviews.noCommentsDescription')}
                   </p>
@@ -551,15 +570,18 @@ const EventReviews = () => {
                         <div className="flex justify-between text-sm text-slate-300">
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
-                            {t('eventReviews.positive')} ({sentimentData.data?.positivePercentage ?? 0}%)
+                            {t('eventReviews.positive')} (
+                            {sentimentData.data?.positivePercentage ?? 0}%)
                           </span>
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full"></div>
-                            {t('eventReviews.neutral')} ({sentimentData.data?.neutralPercentage ?? 0}%)
+                            {t('eventReviews.neutral')} (
+                            {sentimentData.data?.neutralPercentage ?? 0}%)
                           </span>
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-rose-500 rounded-full"></div>
-                            {t('eventReviews.negativeSentiment')} ({sentimentData.data?.negativePercentage ?? 0}%)
+                            {t('eventReviews.negativeSentiment')} (
+                            {sentimentData.data?.negativePercentage ?? 0}%)
                           </span>
                         </div>
                       </div>
@@ -580,7 +602,9 @@ const EventReviews = () => {
                       <div className="text-slate-400 text-center py-8">
                         <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50 text-green-400" />
                         <p className="text-green-300">{t('eventReviews.noNegativeComments')}</p>
-                        <p className="text-slate-400 text-sm mt-2">{t('eventReviews.noNegativeCommentsDescription')}</p>
+                        <p className="text-slate-400 text-sm mt-2">
+                          {t('eventReviews.noNegativeCommentsDescription')}
+                        </p>
                       </div>
                     )}
                     {comments.map((comment, index) => (
@@ -617,7 +641,9 @@ const EventReviews = () => {
                   <Brain className="w-8 h-8 text-purple-400 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">{t('eventReviews.aiNeuralNetworkProcessing')}</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">
+                {t('eventReviews.aiNeuralNetworkProcessing')}
+              </h3>
               <p className="text-slate-300 text-lg">
                 {t('eventReviews.analyzingSentimentPatterns')}
               </p>
@@ -636,7 +662,9 @@ const EventReviews = () => {
               <div className="p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
                 <AlertCircle className="w-12 h-12 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">{t('eventReviews.readyForAIAnalysis')}</h3>
+              <h3 className="text-3xl font-bold text-white mb-4">
+                {t('eventReviews.readyForAIAnalysis')}
+              </h3>
               <p className="text-slate-300 text-lg max-w-2xl mx-auto">
                 {t('eventReviews.selectEventDescription')}
               </p>

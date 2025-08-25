@@ -20,10 +20,7 @@ import {
 } from 'lucide-react';
 import { getEventAttendancePrediction } from '@/services/Event Manager/attendancePrediction.service';
 import { getMyApprovedEvents } from '@/services/Event Manager/event.service';
-import {
-  onAnalytics,
-  onEvent,
-} from '@/services/signalr.service';
+import { onAnalytics, onEvent } from '@/services/signalr.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -289,7 +286,12 @@ const EventAttendancePredictor = () => {
               </div>
               {/* Filter Select */}
               <div className="relative w-full sm:w-80">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-200 w-5 h-5" />
+                <Filter
+                  className={cn(
+                    'absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5',
+                    getThemeClass('text-gray-400', 'text-cyan-200')
+                  )}
+                />
                 <select
                   value={selectedEvent}
                   onChange={(e) => {
@@ -297,17 +299,26 @@ const EventAttendancePredictor = () => {
                     setSelectedEvent(e.target.value);
                     setEventSearch(event ? event.eventName : '');
                   }}
-                  className="pl-10 pr-8 py-3 w-full rounded-xl bg-[#2d0036]/80 text-white border-2 border-cyan-500/30 focus:outline-none focus:border-cyan-400 appearance-none transition-all duration-300"
+                  className={cn(
+                    'pl-10 pr-8 py-3 w-full rounded-xl border-2 focus:outline-none appearance-none transition-all duration-300',
+                    getThemeClass(
+                      'bg-white text-gray-900 border-blue-300 focus:border-blue-500',
+                      'bg-[#2d0036]/80 text-white border-cyan-500/30 focus:border-cyan-400'
+                    )
+                  )}
                   style={{ maxHeight: '13.5rem', overflowY: 'auto' }}
                 >
-                  <option value="" className="bg-[#2d0036] text-white">
+                  <option
+                    value=""
+                    className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
+                  >
                     {t('eventAttendancePredictor.selectEvent')}
                   </option>
                   {filteredEvents.map((event) => (
                     <option
                       key={event.eventId}
                       value={event.eventId}
-                      className="bg-[#2d0036] text-white"
+                      className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
                     >
                       {event.eventName}
                     </option>
@@ -345,19 +356,25 @@ const EventAttendancePredictor = () => {
             <div className="mt-4 p-4 bg-gradient-to-r from-cyan-900/60 to-blue-900/60 rounded-xl border-2 border-cyan-500/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-cyan-200 text-sm mb-1">{t('eventAttendancePredictor.selectedEvent')}</p>
+                  <p className="text-cyan-200 text-sm mb-1">
+                    {t('eventAttendancePredictor.selectedEvent')}
+                  </p>
                   <p className="text-white font-bold text-lg">{selectedEventData.eventName}</p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-cyan-300">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       {selectedEventData.startAt
-                        ? `${t('eventAttendancePredictor.startTime')} ${new Date(selectedEventData.startAt).toLocaleString('vi-VN')}`
+                        ? `${t('eventAttendancePredictor.startTime')} ${new Date(
+                            selectedEventData.startAt
+                          ).toLocaleString('vi-VN')}`
                         : '--'}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       {selectedEventData.endAt
-                        ? `${t('eventAttendancePredictor.endTime')} ${new Date(selectedEventData.endAt).toLocaleString('vi-VN')}`
+                        ? `${t('eventAttendancePredictor.endTime')} ${new Date(
+                            selectedEventData.endAt
+                          ).toLocaleString('vi-VN')}`
                         : '--'}
                     </span>
                     <span className="flex items-center gap-1">
@@ -384,7 +401,9 @@ const EventAttendancePredictor = () => {
                   <Brain className="w-10 h-10 text-purple-400 animate-pulse" />
                 </div>
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">{t('eventAttendancePredictor.aiNeuralNetworkProcessing')}</h3>
+              <h3 className="text-3xl font-bold text-white mb-4">
+                {t('eventAttendancePredictor.aiNeuralNetworkProcessing')}
+              </h3>
               <p className="text-slate-300 text-lg mb-6">
                 {t('eventAttendancePredictor.analyzingHistoricalData')}
               </p>
@@ -418,8 +437,12 @@ const EventAttendancePredictor = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full mb-4">
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-2">{t('eventAttendancePredictor.aiPredictionComplete')}</h3>
-              <p className="text-slate-300 text-lg">{t('eventAttendancePredictor.advancedMachineLearningAnalysis')}</p>
+              <h3 className="text-3xl font-bold text-white mb-2">
+                {t('eventAttendancePredictor.aiPredictionComplete')}
+              </h3>
+              <p className="text-slate-300 text-lg">
+                {t('eventAttendancePredictor.advancedMachineLearningAnalysis')}
+              </p>
             </div>
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-10 text-white text-center mb-8 relative overflow-hidden">
               {/* Tắt hiệu ứng nhấp nháy */}
@@ -427,7 +450,9 @@ const EventAttendancePredictor = () => {
               <div className="relative z-10">
                 <div className="flex items-center justify-center space-x-4 mb-6">
                   <Users className="w-10 h-10" />
-                  <span className="text-2xl font-medium">{t('eventAttendancePredictor.predictedAttendance')}</span>
+                  <span className="text-2xl font-medium">
+                    {t('eventAttendancePredictor.predictedAttendance')}
+                  </span>
                 </div>
                 <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-white to-cyan-200 bg-clip-text text-transparent">
                   {formatNumber(prediction.suggested_quantity)}
@@ -444,14 +469,18 @@ const EventAttendancePredictor = () => {
               <div className="p-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-32 h-32 mx-auto mb-8 flex items-center justify-center">
                 <Brain className="w-16 h-16 text-white" />
               </div>
-              <h3 className="text-4xl font-bold text-white mb-6">{t('eventAttendancePredictor.readyForAIAnalysis')}</h3>
+              <h3 className="text-4xl font-bold text-white mb-6">
+                {t('eventAttendancePredictor.readyForAIAnalysis')}
+              </h3>
               <p className="text-slate-300 text-xl max-w-3xl mx-auto mb-8">
                 {t('eventAttendancePredictor.selectEventDescription')}
               </p>
               <div className="flex justify-center items-center gap-6 text-slate-400">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-6 h-6 text-yellow-400" />
-                  <span className="text-lg">{t('eventAttendancePredictor.poweredByMachineLearning')}</span>
+                  <span className="text-lg">
+                    {t('eventAttendancePredictor.poweredByMachineLearning')}
+                  </span>
                 </div>
               </div>
             </div>
