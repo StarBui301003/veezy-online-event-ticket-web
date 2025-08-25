@@ -394,7 +394,7 @@ const TermsOfUse = () => {
                               getThemeClass('text-gray-800', 'text-gray-200')
                             )}
                           >
-                            wwww.vezzy.site
+                            www.vezzy.site
                           </p>
                         </div>
                       </div>
