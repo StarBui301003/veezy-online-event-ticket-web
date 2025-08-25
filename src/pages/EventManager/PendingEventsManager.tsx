@@ -207,10 +207,16 @@ const PendingEventsManager = () => {
     return new Date(date).toLocaleDateString('vi-VN');
   };
 
-  // Màu trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ
-  const getStatusColor = (isApproved) => {
+  // Màu trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ, Ended xám
+  const getStatusColor = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
     switch (isApproved) {
       case 0:
+        if (isEventEnded) {
+          return 'bg-gray-50 text-gray-800 border border-gray-300';
+        }
         return 'bg-yellow-50 text-yellow-800 border border-yellow-300';
       case 1:
         return 'bg-green-50 text-green-800 border border-green-300';
@@ -221,10 +227,16 @@ const PendingEventsManager = () => {
     }
   };
 
-  // Icon trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ
-  const getStatusIcon = (isApproved) => {
+  // Icon trạng thái: Pending vàng, Approved xanh lá, Rejected đỏ, Ended xám
+  const getStatusIcon = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
     switch (isApproved) {
       case 0:
+        if (isEventEnded) {
+          return <Clock className="w-4 h-4 mr-1 text-gray-500" />;
+        }
         return <Clock className="w-4 h-4 mr-1 text-yellow-500" />;
       case 1:
         return <CheckCircle className="w-4 h-4 mr-1 text-green-500" />;
@@ -232,6 +244,25 @@ const PendingEventsManager = () => {
         return <XCircle className="w-4 h-4 mr-1 text-red-500" />;
       default:
         return <AlertCircle className="w-4 h-4 mr-1" />;
+    }
+  };
+
+  const getStatusText = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
+    switch (isApproved) {
+      case 0:
+        if (isEventEnded) {
+          return t('endedPending');
+        }
+        return t('pending');
+      case 1:
+        return t('approved');
+      case 2:
+        return t('rejected');
+      default:
+        return t('unknown');
     }
   };
 
@@ -371,18 +402,13 @@ const PendingEventsManager = () => {
                 </h3>
                 <div
                   className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(
-                    event.isApproved
+                    event.isApproved,
+                    event.endAt
                   )}`}
                 >
-                  {getStatusIcon(event.isApproved)}
+                  {getStatusIcon(event.isApproved, event.endAt)}
                   <span className="ml-1 font-bold uppercase tracking-wide">
-                    {event.isApproved === 0
-                      ? t('pending')
-                      : event.isApproved === 1
-                      ? t('approved')
-                      : event.isApproved === 2
-                      ? t('rejected')
-                      : t('unknown')}
+                    {getStatusText(event.isApproved, event.endAt)}
                   </span>
                 </div>
               </div>
@@ -411,13 +437,7 @@ const PendingEventsManager = () => {
                     {t('status')}
                   </p>
                   <p className={cn('font-medium', getThemeClass('text-gray-800', 'text-white'))}>
-                    {event.isApproved === 0
-                      ? t('pendingApproval')
-                      : event.isApproved === 1
-                      ? t('approved')
-                      : event.isApproved === 2
-                      ? t('rejected')
-                      : t('unknownStatus')}
+                    {getStatusText(event.isApproved, event.endAt)}
                   </p>
                 </div>
               </div>

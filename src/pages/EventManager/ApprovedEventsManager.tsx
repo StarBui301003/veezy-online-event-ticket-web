@@ -194,8 +194,14 @@ const ApprovedEventsManager = () => {
     return new Date(date).toLocaleDateString('vi-VN');
   };
 
-  const getStatusColor = (isApproved) => {
+  const getStatusColor = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
     if (isApproved === 1) {
+      if (isEventEnded) {
+        return 'bg-gray-50 text-gray-800 border border-gray-300';
+      }
       return 'bg-green-50 text-green-800 border border-green-300';
     } else if (isApproved === 2) {
       return 'bg-red-50 text-red-800 border border-red-300';
@@ -204,13 +210,35 @@ const ApprovedEventsManager = () => {
     }
   };
 
-  const getStatusIcon = (isApproved) => {
+  const getStatusIcon = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
     if (isApproved === 1) {
+      if (isEventEnded) {
+        return <Clock className="w-4 h-4 mr-1 text-gray-500" />;
+      }
       return <CheckCircle className="w-4 h-4 mr-1" />;
     } else if (isApproved === 2) {
       return <AlertCircle className="w-4 h-4 mr-1" />;
     } else {
       return null;
+    }
+  };
+
+  const getStatusText = (isApproved, endAt) => {
+    // Check if event has ended
+    const isEventEnded = endAt && new Date(endAt) < new Date();
+    
+    if (isApproved === 1) {
+      if (isEventEnded) {
+        return t('eventEnded');
+      }
+      return t('approved');
+    } else if (isApproved === 2) {
+      return t('rejected');
+    } else {
+      return t('pending');
     }
   };
 
@@ -347,18 +375,13 @@ const ApprovedEventsManager = () => {
                 </h3>
                 <div
                   className={`px-3 py-1 rounded-full text-sm flex items-center ${getStatusColor(
-                    event.isApproved
+                    event.isApproved,
+                    event.endAt
                   )}`}
                 >
-                  {getStatusIcon(event.isApproved)}
+                  {getStatusIcon(event.isApproved, event.endAt)}
                   <span className="ml-1 font-bold uppercase tracking-wide">
-                    {event.isApproved === 0
-                      ? t('pending')
-                      : event.isApproved === 1
-                      ? t('approved')
-                      : event.isApproved === 2
-                      ? t('rejected')
-                      : t('unknown')}
+                    {getStatusText(event.isApproved, event.endAt)}
                   </span>
                 </div>
               </div>
@@ -387,13 +410,7 @@ const ApprovedEventsManager = () => {
                     {t('status')}
                   </p>
                   <p className={cn('font-medium', getThemeClass('text-gray-900', 'text-white'))}>
-                    {event.isApproved === 0
-                      ? t('pendingApproval')
-                      : event.isApproved === 1
-                      ? t('approved')
-                      : event.isApproved === 2
-                      ? t('rejected')
-                      : t('unknownStatus')}
+                    {getStatusText(event.isApproved, event.endAt)}
                   </p>
                 </div>
               </div>

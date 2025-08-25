@@ -105,7 +105,7 @@ export default function CreateCollaborator() {
 
     // Full name validation
     if (!formData.fullName.trim()) {
-      newFieldErrors.fullname = [t('validation_required') || 'Full name is required!'];
+              newFieldErrors.fullname = [t('validation_required')];
     }
 
     // Email validation
@@ -116,9 +116,9 @@ export default function CreateCollaborator() {
 
     // Phone validation
     if (!formData.phone.trim()) {
-      newFieldErrors.phone = [t('validation_required') || 'Phone number is required!'];
+              newFieldErrors.phone = [t('validation_required')];
     } else if (!/^\d+$/.test(formData.phone)) {
-      newFieldErrors.phone = [t('validation_invalidPhone') || 'Invalid phone number format!'];
+              newFieldErrors.phone = [t('validation_invalidPhone')];
     }
 
     // Password validation
@@ -129,7 +129,7 @@ export default function CreateCollaborator() {
 
     // Date of birth validation
     if (!formData.dateOfBirth) {
-      newFieldErrors.dateofbirth = [t('validation_required') || 'Date of birth is required!'];
+              newFieldErrors.dateofbirth = [t('validation_required')];
     } else {
       const dateValidation = validateDateOfBirth(formData.dateOfBirth);
       if (!dateValidation.isValid) {
@@ -208,7 +208,7 @@ export default function CreateCollaborator() {
       if (generalErrors.length > 0) {
         toast.error(generalErrors[0]);
       } else if (Object.keys(backendFieldErrors).length > 0) {
-        toast.error('Please check your input fields');
+        toast.error(t('pleaseCheckInputFields'));
       } else {
         const errorMessage =
           (error as any).response?.data?.message || (error as any).message || t('error_unknownError');

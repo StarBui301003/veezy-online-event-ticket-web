@@ -1353,7 +1353,42 @@ export default function ProfileEventManager() {
                       m.includes('Invalid token') ||
                       m.includes('Account not found')
                     ) {
-                      msg = m;
+                      // Map error messages to localized keys
+                      if (m.includes('This face is already registered to another account') || m.includes('already registered')) {
+                        msg = t('profileEventManager.faceErrors.faceAlreadyRegistered');
+                      } else if (m.includes('Liveness check failed')) {
+                        msg = t('profileEventManager.faceErrors.livenessCheckFailed');
+                      } else if (m.includes('No face detected')) {
+                        msg = t('profileEventManager.faceErrors.noFaceDetected');
+                      } else if (m.includes('Multiple faces detected')) {
+                        msg = t('profileEventManager.faceErrors.multipleFacesDetected');
+                      } else if (m.includes('Fake detected')) {
+                        msg = t('profileEventManager.faceErrors.fakeDetected');
+                      } else if (m.includes('Face too small')) {
+                        msg = t('profileEventManager.faceErrors.faceTooSmall');
+                      } else if (m.includes('Face too blurry')) {
+                        msg = t('profileEventManager.faceErrors.faceTooBlurry');
+                      } else if (m.includes('Invalid face angle')) {
+                        msg = t('profileEventManager.faceErrors.invalidFaceAngle');
+                      } else if (m.includes('Poor image quality')) {
+                        msg = t('profileEventManager.faceErrors.poorImageQuality');
+                      } else if (m.includes('Only accept JPG, JPEG or PNG')) {
+                        msg = t('profileEventManager.faceErrors.invalidImageFormat');
+                      } else if (m.includes('Must smaller than 5MB')) {
+                        msg = t('profileEventManager.faceErrors.fileTooLarge');
+                      } else if (m.includes('Face image is required')) {
+                        msg = t('profileEventManager.faceErrors.faceImageRequired');
+                      } else if (m.includes('AI service not response')) {
+                        msg = t('profileEventManager.faceErrors.aiServiceNotResponse');
+                      } else if (m.includes('An error occurred while processing the face image')) {
+                        msg = t('profileEventManager.faceErrors.faceProcessingError');
+                      } else if (m.includes('Face embedding is null')) {
+                        msg = t('profileEventManager.faceErrors.faceEmbeddingNull');
+                      } else if (m.includes('Invalid token')) {
+                        msg = t('profileEventManager.faceErrors.invalidToken');
+                      } else if (m.includes('Account not found')) {
+                        msg = t('profileEventManager.faceErrors.accountNotFound');
+                      }
                     }
                   }
                   setFaceError(msg);

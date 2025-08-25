@@ -113,7 +113,7 @@ const EditNews: React.FC = () => {
   // Tìm nạp dữ liệu tin tức khi component được mount
   useEffect(() => {
     if (!newsId) {
-      toast.error('News ID is missing.');
+      toast.error(t('newsIdMissing'));
       navigate('/event-manager/news');
       return;
     }

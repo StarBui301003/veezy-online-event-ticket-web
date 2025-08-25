@@ -384,7 +384,7 @@ export default function DashboardSummaryCards({ filter }: DashboardSummaryCardsP
           <div className="flex items-center gap-2 mb-2">
             <Calendar size={20} className="text-purple-400" />
             <span className={cn('text-sm', getThemeClass('text-purple-700', 'text-purple-300'))}>
-              activeEvents
+              {t('activeEvents')}
             </span>
           </div>
           <div

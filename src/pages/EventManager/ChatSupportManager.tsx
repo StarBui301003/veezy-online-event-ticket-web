@@ -17,12 +17,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { chatService, type ChatMessage, type ChatRoom } from '@/services/chat.service';
 import { useThemeClasses } from '@/hooks/useThemeClasses';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 // Remove unused interface EventChatSupportProps and fix function parameter usage
 
 const ChatSupportManager: React.FC = () => {
   const { getThemeClass } = useThemeClasses();
+  const { t } = useTranslation();
 
   const [events, setEvents] = useState<any[]>([]); // List of events managed by event manager
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -79,7 +81,7 @@ const ChatSupportManager: React.FC = () => {
       );
       setEvents(mappedEvents);
     } catch (error) {
-      toast.error('Unable to load event list');
+      toast.error(t('unableToLoadEventList'));
     } finally {
       setIsLoadingEvents(false);
     }
@@ -151,7 +153,7 @@ const ChatSupportManager: React.FC = () => {
 
       setChatRooms(transformedRooms);
     } catch (error) {
-      toast.error('Unable to load chat room list');
+      toast.error(t('unableToLoadChatRoomList'));
       setChatRooms([]);
     } finally {
       setIsLoadingRooms(false);
@@ -185,7 +187,7 @@ const ChatSupportManager: React.FC = () => {
 
       setMessages(transformedMessages);
     } catch (error) {
-      toast.error('Unable to load messages');
+      toast.error(t('unableToLoadMessages'));
       setMessages([]);
     } finally {
       setIsLoadingMessages(false);
@@ -402,7 +404,7 @@ const ChatSupportManager: React.FC = () => {
       // Reload messages after send/edit
       loadMessages(selectedRoom.roomId);
     } catch (error) {
-      toast.error('Unable to send/edit message');
+      toast.error(t('unableToSendEditMessage'));
     }
   }, [newMessage, selectedRoom, replyingTo, editingMessage, editingContent, loadMessages]);
 
@@ -410,10 +412,10 @@ const ChatSupportManager: React.FC = () => {
   const handleDeleteMessage = async (messageId: string) => {
     try {
       await chatService.deleteMessage(messageId);
-      toast.success('Message deleted');
+      toast.success(t('messageDeleted'));
       if (selectedRoom) loadMessages(selectedRoom.roomId);
     } catch (error) {
-      toast.error('Failed to delete message');
+      toast.error(t('failedToDeleteMessage'));
     }
   };
 
