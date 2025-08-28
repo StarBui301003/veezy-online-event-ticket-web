@@ -144,10 +144,10 @@ const CreateNews: React.FC = () => {
       try {
         const imageUrl = await uploadNewsImage(file);
         setNewsPayload((prev) => ({ ...prev, imageUrl }));
-        toast.success(t('createNews.imageUploaded'));
+        toast.success(t('eventManagerCreateNews.imageUploaded'));
       } catch (error) {
         console.error('Image upload failed:', error);
-        toast.error(t('createNews.imageUploadFailed'));
+        toast.error(t('eventManagerCreateNews.imageUploadFailed'));
         setImagePreview(null);
       } finally {
         setIsUploading(false);
@@ -186,19 +186,19 @@ const CreateNews: React.FC = () => {
 
     // Validate form
     if (!newsPayload.newsTitle.trim()) {
-      toast.error(t('createNews.newsTitleRequired'));
+              toast.error(t('eventManagerCreateNews.newsTitleRequired'));
       return;
     }
     if (!newsPayload.newsDescription.trim()) {
-      toast.error(t('createNews.descriptionRequired'));
+              toast.error(t('eventManagerCreateNews.descriptionRequired'));
       return;
     }
     if (!cleanedContent) {
-      toast.error(t('createNews.contentRequired'));
+              toast.error(t('eventManagerCreateNews.contentRequired'));
       return;
     }
     if (!newsPayload.imageUrl) {
-      toast.error(t('createNews.imageRequired'));
+              toast.error(t('eventManagerCreateNews.imageRequired'));
       return;
     }
 
@@ -210,11 +210,11 @@ const CreateNews: React.FC = () => {
       };
 
       await createNews(payload);
-      toast.success(t('createNews.newsCreated'));
+              toast.success(t('eventManagerCreateNews.newsCreated'));
       navigate('/event-manager/news');
     } catch (error) {
       console.error('Error creating news:', error);
-      toast.error(t('createNews.errorCreatingNews'));
+              toast.error(t('eventManagerCreateNews.errorCreatingNews'));
     } finally {
       setLoading(false);
     }
@@ -342,10 +342,10 @@ const CreateNews: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  {t('createNews.title')}
+                  {t('eventManagerCreateNews.title')}
                 </h1>
                 <p className={cn('mt-1 text-sm', getThemeClass('text-gray-600', 'text-slate-400'))}>
-                  {t('createNews.subtitle')}
+                  {t('eventManagerCreateNews.subtitle')}
                 </p>
               </div>
               <button
@@ -362,7 +362,7 @@ const CreateNews: React.FC = () => {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                {t('createNews.backToNews')}
+                {t('eventManagerCreateNews.backToNews')}
               </button>
             </div>
           </div>
@@ -374,7 +374,7 @@ const CreateNews: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-1">
                   <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                    {t('createNews.newsImage')}
+                    {t('eventManagerCreateNews.newsImage')}
                     <span className="text-red-500 ml-1">*</span>
                   </label>
                   <div
@@ -412,7 +412,7 @@ const CreateNews: React.FC = () => {
                   {/* News Title */}
                   <div>
                     <label htmlFor="newsTitle" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                      {t('createNews.newsTitle')}
+                      {t('eventManagerCreateNews.newsTitle')}
                       <span className="text-red-500 ml-1">*</span>
                     </label>
                     <input
@@ -428,7 +428,7 @@ const CreateNews: React.FC = () => {
                            'bg-slate-700/80 text-white placeholder-slate-400 border-purple-700 focus:ring-purple-500'
                          )
                       )}
-                      placeholder={t('createNews.newsTitlePlaceholder')}
+                      placeholder={t('eventManagerCreateNews.newsTitlePlaceholder')}
                       required
                     />
                   </div>
@@ -436,7 +436,7 @@ const CreateNews: React.FC = () => {
                   {/* News Description */}
                   <div>
                     <label htmlFor="newsDescription" className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                      {t('createNews.shortDescription')}
+                      {t('eventManagerCreateNews.shortDescription')}
                       <span className="text-red-500 ml-1">*</span>
                     </label>
                     <textarea
@@ -452,7 +452,7 @@ const CreateNews: React.FC = () => {
                            'bg-slate-700/80 text-white placeholder-slate-400 border-purple-700 focus:ring-purple-500'
                          )
                       )}
-                      placeholder={t('createNews.shortDescriptionPlaceholder')}
+                      placeholder={t('eventManagerCreateNews.shortDescriptionPlaceholder')}
                       required
                     />
                   </div>
@@ -462,7 +462,7 @@ const CreateNews: React.FC = () => {
               {/* Rich Text Editor */}
               <div>
                 <label className={cn('block text-sm font-medium mb-2', getThemeClass('text-gray-700', 'text-purple-300'))}>
-                  {t('createNews.newsContent')}
+                  {t('eventManagerCreateNews.newsContent')}
                   <span className="text-red-500 ml-1">*</span>
                 </label>
                 <div className={cn(
@@ -501,7 +501,7 @@ const CreateNews: React.FC = () => {
                       ></label>
                     </div>
                     <label htmlFor="status" className={cn('text-sm font-medium', getThemeClass('text-gray-700', 'text-pink-200'))}>
-                      {newsPayload.status ? t('createNews.newsStatusActive') : t('createNews.newsStatusInactive')}
+                      {newsPayload.status ? t('eventManagerCreateNews.newsStatusActive') : t('eventManagerCreateNews.newsStatusInactive')}
                     </label>
                   </div>
 
@@ -521,7 +521,7 @@ const CreateNews: React.FC = () => {
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      {t('createNews.cancel')}
+                      {t('eventManagerCreateNews.cancel')}
                     </button>
                     <button
                       type="submit"
@@ -539,7 +539,7 @@ const CreateNews: React.FC = () => {
                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
-                          {t('createNews.createNews')}
+                          {t('eventManagerCreateNews.createNews')}
                         </>
                       )}
                     </button>

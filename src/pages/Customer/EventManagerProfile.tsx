@@ -492,9 +492,45 @@ const EventManagerProfile = () => {
                         {/* Event Status */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-green-600 text-xs font-medium dark:text-green-400">
-                              {t('ongoing')}
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              (() => {
+                                const now = new Date();
+                                const endDate = new Date(event.endAt);
+                                const isEventEnded = endDate < now;
+                                
+                                if (isEventEnded) {
+                                  return "bg-gray-500"; // Event ended
+                                } else {
+                                  return "bg-green-500 animate-pulse"; // Event ongoing
+                                }
+                              })()
+                            )}></div>
+                            <span className={cn(
+                              "text-xs font-medium",
+                              (() => {
+                                const now = new Date();
+                                const endDate = new Date(event.endAt);
+                                const isEventEnded = endDate < now;
+                                
+                                if (isEventEnded) {
+                                  return "text-gray-600 dark:text-gray-400"; // Event ended
+                                } else {
+                                  return "text-green-600 dark:text-green-400"; // Event ongoing
+                                }
+                              })()
+                            )}>
+                              {(() => {
+                                const now = new Date();
+                                const endDate = new Date(event.endAt);
+                                const isEventEnded = endDate < now;
+                                
+                                if (isEventEnded) {
+                                  return t('ended'); // Event ended
+                                } else {
+                                  return t('ongoing'); // Event ongoing
+                                }
+                              })()}
                             </span>
                           </div>
                           <div

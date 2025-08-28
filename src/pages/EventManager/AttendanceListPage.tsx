@@ -352,9 +352,6 @@ const AttendanceListPage = () => {
                 >
                   {event.eventName}
                 </h3>
-                <p className={cn('text-sm', getThemeClass('text-gray-600', 'text-gray-300'))}>
-                  ID: {event.eventId}
-                </p>
               </div>
             ))}
           </div>

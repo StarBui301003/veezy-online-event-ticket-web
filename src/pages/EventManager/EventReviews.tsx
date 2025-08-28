@@ -352,13 +352,33 @@ const EventReviews = () => {
                 </div>
                 {/* Dropdown with highest z-index */}
                 {eventSearch && eventSearch !== (selectedEventData?.eventName || '') && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 bg-[#2d0036] border border-green-500/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                  <div 
+                    className={cn(
+                      'absolute z-50 left-0 right-0 mt-1 rounded-xl shadow-2xl max-h-60 overflow-y-auto border',
+                      getThemeClass(
+                        'bg-white border-gray-200',
+                        'bg-[#2d0036] border-green-500/30'
+                      )
+                    )}
+                  >
                     {filteredEvents.map((ev, idx) => (
                       <div
                         key={ev.eventId}
-                        className={`px-4 py-2 cursor-pointer hover:bg-green-700/30 ${
-                          selectedEvent === ev.eventId ? 'bg-green-700/40' : ''
-                        } ${searchActiveIndex === idx ? 'bg-green-800/60' : ''}`}
+                        className={cn(
+                          'px-4 py-2 cursor-pointer',
+                          getThemeClass(
+                            'hover:bg-gray-100 text-gray-900',
+                            'hover:bg-green-700/30 text-white'
+                          ),
+                          selectedEvent === ev.eventId && getThemeClass(
+                            'bg-blue-100',
+                            'bg-green-700/40'
+                          ),
+                          searchActiveIndex === idx && getThemeClass(
+                            'bg-blue-200',
+                            'bg-green-800/60'
+                          )
+                        )}
                         onClick={() => {
                           setSelectedEvent(ev.eventId);
                           setEventSearch(ev.eventName);
@@ -369,7 +389,10 @@ const EventReviews = () => {
                       </div>
                     ))}
                     {filteredEvents.length === 0 && (
-                      <div className="px-4 py-2 text-gray-400">
+                      <div className={cn(
+                        'px-4 py-2',
+                        getThemeClass('text-gray-500', 'text-gray-400')
+                      )}>
                         {t('eventReviews.noEventFound')}
                       </div>
                     )}
@@ -399,18 +422,28 @@ const EventReviews = () => {
                       'bg-[#2d0036]/80 text-white border-green-500/30 focus:border-green-400'
                     )
                   )}
+                  style={{
+                    backgroundColor: getThemeClass('white', '#2d0036'),
+                    color: getThemeClass('#1f2937', 'white')
+                  }}
                 >
                   <option
                     value=""
-                    className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
+                    style={{
+                      backgroundColor: getThemeClass('white', '#2d0036'),
+                      color: getThemeClass('#1f2937', 'white')
+                    }}
                   >
                     -- {t('eventReviews.chooseEvent')} --
                   </option>
-                  {filteredEvents.map((event) => (
+                  {events.map((event) => (
                     <option
                       key={event.eventId}
                       value={event.eventId}
-                      className={getThemeClass('bg-white text-gray-900', 'bg-[#2d0036] text-white')}
+                      style={{
+                        backgroundColor: getThemeClass('white', '#2d0036'),
+                        color: getThemeClass('#1f2937', 'white')
+                      }}
                     >
                       {event.eventName}
                     </option>

@@ -484,7 +484,7 @@ const ProfileCustomer = () => {
   const handleLanguageChange = async (language: string) => {
     if (!account?.userId) {
       console.error('ProfileCustomer - No account or userId found');
-      toast.error('Account not loaded yet');
+      toast.error(t('common.accountNotLoaded'));
       return;
     }
 
@@ -1492,13 +1492,13 @@ const ProfileCustomer = () => {
                 try {
                   const file = new File([image], 'face.jpg', { type: image.type || 'image/jpeg' });
                   await updateFaceAPI(account.accountId, file, [0], undefined, hasFaceAuth);
-                  toast.success('Face updated successfully!');
+                  toast.success(t('faceAuth.updateSuccess'));
                   setShowFaceModal(false);
                   await refetchFaceAuth();
                 } catch (e: unknown) {
                   console.error('Face update error:', e);
 
-                  let msg = 'Face update failed!';
+                  let msg = t('faceAuth.updateFailed');
                   if (
                     typeof e === 'object' &&
                     e &&

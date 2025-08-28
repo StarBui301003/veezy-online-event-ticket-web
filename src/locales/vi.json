@@ -54,7 +54,7 @@
   "reportEvent": "Báo cáo sự kiện",
   "showMore": "Xem Thêm",
   "showLess": "Rút gọn",
-  "orderSummary": "Tóm Tắt Đơn Hàng",
+  "OrderSummary": "Tóm Tắt Đơn Hàng",
   "send": "Gửi",
   "sending": "Đang gửi...",
   "noTicketsAvailableForThisEvent": "Không có vé nào khả dụng cho sự kiện này",
@@ -170,7 +170,7 @@
   "statuses5": "Đã hoàn thành",
   "statuses6": "Đã hủy",
   "statuses7": "Đã hoãn",
-  "search_placeholder": "Tìm kiếm sự kiện...",
+  "search_placeholder": "Tìm kiếm sự kiện, tin tức,...",
   "search": "Tìm kiếm...",
   "searchOptions": {
     "resultsFor": "Kết quả tìm kiếm cho: {{query}}",
@@ -1104,7 +1104,7 @@
   "darkThemeEnabled": "Bật giao diện tối thành công!",
   "themeUpdateFailed": "Cập nhật giao diện thất bại. Vui lòng thử lại.",
   "updatingTheme": "Đang cập nhật giao diện...",
-  "createNews": {
+  "eventManagerCreateNews": {
     "title": "Tạo Tin Tức Mới",
     "subtitle": "Tạo bài viết tin tức mới cho sự kiện của bạn",
     "backToNews": "Quay lại Tin tức",
@@ -1127,7 +1127,9 @@
     "newsTitleRequired": "Vui lòng nhập tiêu đề tin tức",
     "descriptionRequired": "Vui lòng nhập mô tả",
     "contentRequired": "Vui lòng nhập nội dung tin tức",
-    "imageRequired": "Vui lòng tải lên ảnh tin tức"
+    "imageRequired": "Vui lòng tải lên ảnh tin tức",
+    "imageUploaded": "Tải ảnh thành công!",
+    "imageUploadFailed": "Tải ảnh thất bại"
   },
   "editNews": {
     "title": "Chỉnh Sửa Tin Tức",
@@ -1157,7 +1159,7 @@
     "searchEvents": "Tìm Kiếm Cái Gì Đó...",
     "loading": "Đang Tải...",
     "noEventsFound": "Không Tìm Thấy Sự Kiện Nào",
-    "createNews": "Tạo Tin Tức",
+    "createNewsButton": "Tạo Tin Tức",
     "previousPage": "Trang Trước",
     "nextPage": "Trang Tiếp Theo",
     "page": "Trang",
@@ -1231,7 +1233,7 @@
   "darkThemeEnabled": "Bật giao diện tối thành công!",
   "themeUpdateFailed": "Cập nhật giao diện thất bại. Vui lòng thử lại.",
   "updatingTheme": "Đang cập nhật giao diện...",
-  "createNews": {
+  "adminCreateNews": {
     "title": "Tạo Tin Tức Mới",
     "subtitle": "Tạo bài viết tin tức mới cho sự kiện của bạn",
     "backToNews": "Quay lại Tin tức",
@@ -1254,7 +1256,23 @@
     "newsTitleRequired": "Vui lòng nhập tiêu đề tin tức",
     "descriptionRequired": "Vui lòng nhập mô tả",
     "contentRequired": "Vui lòng nhập nội dung tin tức",
-    "imageRequired": "Vui lòng tải lên ảnh tin tức"
+    "imageRequired": "Vui lòng tải lên ảnh tin tức",
+    "event": "Sự kiện",
+    "noEvent": "Không có sự kiện",
+    "selectEvent": "Chọn sự kiện",
+    "enterNewsTitle": "Nhập tiêu đề tin tức",
+    "enterNewsDescription": "Nhập mô tả tin tức",
+    "newsDescription": "Mô tả tin tức",
+    "content": "Nội dung",
+    "image": "Ảnh",
+    "uploading": "Đang tải lên...",
+    "import": "Nhập ảnh",
+    "status": "Trạng thái",
+    "selectStatus": "Chọn trạng thái",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "creating": "Đang tạo...",
+    "create": "Tạo"
   },
   "editNews": {
     "title": "Chỉnh Sửa Tin Tức",
@@ -1284,7 +1302,7 @@
     "searchEvents": "Tìm Kiếm Sự Kiện...",
     "loading": "Đang Tải...",
     "noEventsFound": "Không Tìm Thấy Sự Kiện Nào",
-    "createNews": "Tạo Tin Tức",
+    "createNewsButton": "Tạo Tin Tức",
     "previousPage": "Trang Trước",
     "nextPage": "Trang Tiếp Theo",
     "page": "Trang",
@@ -1533,6 +1551,18 @@
     "remainingTickets": "Còn lại {{count}} vé",
     "maxTicketsPerOrderError": "Tối đa {{max}} vé mỗi đơn hàng",
     "orderSummary": "Tóm tắt đơn hàng",
+    "discountCodeForEvent": "Mã giảm giá cho sự kiện này",
+    "enterDiscountCode": "Nhập mã giảm giá (chỉ dùng 1 lần)",
+    "apply": "Áp dụng",
+    "discountCodeValid": "✨ Mã giảm giá hợp lệ!",
+    "discountCodeInvalid": "❌ Mã giảm giá không hợp lệ",
+    "discountAmount": "🎉 Giảm {{amount}} VNĐ",
+    "discountCodeCancelled": "🗑️ Đã hủy mã giảm giá",
+    "discountCodeUsageNote": "💡 Mã này chỉ sử dụng được 1 lần cho sự kiện này",
+    "currency": "VNĐ",
+    "currencyPerTicket": "VNĐ/vé",
+    "totalAmount": "Tổng tiền:",
+    "free": "Miễn phí",
     "ticketType": "{{type}} (x{{count}})",
     "loginToComment": "Đăng nhập để bình luận",
     "commentPlaceholder": "Thêm bình luận...",
@@ -2221,17 +2251,17 @@
       "faceUpdateFailed": "Cập nhật khuôn mặt thất bại!"
     },
     "followers": {
-      "eventFollowersTitle": "Người theo dõi event của bạn",
-      "managerFollowersTitle": "Người theo dõi event manager",
+      "eventFollowersTitle": "Người theo dõi sự kiện",
+      "managerFollowersTitle": "Người theo dõi quản lý",
       "people": "người",
-      "noEventFollowers": "Chưa có ai theo dõi event của bạn",
-      "noEventFollowersDescription": "Chưa có người dùng nào follow event của bạn",
-      "noManagerFollowers": "Chưa có ai theo dõi event manager này",
-      "noManagerFollowersDescription": "Chưa có người dùng nào follow event manager này",
+      "noEventFollowers": "Chưa có ai theo dõi sự kiện của bạn",
+      "noEventFollowersDescription": "Chưa có người dùng nào theo dõi sự kiện của bạn",
+      "noManagerFollowers": "Chưa có ai theo dõi quản lý sự kiện này",
+      "noManagerFollowersDescription": "Chưa có người dùng nào theo dõi quản lý sự kiện này",
       "avatarImage": "Ảnh đại diện",
       "name": "Tên",
       "eventName": "Tên sự kiện",
-      "username": "Tên người dùng"
+      "username": "Tên đăng nhập"
     },
     "errors": {
       "fullNameRequired": "Họ và tên là bắt buộc!",
@@ -2242,7 +2272,7 @@
     },
     "faceErrors": {
       "faceAlreadyRegistered": "Khuôn mặt này đã được đăng ký cho tài khoản khác",
-      "livenessCheckFailed": "Kiểm tra tính sống thất bại",
+      "livenessCheckFailed": "Kiểm tra liveness thất bại",
       "noFaceDetected": "Không phát hiện khuôn mặt",
       "multipleFacesDetected": "Phát hiện nhiều khuôn mặt",
       "fakeDetected": "Phát hiện giả mạo",
@@ -2255,10 +2285,109 @@
       "faceImageRequired": "Ảnh khuôn mặt là bắt buộc",
       "aiServiceNotResponse": "Dịch vụ AI không phản hồi",
       "faceProcessingError": "Đã xảy ra lỗi khi xử lý ảnh khuôn mặt",
-      "faceEmbeddingNull": "Đặc trưng khuôn mặt là null",
+      "faceEmbeddingNull": "Face embedding là null",
       "invalidToken": "Token không hợp lệ",
       "accountNotFound": "Không tìm thấy tài khoản"
     }
+  },
+  
+  "discountCode": {
+    "alreadyUsed": "❌ Mã giảm giá này đã được sử dụng. Mỗi mã chỉ sử dụng được 1 lần.",
+    "notApplicableForEvent": "🎯 Mã giảm giá này không áp dụng cho sự kiện hiện tại.",
+    "expired": "⏰ Mã giảm giá đã hết hạn sử dụng.",
+    "invalidOrNotFound": "❌ Mã giảm giá không tồn tại hoặc không hợp lệ",
+    "checkFailed": "❌ Không thể kiểm tra mã giảm giá. Vui lòng thử lại!",
+    "applySuccess": "🎉 Áp dụng mã giảm giá thành công! Tiết kiệm {{amount}}",
+                  "validationFailed": "Vui lòng nhập mã giảm giá",
+              "invalidFormat": "Mã giảm giá phải từ 6-12 ký tự, chỉ bao gồm chữ cái và số",
+              "validForEvent": "Mã giảm giá hợp lệ cho sự kiện này",
+              "invalid": "Mã giảm giá không hợp lệ"
+  },
+  
+  "orderErrors": {
+    "invalidOrderAmount": "Tổng tiền đơn hàng không hợp lệ. Vui lòng kiểm tra lại giỏ hàng.",
+    "orderCreationFailed": "Không thể tạo đơn hàng. Vui lòng thử lại.",
+    "maxTicketsReached": "❌ {{message}}\n\nVui lòng quay lại trang sự kiện để kiểm tra số vé đã mua.",
+    "paymentLinkFailed": "Không lấy được link thanh toán từ server.",
+    "orderPaymentError": "Có lỗi khi tạo đơn hàng/thanh toán.",
+    "orderNotFound": "Không tìm thấy đơn hàng"
+  },
+  
+  "faceOrder": {
+    "success": "Đặt vé bằng khuôn mặt thành công!",
+    "failed": "Đặt vé bằng khuôn mặt thất bại",
+    "loading": "Đang xử lý đặt vé bằng khuôn mặt..."
+  },
+  
+  "ticketErrors": {
+    "maxTicketsPerOrder": "⚠️ Bạn đã mua đủ số vé cho loại \"{{ticketName}}\". Tối đa {{maxTickets}} vé/người cho sự kiện này.",
+    "maxTicketsPerOrderError": "Tối đa {{maxPerOrder}} vé mỗi đơn hàng cho \"{{ticketName}}\"",
+    "notEnoughTicketsAvailable": "Không đủ vé khả dụng cho \"{{ticketName}}\". Có sẵn: {{available}}, Yêu cầu: {{requested}}"
+  },
+  
+  "eventStatus": {
+    "ended": "Sự kiện đã kết thúc",
+    "thankYouMessage": "Cảm ơn bạn đã quan tâm đến sự kiện này. Hãy theo dõi các sự kiện sắp tới của chúng tôi."
+  },
+  
+  "common": {
+    "accountNotLoaded": "Tài khoản chưa được tải",
+    "newsNotFound": "Không tìm thấy tin tức!",
+    "errorLoadingNews": "Lỗi khi tải tin tức!",
+    "newsRemoved": "Tin tức này đã bị xóa",
+    "loadingOrder": "Đang tải đơn hàng",
+    "pleaseWait": "Vui lòng chờ...",
+    "waitingForPayment": "Đang chờ thanh toán",
+    "completePaymentInNewTab": "Vui lòng hoàn tất thanh toán trong tab mới",
+    "ifPaymentNotCompletedReloadPage": "Nếu thanh toán không hoàn tất, vui lòng tải lại trang",
+    "paymentSuccessful": "Thanh toán thành công! Cảm ơn bạn đã đặt hàng",
+    "finalAmount": "Thành tiền:",
+    "paymentFailed": "Thanh toán thất bại",
+    "paymentErrorMessage": "Đã xảy ra lỗi trong quá trình thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+    "tryAgain": "Thử lại",
+    "backToEventPage": "🎟️ Quay lại trang sự kiện",
+    "orderConfirmationError": "Lỗi khi xác nhận đơn hàng:",
+    "faceAuth": {
+      "updateSuccess": "Cập nhật khuôn mặt thành công!",
+      "updateFailed": "Cập nhật khuôn mặt thất bại!"
+    },
+    "rsTitle": "Người theo dõi event của bạn",
+    "managerFollowersTitle": "Người theo dõi event manager",
+    "people": "người",
+    "noEventFollowers": "Chưa có ai theo dõi event của bạn",
+    "noEventFollowersDescription": "Chưa có người dùng nào follow event của bạn",
+    "noManagerFollowers": "Chưa có ai theo dõi event manager này",
+    "noManagerFollowersDescription": "Chưa có người dùng nào follow event manager này",
+    "avatarImage": "Ảnh đại diện",
+    "name": "Tên",
+    "eventName": "Tên sự kiện",
+    "username": "Tên người dùng"
+  },
+  "errors": {
+    "fullNameRequired": "Họ và tên là bắt buộc!",
+    "emailRequired": "Email là bắt buộc!",
+    "phoneRequired": "Số điện thoại là bắt buộc!",
+    "failedToUpdateProfile": "Cập nhật hồ sơ thất bại. Vui lòng thử lại.",
+    "accountNotLoaded": "Tài khoản chưa được tải"
+  },
+  "faceErrors": {
+    "faceAlreadyRegistered": "Khuôn mặt này đã được đăng ký cho tài khoản khác",
+    "livenessCheckFailed": "Kiểm tra tính sống thất bại",
+    "noFaceDetected": "Không phát hiện khuôn mặt",
+    "multipleFacesDetected": "Phát hiện nhiều khuôn mặt",
+    "fakeDetected": "Phát hiện giả mạo",
+    "faceTooSmall": "Khuôn mặt quá nhỏ",
+    "faceTooBlurry": "Khuôn mặt quá mờ",
+    "invalidFaceAngle": "Góc khuôn mặt không hợp lệ",
+    "poorImageQuality": "Chất lượng ảnh kém",
+    "invalidImageFormat": "Chỉ chấp nhận JPG, JPEG hoặc PNG",
+    "fileTooLarge": "Phải nhỏ hơn 5MB",
+    "faceImageRequired": "Ảnh khuôn mặt là bắt buộc",
+    "aiServiceNotResponse": "Dịch vụ AI không phản hồi",
+    "faceProcessingError": "Đã xảy ra lỗi khi xử lý ảnh khuôn mặt",
+    "faceEmbeddingNull": "Đặc trưng khuôn mặt là null",
+    "invalidToken": "Token không hợp lệ",
+    "accountNotFound": "Không tìm thấy tài khoản"
   },
   "newsManager": {
     "deleteConfirmationTitle": "Xác nhận xóa tin tức",
@@ -2272,7 +2401,7 @@
     "searchEvents": "Tìm kiếm sự kiện",
     "loading": "Đang tải...",
     "noEventsFound": "Không tìm thấy sự kiện",
-    "createNews": "Tạo tin tức",
+    "createNewsButton": "Tạo tin tức",
     "page": "Trang",
     "newsFor": "Tin tức cho",
     "selectEventToViewNews": "Chọn một sự kiện để xem và quản lý tin tức",

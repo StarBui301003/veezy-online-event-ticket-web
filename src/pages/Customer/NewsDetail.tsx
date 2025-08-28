@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Loader2,
   Clock,
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const NewsDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { getThemeClass } = useThemeClasses();
   const { newsId } = useParams<{ newsId: string }>();
   const navigate = useNavigate();
@@ -80,11 +82,11 @@ const NewsDetail: React.FC = () => {
             setRelatedNews(res.data?.data?.items?.filter((n: News) => n.newsId !== newsId) || [])
           );
         } else {
-          toast.error('News not found!');
+          toast.error(t('common.newsNotFound'));
           navigate('/');
         }
       } catch {
-        toast.error('Error loading news!');
+        toast.error(t('common.errorLoadingNews'));
         navigate('/');
       } finally {
         setLoading(false);
@@ -100,7 +102,7 @@ const NewsDetail: React.FC = () => {
     };
     const handleDeleted = (data: { newsId?: string; NewsId?: string }) => {
       if (data?.newsId === newsId || data?.NewsId === newsId) {
-        toast.info('This news has been removed');
+        toast.info(t('common.newsRemoved'));
         navigate('/news');
       }
     };
