@@ -13,7 +13,11 @@ import { useEffect, useState } from 'react';
 import { resolveReport, rejectReport } from '@/services/Admin/report.service';
 import { getEventById, hideEvent, showEvent } from '@/services/Admin/event.service';
 import { getNewsById, hideNews, showNews } from '@/services/Admin/news.service';
-import { getAccountDetailsAPI, deactivateUserAPI } from '@/services/Admin/user.service';
+import {
+  getAccountDetailsAPI,
+  deactivateUserAPI,
+  getUserByIdAPI,
+} from '@/services/Admin/user.service';
 import { getCommentById, deleteComment } from '@/services/Admin/comment.service';
 import { toast } from 'react-toastify';
 import { onFeedback } from '@/services/signalr.service';
@@ -51,6 +55,13 @@ const ReportDetailModal = ({
   const [eventStatusLoading, setEventStatusLoading] = useState(false);
   const [userStatusLoading, setUserStatusLoading] = useState(false);
   const [commentDeleteLoading, setCommentDeleteLoading] = useState(false);
+
+  // New state variables for user data
+  const [createdByUser, setCreatedByUser] = useState<any>(null);
+  const [approvedByUser, setApprovedByUser] = useState<any>(null);
+  const [createdByLoading, setCreatedByLoading] = useState(false);
+  const [approvedByLoading, setApprovedByLoading] = useState(false);
+
   const { t } = useTranslation();
 
   const isPending = report.status === 0;
@@ -58,6 +69,38 @@ const ReportDetailModal = ({
   const isNewsTarget = report.targetType === 0;
   const isEventManagerTarget = report.targetType === 2;
   const isCommentTarget = report.targetType === 3;
+
+  // Helper function to fetch user data by ID
+  const fetchUserById = async (
+    userId: string,
+    setUserState: (user: any) => void,
+    setLoadingState: (loading: boolean) => void
+  ) => {
+    if (!userId || userId === 'N/A') return;
+
+    setLoadingState(true);
+    try {
+      const user = await getUserByIdAPI(userId);
+      setUserState(user);
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      // If getUserByIdAPI fails, try getAccountDetailsAPI as fallback
+      try {
+        const account = await getAccountDetailsAPI(userId);
+        setUserState({
+          userId: account.accountId,
+          fullName: account.fullName || account.username,
+          username: account.username,
+          email: account.email,
+        });
+      } catch (fallbackError) {
+        console.error('Failed to fetch account data as fallback:', fallbackError);
+        setUserState({ fullName: 'Unknown User', username: userId });
+      }
+    } finally {
+      setLoadingState(false);
+    }
+  };
 
   const getStatusText = (status: string | number) => {
     const statusStr = status.toString();
@@ -86,6 +129,14 @@ const ReportDetailModal = ({
           console.log('Event name:', event?.eventName);
           console.log('All event fields:', Object.keys(event || {}));
           setEventData(event);
+
+          // Fetch user data for createdBy and approvedBy
+          if (event?.createdBy) {
+            fetchUserById(event.createdBy, setCreatedByUser, setCreatedByLoading);
+          }
+          if (event?.approvedBy) {
+            fetchUserById(event.approvedBy, setApprovedByUser, setApprovedByLoading);
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch event data:', error);
@@ -122,6 +173,19 @@ const ReportDetailModal = ({
             }
           } else {
             setNewsData(news);
+          }
+
+          // Fetch user data for author if it's a UUID
+          if (news?.authorId && news.authorId !== news.authorName) {
+            fetchUserById(
+              news.authorId,
+              (user) => {
+                setNewsData((prev) =>
+                  prev ? { ...prev, authorName: user.fullName || user.username } : prev
+                );
+              },
+              () => {}
+            );
           }
         })
         .catch((error) => {
@@ -171,6 +235,30 @@ const ReportDetailModal = ({
       getCommentById(report.targetId)
         .then((comment) => {
           setCommentData(comment);
+
+          // Fetch user data for comment author if it's a UUID
+          if (comment?.userId && comment.userId !== comment.fullName) {
+            fetchUserById(
+              comment.userId,
+              (user) => {
+                setCommentData((prev) =>
+                  prev ? { ...prev, fullName: user.fullName || user.username } : prev
+                );
+              },
+              () => {}
+            );
+          }
+
+          // Fetch event name if eventId is provided but eventName is missing
+          if (comment?.eventId && !comment.eventName) {
+            getEventById(comment.eventId)
+              .then((event) => {
+                setCommentData((prev) => (prev ? { ...prev, eventName: event.eventName } : prev));
+              })
+              .catch((error) => {
+                console.error('Failed to fetch event data for comment:', error);
+              });
+          }
         })
         .catch((error) => {
           console.error('Failed to fetch comment data:', error);
@@ -510,8 +598,16 @@ const ReportDetailModal = ({
                             />
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-center">{eventData.createdBy || 'N/A'}</td>
-                        <td className="px-3 py-2 text-center">{eventData.approvedBy || 'N/A'}</td>
+                        <td className="px-3 py-2 text-center">
+                          {createdByLoading
+                            ? 'Loading...'
+                            : createdByUser?.fullName || createdByUser?.username || 'N/A'}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {approvedByLoading
+                            ? 'Loading...'
+                            : approvedByUser?.fullName || approvedByUser?.username || 'N/A'}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -554,9 +650,7 @@ const ReportDetailModal = ({
                         <td className="px-3 py-2 text-center font-medium">1</td>
                         <td className="px-3 py-2 text-center">{newsData.newsTitle || 'N/A'}</td>
                         <td className="px-3 py-2 text-center">{newsData.eventName || 'N/A'}</td>
-                        <td className="px-3 py-2 text-center">
-                          {newsData.authorName || newsData.authorId || 'N/A'}
-                        </td>
+                        <td className="px-3 py-2 text-center">{newsData.authorName || 'N/A'}</td>
                         <td className="px-3 py-2 text-center">
                           <div className="flex items-center justify-center">
                             <Switch
@@ -624,7 +718,7 @@ const ReportDetailModal = ({
                           {commentData.fullName || 'Unknown User'}
                         </td>
                         <td className="px-3 py-2 text-center">
-                          {commentData.eventName || commentData.eventId || 'Unknown Event'}
+                          {commentData.eventName || 'Unknown Event'}
                         </td>
                         <td className="px-3 py-2 text-center">
                           <div className="max-h-20 overflow-y-auto">
